@@ -21,14 +21,14 @@ theorem kwsstaticRange_18 : kwsStaticRange 18 1 := by
   unfold kwsStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwssplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 94) = true ∧
-    blockR (kwslookJ 19) (kwsomLookJ 19) false [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 94)
+theorem kwssplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 96) = true ∧
+    blockR (kwslookJ 19) (kwsomLookJ 19) false [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 96)
       ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv false [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 94) = ([], []) := by
+    blockEnv false [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 96) = ([], []) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwssplit_19_94 : blockR (kwslookJ 19) (kwsomLookJ 19) false [] Data.core19.params Data.core19.name (Data.core19.body.drop 94)
+theorem kwssplit_19_96 : blockR (kwslookJ 19) (kwsomLookJ 19) false [] Data.core19.params Data.core19.name (Data.core19.body.drop 96)
     ([], []) = some (⟨0, []⟩, []) := by
   decide +kernel
 

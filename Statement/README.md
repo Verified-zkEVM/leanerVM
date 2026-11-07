@@ -98,14 +98,17 @@ theorems, then read the files in this order.
    `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits,
    `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
-6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; FORS of
-   24 trees of height 10 under a hypertree of three WOTS+C layers of heights 8, 8, 10, its signature
-   the randomizer, the FORS opening and each layer's counter, chain values and path), its secret
-   key the crate's, the key's seed `S_0`, with the crate's deterministic signer, hash call for hash
-   call (each tree built once, the layers from the bottom up; not permutation call for permutation
-   call: the crate absorbs a one-time signature's input before the counter once, the statement
-   hashes it again per counter, so a signature's worst case charged is about `2^35` permutations,
-   the crate's about `2^33.6`), and
+6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme, SLH-DSA (FIPS 205) on
+   Keccak-256 with WOTS+C (FIPS 205's 32-byte address, `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` for every
+   tree, chain and secret hash; FORS of 24 trees of height 10, hashed to their roots and `T_k`,
+   under a hypertree of three WOTS+C layers of heights 8, 8, 10; the digest `H_msg`, two
+   counter-mode calls read as FIPS 205's Algorithm 19; its signature the randomizer, the FORS
+   opening and each layer's counter, chain values and path), its secret key the crate's, `SK.seed`
+   (`PK.seed` and `SK.prf` its hashes), its public key `(PK.seed, PK.root)`, with the crate's
+   deterministic signer, hash call for hash call (`expand_key`, the top tree level by level and
+   reused for the top path, `PRF_msg`, `H_msg`, each FORS tree built once, the layers from the
+   bottom up; every counter's input one Keccak block, so permutation call for permutation call
+   too: a signature's worst case is about `2^33.6` permutations), and
    `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
    bits up to `1,182,000,000` signatures, `Q` counting the honest signer's worst-case grinding too;
    a key used past its signature limit is not covered).
@@ -325,10 +328,10 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `1126600`) limits any program; it is the
-compiled decoder's size at leanVM `9d8bce81`, `1126129` (proved at most that and measured exactly),
-and a slack of `471`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
+**The size bound** (`guestWitnessDecoderSizeBound`, `1130500`) limits any program; it is the
+compiled decoder's size at leanVM `834e6614`, `1130039` (proved at most that and measured exactly),
+and a slack of `461`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+(the bound was `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
 more frame cells, and `380000` at `ed7d2b9c`, whose had far fewer), so
 no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
 many statements) fits there. That size counts the guest program's per-function tables, literals of

@@ -77,7 +77,7 @@ def sPrologue : List Stmt :=
 /-! ## The codeword -/
 
 /-- Arm `k` of a group of `n` digits from base `b` (`walk_group`, `lean_ethereum.py:3608-3622`):
-`armT` with the encoding of `k`'s own `n` digits, `k % 4^n`. -/
+`armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
 def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
   let ws := walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
@@ -87,7 +87,7 @@ def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
   let prod := if fold then copyS prodOut (W.power (digitSum k n))
     else mulS prodOut prodIn (W.power (digitSum k n))
   if k % 4 ^ n = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
-  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (k % 4 ^ n * 4 ^ first)), addS encOut enc0 (.n ws.2)],
+  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (W.enc first n (k % 4 ^ n))), addS encOut enc0 (.n ws.2)],
     ws.2 + 1)
 
 /-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/

@@ -38,9 +38,12 @@ one-time signature and a hypertree of layers of different heights.
 levels the top layer's path is read from), the randomizer, the digest's two calls, each FORS tree
 built once (its secrets, its leaves, its levels) and `T_k` of their roots, then the layers from the
 bottom up, each a one-time signature (the counter search, the chain starts, the chains) followed by
-its tree's levels (the top layer's from key generation). Every input of a counter search is 68
-bytes, one Keccak block, so the crate's search, which finishes a copy of the absorbed `PK.seed ‖
-ADRS ‖ M` per counter, makes the permutation calls this one does.
+its tree's levels (the top layer's from key generation). The crate computes a tree's one-time
+leaves and the 24 FORS trees in parallel (`parallel::map_collect`, `scheme.rs:265`, `fors.rs:65`),
+fixing no order among those calls: here they run in leaf order and in tree order, the calls and
+their inputs the crate's. Every input of a counter search is 68 bytes, one Keccak block, so the
+crate's search, which finishes a copy of the absorbed `PK.seed ‖ ADRS ‖ M` per counter, makes the
+permutation calls this one does.
 
 Then the SUF-CMA game of `Statement/SufCma.lean` with that signer, and the end statement
 `Sphincs.LeanSphincsStronglyUnforgeable`, proved by `Sphincs.leanSphincsStronglyUnforgeable`
@@ -75,7 +78,8 @@ def forsTreeCount : Nat := 24
 /-- `a`, the height of a FORS tree, `10` (`FORS_HEIGHT`, `mod.rs:77`). -/
 def forsTreeHeight : Nat := 10
 /-- `N`, the signatures a key makes at most: the end statement's limit, `1,182,000,000`
-(`doc/lean_sphincs` §sec:security; the crate's key is for `2^30`, §sec:scheme). -/
+(`doc/lean_sphincs` §sec:security, `main.tex:323-324`, the Lean proof's count; the crate's key is
+for `2^30`, §sec:scheme). -/
 def signatureLimit : Nat := 1182000000
 
 /-- `l`, a layer of the hypertree, counted from the bottom. -/
@@ -706,7 +710,8 @@ def otsSign (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeL
   otsSignFrom π key layer tree leaf message encodingAttemptLimit 0
 
 /-- `tree_levels` (`scheme.rs:262-275`): the levels of tree `tree` of layer `layer`, its leaves
-first (each a one-time key's leaf, in leaf order) and its root last. -/
+first (each a one-time key's leaf; the crate computes them in parallel, here in leaf order) and
+its root last. -/
 def treeLevels (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
     m (List (List Digest)) := do
   let leaves ← (List.range (2 ^ layerHeight layer)).mapM fun leaf ↦
@@ -738,8 +743,8 @@ def forsTreeOpen (key : ExpandedKey) (index : Index) (forsTree : ForsTreeIndex)
     ⟨secrets.getD leaf.val 0, fun z ↦ levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩)
 
 /-- `fors_sign` and the FORS public key (`fors_open`, `fors.rs:61-84`): every tree of instance
-`index` built once, in tree order, then `T_k` of their roots; the key and the opening at the
-digest's leaves. -/
+`index` built once (the crate builds them in parallel, here in tree order), then `T_k` of their
+roots; the key and the opening at the digest's leaves. -/
 def forsOpen (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → ForsLeafIndex) :
     m (Digest × (ForsTreeIndex → ForsTreeOpening)) := do
   let trees ← sequenceFin fun forsTree => forsTreeOpen π key index forsTree (leaves forsTree)

@@ -247,19 +247,25 @@ and the final verification at their worst case: a signature grinds through up to
 randomizers in each of its two layers, so one request alone may cost over $2^{33}$ calls.
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
-$Q \ge 1$ (\lean{Sphincs.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with
-the crate's deterministic signer, hash call for hash call (each tree built once, the layers from
-the bottom up; the crate absorbs a one-time signature's input before the counter once, the
-statement hashes it again per counter, so its permutation calls are more than the crate's), and at most $N = 1\,182\,000\,000$ signing requests
+$Q \ge 1$ (\lean{Sphincs.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), and
+at most $N = 1\,182\,000\,000$ signing requests
 (\lean{Sphincs.leanSphincsStronglyUnforgeable}, from leanVM's own random-oracle theorem
 \lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
-count them). In both schemes the secret key is the crate's: the key's seed $S_0$ (for leanXMSS
-with the public parameter $P$ key generation derived), from which the signer derives the scheme
-seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
-case ($2^{32}$ encoding counters on each of its three layers, the bottom one's encoding 6
-permutations long; the crate's signer, absorbing that encoding's input once, about $2^{33.6}$), so with every request used the bound is
-about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
-and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
+count them). The scheme is SLH-DSA (FIPS 205) on Keccak-256 with WOTS$^+$C: every tree, chain and
+secret hash is $\mathrm{Trunc}_{16}(H(\mathrm{PK.seed} \Vert \mathrm{ADRS} \Vert M))$ with FIPS 205's
+32-byte address, FORS trees are hashed to their roots, and the digest is two counter-mode calls read
+as FIPS 205's Algorithm~19. Its secret key is the crate's, the 32-byte $\mathrm{SK.seed}$, from which
+$\mathrm{PK.seed}$ and $\mathrm{SK.prf}$ are hashed again at each signature, and its signer is the
+crate's, hash call for hash call (the top tree built once, for the root and the top path, each FORS
+tree built once, the layers from the bottom up). In leanXMSS the secret key is the crate's too: the
+key's seed $S_0$ and the public parameter $P$ key generation derived, from which the signer derives
+the scheme seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A leanSPHINCS signature
+costs about $2^{19}$ permutations in expectation but about $2^{33.6}$ in the worst case ($2^{32}$
+encoding counters on each of its three layers, one permutation each), so with every request used
+the bound is about $2^{-63}$. Both schemes are stated through one game,
+\lean{Common.SufCma.StronglyUnforgeable},
+and share the shape of one tweakable hash (\texttt{hasher}, \texttt{truncate} of
+\texttt{crates/signatures/src/lib.rs}), hash chain and path fold.
 
 \subsection*{LeanDA}
 
@@ -405,8 +411,10 @@ satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
-where $\enc(\Cx)$ concatenates, per claim, the key's root ($16$ bytes), its parameter ($16$) and
-the message ($32$); $\enc(\Cs)$ likewise; and $\enc(c)$ is the $24$-byte encodings of
+where $\enc(\Cx)$ concatenates, per claim, the key's bytes, a leanXMSS key's root ($16$ bytes)
+then its parameter ($16$), and the message ($32$); $\enc(\Cs)$ likewise, a leanSPHINCS key's bytes
+being $\mathrm{PK.seed}$ then $\mathrm{PK.root}$ (\lean{claimListDigest},
+\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $24$-byte encodings of
 $z_1, \dots, z_{23}, v$,
 padded with one zero element to an even number. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
@@ -568,10 +576,10 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1126600$)
-limits any program; it is the compiled decoder's size at leanVM \texttt{9d8bce81}, $1126129$ (proved
-at most that, measured exactly; the guest's frame-cell table is $1087078$ of it), and a slack of
-$471$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1130500$)
+limits any program; it is the compiled decoder's size at leanVM \texttt{834e6614}, $1130039$ (proved
+at most that, measured exactly; the guest's frame-cell table is $1089239$ of it), and a slack of
+$461$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
 (cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its
@@ -671,7 +679,7 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 36514 + 33\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 17531\cnt{sphincs} + 186063\cnt{da}
+W = 36514 + 33\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 20060\cnt{sphincs} + 186063\cnt{da}
   + 218735\cnt{rows} \\ + 101\cnt{pad} + 25793\cnt{child} + 51\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
@@ -686,7 +694,7 @@ $r=4$ & 305591 & 308425 & 321286 & 323875 & 326652 & 332304 & 345407
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 876\cnt{sphincs} +
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 899\cnt{sphincs} +
 2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
 $\gamma$ between $4460$ and $9517$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
@@ -702,7 +710,7 @@ $\mathrm{dig}_{iv_G}(s)$ with $2^{21} < \mathrm{size}(t) \le 2^{28}$ (committed 
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
 children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
-check costs $G$ about three leanXMSS ones, $17531$ words against $6159$), $\cnt{rows}$ blobs held directly (the rows of
+check costs $G$ about three leanXMSS ones, $20060$ words against $6159$), $\cnt{rows}$ blobs held directly (the rows of
 at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
 \cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
 (a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
@@ -725,11 +733,11 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2627$ leanXMSS or $950$ leanSPHINCS signatures (each declared once), and a node holding one DA
+$2627$ leanXMSS or $831$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148} and \texttt{9d8bce81}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
+\texttt{1a379148}, \texttt{9d8bce81} and \texttt{834e6614}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.

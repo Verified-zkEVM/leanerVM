@@ -6,7 +6,8 @@ import Statement.Fast.Schemes
 `signature-kat DIR` runs the statement's key generation, signer and verifier, compiled over
 Keccak-f[1600], on the EthLib test vectors of `crates/signatures` (`DIR` is
 `crates/signatures/tests/signatures/ethlib` at the leanVM commit the statement cites: the `key_gen`,
-`sign` and `verify` cases of `sphincs` and `xmss`) and on leanSPHINCS's known answer
+`sign` and `verify` cases of `xmss`, and of `sphincs` where they exist; leanVM `834e6614` has
+leanXMSS's only) and on leanSPHINCS's known answer
 (`crates/signatures/src/lean_sphincs/known_answer.hex`, beside `DIR`'s crate, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case
 prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--sphincs` and `--xmss` run
@@ -31,39 +32,37 @@ open LeanVM.Semantics (KeccakState)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-def otsSecretsFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
-    (leaf : TreeLeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
-  let outputs ← sequenceFin fun pair : ChainPairIndex =>
-    thPair π parameter (keygenDomainFields (.oneTimeChainPair layer tree leaf pair))
-      (littleEndianBytes 32 seed)
-  return fun chainIndex => hashHalfForChain chainIndex.val (outputs (chainPair chainIndex))
+def otsSecretsFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
+    m (ChainIndex → Digest) :=
+  sequenceFin fun chainIndex ↦ prf π key (.oneTimeChain layer tree leaf chainIndex)
 
 @[csimp] theorem otsSecrets_eq_fast : @otsSecrets = @otsSecretsFast := rfl
 
-def oneTimePublicKeyFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
-    (leaf : TreeLeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
-  let secrets ← otsSecrets π parameter layer tree leaf seed
-  sequenceFin fun chainIndex =>
-    chainWalk π parameter layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
+def otsPublicLeafFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
+    m Digest := do
+  let secrets ← otsSecrets π key layer tree leaf
+  let endpoints ← sequenceFin fun chainIndex =>
+    chainWalk π key.publicSeed layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
+  leafHash π key.publicSeed layer tree leaf endpoints
 
-@[csimp] theorem oneTimePublicKey_eq_fast : @oneTimePublicKey = @oneTimePublicKeyFast := rfl
+@[csimp] theorem otsPublicLeaf_eq_fast : @otsPublicLeaf = @otsPublicLeafFast := rfl
 
-def otsSignFromFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
-    (leaf : TreeLeafIndex) (seed : MasterSeed) (message : HashInput) :
-    Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
+def otsSignFromFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
+    (message : Digest) : Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
-      match ← encode π parameter layer tree leaf message (BitVec.ofNat counterBits counter) with
+      match ← encode π key.publicSeed layer tree leaf message
+          (BitVec.ofNat counterBits counter) with
       | some encoding => do
-          let secrets ← otsSecrets π parameter layer tree leaf seed
+          let secrets ← otsSecrets π key layer tree leaf
           let values ← sequenceFin fun chainIndex =>
-            chainWalk π parameter layer tree leaf chainIndex 0 (encoding chainIndex).val
+            chainWalk π key.publicSeed layer tree leaf chainIndex 0 (encoding chainIndex).val
               (secrets chainIndex)
           return some (BitVec.ofNat counterBits counter, values)
-      | none => otsSignFromFast parameter layer tree leaf seed message attempts (counter + 1)
+      | none => otsSignFromFast key layer tree leaf message attempts (counter + 1)
 
 @[csimp] theorem otsSignFrom_eq_fast : @otsSignFrom = @otsSignFromFast := by
-  funext m _ π parameter layer a b c d attempts start
+  funext m _ π key layer tree leaf message attempts start
   induction attempts generalizing start with
   | zero => rfl
   | succ attempts ih =>
@@ -72,87 +71,70 @@ def otsSignFromFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIn
       funext result
       cases result <;> simp [ih]
 
-def otsSignFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
-    (seed : MasterSeed) (message : HashInput) :
-    m (Option (EncodingCounter × (ChainIndex → Digest))) :=
-  otsSignFrom π parameter layer tree leaf seed message encodingAttemptLimit 0
+def otsSignFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
+    (message : Digest) : m (Option (EncodingCounter × (ChainIndex → Digest))) :=
+  otsSignFrom π key layer tree leaf message encodingAttemptLimit 0
 
 @[csimp] theorem otsSign_eq_fast : @otsSign = @otsSignFast := rfl
 
-def treeNodeFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex) (seed : MasterSeed) :
-    Nat → Nat → m Digest :=
-  buildTree (fun nodeIndex ↦ do
-      leafHash π parameter layer tree (leafOfNat nodeIndex)
-        (← oneTimePublicKey π parameter layer tree (leafOfNat nodeIndex) seed))
-    fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex)
+def treeLevelsFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
+    m (List (List Digest)) := do
+  let leaves ← (List.range (2 ^ layerHeight layer)).mapM fun leaf ↦
+    otsPublicLeaf π key layer tree (leafOfNat leaf)
+  merkleLevels
+    (fun height nodeIndex ↦ tweakableHash π key.publicSeed (.node layer tree height nodeIndex))
+    leaves (layerHeight layer)
 
-@[csimp] theorem treeNode_eq_fast : @treeNode = @treeNodeFast := rfl
+@[csimp] theorem treeLevels_eq_fast : @treeLevels = @treeLevelsFast := rfl
 
-def treeNodeWithPathFast (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) (leaf : TreeLeafIndex) : Nat → Nat → m (Digest × (Nat → Digest)) :=
-  buildTreeWithPath (fun nodeIndex ↦ do
-      leafHash π parameter layer tree (leafOfNat nodeIndex)
-        (← oneTimePublicKey π parameter layer tree (leafOfNat nodeIndex) seed))
-    (fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex))
-    leaf.val
-
-@[csimp] theorem treeNodeWithPath_eq_fast : @treeNodeWithPath = @treeNodeWithPathFast := rfl
-
-def forsOpenFast (parameter : PublicParameter) (index : Index)
-    (leaves : ForsTreeIndex → ForsLeafIndex) (seed : MasterSeed) :
-    m (ForsKey × (ForsTreeIndex → ForsTreeOpening)) := do
-  let trees ← sequenceFin fun forsTree =>
-    forsTreeOpen π parameter index forsTree (leaves forsTree) seed
-  return (fun forsTree => (trees forsTree).1, fun forsTree => (trees forsTree).2)
+def forsOpenFast (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → ForsLeafIndex) :
+    m (Digest × (ForsTreeIndex → ForsTreeOpening)) := do
+  let trees ← sequenceFin fun forsTree => forsTreeOpen π key index forsTree (leaves forsTree)
+  let forsKey ← forsPublicKey π key.publicSeed index fun forsTree => (trees forsTree).1
+  return (forsKey, fun forsTree => (trees forsTree).2)
 
 @[csimp] theorem forsOpen_eq_fast : @forsOpen = @forsOpenFast := rfl
 
-def publicKeyOfFast (schemeSeed : MasterSeed) : m PublicKey := do
-  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
-  let root ← treeNode π parameter topLayer 0 schemeSeed (layerHeight topLayer) 0
-  return ⟨root, parameter⟩
+def keygenInternalFast (key : ExpandedKey) : m (PublicKey × List (List Digest)) := do
+  let top ← treeLevels π key topLayer 0
+  return (⟨key.publicSeed, levelNode top (layerHeight topLayer) 0⟩, top)
 
-@[csimp] theorem publicKeyOf_eq_fast : @publicKeyOf = @publicKeyOfFast := rfl
+@[csimp] theorem keygenInternal_eq_fast : @keygenInternal = @keygenInternalFast := rfl
 
-def keygenFromSeedFast (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let schemeSeed ← taggedSeed π seedTag masterSeed
-  let publicKey ← publicKeyOf π schemeSeed
-  return (publicKey, masterSeed)
+def keygenFromSeedFast (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
+  let key ← expandKey π secretSeed
+  let (publicKey, _) ← keygenInternal π key
+  return (publicKey, secretSeed)
 
 @[csimp] theorem keygenFromSeed_eq_fast : @keygenFromSeed = @keygenFromSeedFast := rfl
 
-def signLayerFast (parameter : PublicParameter) (schemeSeed : MasterSeed) (index : Index)
-    (layer : Layer) (message : HashInput) : m (Option (LayerSignature layer × Digest)) := do
+def signLayerFast (key : ExpandedKey) (top : List (List Digest)) (index : Index) (layer : Layer)
+    (message : Digest) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
   let leaf := leafOfIndex layer index
-  let some (counter, values) ← otsSign π parameter layer tree leaf schemeSeed message
-    | return none
-  let built ← treeNodeWithPath π parameter layer tree schemeSeed leaf (layerHeight layer) 0
-  return some (⟨counter, values, fun level ↦ built.2 level.val⟩, built.1)
+  let some (counter, values) ← otsSign π key layer tree leaf message | return none
+  let levels ← if layer = topLayer then pure top else treeLevels π key layer tree
+  return some (⟨counter, values, fun z ↦ levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩,
+    levelNode levels (layerHeight layer) 0)
 
 @[csimp] theorem signLayer_eq_fast : @signLayer = @signLayerFast := rfl
 
-def signWithSchemeSeedFast (schemeSeed : MasterSeed) (message : Message) : m (Option Signature) := do
-  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
-  let randomizer ← th π parameter (tweakFields 7 0 0 0)
-    (littleEndianBytes 32 schemeSeed ++ littleEndianBytes 32 message)
-  let digest ← messageDigest π parameter message randomizer
+def signWithExpandedKeyFast (key : ExpandedKey) (message : Message) : m (Option Signature) := do
+  let (publicKey, top) ← keygenInternal π key
+  let randomizer ← prfMessage π key.secretPrfKey key.publicSeed message
+  let digest ← messageDigest π publicKey randomizer message
   let index := digestIndex digest
-  let fors ← forsOpen π parameter index (digestForsLeaves digest) schemeSeed
-  let some (bottom, bottomRoot) ← signLayer π parameter schemeSeed index 0 (forsKeyPayload fors.1)
-    | return none
-  let some (middle, middleRoot) ←
-      signLayer π parameter schemeSeed index 1 (littleEndianBytes 16 bottomRoot)
-    | return none
-  let some (top, _) ← signLayer π parameter schemeSeed index 2 (littleEndianBytes 16 middleRoot)
-    | return none
-  return some ⟨randomizer, fors.2, layerSignatures bottom middle top⟩
+  let (forsKey, forsOpening) ← forsOpen π key index (digestForsLeaves digest)
+  let some (bottom, bottomRoot) ← signLayer π key top index 0 forsKey | return none
+  let some (middle, middleRoot) ← signLayer π key top index 1 bottomRoot | return none
+  let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
+  return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
-@[csimp] theorem signWithSchemeSeed_eq_fast : @signWithSchemeSeed = @signWithSchemeSeedFast := rfl
+@[csimp] theorem signWithExpandedKey_eq_fast : @signWithExpandedKey = @signWithExpandedKeyFast := rfl
 
 def signFast (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let schemeSeed ← taggedSeed π seedTag secretKey
-  signWithSchemeSeed π schemeSeed message
+  let key ← expandKey π secretKey
+  signWithExpandedKey π key message
 
 @[csimp] theorem sign_eq_fast : @sign = @signFast := rfl
 
@@ -234,7 +216,7 @@ def treePathFast (parameter : PublicParameter) (layer : Layer) (seed : MasterSee
 @[csimp] theorem treePath_eq_fast : @treePath = @treePathFast := rfl
 
 def keygenFromSeedFast (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let seed ← taggedSeed π seedTag masterSeed
+  let seed ← schemeSeedOf π masterSeed
   let parameter ← publicParameterOf π seed
   let root ← treeNode π parameter topLayer seed layerHeight 0
   return (⟨root, parameter⟩, ⟨masterSeed, parameter⟩)
@@ -264,7 +246,7 @@ def signWithSchemeSeedFast (seed : MasterSeed) (parameter : PublicParameter) (le
 
 def signFast (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     m (Option Signature) := do
-  let seed ← taggedSeed π seedTag secretKey.keySeed
+  let seed ← schemeSeedOf π secretKey.keySeed
   signWithSchemeSeed π seed secretKey.parameter leafIndex message
 
 @[csimp] theorem sign_eq_fast : @sign = @signFast := rfl
@@ -319,6 +301,13 @@ def take (n : Nat) : Reader (BitVec (8 * n)) := do
   set (bytes.drop n)
   return BitVec.ofNat (8 * n) (leNat (bytes.take n))
 
+/-- `n` bytes read big endian. -/
+def takeBigEndian (n : Nat) : Reader (BitVec (8 * n)) := do
+  let bytes ← get
+  if bytes.length < n then failure
+  set (bytes.drop n)
+  return BitVec.ofNat (8 * n) (leNat (bytes.take n).reverse)
+
 def readFin {n : Nat} {α : Type} [Inhabited α] (read : Fin n → Reader α) : Reader (Fin n → α) := do
   let values ← (List.finRange n).mapM read
   return fun i => values.getD i.val default
@@ -328,11 +317,13 @@ def readFin {n : Nat} {α : Type} [Inhabited α] (read : Fin n → Reader α) : 
 namespace Sphincs
 open _root_.Sphincs
 
-def publicKeyBytes (publicKey : PublicKey) : List UInt8 :=
-  littleEndianBytes 16 publicKey.root ++ littleEndianBytes 16 publicKey.parameter
+/-- `LeanSphincsPublicKey::to_bytes`: `PK.seed ‖ PK.root`. -/
+def publicKeyBytes (publicKey : _root_.Sphincs.PublicKey) : List UInt8 :=
+  publicKey.toBytes
 
+/-- A layer: its counter, big endian, its chain values and its path (`to_bytes`). -/
 def layerBytes (layer : Layer) (signature : LayerSignature layer) : List UInt8 :=
-  littleEndianBytes 4 signature.counter ++
+  bigEndianBytes 4 signature.counter ++
     (List.ofFn fun chain => littleEndianBytes 16 (signature.chainValues chain)).flatten ++
     (List.ofFn fun level => littleEndianBytes 16 (signature.authenticationPath level)).flatten
 
@@ -347,7 +338,7 @@ def signatureBytes (signature : Signature) : List UInt8 :=
 instance : Inhabited ForsTreeOpening := ⟨⟨0, fun _ => 0⟩⟩
 
 def readLayer (layer : Layer) : Reader (LayerSignature layer) := do
-  let counter ← take 4
+  let counter ← takeBigEndian 4
   let chainValues ← readFin fun _ : ChainIndex => take 16
   let path ← readFin fun _ : Fin (layerHeight layer) => take 16
   return ⟨counter, chainValues, path⟩
@@ -368,18 +359,20 @@ def signatureOf (bytes : List UInt8) : Option Signature :=
   | some (signature, []) => some signature
   | _ => none
 
-def publicKeyOf (bytes : List UInt8) : Option PublicKey :=
+/-- `LeanSphincsPublicKey::from_bytes`: `PK.seed`, then `PK.root`. -/
+def publicKeyOf (bytes : List UInt8) : Option _root_.Sphincs.PublicKey :=
   if bytes.length = 32 then
     some ⟨BitVec.ofNat 128 (leNat (bytes.take 16)), BitVec.ofNat 128 (leNat (bytes.drop 16))⟩
   else none
 
-def keygen (seed : MasterSeed) : PublicKey :=
+def keygen (seed : MasterSeed) : _root_.Sphincs.PublicKey :=
   ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
 
 def sign (seed : MasterSeed) (message : Message) : Option Signature :=
   (KeyGenerationAndSigning.sign (m := StateM Unit) keccak seed message).run' ()
 
-def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
+def verify (publicKey : _root_.Sphincs.PublicKey) (message : Message) (signature : Signature) :
+    Bool :=
   (Verification.verify (m := StateM Unit) keccak publicKey message signature).run' ()
 
 end Sphincs
@@ -391,6 +384,12 @@ open LeanXmss
 
 def publicKeyBytes (publicKey : PublicKey) : List UInt8 :=
   littleEndianBytes 16 publicKey.root ++ littleEndianBytes 16 publicKey.parameter
+
+/-- `LeanXmssPublicKey::from_bytes`: the root, then the parameter. -/
+def publicKeyOf (bytes : List UInt8) : Option PublicKey :=
+  if bytes.length = 32 then
+    some ⟨BitVec.ofNat 128 (leNat (bytes.take 16)), BitVec.ofNat 128 (leNat (bytes.drop 16))⟩
+  else none
 
 def layerBytes (signature : LayerSignature) : List UInt8 :=
   littleEndianBytes 16 signature.randomizer ++
@@ -481,14 +480,15 @@ def runCase (scheme kind : String) (lines : List String) : Option String :=
         return hexOf (Xmss.signatureBytes signature)
       else none
   | "xmss", "verify" => do
-      let publicKey ← (bytes "public_key").bind Sphincs.publicKeyOf
+      let publicKey ← (bytes "public_key").bind Xmss.publicKeyOf
       let message ← (bytes "message").bind (bitVecOf 32)
       let signature ← (bytes "signature").bind Xmss.signatureOf
       bool (some (Xmss.verify publicKey message signature))
   | _, _ => none
 
-/-- leanSPHINCS's known answer (`known_answer`, `lean_sphincs/scheme.rs`): the public key and the
-signature of the scheme seed `S[i] = 37 i + 11` and the message `m[i] = 7 i + 3`, below the tag. -/
+/-- leanSPHINCS's known answer (`known_answer`, `lean_sphincs/scheme.rs:380-400`): the public key
+and the signature of `SK.seed[i] = 37 i + 11` and the message `m[i] = 7 i + 3`, `sign_with` on the
+expanded key, and its verification. -/
 def knownAnswer (path : System.FilePath) : IO Bool := do
   let lines := (← IO.FS.readFile path).splitOn "\n" |>.filter (· ≠ "")
   -- the constants from the file's length, so that the compiler does not evaluate the known answer
@@ -498,12 +498,17 @@ def knownAnswer (path : System.FilePath) : IO Bool := do
   let messageBytes : List UInt8 := (List.range 32).map fun i => UInt8.ofNat (b * i + 3)
   let seed : MasterSeed := BitVec.ofNat 256 (leNat seedBytes)
   let message : Message := BitVec.ofNat 256 (leNat messageBytes)
-  let publicKey := (_root_.Sphincs.KeyGenerationAndSigning.publicKeyOf (m := StateM Unit)
-    keccak seed).run' ()
-  let signature := (_root_.Sphincs.KeyGenerationAndSigning.signWithSchemeSeed (m := StateM Unit)
-    keccak seed message).run' ()
+  let (publicKey, signature) := (do
+      let key ← _root_.Sphincs.KeyGenerationAndSigning.expandKey (m := StateM Unit) keccak seed
+      let (publicKey, _) ←
+        _root_.Sphincs.KeyGenerationAndSigning.keygenInternal (m := StateM Unit) keccak key
+      let signature ←
+        _root_.Sphincs.KeyGenerationAndSigning.signWithExpandedKey (m := StateM Unit) keccak key
+          message
+      return (publicKey, signature) : StateM Unit _).run' ()
   let publicKeyOk := hexOf (Sphincs.publicKeyBytes publicKey) == "0x" ++ lines[0]!
-  let signatureOk := (signature.map fun s => hexOf (Sphincs.signatureBytes s)) == some ("0x" ++ lines[1]!)
+  let signatureOk :=
+    (signature.map fun s => hexOf (Sphincs.signatureBytes s)) == some ("0x" ++ lines[1]!)
   let verifyOk := signature.map (Sphincs.verify publicKey message) == some true
   IO.println s!"sphincs known_answer: public key {publicKeyOk}, signature {signatureOk}, verify {verifyOk}"
   return publicKeyOk && signatureOk && verifyOk

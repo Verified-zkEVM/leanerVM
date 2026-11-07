@@ -148,6 +148,22 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Cost.verification_compressions
 
+/-- info: 'FORS.Crate.eval_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.eval_keygen
+
+/-- info: 'FORS.Crate.hashCalls_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.hashCalls_keygen
+
+/-- info: 'FORS.Crate.eval_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.eval_sign
+
+/-- info: 'FORS.Crate.hashCalls_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.hashCalls_sign
+
 open Lean in
 run_cmd do
   let env ← getEnv
