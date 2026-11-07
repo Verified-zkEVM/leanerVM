@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFields
 
-  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3783-3841` at leanVM
-  834e6614, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
+  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3777-3836` at leanVM
+  d1c4c8f7, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
   bits of the digest's number, the FORS leaves and the layers' leaves read as FIPS 205's
   Algorithm 19 reads them, their right shifts, and the digest's bytes placed back into its cells.
 -/
