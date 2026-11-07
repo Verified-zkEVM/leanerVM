@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Fpw
 
-  `verify_sub`'s `fp_w` (G:3453-3456), honestly: the bus challenges' equality weights stored, then
+  `verify_sub`'s `fp_w` (G:3447-3450), honestly: the bus challenges' equality weights stored, then
   `β`'s squeeze.
 -/
 

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.Loops
 public import LeanVM.Guest.B1.Whir.ResQuery
 
 /-!
-# The residual loop (G:1764-1773)
+# The residual loop (G:1758-1767)
 
 A residual step (`osResStep`) reads a position and runs `h ← (h + R(p))·μ`, `R` the level's
 `residual_query`: `osResSteps_val`, the chain `resFold` over the positions read. At `x = g^j` the

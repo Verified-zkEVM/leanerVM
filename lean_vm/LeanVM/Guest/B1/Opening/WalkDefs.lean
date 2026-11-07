@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Guest.WalkWindows
 
 /-!
-# The walk obligations, definitions (lean_ethereum.py:1342-1378, 1427-1451 at 834e6614)
+# The walk obligations, definitions (lean_ethereum.py:1336-1372, 1421-1445 at d1c4c8f7)
 
 `WinsAt`, `WinWalk`, `WinWalk2`, `OqMainWins`, over the windows' shape `qwN`, `qwWin`, are
 defined in `Guest/WalkWindows.lean`, apart from B1, since the certificates' checker (`Glob`) and

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
-# The positions table (G:1602-1608, 855-898)
+# The positions table (G:1596-1602, 849-892)
 
 `decode_query_windows` of challenge `jj` writes positions `jj·per .. jj·per + per - 1` and their
 windows (`per = 192 / depth`). `positions_of_decodes`: for every `k < q`, the position

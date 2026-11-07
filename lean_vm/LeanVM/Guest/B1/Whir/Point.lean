@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# The point (G:1707-1721)
+# The point (G:1701-1715)
 
 Entry `i` of `point` is the challenge `osPtSrc` names (or `0` past the point), entry `i` of
 `point1` one plus it (`osPtBlks_sound`).

@@ -56,7 +56,7 @@ def minLogMem : ℕ := 16
 `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
-/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:490`;
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:489`;
 `verifier.py:976`). -/
 def maxLogBytecode : ℕ := 32
 
@@ -432,7 +432,7 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:618-625`; `Digest.halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:616-623`; `Digest.halves`,
 `verifier.py:225-228`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]

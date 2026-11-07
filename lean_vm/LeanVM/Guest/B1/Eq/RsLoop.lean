@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.RsRows
 
 /-!
-# `__loop5` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py:1080-1082 at leanVM `834e6614`)
+# `__loop5` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py:1074-1076 at leanVM `d1c4c8f7`)
 
 At `xq = g^t` the body calls `rs_eq_rows__L8` on the row `chain·g^(64 t)` and the coordinates
 from `z·g^(8 t)`, `p·g^(8 t)` (`L5Body`), then continues at `xq·g` (`loop5_sound`,

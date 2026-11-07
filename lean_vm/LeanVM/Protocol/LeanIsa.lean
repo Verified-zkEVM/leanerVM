@@ -49,7 +49,7 @@ the program's entries (`bytecodeTable`, with the program's eleven entry columns 
 parties, `Coord.known`; `bytecode_columns`, `layout.rs:295`). The index column is the verifier's
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
-**The stack** (`crates/leanvm_core/src/witness.rs:57-96`). Every committed column has a
+**The stack** (`crates/leanvm_core/src/witness.rs:56-95`). Every committed column has a
 log-size, its table's; the `KECCAK` table's columns `0 … 63` have none (`IsVirtual`: the fifty
 value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
 `witness.rs:20`; `layout.rs:228-240`), so `99` of the `163` columns are committed. The committed
@@ -97,7 +97,7 @@ With `d = 2` it meets the table sumcheck's degree bound by definition.
 
 The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
 `python-verifier/verifier.py` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines
-at `834e6614`); the instance's polynomials are Clean's, through `Component.toM3`.
+at `d1c4c8f7`); the instance's polynomials are Clean's, through `Component.toM3`.
 
 ## Wrong readings excluded
 
@@ -347,7 +347,7 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 abbrev kappa (c : Col) : ℕ := height prog s c.1
 
 /-- The committed columns in stacking order: largest first, ties in global order
-(`witness.rs:57-76`; `List.mergeSort` is stable). -/
+(`witness.rs:56-75`; `List.mergeSort` is stable). -/
 def stackOrder : List Col :=
   committedColumns.mergeSort fun a b ↦ decide (kappa prog s b ≤ kappa prog s a)
 
@@ -375,7 +375,7 @@ def minMu : ℕ := 15
 def maxMu : ℕ := 28
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
-`2 ^ MIN_MU` (`placements_of`, `witness.rs:92`). -/
+`2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/
 def leanIsaμ : ℕ := max (Nat.clog 2 (blocks prog s).total) minMu
 
 /-- The blocks fit on the stack. -/

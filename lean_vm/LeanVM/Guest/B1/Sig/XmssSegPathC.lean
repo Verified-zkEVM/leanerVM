@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssSegPathC
 
   The path of the leanXMSS check in `__loop2` (`lx_window`, `lx_top_window`, `lx_levels`,
-  `lean_ethereum.py:3647-3687, 3750-3759`), complete a window at a time: the dispatch by the
+  `lean_ethereum.py:3641-3681, 3744-3753`), complete a window at a time: the dispatch by the
   honest window `lxWin L w`, each level's sibling hinted, the arm's pin by `lx_his_honest`.
 -/
 
