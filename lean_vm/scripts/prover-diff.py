@@ -7,10 +7,12 @@ its public input, an execution's memory and `trace.txt`, and the Rust prover's p
      and Keccak-f[1600], the statement's prover compiled) on the case, timing it, and sets the
      time beside the Rust prover's (`rust.txt`);
   2. checks that the Lean-made proof is byte-identical to the Rust prover's, and, with
-     `--expected <dir>`, to the committed proof `<dir>/<case>/{stream,merkle_openings}.bin`
+     `--expected <dir>`, to the committed proof `<dir>/<case>/` (`stream.bin`,
+     `merkle_openings.bin`, `merkle_phases.bin`, and the wire encoding `proof.wire`, which
+     `leanvm-prove` writes as `lean_proof.wire` from `Proof.toBytes`)
      (tests/fixtures/verifier: the same twelve cases, export-verifier-fixtures-rust.sh); reported,
      and required with `--identical` (as the gate runs it);
-  3. writes the Lean-made proof as a verifier fixture (bytecode, public input, stream, openings)
+  3. writes the Lean-made proof as a verifier fixture (bytecode, public input and the proof's files)
      and runs scripts/fuzz-verifier.py on the fixtures: the Lean verifier (`leanvm-verify`) and
      the Rust verifier (`scripts/rust-verifier-cli`) on the honest Lean-made proof and on
      `--mutations` mutations of it, structured and random.
@@ -37,7 +39,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PROVE_EXE = ROOT / ".lake" / "build" / "bin" / "leanvm-prove"
-FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
+PARTS = ("stream.bin", "merkle_openings.bin", "merkle_phases.bin", "proof.wire")
 
 
 def limit(gigabytes: int):
@@ -60,7 +62,7 @@ def main() -> None:
     parser.add_argument("--identical", action="store_true",
                         help="fail unless every Lean-made proof is the Rust prover's byte for byte")
     parser.add_argument("--expected", type=Path,
-                        help="committed proofs to compare with too: <dir>/<case>/{stream,merkle_openings}.bin")
+                        help="committed proofs to compare with too: <dir>/<case>/{" + ",".join(PARTS) + "}")
     arguments = parser.parse_args()
     if not arguments.prove_exe.exists():
         sys.exit(f"{arguments.prove_exe} is not built (lake build leanvm-prove)")
@@ -88,7 +90,7 @@ def main() -> None:
                 failed = True
                 continue
             rust = (directory / "rust.txt").read_text().strip() if (directory / "rust.txt").exists() else "-"
-            parts = ("stream.bin", "merkle_openings.bin")
+            parts = PARTS
             identical = all(
                 (directory / f"lean_{f}").read_bytes() == (directory / f).read_bytes()
                 for f in parts if (directory / f).exists())

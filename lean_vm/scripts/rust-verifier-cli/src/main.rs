@@ -1,21 +1,30 @@
 //! `leanvm-rust-verify`: the deployed Rust verifier of leanVM (`crates/verifier`,
-//! `verify_execution`) on the four files the Python verifier's CLI reads
-//! (`python-verifier/verifier.py`, `main`), so that its verdicts can be set beside the Lean
-//! verifier's (`lake exe leanvm-verify`) on the same bytes.
+//! `verify_execution`) on a proof's files, so that its verdicts can be set beside the Lean
+//! verifier's (`lake exe leanvm-verify`) on the same bytes. Two forms of the proof:
 //!
-//! The files are decoded as the Python's `main` decodes them: the bytecode as little-endian
-//! 64-bit words (a length that is not a multiple of 8 is rejected), the public input as 32 bytes
-//! (any other length is rejected), and the stream and openings by `verifier::Proof::load`, the
-//! `verifier` crate's reader of exactly this encoding.
+//! * structured: the scalar stream (`stream.bin`, 24-byte little-endian elements, three limbs
+//!   each) and the Merkle openings phase by phase (`merkle_phases.bin`), the `verifier` crate's
+//!   `Proof { stream, merkle_openings: Vec<Vec<MerklePath>> }` (`crates/verifier/src/transcript.rs`)
+//!   written out field by field, every number little-endian: the phase count (`u32`); per phase
+//!   its path count (`u32`); per path its `leaf_index` (`u64`), its leaf's length (`u32`) and
+//!   words (`u64` each), its sibling count (`u32`) and siblings (32 bytes each). Bytes left over,
+//!   or too few, are a rejection;
+//! * the wire: `Proof::to_bytes`'s one encoding (`crates/fiat_shamir/src/wire.rs`), decoded by
+//!   `Proof::from_bytes`, which unprunes the paths (`None` is a rejection), then verified.
 //!
-//!     leanvm-rust-verify <bytecode> <public input> <stream> <openings>
+//! The bytecode is read as little-endian 64-bit words (a length that is not a multiple of 8 is
+//! rejected) and the public input as 32 bytes (any other length is rejected), as the Python
+//! verifier's `main` reads them.
+//!
+//!     leanvm-rust-verify <bytecode> <public input> <stream> <merkle phases>
+//!     leanvm-rust-verify <bytecode> <public input> <proof.wire>
 //!     leanvm-rust-verify --batch < cases
 //!
-//! The first form prints `verification succeeded` (exit 0) or `verification failed: <reason>`
+//! A single case prints `verification succeeded` (exit 0) or `verification failed: <reason>`
 //! (exit 1). A panic of the verifier is caught and reported as `verification panicked: <message>`
 //! (exit 3): it is a rejection, but one the caller should see. In `--batch` mode every line of
-//! standard input names four files, separated by tabs, and one verdict line is printed for it
-//! (`accept`, `reject <reason>` or `panic <message>`), in order.
+//! standard input names four files (structured) or three (wire), separated by tabs, and one
+//! verdict line is printed for it (`accept`, `reject <reason>` or `panic <message>`), in order.
 
 use std::io::{BufRead, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -26,7 +35,91 @@ enum Verdict {
     Panic(String),
 }
 
-fn verify_bytes(bytecode: &[u8], public_input: &[u8], stream: &[u8], openings: &[u8]) -> Result<(), String> {
+struct Reader<'a>(&'a [u8]);
+
+impl Reader<'_> {
+    fn take(&mut self, count: usize) -> Result<&[u8], String> {
+        if self.0.len() < count {
+            return Err("the Merkle phases end early".into());
+        }
+        let (head, rest) = self.0.split_at(count);
+        self.0 = rest;
+        Ok(head)
+    }
+    fn u32(&mut self) -> Result<usize, String> {
+        Ok(u32::from_le_bytes(self.take(4)?.try_into().expect("four bytes")) as usize)
+    }
+    fn u64(&mut self) -> Result<u64, String> {
+        Ok(u64::from_le_bytes(self.take(8)?.try_into().expect("eight bytes")))
+    }
+}
+
+/// The structured Merkle openings (`merkle_phases.bin`, the module's doc). Counts are checked
+/// against the bytes left before anything is allocated.
+fn merkle_phases(bytes: &[u8]) -> Result<Vec<Vec<verifier::MerklePath>>, String> {
+    let mut input = Reader(bytes);
+    let phases = input.u32()?;
+    let mut out = Vec::new();
+    for _ in 0..phases {
+        let count = input.u32()?;
+        let mut phase = Vec::new();
+        for _ in 0..count {
+            let leaf_index = input.u64()?;
+            let words = input.u32()?;
+            let leaf = input
+                .take(words.checked_mul(8).ok_or("a leaf too long")?)?
+                .chunks_exact(8)
+                .map(|word| verifier::K(u64::from_le_bytes(word.try_into().expect("eight bytes"))))
+                .collect();
+            let siblings = input.u32()?;
+            let siblings = input
+                .take(siblings.checked_mul(32).ok_or("a path too long")?)?
+                .chunks_exact(32)
+                .map(|digest| digest.try_into().expect("32 bytes"))
+                .collect();
+            phase.push(verifier::MerklePath { leaf_index, leaf, siblings });
+        }
+        out.push(phase);
+    }
+    if !input.0.is_empty() {
+        return Err("bytes after the Merkle phases".into());
+    }
+    Ok(out)
+}
+
+fn stream(bytes: &[u8]) -> Result<Vec<verifier::E>, String> {
+    if bytes.len() % 24 != 0 {
+        return Err("the stream is not a whole number of field elements".into());
+    }
+    Ok(bytes
+        .chunks_exact(24)
+        .map(|element| {
+            let limb = |i: usize| u64::from_le_bytes(element[8 * i..8 * i + 8].try_into().expect("eight bytes"));
+            verifier::E { c0: limb(0), c1: limb(1), c2: limb(2) }
+        })
+        .collect())
+}
+
+/// `Proof::from_bytes`, then the `verifier` crate's form of the proof (`leanvm_core::cpu::scalar_proof`).
+fn wire(bytes: &[u8]) -> Result<verifier::Proof, String> {
+    let proof = fiat_shamir::transcript::Proof::from_bytes(bytes).ok_or("wire decoding failed")?;
+    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
+        leaf_index: path.leaf_index,
+        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
+        siblings: path.siblings.clone(),
+    };
+    Ok(verifier::Proof {
+        stream: proof
+            .stream
+            .iter()
+            .map(|element| verifier::E { c0: element.c0, c1: element.c1, c2: element.c2 })
+            .collect(),
+        merkle_openings: proof.merkle.iter().map(|phase| phase.iter().map(path).collect()).collect(),
+    })
+}
+
+fn verify_bytes(files: &[Vec<u8>]) -> Result<(), String> {
+    let (bytecode, public_input) = (&files[0], &files[1]);
     if bytecode.len() % 8 != 0 {
         return Err("bytecode is not a whole number of 64-bit words".into());
     }
@@ -34,10 +127,14 @@ fn verify_bytes(bytecode: &[u8], public_input: &[u8], stream: &[u8], openings: &
         .chunks_exact(8)
         .map(|word| u64::from_le_bytes(word.try_into().expect("eight bytes")))
         .collect();
-    let public_input: &[u8; 32] = public_input
+    let public_input: &[u8; 32] = public_input[..]
         .try_into()
         .map_err(|_| format!("the public input has {} bytes, not 32", public_input.len()))?;
-    let proof = verifier::Proof::load(stream, openings).map_err(|error| error.to_string())?;
+    let proof = match files {
+        [_, _, proof] => wire(proof)?,
+        [_, _, scalars, phases] => verifier::Proof { stream: stream(scalars)?, merkle_openings: merkle_phases(phases)? },
+        _ => unreachable!("three or four files"),
+    };
     let bytecode = verifier::Bytecode::new(&table);
     verifier::verify_execution(&bytecode, public_input, &proof)
         .map(|_| ())
@@ -52,7 +149,7 @@ fn verify_files(paths: &[&str]) -> Verdict {
             Err(error) => return Verdict::Reject(format!("{path}: {error}")),
         }
     }
-    match catch_unwind(AssertUnwindSafe(|| verify_bytes(&files[0], &files[1], &files[2], &files[3]))) {
+    match catch_unwind(AssertUnwindSafe(|| verify_bytes(&files))) {
         Ok(Ok(())) => Verdict::Accept,
         Ok(Err(reason)) => Verdict::Reject(reason),
         Err(payload) => Verdict::Panic(
@@ -79,23 +176,24 @@ fn main() {
                     continue;
                 }
                 let paths: Vec<&str> = line.split('\t').collect();
-                let verdict = if paths.len() == 4 {
+                let verdict = if paths.len() == 3 || paths.len() == 4 {
                     verify_files(&paths)
                 } else {
-                    Verdict::Reject(format!("expected four tab-separated paths: {line}"))
+                    Verdict::Reject(format!("expected three or four tab-separated paths: {line}"))
                 };
                 let text = match verdict {
                     Verdict::Accept => "accept".to_string(),
-                    Verdict::Reject(reason) => format!("reject {reason}"),
+                    Verdict::Reject(reason) => format!("reject {}", reason.replace('\n', " ")),
                     Verdict::Panic(message) => format!("panic {}", message.replace('\n', " ")),
                 };
                 writeln!(out, "{text}").expect("write standard output");
                 out.flush().expect("flush standard output");
             }
         }
-        [bytecode, public_input, stream, openings] => {
+        paths if paths.len() == 3 || paths.len() == 4 => {
             std::panic::set_hook(Box::new(|_| {}));
-            match verify_files(&[bytecode, public_input, stream, openings]) {
+            let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+            match verify_files(&paths) {
                 Verdict::Accept => println!("verification succeeded"),
                 Verdict::Reject(reason) => {
                     println!("verification failed: {reason}");
@@ -108,8 +206,9 @@ fn main() {
             }
         }
         _ => {
-            eprintln!("usage: leanvm-rust-verify <bytecode> <public input> <stream> <openings>");
-            eprintln!("       leanvm-rust-verify --batch < lines of four tab-separated paths");
+            eprintln!("usage: leanvm-rust-verify <bytecode> <public input> <stream> <merkle phases>");
+            eprintln!("       leanvm-rust-verify <bytecode> <public input> <proof.wire>");
+            eprintln!("       leanvm-rust-verify --batch < lines of four or three tab-separated paths");
             std::process::exit(2);
         }
     }

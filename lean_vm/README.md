@@ -191,7 +191,7 @@ cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
 ```
 
-After a bump of `../leanvm-rev` to a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`.
+After a bump of `../leanvm-rev` to a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`. A fixture holds its proof in three forms: the scalar stream with the Merkle openings phase by phase (`stream.bin`, `merkle_phases.bin`, the Rust `Proof { stream, merkle_openings }`, which `leanvm-verify` and `leanvm-rust-verify` read as `<bytecode> <public input> <stream> <phases>`), the Python verifier's flat openings (`merkle_openings.bin`, each opening its 8-byte position, leaf and siblings, `verifier.py:433-445`) and the wire encoding (`proof.wire`, `Proof::to_bytes` of `crates/fiat_shamir/src/wire.rs`, which both verifiers decode first as `<bytecode> <public input> <proof.wire>`). The fuzz mutates the structured form (the positions and shapes of the openings among it) and the wire form.
 
 The guest's data (the bytecode, the source, the test programs, the manifest and the node vectors) is regenerated, after a bump of `../leanvm-rev` or a change to the exporter, by one command; `--check`, which CI runs, fails when any of it is stale:
 
