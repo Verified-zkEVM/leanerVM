@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSound
 
-  `verify_sig_lean_sphincs` (`lean_ethereum.py:3972-4074` at leanVM 834e6614) is sound: under a
+  `verify_sig_lean_sphincs` (`lean_ethereum.py:3967-4053` at leanVM d1c4c8f7) is sound: under a
   call relation that unfolds at a frame map, on a memory image of at most `2^32` words, whenever
   its body holds it returns no words, and with the byte table at its second argument the signature
   read off its valuation and its three `sp_wots` frames verifies the claim at its first
@@ -73,7 +73,7 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
   have hD' : AtomsHold L.read σ ((sLayerPath 2 (sA0Of 2) sLayerM.2.2).1 ++
       [.atom (.assertEq sLayerT.2.2 sRoot)]) := hD
   -- the digest, the addresses, the FORS key, the root's check
-  obtain ⟨hp, c, d, hclaim, -, -, T, hDig, hmd⟩ := sDigestBlock_sound_stmt hκ hbb hA'.left.left.left
+  obtain ⟨hp, c, d, hclaim, T, hDig, hmd⟩ := sDigestBlock_sound_stmt hκ hbb hA'.left.left.left
   have hT := hDig.1
   obtain ⟨hA0, hK0⟩ := sForsAddrs_sound hDig hA'.left.left.right
   obtain ⟨hA1, hK1⟩ := sMidAddrs_sound hDig hB'.left.right

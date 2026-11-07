@@ -8,15 +8,15 @@
 
 module
 
-public import Statement.Prover.Prove
+public import LeanVM.Wire.Encoding
 
 /-!
 # The wire encoding: definitions and statements for the proofs
 
-The statement's decoding `Proof.fromBytes π` (`Statement/LeanVmVerifier.lean`) hashes with
+The decoding `Proof.fromBytes π` (`LeanVM.Wire.Encoding`) hashes with
 `keccak256With π`; `fromBytesWithHash H` is the same with any hash `H : Bytes → m Digest`
 (`fromBytes_eq_withHash`), the form the proofs reason in (as `LeanVM.Protocol.WithHash` is for the
-verifier). The encoding `Proof.toBytes` (`Statement/Prover/Prove.lean`) hashes nothing.
+verifier). The encoding `Proof.toBytes` (`LeanVM.Wire.Encoding`) hashes nothing.
 
 The round trip holds for a proof whose every phase is what one Merkle tree over a hash `h` opens
 (`WireDecodable h`): at least one query and at most `wireMaxQueries`; every path of one height at

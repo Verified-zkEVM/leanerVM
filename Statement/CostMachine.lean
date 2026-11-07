@@ -373,8 +373,8 @@ instance : MachineEncoding LeanIsaInstruction where
 instance : MachineEncoding Semantics.LeanIsaProgram :=
   ⟨fun p ↦ .constructor 0 [encodeValue p.logSize, encodeFiniteFunction p.instructions]⟩
 
-instance : MachineEncoding Opening := ⟨fun o ↦ .constructor 0 [encodeValue o.leaf, encodeValue
-    o.path]⟩
+instance : MachineEncoding Opening := ⟨fun o ↦ .constructor 0 [encodeValue o.leafIndex,
+    encodeValue o.leaf, encodeValue o.path]⟩
 
 instance : MachineEncoding Proof :=
   ⟨fun π ↦ .constructor 0 [encodeValue π.stream, encodeValue π.openings]⟩

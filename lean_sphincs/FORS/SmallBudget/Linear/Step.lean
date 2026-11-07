@@ -18,7 +18,7 @@ attribute [local instance] Classical.propDecidable
 
 
 /-! The message-digest input has no address: it is told apart from a tweakable hash input by its
-length, 97 bytes against `48 + payload` (`messageDigestInput_ne_tweakableHashInput`). -/
+length, 84 bytes against `48 + payload` (`messageDigestInput_ne_tweakableHashInput`). -/
 
 theorem msg_ne_chain {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicParameter} {l : OtsKey}
     {i : ChainIndex} {st : ChainStep} {v : Digest} : x ≠ chainInput p l i st v := by
@@ -26,12 +26,12 @@ theorem msg_ne_chain {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicP
   exact messageDigestInput_ne_tweakableHashInput p' p root message randomness call _
     (by rw [bytesLE_length]; omega)
 
-/-- An encoding input of any message but a 45-byte one. A 97-byte message-digest input
-`R ‖ PK.seed' ‖ root' ‖ M' ‖ BE_32(call)` spells the encoding input `p ‖ ADRS ‖ M' ‖ BE_32(c)` when
+/-- An encoding input of any message but a 32-byte one. An 84-byte message-digest input
+`R ‖ PK.seed' ‖ root' ‖ M ‖ BE_32(call)` spells the encoding input `p ‖ ADRS ‖ M ‖ BE_32(c)` when
 `R = p` and `PK.seed' ‖ root'` spells the address, so the length is needed; the potential's encoding
 class has 16-byte messages only. -/
 theorem msg_ne_enc {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicParameter} {l : OtsKey}
-    {m : HashInput} {c : Counter} (hm : m.length ≠ 45) : x ≠ Wots.encodingInput p l.1 l.2.1 l.2.2 m c := by
+    {m : HashInput} {c : Counter} (hm : m.length ≠ 32) : x ≠ Wots.encodingInput p l.1 l.2.1 l.2.2 m c := by
   obtain ⟨p', root, message, randomness, call, rfl⟩ := hx
   exact messageDigestInput_ne_tweakableHashInput p' p root message randomness call _
     (by simp only [List.length_append, bytesBE_length]; omega)

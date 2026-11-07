@@ -20,8 +20,8 @@ public import LeanVM.Guest.Checked.F21_4
 public import LeanVM.Guest.Checked.F21_12
 public import LeanVM.Guest.Checked.F21_20
 public import LeanVM.Guest.Checked.F21_28
-public import LeanVM.Guest.Checked.F25_0
-public import LeanVM.Guest.Checked.F32_0
+public import LeanVM.Guest.Checked.F27_0
+public import LeanVM.Guest.Checked.F34_0
 public import LeanVM.Guest.Checked.F37_1
 public import LeanVM.Guest.Checked.F37_2
 public import LeanVM.Guest.Checked.F37_3

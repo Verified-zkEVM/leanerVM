@@ -17,7 +17,7 @@ open Core Memory
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `5400` to `5549`. -/
-def ts20_5400 : List ℕ := []
+def ts20_5400 : List ℕ := [8666, 8667, 8916, 8917, 8922, 8923]
 
 set_option maxRecDepth 100000 in
 theorem fresh20_5400 : RangeFresh ((Data.core20.body.drop 5400).take 150) ts20_5400 temps20 := by
@@ -25,7 +25,7 @@ theorem fresh20_5400 : RangeFresh ((Data.core20.body.drop 5400).take 150) ts20_5
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `5550` to `5699`. -/
-def ts20_5550 : List ℕ := [8983, 8984, 8989, 8990, 8998, 8999, 9007, 9008]
+def ts20_5550 : List ℕ := [8931, 8932, 8940, 8941, 9187, 9188, 9193, 9194]
 
 set_option maxRecDepth 100000 in
 theorem fresh20_5550 : RangeFresh ((Data.core20.body.drop 5550).take 150) ts20_5550 temps20 := by
@@ -33,27 +33,19 @@ theorem fresh20_5550 : RangeFresh ((Data.core20.body.drop 5550).take 150) ts20_5
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `5700` to `5849`. -/
-def ts20_5700 : List ℕ := [9257, 9258, 9263, 9264, 9272, 9273, 9281, 9282]
+def ts20_5700 : List ℕ := [9202, 9203, 9211, 9212]
 
 set_option maxRecDepth 100000 in
 theorem fresh20_5700 : RangeFresh ((Data.core20.body.drop 5700).take 150) ts20_5700 temps20 := by
   unfold RangeFresh ts20_5700; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `5850` to `5999`. -/
-def ts20_5850 : List ℕ := [9528, 9529, 9534, 9535, 9543, 9544, 9552, 9553]
+/-- The temporaries of statements `5850` to `5871`. -/
+def ts20_5850 : List ℕ := []
 
 set_option maxRecDepth 100000 in
-theorem fresh20_5850 : RangeFresh ((Data.core20.body.drop 5850).take 150) ts20_5850 temps20 := by
+theorem fresh20_5850 : RangeFresh ((Data.core20.body.drop 5850).take 22) ts20_5850 temps20 := by
   unfold RangeFresh ts20_5850; decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- The temporaries of statements `6000` to `6119`. -/
-def ts20_6000 : List ℕ := []
-
-set_option maxRecDepth 100000 in
-theorem fresh20_6000 : RangeFresh ((Data.core20.body.drop 6000).take 120) ts20_6000 temps20 := by
-  unfold RangeFresh ts20_6000; decide +kernel
 
 end
 end LeanVM.Guest

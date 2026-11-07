@@ -26,8 +26,8 @@ public import LeanVM.Guest.Checked.F21_4
 public import LeanVM.Guest.Checked.F21_12
 public import LeanVM.Guest.Checked.F21_20
 public import LeanVM.Guest.Checked.F21_28
-public import LeanVM.Guest.Checked.F25_0
-public import LeanVM.Guest.Checked.F32_0
+public import LeanVM.Guest.Checked.F27_0
+public import LeanVM.Guest.Checked.F34_0
 public import LeanVM.Guest.Checked.F37_1
 public import LeanVM.Guest.Checked.F37_2
 public import LeanVM.Guest.Checked.F37_3
@@ -195,7 +195,7 @@ theorem plain20 : Plain 20 := by
   decide +kernel
 
 theorem ok21 : CheckOk 21 := fun i hi ↦ by
-  have h : (certOf 21).cuts.length = 32 := by decide +kernel
+  have h : (certOf 21).cuts.length = 30 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -229,8 +229,6 @@ theorem ok21 : CheckOk 21 := fun i hi ↦ by
   · exact w21_28
   · exact w21_29
   · exact w21_30
-  · exact w21_31
-  · exact w21_32
 
 theorem plain21 : Plain 21 := by
   unfold Plain
