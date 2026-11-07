@@ -7,9 +7,11 @@ import Sphincs.Axioms
 an adversary whose game makes at most `Q` permutation calls, for every `Q ≥ 1`, forges with
 probability at most `(Q + 1) · 2^-127` (from `Q / 2^127 + Q² / 2^509`, the sponge's
 indifferentiability added). Its proof passes through the random-oracle model (upstream's
-`FORS.h26_layered`, a step) and upstream's model of the scheme (`FORS.Scheme`), the statement's
-scheme through the maps of `Sphincs/Model.lean`. `Sphincs/Axioms.lean` and `FORS/Axioms.lean` pin
-the axiom footprints; the build fails if the end theorem's grows beyond Lean's three. -/
+`FORS.h26_layered`, a step) and upstream's model of the scheme (`FORS.Scheme`, leanVM `834e6614`),
+then the crate's key generation and signer in the model's hash monad (`FORS.Crate`, by
+`Common.SufCma.StaticSwap`), the statement's scheme through the maps of `Sphincs/Model.lean`.
+`Sphincs/Axioms.lean` and `FORS/Axioms.lean` pin the axiom footprints; the build fails if the
+end theorem's grows beyond Lean's three. -/
 
 example : Sphincs.LeanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
 
