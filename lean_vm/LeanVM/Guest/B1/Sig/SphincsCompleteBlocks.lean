@@ -120,7 +120,7 @@ root is `pFold` of `pNodeE` from `lv`. -/
 def HtLayerCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (l : Nat) (a0 a1 signed ctr : V) (b : Nat) (lv : E)
     (e : Nat) (sib : Nat → E),
-    l < 3 → sPad + 5 ≤ b → NBv b a0 → NBv b a1 → NBv b signed → NBv b ctr → PadOK σ sPad →
+    l < 3 → 1710 ≤ b → NBv b a0 → NBv b a1 → NBv b signed → NBv b ctr → PadOK σ sPad →
     IsCanonical128 (σ sPP) → IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
     IsCanonical128 (σ signed) → (∃ N < 2 ^ 32, σ ctr = eOfNat (beWordAt 0 N)) →
     IsCanonical128 lv →

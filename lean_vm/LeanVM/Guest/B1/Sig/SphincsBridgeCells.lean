@@ -52,11 +52,11 @@ theorem pathAdr_eq {h i : Nat} (hh : h < 256) (hi : i < 2 ^ 16) : pathAdr h i = 
   omega
 
 /-- Folds agree when their nodes agree on the levels folded. -/
-theorem pFold_congr (f g : Nat → E → E) : ∀ (n : Nat) (x : E), (∀ l < n, f l = g l) →
+theorem pFold_congr_lt (f g : Nat → E → E) : ∀ (n : Nat) (x : E), (∀ l < n, f l = g l) →
     pFold f n x = pFold g n x
   | 0, _, _ => rfl
   | n + 1, x, h => by
-      rw [pFold, pFold, h n (by omega), pFold_congr f g n x fun l hl => h l (by omega)]
+      rw [pFold, pFold, h n (by omega), pFold_congr_lt f g n x fun l hl => h l (by omega)]
 
 theorem nodePayload_mPair (b : Bool) (v s : E) :
     (if b then nodePayload (cellVal s) (cellVal v) else nodePayload (cellVal v) (cellVal s)) =
@@ -104,7 +104,7 @@ theorem htFold_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (fun level q => .node layer tree (level + 1) q)
     (fun l => adrsCell1 2 0 (l + 1) (leaf.val / 2 ^ (l + 1))) leaf.val h
     (fun l _ => rfl) hsib x).trans ?_
-  refine congrArg cellVal (pFold_congr _ _ h x fun l hl => funext fun v => ?_)
+  refine congrArg cellVal (pFold_congr_lt _ _ h x fun l hl => funext fun v => ?_)
   rw [pNodeE, pathAdr_eq (by omega) (by
     rw [Nat.shiftRight_eq_div_pow]
     exact lt_of_le_of_lt (Nat.div_le_self _ _) (lt_of_lt_of_le hl' (by norm_num))),
