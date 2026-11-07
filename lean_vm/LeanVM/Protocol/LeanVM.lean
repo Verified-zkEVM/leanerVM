@@ -33,10 +33,10 @@ most `2^28`, the most the verifier admits, the honest prover
 
 * Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
   the random-permutation model of the statements.
-* A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
-  The Rust prover ships pruned paths (shared siblings per batch, `MerkleOpenings::Pruned`), which
-  the deployed `leanvm_core::cpu::verify` expands into these paths and checks more strictly; that
-  expansion is not formalized.
+* A proof is the Rust verifier's `Proof`: the scalar stream and one full Merkle path per query,
+  with its position, grouped in phases (`Statement/LeanVmVerifier.lean`). Its wire encoding, which
+  prunes the paths, is the statement's `Proof.fromBytes` / `Proof.toBytes`, proved to invert each
+  other in `LeanVM/Wire/`.
 * That `verifier` is the Python and Rust verifiers is test evidence: it is a transcription of the
   Python, it accepts the Rust prover's proofs, and on mutated proofs it gives the Rust verifier's
   verdict every time (`scripts/fuzz-verifier.py`).

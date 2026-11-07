@@ -37,7 +37,7 @@ structure SpAt (logN : ℕ) (cfg : List Whir.Level) (lvl n i : ℕ) (L : SpLv) :
   fin : L.fin = true ↔ i + 1 = n
 
 theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     Ls.length = cfg.length ∧ (∀ i < Ls.length, SpAt logN cfg lvl Ls.length i (Ls.getD i default)) ∧
       (Ls.getD 0 default).ws = ws ∧ (Ls.getD 0 default).F = F ∧
@@ -75,7 +75,7 @@ theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F 
 
 /-- **Each level after the first opens the commitment the previous one read.** -/
 theorem chain_roots : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res → R.length = lvl + 1 →
     ∀ i, i + 1 < Ls.length → (Ls.getD (i + 1) default).root = (Ls.getD i default).dn
   | [level], lvl, ws, F, xs, os, R, [L], res, _, _, i, hi => absurd hi (by simp)
@@ -101,7 +101,7 @@ theorem chain_roots : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) 
 
 /-- **Every level's fold challenges are a prefix of the last level's.** -/
 theorem chain_folds : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     ∀ i < Ls.length, (Ls.getD i default).wsEnd.folds <+: (Ls.getLastD default).wsEnd.folds
   | [level], lvl, ws, F, xs, os, R, [L], res, _, i, hi => by

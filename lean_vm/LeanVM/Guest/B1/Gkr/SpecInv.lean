@@ -68,7 +68,7 @@ theorem runT_pure_some {α : Type} {a b : α} {st st' : TSt}
   simp only [runT, Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
 
-theorem runT_readE_some {s : Fs} {zs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
+theorem runT_readE_some {s : Fs} {zs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)}
     {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
     ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
   cases zs with
@@ -83,7 +83,7 @@ theorem runT_sampleE (st : TSt) :
   rfl
 
 /-- `n` reads take the next `n` words, absorbed. -/
-theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
+theorem runT_readN_some : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
     runT (VerifierProgram.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
       ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
@@ -122,7 +122,7 @@ theorem runT_require_some {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
 /-- **The equality-mode sumcheck of five coefficients, read back**: its rounds' four words each,
 and `gkrRun` of them. -/
 theorem runT_sumcheck5_some : ∀ (es : List E) (claim : E) (s : Fs) (zs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (r : List E × E) (st' : TSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (r : List E × E) (st' : TSt),
     runT (sumcheck claim 5 (es.map some)) ⟨s, zs, os, R⟩ = some (r, st') →
       ∃ (cs : List (List E)) (rest : List E), cs.length = es.length ∧ (∀ c ∈ cs, c.length = 4) ∧
         zs = cs.flatten ++ rest ∧
