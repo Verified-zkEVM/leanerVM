@@ -10,8 +10,8 @@ Read before the two schemes, at leanVM d1c4c8f7: the sizes and types both scheme
 their tweakable hash `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasherInput`, `truncateHash`:
 `hasher` and `truncate` of `crates/signatures/src/lib.rs`), each scheme laying out its own address;
 the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any monad (`keccakHash`), and
-the hash chains, Merkle paths and Merkle trees every chain, path and tree of both schemes
-instantiates (`walkChain`, `foldPath`, `buildTree`, namespace `HashSig.OverPermutation`).
+the hash chains and Merkle paths every chain and path of both schemes instantiates (`walkChain`,
+`foldPath`), and leanXMSS's Merkle trees (`buildTree`; namespace `HashSig.OverPermutation`).
 -/
 
 @[expose] public section
@@ -53,7 +53,8 @@ hash output, the low 128 bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
 
-/-- `pk = (root, P)`. -/
+/-- leanXMSS's public key `pk = (root, P)` (`LeanXmssPublicKey`,
+`crates/signatures/src/lean_xmss/scheme.rs:15-18`); leanSPHINCS's is `Sphincs.PublicKey`. -/
 structure PublicKey where
   /-- The Merkle root over the key's one-time public keys. -/
   root : Digest
@@ -139,20 +140,6 @@ def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
       let left ← buildTree leaf node l (2 * index)
       let right ← buildTree leaf node l (2 * index + 1)
       node l index (nodePayload left right)
-
-/-- `buildTree` with the authentication path of the leaf `target`: node `index` at level `level`,
-each node computed once, and the siblings of `target`'s path below it (`path l` the sibling at level
-`l < level`, for a node above `target`). -/
-def buildTreeWithPath {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
-    (node : Nat → Nat → HashInput → m Digest) (target : Nat) :
-    Nat → Nat → m (Digest × (Nat → Digest))
-  | 0, index => do return (← leaf index, fun _ ↦ 0)
-  | l + 1, index => do
-      let left ← buildTreeWithPath leaf node target l (2 * index)
-      let right ← buildTreeWithPath leaf node target l (2 * index + 1)
-      let value ← node l index (nodePayload left.1 right.1)
-      return (value, if target.testBit l then Function.update right.2 l left.1
-        else Function.update left.2 l right.1)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 

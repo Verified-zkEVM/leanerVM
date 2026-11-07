@@ -184,7 +184,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
       | none => s) (Vector.replicate 25 0)
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
-limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:103-114`). -/
+limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:103-110`). -/
 def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
@@ -397,7 +397,7 @@ def derefFlags : DerefMode → K × K
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
-§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:292-357`): offsets as
+§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:292-362`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout flags as `0` or `1`, unused slots zero. -/
 def busEntry : LeanIsaInstruction → Vector K 11

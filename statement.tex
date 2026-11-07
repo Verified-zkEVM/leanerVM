@@ -31,7 +31,7 @@ layout, on \texttt{main} at \texttt{3f2ff324}, which added the proof's wire enco
 guest are those of \texttt{d1c4c8f7}, where the citations were checked).
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
-of definitions and end statements ($7189$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7188$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2069$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -763,7 +763,7 @@ $2627$ leanXMSS or $842$ leanSPHINCS signatures (each declared once), and a node
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148}, \texttt{9d8bce81} and \texttt{834e6614}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
+\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614} and \texttt{d1c4c8f7}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.

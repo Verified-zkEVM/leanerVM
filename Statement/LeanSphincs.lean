@@ -79,7 +79,7 @@ def forsTreeCount : Nat := 24
 /-- `a`, the height of a FORS tree, `10` (`FORS_HEIGHT`, `mod.rs:78`). -/
 def forsTreeHeight : Nat := 10
 /-- `N`, the signatures a key makes at most: the end statement's limit, `1,182,000,000`
-(`doc/lean_sphincs` §sec:security, `main.tex:323-324`, the Lean proof's count; the crate's key is
+(`doc/lean_sphincs` §sec:security, `main.tex:324-325`, the Lean proof's count; the crate's key is
 for `2^30`, §sec:scheme). -/
 def signatureLimit : Nat := 1182000000
 

@@ -38,55 +38,54 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
 honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
 operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
-transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
-`guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation/proof.rs:195-212`) checks of a root more than any end
-statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
-`DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
-end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one
-included, whose dual codeword is all ones, so the DA part of a node's relation says nothing of the
-blob without that derivation),
-and checks that the signer lists are sorted, without repeats and shorter than `2^16` (not
-modelled). Even with these, a claim held through a child carries knowledge only if the children's
-fresh claims are true, which needs the batching sound inside the circuit at every level: no end
-statement gives it (`LeanVmGuest.lean`). Accepted trade-offs: the statement does not name the extractor or decoder
-program (only their sizes and budgets); the decoder computes the witness from the execution; the
-extracted execution need not be the committed one; the decoder's budget has no cap on steps, grows
-as `steps·log steps`, and its constant (`2^40.58` to `2^43.69` at the points below, the address
-tables at the execution's `κ` included) prices the witness at the bounds a valid execution's asserts
-and its children's accepted proofs give (`16` children, each with `65535` claims of each scheme and
-a cursor of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA matrix), not
-at the run's, so with fewer children and claims, at `κ ≤ 28` and well below `2^22` steps, the budget
-is several times the compiled decoder's price (at `κ = 32` the address tables, priced at the run's
-`κ`, are most of it); that a valid execution of the guest program has fewer than `2^51` steps is
-argued in prose, not proved in Lean; literal tables count toward size; the size bounds limit
-programs written like the compiled ones (a decoder written differently could pack the guest's tables
-tighter, or derive them from its input, room for between about `2350` and `3500` signatures); the
-extractor's budget is `2^81 + O(N·log³N)` for `N` queries, which passes `2^128` at about `N = 2^100`
-while the soundness bound is still `2^-28` there, and whose constant `2^81` would pay for a search of
-about `2^70` Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low
-entropy) is not what the statement certifies.
+transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI
+regenerates it, `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`).
+**The outer verifier** (`EthereumProof::verify`, `aggregation/proof.rs:195-212`) checks of a root
+more than any end statement models: it recomputes the root's deferred claim (`AggregateSound`
+assumes that it holds, `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge
+from the root (no end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds,
+the zero one included, whose dual codeword is all ones, so the DA part of a node's relation says
+nothing of the blob without that derivation), and checks that the signer lists are sorted, without
+repeats and shorter than `2^16` (not modelled). Even with these, a claim held through a child
+carries knowledge only if the children's fresh claims are true, which needs the batching sound
+inside the circuit at every level: no end statement gives it (`LeanVmGuest.lean`). Accepted
+trade-offs: the statement does not name the extractor or decoder program (only their sizes and
+budgets); the decoder computes the witness from the execution; the extracted execution need not be
+the committed one; the decoder's budget has no cap on steps, grows as `steps·log steps`, and its
+constant (`2^40.58` to `2^43.69` at the points below, the address tables at the execution's `κ`
+included) prices the witness at the bounds a valid execution's asserts and its children's accepted
+proofs give (`16` children, each with `65535` claims of each scheme and a cursor of `8192` words,
+`65535` declared claims of each scheme, `1024` rows of the DA matrix), not at the run's, so with
+fewer children and claims, at `κ ≤ 28` and well below `2^22` steps, the budget is several times the
+compiled decoder's price (at `κ = 32` the address tables, priced at the run's `κ`, are most of it);
+that a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not
+proved in Lean; literal tables count toward size; the size bounds limit programs written like the
+compiled ones (a decoder written differently could pack the guest's tables tighter, or derive them
+from its input, room for between about `2350` and `3500` signatures); the extractor's budget is
+`2^81 + O(N·log³N)` for `N` queries, which passes `2^128` at about `N = 2^100` while the soundness
+bound is still `2^-28` there, and whose constant `2^81` would pay for a search of about `2^70`
+Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low entropy) is
+not what the statement certifies.
 
 **The proof and the wire.** A proof (`Proof`, `LeanVmVerifier.lean`) is the Rust verifier's: the
 scalar stream and the Merkle openings grouped in phases, one phase per commitment opened, each
 opening (`Opening`) the position it opens (`leafIndex`), the leaf's words and the full path of
 siblings, in the order the verifier samples the queries. The verifier opens a phase (`openPhase`,
 `Transcript::merkle`) in the Rust's order: it rejects unless every leaf is the commitment's width
-and every path its height (the shape), then unless the phase's positions are the queries it
-sampled, in order (the positions), then unless each path climbs to the root. The end statements are
-about this structured proof. On the wire it travels as bytes, its one encoding
+and every path its height (the shape), then unless the phase's positions are the queries it sampled,
+in order (the positions), then unless each path climbs to the root. The end statements are about
+this structured proof. On the wire it travels as bytes, its one encoding
 (`crates/fiat_shamir/src/wire.rs`), each phase pruned to its positions, its sizes, its distinct
 leaves and the siblings no other path gives: a compression layer, not part of the statement. The
 pruning idea and its first formalization, on leanerVM's `main` branch, are
 [scaraven](https://github.com/scaraven)'s. `lean_vm` transcribes the encoding and the decoding
-([`LeanVM/Wire/Encoding.lean`](../lean_vm/LeanVM/Wire/Encoding.lean)) and proves, as theorems of
-its own (not end statements), that the layer is lossless on honest proofs (the round trip: the
-honest prover's proofs decode from their encoding) and is the only encoding of its proof (bytes that
-decode to a proof are its encoding) ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)).
-That its transcription
-is the Rust's `Proof::from_bytes` and `Proof::to_bytes` is test evidence: the wire differential in
-the gate (`lean_vm/scripts/wire-diff.py`), on honest wire proofs, their mutations and the Rust
-test's vector.
+([`LeanVM/Wire/Encoding.lean`](../lean_vm/LeanVM/Wire/Encoding.lean)) and proves, as theorems of its
+own (not end statements), that the layer is lossless on honest proofs (the round trip: the honest
+prover's proofs decode from their encoding) and is the only encoding of its proof (bytes that decode
+to a proof are its encoding) ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)).
+That its transcription is the Rust's `Proof::from_bytes` and `Proof::to_bytes` is test evidence: the
+wire differential in the gate (`lean_vm/scripts/wire-diff.py`), on honest wire proofs, their
+mutations and the Rust test's vector.
 
 ## Reading order
 
@@ -165,8 +164,9 @@ theorems, then read the files in this order.
     (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
     transcript (`Field.lean`'s duplex sponge, Merkle openings), the proof (`Proof`: the stream and
     the openings with their positions, grouped in phases, opened by `openPhase`), and the deferring
-    verifier an aggregate runs on its children. Where the transcription's form differs from the pin's without changing what it
-    computes, its docstring gives the pin's lines and why the two agree.
+    verifier an aggregate runs on its children. Where the transcription's form differs from the
+    pin's without changing what it computes, its docstring gives the pin's lines and why the two
+    agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    over a permutation (`leanVmVerifier π`), the honest prover's type and **the honest prover**,
    `leanVmHonestProver`
@@ -267,23 +267,23 @@ statement's own compiled definitions (the verifier, the prover, the signature sc
 program's specification, LeanDA) and every module after them. They need no review: a `@[csimp]`
 lemma is an equation the kernel checks.
 
-[`Prover/`](Prover/) is leanVM's honest prover as an executable program,
-`LeanVM.Prover.prove F prog input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad,
-Keccak-256 the sponge over `F`: over the model's `π` it is the prover `LeanVM.leanVmHonestProver`
-that `Completeness`, `HonestProofRarelyRefused` and `HonestChild` name, and over Keccak-f[1600] in
-`Id` it is `lake exe leanvm-prove`, whose proofs the Rust and Lean verifiers accept
-(`lean_vm/README.md`). It is definitions only: the witness from the trace (`Witness.lean`,
-`Columns.lean`: one run of the program; no proof, `none`, unless the trace is a valid execution
-within `2^28` committed cells), a script of the prover's moves (`Script.lean`) for each phase of the
-verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Keccak*.lean`, `Whir.lean`'s ring
-switching and opening; `Mle.lean` their helper), beside the verifier's phase, whose result the next
-phase takes (`Script.alongside`), and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
-sponge, each Merkle tree built once and each query's opening read from it with its position, one
-phase per opened commitment, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
-(`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the honest
-strategy the completeness proof follows, at the execution's own witness), so a reviewer need not
-read it line by line; a reviewer checks only that it is a genuine prover: it computes its proof from
-the execution, its only search is the nonce search bounded by `fuel`, and it branches on no
+[`Prover/`](Prover/) is leanVM's honest prover as an executable program, `LeanVM.Prover.prove F prog
+input t ρ fuel` (`Prove.lean`), over a permutation `F` in any monad, Keccak-256 the sponge over `F`:
+over the model's `π` it is the prover `LeanVM.leanVmHonestProver` that `Completeness`,
+`HonestProofRarelyRefused` and `HonestChild` name, and over Keccak-f[1600] in `Id` it is `lake exe
+leanvm-prove`, whose proofs the Rust and Lean verifiers accept (`lean_vm/README.md`). It is
+definitions only: the witness from the trace (`Witness.lean`, `Columns.lean`: one run of the
+program; no proof, `none`, unless the trace is a valid execution within `2^28` committed cells), a
+script of the prover's moves (`Script.lean`) for each phase of the verifier (`Ntt.lean`, `Bus.lean`,
+`Gkr.lean`, `Table.lean`, `Keccak*.lean`, `Whir.lean`'s ring switching and opening; `Mle.lean` their
+helper), beside the verifier's phase, whose result the next phase takes (`Script.alongside`), and
+its run against the verifier's own program (`Run.lean`: the challenges squeezed from the sponge,
+each Merkle tree built once and each query's opening read from it with its position, one phase per
+opened commitment, the proof-of-work nonce searched among the first `fuel`). Its correctness is
+proved (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the
+honest strategy the completeness proof follows, at the execution's own witness), so a reviewer need
+not read it line by line; a reviewer checks only that it is a genuine prover: it computes its proof
+from the execution, its only search is the nonce search bounded by `fuel`, and it branches on no
 permutation answer other than through the challenges the verifier's program samples (`Run.lean`
 gives the script nothing else).
 
@@ -356,15 +356,16 @@ execution within its budget. The program is that decoder compiled
 **The size bound** (`guestWitnessDecoderSizeBound`, `1130200`) limits any program; it is the
 compiled decoder's size at leanVM `d1c4c8f7`, `1129699` (proved at most that and measured exactly),
 and a slack of `501`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1130500` at `834e6614`, before H_msg read the message off the claim's cells, `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
-more frame cells, and `380000` at `ed7d2b9c`, whose had far fewer), so
-no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
-many statements) fits there. That size counts the guest program's per-function tables, literals of
-the program, in full. It does not bound what a program written differently could hold: the guest's
-frame-cell table (`1088898` of the size, cells below `2^20`) packs to about a third, three cells to
-a limb, freeing room for about `2350` signatures' encodings. Nor is the compiled program compact:
-its size also counts, a literal `0` each, the indices without a body left by the numbering it shares
-with the extractor's compiled functions
+(the bound was `1130500` at `834e6614`, before H_msg read the message off the claim's cells,
+`1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose
+opening queries walked their Merkle paths inline, in more frame cells, and `380000` at `ed7d2b9c`,
+whose had far fewer), so no useful table of witnesses (hard-coded signatures masking a bug of the
+guest program on finitely many statements) fits there. That size counts the guest program's
+per-function tables, literals of the program, in full. It does not bound what a program written
+differently could hold: the guest's frame-cell table (`1088898` of the size, cells below `2^20`)
+packs to about a third, three cells to a limb, freeing room for about `2350` signatures' encodings.
+Nor is the compiled program compact: its size also counts, a literal `0` each, the indices without a
+body left by the numbering it shares with the extractor's compiled functions
 ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the measurements). And a program
 may compute its tables from its input, which holds the guest program: one that derived the
 frame-cell table at run time instead of carrying it would free most of those `1087078`, room for up

@@ -81,7 +81,7 @@ structure Theorems
   leanXmssStronglyUnforgeable : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable
   /-- leanSPHINCS is strongly unforgeable up to `1,182,000,000` signatures: at most
   `(Q + 1) · 2^-127` for `Q ≥ 1` permutation calls of the whole game (`LeanSphincs.lean`), key
-  generation and the honest signer's worst-case grinding, up to about `2^35` calls per signing
+  generation and the honest signer's worst-case grinding, up to about `2^33.6` calls per signing
   request, included. -/
   leanSphincsStronglyUnforgeable : Sphincs.LeanSphincsStronglyUnforgeable
 
