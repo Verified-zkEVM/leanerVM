@@ -282,15 +282,19 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     (fun σ2 he2 ⟨rR, hpad, d0, d1⟩ => ?_)
   have t21 : ∀ k < 6, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
   have hcells : ∀ i, hmsgCells σ2 i = [cellOf128 R, cellOf128 pk.publicSeed, cellOf128 pk.root,
-      eOfNat192 (M % 2 ^ 128), eOfNat192 (M / 2 ^ 128), word (2 ^ 24 * i) 0 0] := by
+      eOfNat192 (M % 2 ^ 128), eOfNat192 (M / 2 ^ 128), word (i * 2 ^ 24) 0 0] := by
     intro i
     simp only [hmsgCells]
     rw [rR, show sPP = .n 2 from rfl, t21 2 (by norm_num), show sRoot = .n 3 from rfl, t21 3 (by norm_num),
       show sM0 = .n 4 from rfl, t21 4 (by norm_num), show sM1 = .n 5 from rfl, t21 5 (by norm_num)]
     rw [← show sPP = .n 2 from rfl, pP, ← show sRoot = .n 3 from rfl, pR, ← show sM0 = .n 4 from rfl, m0,
       ← show sM1 = .n 5 from rfl, m1]
-  rw [hcells, hcellLen, hmsg_take hM (by norm_num)] at d0
-  rw [hcells, hcellLen, hmsg_take hM (by norm_num)] at d1
+  have hmn : msgNat (eOfNat192 (M % 2 ^ 128)) (eOfNat192 (M / 2 ^ 128)) = M := by
+    simp only [msgNat]
+    rw [cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (by omega)]
+    omega
+  rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d0
+  rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d1
   have hT : digestNatOf (σ2 sHm0) (σ2 sHm0b) (σ2 sHm1) =
       (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R msg)).toNat := by
     have hpk : (⟨cellVal (cellOf128 pk.publicSeed), cellVal (cellOf128 pk.root)⟩ : Sphincs.PublicKey) = pk := by

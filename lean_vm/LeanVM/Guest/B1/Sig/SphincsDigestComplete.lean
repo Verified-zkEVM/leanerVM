@@ -99,9 +99,8 @@ theorem sMsg_complete {p Pc Rc M0c M1c : E} (hcl : ClaimAt rd p Pc Rc M0c M1c) (
 
 /-! ## `H_msg` -/
 
-theorem word_ctr_one : word (2 ^ 24) 0 0 + word (2 ^ 32) 0 0 = word (2 ^ 24 * 1 + 2 ^ 32) 0 0 := by
-  rw [word_eq_eOfNat, word_eq_eOfNat, word_eq_eOfNat, ← Value.eOfNat_xor]
-  rfl
+theorem word_ctr_one : word (2 ^ 24) 0 0 + word (2 ^ 32) 0 0 = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by
+  rw [← word_ctr_pad (i := 1) (by norm_num), one_mul]
 
 /-- The statements before `H_msg`'s first `KECCAK`: its tail run, the `0x80`, the padding run. -/
 def hPre0 : List Stmt :=
@@ -179,7 +178,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   have hk3 : AtomsHold rd σ3 [kecS (sHIns 7) (runV 17 13) false false] :=
     atomsHold_of_holdsList rfl hh3
   have d0 : (σ3 (.n 17), σ3 (.n (17 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
-      word (2 ^ 24 * 0) 0 0] 84 := by
+      word (0 * 2 ^ 24) 0 0] 84 := by
     refine kec84_sound (i := 0) (by norm_num) hk3 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
     · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
         first
@@ -188,7 +187,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
           | (rw [show sRoot = .n 3 from rfl, t3 _ (by norm_num)])
           | (rw [show sM0 = .n 4 from rfl, t3 _ (by norm_num)])
           | (rw [t3 _ (by norm_num), c7])
-          | (rw [t3 _ (by norm_num), k0])
+          | (rw [t3 _ (by norm_num), k0] <;> norm_num)
           | (rw [t3 _ (by norm_num), k1]) | (rw [t3 _ (by norm_num), k1'])
           | (rw [t3 _ (by norm_num), k2])
     · interval_cases k <;> simp only [sHIns, sPad, List.getD_cons_zero, List.getD_cons_succ] <;>
@@ -210,7 +209,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   have a32 : σ4 (.n 32) = σ4 (.n 30) + σ4 (.n 31) := hh4.atom (a := .add (.n 32) _ _) (by simp [hPre1, addS])
   have c33 : σ4 (.n 33) = σ4 sM1 := hh4.atom (a := .copy (.n 33) sM1) (by simp [hPre1, copyS])
   have c34 : σ4 (.n 34) = σ4 (.n 32) := hh4.atom (a := .copy (.n 34) (.n 32)) (by simp [hPre1, copyS])
-  have v34 : σ4 (.n 34) = word (2 ^ 24 * 1 + 2 ^ 32) 0 0 := by rw [c34, a32, e30, e31, word_ctr_one]
+  have v34 : σ4 (.n 34) = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by rw [c34, a32, e30, e31, word_ctr_one]
   have hins1 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 33).map σ4) c) := by
     intro c
     fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
@@ -233,7 +232,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   have t5 : ∀ k < 38, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
   have u : ∀ k < 17, σ5 (.n k) = σ2 (.n k) := fun k hk => by rw [t5 k (by omega), t4 k (by omega)]
   have d1 : (σ5 (.n 38), σ5 (.n (38 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
-      word (2 ^ 24 * 1) 0 0] 84 := by
+      word (1 * 2 ^ 24) 0 0] 84 := by
     refine kec84_sound (i := 1) (by norm_num) hk5 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
     · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
         first
@@ -250,7 +249,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
           | (rw [u _ (by norm_num), p2])
           | (rw [u _ (by norm_num), p3])
           | (rw [u _ (by norm_num), p4])
-  have hcells : ∀ i, hmsgCells σ5 i = [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1, word (2 ^ 24 * i) 0 0] := by
+  have hcells : ∀ i, hmsgCells σ5 i = [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1, word (i * 2 ^ 24) 0 0] := by
     intro i
     simp only [hmsgCells, show sRand = .n 6 from rfl, show sPP = .n 2 from rfl, show sRoot = .n 3 from rfl,
       show sM0 = .n 4 from rfl, show sM1 = .n 5 from rfl]
