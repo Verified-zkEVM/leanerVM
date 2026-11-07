@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegArms
 
-  The codeword of the leanXMSS check in `__loop2` (`lean_ethereum.py:3687-3707`), sound: its fifteen
+  The codeword of the leanXMSS check in `__loop2` (`lean_ethereum.py:3725-3745`), sound: its fifteen
   dispatches each take one arm, and the arms' walks, products and encodings give the chains' tips,
   the target sum and the digest's first cell.
 -/
@@ -41,7 +41,7 @@ structure ArmOKM (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : N
   tip : ∀ r < n, σ (.n (slots r 2)) =
     chainT f (first + r) (3 - k / 4 ^ r % 4) (k / 4 ^ r % 4) (σ (start r))
   prod : σ prodOut = (if fold then 1 else σ prodIn) * σ (W.power (digitSum k n))
-  enc : σ encOut = (if fold then 0 else σ encIn) + lit (k % 4 ^ n * 4 ^ first)
+  enc : σ encOut = (if fold then 0 else σ encIn) + lit (W.enc first n (k % 4 ^ n))
 
 theorem armM_atoms {W : WotsT} (hW : StepAtoms W) (slots : Nat → Nat → Nat) (first n : Nat)
     (fold : Bool) (prodIn encIn prodOut encOut : V) (k b : Nat) :
@@ -99,11 +99,11 @@ theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
         simp [hk]
       have e := he.atom (List.mem_singleton_self _)
       simp only [Atom.Holds] at e
-      have hl : lit (k % 4 ^ n * 4 ^ first) = 0 := by simp [hk, lit, word_zero]
+      have hl : lit (W.enc first n (k % 4 ^ n)) = 0 := by simp [hk, W.enc_zero, lit, word_zero]
       rw [e, hl, add_zero, henc0]
     · have he : AtomsHold rd σ
           [cst (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
-              (if fold then b + 1 else b)).2 (lit (k % 4 ^ n * 4 ^ first)),
+              (if fold then b + 1 else b)).2 (lit (W.enc first n (k % 4 ^ n))),
             addS encOut (if fold then V.n b else encIn)
               (.n (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
                 (if fold then b + 1 else b)).2)] := by
@@ -240,7 +240,8 @@ and the digest's first cell is their base-4 number. -/
 theorem sCodewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E → E}
     (hs : StepSound rd σ W f) (hpow : ∀ s < 13, σ (W.power s) = gen ^ s) {target : E} {d0 : V}
     {dg : Nat} {rest : List Stmt} {next : Prop}
-    (h : Stmt.HoldsList C rd σ ((sCodewordT W target d0 dg).1 ++ rest) next kret) :
+    (h : Stmt.HoldsList C rd σ ((sCodewordT W target d0 dg).1 ++ rest) next kret)
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Stmt.HoldsList C rd σ rest next kret ∧
       (∀ i < 58, σ (sTip W (dg + 70) i) = chainT f i (3 - lxDigit (sK σ dg) i) (lxDigit (sK σ dg) i)
           (σ (sStart W σ dg (dg + 70) i))) ∧
@@ -320,11 +321,13 @@ theorem sCodewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E �
       induction p with
       | zero =>
           have := (harm 0 (by omega)).enc
+          rw [hE] at this
           simp only [sSt, beq_self_eq_true, ↓reduceIte, zero_add] at this ⊢
           rw [this]
           simp [lxEncTerm]
       | succ p ih =>
           have := (harm (p + 1) (by omega)).enc
+          rw [hE] at this
           simp only [Nat.add_one_ne_zero, beq_iff_eq, ↓reduceIte] at this
           show σ (encT W (p + 1 == 0) (lxN (p + 1)) (sSt W (dg + 70) (p + 1)).2.2) = _
           rw [this, ih (by omega), ← lx_enc_step K hp]

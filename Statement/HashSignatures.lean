@@ -6,12 +6,12 @@ public import Statement.Fast.Keccak
 /-!
 # Hash-based signatures: what leanXMSS and leanSPHINCS share
 
-Read before the two schemes: the tweakable hash `Th(P, A, M) = Truncate_n(H(P ‖ A ‖ M))`, its
-16-byte address and the types around it, which `crates/signatures/src/tweak.rs` gives both schemes
-(namespace `HashSig`); the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any
-monad (`keccakHash`), and the hash chains, Merkle paths and Merkle trees every chain, path and tree
-of both schemes instantiates (`walkChain`, `foldPath`, `buildTree`, namespace
-`HashSig.OverPermutation`).
+Read before the two schemes, at leanVM 834e6614: the sizes and types both schemes use, the shape of
+their tweakable hash `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasherInput`, `truncateHash`:
+`hasher` and `truncate` of `crates/signatures/src/lib.rs`), each scheme laying out its own address;
+the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any monad (`keccakHash`), and
+the hash chains, Merkle paths and Merkle trees every chain, path and tree of both schemes
+instantiates (`walkChain`, `foldPath`, `buildTree`, namespace `HashSig.OverPermutation`).
 -/
 
 @[expose] public section
@@ -36,7 +36,7 @@ abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec 256
 /-- A message to sign, `256` bits. -/
 abbrev Message := BitVec 256
-/-- The public parameter `P`, `128` bits, prefixed to every hash call. -/
+/-- The public parameter `P`, `128` bits, prefixed to every addressed (tweakable) hash call. -/
 abbrev PublicParameter := BitVec 128
 /-- A signature's randomizer, one digest. -/
 abbrev Randomizer := Digest
@@ -47,19 +47,10 @@ abbrev ChainStep := Fin (chainLength - 1)
 /-- A hash call's input bytes. -/
 abbrev HashInput := List UInt8
 
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
+/-- `Truncate_16` (`truncate`, `crates/signatures/src/lib.rs:25-28`): keep the first 16 bytes of a
+hash output, the low 128 bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
-
-/-- The second 16 bytes of a hash output. Only the seed derivations of chain starts (and of
-leanSPHINCS's FORS secrets) use them. -/
-def upperHalfOfHash (output : HashOutput) : Digest :=
-  output.extractLsb' digestBits digestBits
-
-/-- The half of a hash output that starts chain `chainIndex`: the first for even `chainIndex`, the
-second for odd `chainIndex`. -/
-def hashHalfForChain (chainIndex : Nat) (output : HashOutput) : Digest :=
-  if chainIndex % 2 = 0 then truncateHash output else upperHalfOfHash output
 
 /-- `pk = (root, P)`. -/
 structure PublicKey where
@@ -83,45 +74,12 @@ def digestsPayload {n : Nat} (digests : Fin n → Digest) : HashInput :=
 def digestDigits {n : Nat} (digest : Digest) (i : Fin n) : WinternitzDigit :=
   (digest.extractLsb' (winternitzBits * i.val) winternitzBits).toFin
 
-/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs:32-40`): its type
-`tag < 32`, a chain step `step < 8`, a hypertree layer (counted from the bottom) and tree, and two
-fields `hi < 2^24` and `lo < 2^32`. leanXMSS's layer and tree are always zero. -/
-structure TweakFields where
-  /-- The hash call's type. -/
-  tag : BitVec 5
-  /-- The chain step, for a chain's hash. -/
-  step : BitVec 3
-  /-- The hypertree layer, from the bottom (leanSPHINCS's; zero for leanXMSS). -/
-  layer : BitVec 8
-  /-- The tree on that layer (leanSPHINCS's; zero for leanXMSS). -/
-  tree : BitVec 32
-  /-- The high field, `24` bits, which each hash type fills (each scheme's `hashDomainFields`). -/
-  hi : BitVec 24
-  /-- The low field, `32` bits, likewise (a leaf, key or node index). -/
-  lo : BitVec 32
-deriving DecidableEq
-
-/-- The 16 address bytes `lo || hi || (tag + 32 * step) || layer || tree || 0^24` (`address`,
-`tweak.rs:78-86`). -/
-def addressBytes (fields : TweakFields) : HashInput :=
-  littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++
-    littleEndianBytes 1 (fields.step ++ fields.tag) ++ littleEndianBytes 1 fields.layer ++
-    littleEndianBytes 4 fields.tree ++ littleEndianBytes 3 0
-
-/-- Convert the four integer fields to their fixed widths, layer and tree zero (`tweak`,
-`tweak.rs:42-52`, with the step of `Tweak::step`). -/
-def tweakFields (tag step hi lo : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, 0, 0, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
-
-/-- The same address in tree `tree` of hypertree layer `layer` (`Tweak::at`, `tweak.rs:66-72`). -/
-def TweakFields.at (fields : TweakFields) (layer tree : Nat) : TweakFields :=
-  { fields with layer := BitVec.ofNat 8 layer, tree := BitVec.ofNat 32 tree }
-
-/-- `P || A || payload`, the input of every tweakable hash call at the address `fields`
-(`hasher`, `tweak.rs:95-99`). -/
-def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
-    HashInput :=
-  littleEndianBytes 16 parameter ++ addressBytes fields ++ payload
+/-- `prefix || address || payload`: the input of both schemes' tweakable hash
+`Truncate_16(H(prefix || address || payload))`, the bytes a `hasher(prefix, address)` absorbs before
+the payload (`hasher`, `lib.rs:16-23`). The prefix is a scheme's 16-byte public value (leanXMSS's
+public parameter `P`), the address each scheme's own. -/
+def hasherInput (hashPrefix : PublicParameter) (address payload : HashInput) : HashInput :=
+  littleEndianBytes 16 hashPrefix ++ address ++ payload
 
 /-- **The key's seed `S_0`**, sampled uniformly. -/
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
@@ -202,21 +160,6 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 def keccakHash (input : HashInput) : m HashOutput :=
   (fun digest ↦ BitVec.ofNat 256 ((digestBytes digest).foldr (fun b acc ↦ b.toNat + 256 * acc) 0))
     <$> keccak256With π input
-
-/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs:102-104`). -/
-def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
-  return truncateHash (← keccakHash π (thInput parameter fields payload))
-
-/-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`,
-`tweak.rs:112-115`). -/
-def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
-    m HashOutput :=
-  keccakHash π (thInput parameter fields payload)
-
-/-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`, `tweak.rs:130-132`): the seed `S` a scheme
-derives from. -/
-def taggedSeed (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
-  keccakHash π (tag ++ littleEndianBytes 32 seed)
 
 end OverPermutation
 

@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Sig.CodewordComplete
 # A group, complete
 
 A group of `sp_wots` is the shared group over `spW` (`groupD`), so it completes by the shared
-`groupD_load`, its chain step in single-assignment form above `23` and reading `SpGood spPad`
+`groupD_load`, its chain step in single-assignment form above `26` and reading `SpGood spPad`
 (`spWp_shape`, `spWp_canon`).
 
 * `SpArmPost`: arm `k`'s tips canonical and its starts holding `vals`;
@@ -51,18 +51,18 @@ theorem spPre_seq (fold : Bool) (B : Nat) : SeqOK (B + 5) (spPre fold B) (spL fo
 theorem spL_ge (fold : Bool) (B : Nat) : B ≤ spL fold B := by
   unfold spL; split <;> omega
 
-theorem spW_shape {Bs : Nat} (h : 23 ≤ Bs) : StepShape spW Bs :=
-  StepShape.mono (spWp_shape (b := spPad) (B := 23) (by simp [spPad]) (by norm_num)) h
+theorem spW_shape {Bs : Nat} (h : 26 ≤ Bs) : StepShape spW Bs :=
+  StepShape.mono (spWp_shape (b := spPad) (B := 26) (by simp [spPad]) (by norm_num)) h
 
-theorem spW_canon {Bs : Nat} (h : 23 ≤ Bs) : StepCanon spW Bs (SpGood spPad) :=
-  StepCanon.mono (spWp_canon (b := spPad) (B := 23) (by simp [spPad]) (by norm_num)) h
+theorem spW_canon {Bs : Nat} (h : 26 ≤ Bs) : StepCanon spW Bs (SpGood spPad) :=
+  StepCanon.mono (spWp_canon (b := spPad) (B := 26) (by simp [spPad]) (by norm_num)) h
 
-theorem spW_power_nb {Bs k n : Nat} (h : 23 ≤ Bs) (hn : n ≤ 3) : NBv Bs (spW.power (digitSum k n)) :=
-  ⟨3 + digitSum k n, by have := digitSum_le_nine k n hn; omega, rfl⟩
+theorem spW_power_nb {Bs k n : Nat} (h : 26 ≤ Bs) (hn : n ≤ 3) : NBv Bs (spW.power (digitSum k n)) :=
+  ⟨6 + digitSum k n, by have := digitSum_le_nine k n hn; omega, rfl⟩
 
 /-- **A group completes**, its digit word `g^k` loaded at its base, its chain step above `Bs`. -/
 theorem spGroupT_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} {k Bs : Nat}
-    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hBs : 23 ≤ Bs) (hB : Bs ≤ spL fold B + 5)
+    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hBs : 26 ≤ Bs) (hB : Bs ≤ spL fold B + 5)
     (hpi : NBv Bs prodIn) (hei : NBv Bs encIn) (vals : Nat → E) (hv : ∀ t < n, IsCanonical128 (vals t))
     (σ : Val) (hg : ∀ σ', AgreeBelow B σ σ' → AtomsHold rd σ' (spPre fold B) → SpGood spPad σ') :
     Completes C rd B (spGroupT first n fold prodIn encIn B).2 (spGroupT first n fold prodIn encIn B).1 σ
@@ -71,10 +71,6 @@ theorem spGroupT_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn 
   (groupD_load (C := C) (rd := rd) (spW_shape hBs) (spW_canon hBs) hn hk hm (spL_ge fold B) hB
     (spPre_seq fold B) hpi hei (spW_power_nb hBs hn) vals hv σ hg).mono le_rfl le_rfl
     (fun _ h => ⟨h.1, ⟨h.2.1, h.2.2.1⟩, h.2.2.2⟩)
-
-theorem spN_pos (p : Nat) : 0 < spN p := by unfold spN; split <;> omega
-
-theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
 
 theorem spArmB_ge (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) :
     spL fold B + 6 ≤ spArmB first n fold B prodIn encIn k := by
@@ -109,7 +105,7 @@ theorem spPost_bounds (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V)
   exact ⟨by unfold spSlot; omega, by unfold spSlot; omega⟩
 
 theorem spGroupT_nb {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} (hn : n ≤ 3)
-    (hB : 17 ≤ spL fold B) (hpi : NBv (spL fold B + 6) prodIn) (hei : NBv (spL fold B + 6) encIn) :
+    (hB : 20 ≤ spL fold B) (hpi : NBv (spL fold B + 6) prodIn) (hei : NBv (spL fold B + 6) encIn) :
     NumBelow (spGroupT first n fold prodIn encIn B).2 (Stmt.valsList (spGroupT first n fold prodIn encIn B).1) :=
   groupD_numBelow (spW_shape (Bs := spL fold B + 6) (by omega)) le_rfl
     (spL_ge fold B) ((spPre_seq fold B).numBelow.mono (by omega)) hpi hei

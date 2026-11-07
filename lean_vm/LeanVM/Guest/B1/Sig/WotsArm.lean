@@ -177,7 +177,7 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
   · simp only [hk, ↓reduceIte] at hpw hvpw hopw hR ⊢
     obtain ⟨hw1, hw2, hw3, hw4⟩ := hws hk
     set w2 := (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2 with hw2def
-    have ht2 : SSA ([cst w2 (lit (k * 4 ^ first))] ++
+    have ht2 : SSA ([cst w2 (lit (W.enc first n k))] ++
         [addS (.n eo) (if fold = true then V.n b else encIn) (.n w2)]) :=
       SSA.append' (ssa_single_atom trivial (by simp [aReads]))
         (ssa_single_atom trivial (by
@@ -191,7 +191,7 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
         (fun x hx => by simpa [addS, outsList, aOuts] using hx)
         (fun x e1 e2 => by subst e1; simp only [V.mk.injEq, true_and] at e2; exact hw3 e2.symm)
     have htail : SSA ([if fold = true then copyS (.n po) (W.power (digitSum k n))
-        else mulS (.n po) prodIn (W.power (digitSum k n))] ++ ([cst w2 (lit (k * 4 ^ first))] ++
+        else mulS (.n po) prodIn (W.power (digitSum k n))] ++ ([cst w2 (lit (W.enc first n k))] ++
         [addS (.n eo) (if fold = true then V.n b else encIn) (.n w2)])) :=
       SSA.append' hprod ht2 hvprod (Q := fun x => x = .n w2 ∨ x = .n eo)
         (fun x hx => by simp [cst, addS, outsList, aOuts] at hx; tauto)
@@ -296,7 +296,7 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
             else mulS (.n po) prodIn (W.power (digitSum k n)), copyS (.n eo) (if fold then .n b else encIn)]
           else [if fold then copyS (.n po) (W.power (digitSum k n))
             else mulS (.n po) prodIn (W.power (digitSum k n)),
-            cst (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2 (lit (k * 4 ^ first)),
+            cst (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2 (lit (W.enc first n k)),
             addS (.n eo) (if fold then .n b else encIn) (.n (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2)]) := by
     unfold armT
     split <;> rfl
