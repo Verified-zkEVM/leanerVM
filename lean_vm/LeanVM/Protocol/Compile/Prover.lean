@@ -178,9 +178,10 @@ def leavesOf (height : ℕ) (word : Word) : Vector (List K) (2 ^ height) :=
 def treeRoot (height : ℕ) (word : Word) : Digest :=
   MerkleTree.root (leafHash H) (nodeHash H) (leavesOf height word)
 
-/-- The opening of a word's tree at position `q`: the row at `q`'s low `height` bits and its
-authentication path, leaf level first. -/
+/-- The opening of a word's tree at position `q`: the position, the row at `q`'s low `height`
+bits and its authentication path, leaf level first. -/
 def openingAt (height : ℕ) (word : Word) (q : ℕ) : Opening where
+  leafIndex := q
   leaf := word (q % 2 ^ height)
   path := MerkleTree.path (leafHash H) (nodeHash H) (leavesOf height word)
     ⟨q % 2 ^ height, Nat.mod_lt _ (Nat.two_pow_pos height)⟩
@@ -189,7 +190,7 @@ def openingAt (height : ℕ) (word : Word) (q : ℕ) : Opening where
 in the proof from there on, or `none` if a proof-of-work search fails. A rejection, and an opening
 of a missing commitment, end the proof. -/
 def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
-    VerifierProgram α → Sponge → List Ev → Option (List E × List Opening)
+    VerifierProgram α → Sponge → List Ev → Option (List E × List (List Opening))
   | .ret _, _, _ => some ([], [])
   | .fail, _, _ => some ([], [])
   | .read k, sp, h =>
@@ -215,7 +216,7 @@ def proveFrom (S : Strategy) (fuel : ℕ) {α : Type} :
     | some (ht, _, word) =>
       (proveFrom S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
         (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])).map
-        fun t ↦ (t.1, ps.map (openingAt H ht word) ++ t.2)
+        fun t ↦ (t.1, ps.map (openingAt H ht word) :: t.2)
 
 /-- The honest prover: the proof of the program from the seed state and the empty history, or
 `none` if a proof-of-work search finds no nonce below `fuel`. -/
@@ -435,6 +436,29 @@ theorem openAll_openingAt {height width : ℕ} {word : Word} (hw : WellShaped wi
     simp only [ho, ↓reduceIte, ih]
     rfl
 
+/-- The honest phase of a list of positions passes the shape and position checks and is
+accepted, giving the rows. -/
+theorem openPhase_openingAt {height width : ℕ} {word : Word} (hw : WellShaped width word)
+    (ps : List ℕ) :
+    openPhaseWithHash (m := Id) H (treeRoot H height word) height width ps
+        (ps.map (openingAt H height word)) =
+      some (ps.map fun q ↦ word (q % 2 ^ height)) := by
+  have hshape : ∀ opening ∈ ps.map (openingAt H height word),
+      opening.leaf.length = width ∧ opening.path.length = height := by
+    simp only [List.mem_map]
+    rintro _ ⟨q, -, rfl⟩
+    exact ⟨hw _, MerkleTree.length_path _ _ _ _⟩
+  have hpos : (ps.map (openingAt H height word)).map Opening.leafIndex = ps := by
+    simp only [List.map_map]
+    exact List.map_id' ps
+  have hopen := openAll_openingAt H hw (height := height) ps []
+  simp only [List.append_nil] at hopen
+  unfold openPhaseWithHash
+  rw [ite_eq_left ⟨hshape, hpos⟩]
+  simp only [bind] at hopen ⊢
+  rw [hopen]
+  rfl
+
 end Merkle
 
 /-! ## The simulation -/
@@ -465,8 +489,8 @@ shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, th
 verifier, from sponge `sp` with the roots of `h`'s trees, accepts on any stream and openings that
 start with `xs` and `os`, leaving exactly what follows them. -/
 theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
-    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
-      (restS : List E) (restO : List Opening),
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E)
+      (os : List (List Opening)) (restS : List E) (restO : List (List Opening)),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       proveFrom H F S fuel p sp h = some (xs, os) →
       ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
@@ -573,8 +597,8 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       rw [← hrun]
       have hroot : (rootsOf H (commits h))[i]? = some (treeRoot H ht word, ht, w) := by
         simp [rootsOf, hc]
-      have hopen := openAll_openingAt H hw (height := ht) ps (t.2 ++ restO)
-      simp only [runWithHash, hroot, List.append_assoc]
+      have hopen := openPhase_openingAt H hw (height := ht) ps
+      simp only [runWithHash, hroot, List.cons_append]
       simp only [bind] at hopen ⊢
       rw [hopen]
       simp [commits_append, commits]

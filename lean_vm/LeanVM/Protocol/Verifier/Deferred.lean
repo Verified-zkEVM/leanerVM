@@ -171,17 +171,10 @@ theorem run_of_le {α : Type} {p q : VerifierProgram α} (hpq : VerifierProgram.
     · simp at h
   | query i ps _ ih =>
     intro s r h
-    simp only [runWithHash] at h ⊢
-    split at h
-    · simp at h
-    · next root height width hr =>
-      change (match openAllWithHash H root height width ps s.openings with
-        | some (rows, rest) => _ | none => _) = _ at h
-      change (match openAllWithHash H root height width ps s.openings with
-        | some (rows, rest) => _ | none => _) = _
-      split at h
-      · next rows rest ho => exact ih rows h
-      · simp at h
+    obtain ⟨root, height, width, phase, rest, rows, hr, ho, hp, h⟩ :=
+      (runWithHash_query_eq_some_iff H F i ps _ s r).mp h
+    exact (runWithHash_query_eq_some_iff H F i ps _ s r).mpr
+      ⟨root, height, width, phase, rest, rows, hr, ho, hp, ih rows h⟩
 
 /-- A refining program's accepted proof is the refined program's. -/
 theorem runProof_of_le {P Q : VerifierProgram Bool} (hPQ : VerifierProgram.Le P Q) {seed :
