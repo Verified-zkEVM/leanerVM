@@ -221,6 +221,10 @@ def flat_openings(phases_data: bytes):
     try:
         out, at = bytearray(), 4
         for _ in range(int.from_bytes(phases_data[:4], "little")):
+            # A mutated phase count runs past the end through empty phases: stop there, not after
+            # up to 2^32 of them.
+            if at + 4 > len(phases_data):
+                return None
             count = int.from_bytes(phases_data[at:at + 4], "little")
             at += 4
             for _ in range(count):
