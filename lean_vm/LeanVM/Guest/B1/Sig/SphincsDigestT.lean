@@ -160,7 +160,7 @@ def shiftsG (bit : Nat → V) (n outBase : Nat) : List Stmt :=
 /-- FORS tree `c`'s leaf and its shifts: `vals[10 c + z]`, the leaf shifted right by `z`. -/
 def sFVal (c z : Nat) : V := .n (323 + 28 * c + 3 * (9 - z))
 
-/-- `sp_fors_field` of every tree (`G:4021-4023`). -/
+/-- `sp_fors_field` of every tree (`G:4000-4002`). -/
 def sForsFields : List Stmt :=
   (List.range 24).flatMap fun c => shiftsG (fun r => sMdBit (10 * c + r)) 10 (323 + 28 * c)
 
@@ -175,7 +175,7 @@ def sLVal (i : Nat) : V :=
   if i < 8 then .n (995 + 3 * (7 - i)) else if i < 16 then .n (1017 + 3 * (15 - i))
   else .n (1039 + 3 * (25 - i))
 
-/-- `sp_leaf_shifts` of the three layers (`G:4024-4027`). -/
+/-- `sp_leaf_shifts` of the three layers (`G:4003-4006`). -/
 def sLeafShifts : List Stmt :=
   (List.range 3).flatMap fun l =>
     shiftsG (fun r => sLeafBit (sLeafOff l + sLeafLen l - 1 - r)) (sLeafLen l) (sLeafBase l)
@@ -231,15 +231,15 @@ def sMd1 : List Stmt × Nat × V :=
   let r := sMdSum 13 17 x.2.2 x.2.1
   (x.1 ++ r.1, r.2.1, r.2.2)
 
-/-- The digest's first 30 bytes (`G:4028-4035`). -/
+/-- The digest's first 30 bytes (`G:4007-4014`). -/
 def sMdBytes : List Stmt := (sMdByte 0 1067).1 ++ sMd0.1 ++ sMd1.1
 
 /-! ## The check -/
 
-/-- The tree index's middle byte, the top leaf's low byte (`G:4036`). -/
+/-- The tree index's middle byte, the top leaf's low byte (`G:4015`). -/
 def sTreeMid : V := .n 1279
 
-/-- The six unused bits of the tree index's high byte, most significant first (`G:4037-4039`). -/
+/-- The six unused bits of the tree index's high byte, most significant first (`G:4016-4018`). -/
 def sPadBits : List Stmt :=
   (List.range 5).flatMap fun b => let x := 1280 + 3 * b;
     [cst x (word 2 0 0), mulS (.n (x + 1)) (.n (if b = 0 then 298 else x - 1)) (.n x),
@@ -248,7 +248,7 @@ def sPadBits : List Stmt :=
 /-- The second call's unused bytes, `sp_unused`, read from `n1309`. -/
 def sUnused : List Stmt × Nat × V := sFromMarks 1303 6 1309
 
-/-- The check (`G:4036-4046`): the tree's middle byte, the high byte's unused bits, `d0[0] = md0`,
+/-- The check (`G:4015-4025`): the tree's middle byte, the high byte's unused bits, `d0[0] = md0`,
 `d0[1] = md1 + (lvals[24] + pad · g^2) · 2^112 + tree_mid · 2^120`, the unused bytes, and
 `(d1[0] + lvals[8] + lvals[0] · g^8 + unused · g^16) · y⁻¹` in `K`. -/
 def sCheck : List Stmt :=
