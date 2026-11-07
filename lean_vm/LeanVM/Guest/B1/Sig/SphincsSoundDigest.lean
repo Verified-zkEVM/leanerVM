@@ -374,6 +374,110 @@ theorem lval_at {T : Nat} (hl : LValsAt σ T) {l z i : Nat} (hl3 : l < 3) (hz : 
     (hi : i = 8 * l + z) : σ (sLVal i) = eOfNat (layerLeafN T l >>> z) := by
   subst hi; exact hl l hl3 z hz
 
+/-- The check's statements before `d0[0] = md0`: the tree's middle byte, the unused bits. -/
+def sCheckA : List Stmt :=
+  [cst 1618 (word 256 0 0), mulS (.n 1619) (sLVal 24) (.n 1618), addS sTreeMid (sLVal 16) (.n 1619)] ++
+    sPadBits
+
+/-- Between `d0[0] = md0` and `d0[1] = …`: the tree index's two high bytes placed. -/
+def sCheckB : List Stmt :=
+  [cst 1636 (word 4 0 0), mulS (.n 1637) (.n 1635) (.n 1636), addS (.n 1638) (sLVal 24) (.n 1637),
+    cst 1639 (pw 112), mulS (.n 1640) (.n 1638) (.n 1639), addS (.n 1641) sMd1.2.2 (.n 1640),
+    cst 1642 (pw 120), mulS (.n 1643) sTreeMid (.n 1642)]
+
+/-- After the unused bytes: the second call's high lane. -/
+def sCheckC : List Stmt :=
+  [addS (.n 1701) sHm1 (sLVal 8), cst 1702 (word 256 0 0), mulS (.n 1703) (sLVal 0) (.n 1702),
+    addS (.n 1704) (.n 1701) (.n 1703), cst 1705 (word 65536 0 0),
+    mulS (.n 1706) sUnused.2.2 (.n 1705), addS (.n 1707) (.n 1704) (.n 1706),
+    cst 1708 (word 1 0 1), mulS (.n 1709) (.n 1707) (.n 1708)]
+
+theorem sCheck_split : sCheck = sCheckA ++ [copyS sHm0 sMd0.2.2] ++ sCheckB ++
+    [addS sHm0b (.n 1641) (.n 1643), hintW "sp_unused" (runV 1644 6)] ++ sUnused.1 ++ sCheckC ++
+    [.atom (.assertInK (.n 1709) sUnused.2.2)] := by
+  simp [sCheck, sCheckA, sCheckB, sCheckC]
+
+theorem lval_16 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 16) = eOfNat (layerLeafN T 2) := by
+  simpa using lval_at hl (l := 2) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
+
+theorem lval_24 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 24) = eOfNat (layerLeafN T 2 >>> 8) :=
+  lval_at hl (l := 2) (z := 8) (by norm_num) (by simp [sLeafLen]) rfl
+
+theorem lval_8 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 8) = eOfNat (layerLeafN T 1) := by
+  simpa using lval_at hl (l := 1) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
+
+theorem lval_0 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 0) = eOfNat (layerLeafN T 0) := by
+  simpa using lval_at hl (l := 0) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
+
+/-- **The tree's middle byte and the unused bits.** -/
+theorem sCheckA_sound {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h : AtomsHold rd σ sCheckA) :
+    σ sTreeMid = eOfNat (byteN T 31) ∧ σ (.n 1635) = eOfNat (T / 2 ^ 242 % 2 ^ 6) := by
+  have hA := h.left
+  have hL2 : layerLeafN T 2 < 2 ^ 10 := by simpa [sLeafLen] using layerLeafN_lt T 2
+  refine ⟨?_, ?_⟩
+  · have k : σ (.n 1618) = word 256 0 0 := hA.atom (a := .const _ _) (by simp [cst])
+    have m : σ (.n 1619) = σ (sLVal 24) * σ (.n 1618) := hA.atom (a := .mul _ _ _) (by simp [mulS])
+    have a : σ sTreeMid = σ (sLVal 16) + σ (.n 1619) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
+    rw [a, m, k, lval_16 hl, lval_24 hl, word_eq_eOfNat, show (256 : Nat) = 2 ^ 8 by norm_num, mul_comm,
+      Value.eOfNat_two_pow_mul (by rw [Nat.shiftRight_eq_div_pow]; omega), eOfNat_low, layerLeaf2_low]
+  · have pad := sPadBits_sound hb h.right 5 le_rfl
+    rw [show padV 5 = .n 1635 from rfl] at pad
+    simpa using pad
+
+/-- **The tree index's two high bytes placed**: with `md1`, the first call's second cell. -/
+theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (byteN T 31))
+    (pad : σ (.n 1635) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
+    (h1 : σ sMd1.2.2 = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
+    σ (.n 1641) + σ (.n 1643) = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) := by
+  have k6 : σ (.n 1636) = word 4 0 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m7 : σ (.n 1637) = σ (.n 1635) * σ (.n 1636) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a8 : σ (.n 1638) = σ (sLVal 24) + σ (.n 1637) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k9 : σ (.n 1639) = pw 112 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m0 : σ (.n 1640) = σ (.n 1638) * σ (.n 1639) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a1 : σ (.n 1641) = σ sMd1.2.2 + σ (.n 1640) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k2 : σ (.n 1642) = pw 120 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m3 : σ (.n 1643) = σ sTreeMid * σ (.n 1642) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have b30 : σ (.n 1638) = eOfNat (byteN T 30) := by
+    rw [a8, m7, k6, pad, lval_24 hl, layerLeaf2_high, word_eq_eOfNat, show (4 : Nat) = 2 ^ 2 by norm_num,
+      mul_comm, Value.eOfNat_two_pow_mul (by omega), add_comm,
+      Value.eOfNat_add_of_lt (Nat.mod_lt _ (by norm_num))]
+    congr 1
+    unfold byteN
+    have e : T / 2 ^ 242 = T / 2 ^ 240 / 4 := by rw [Nat.div_div_eq_div_mul]; norm_num
+    rw [e, show 8 * 30 = 240 by norm_num]
+    generalize T / 2 ^ 240 = X
+    omega
+  have e41 : σ (.n 1641) = eOfNat192 (T / 2 ^ 128 % 2 ^ 120) := by
+    rw [a1, m0, b30, k9, h1, pw_mul (by norm_num) (by have := byteN_lt T 30; norm_num; omega),
+      eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
+      mod_split (T / 2 ^ 128) 112 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
+  rw [e41, m3, k2, tm, pw_mul (by norm_num) (by have := byteN_lt T 31; norm_num; omega),
+    eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (128 : Nat) = 120 + 8 by norm_num,
+    mod_split (T / 2 ^ (120 + 8)) 120 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
+
+/-- **The second call's high lane**: its cell, the leaves' bytes and the unused bytes `N`, times
+`y⁻¹`. -/
+theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOfNat N) (hN48 : N < 2 ^ 48)
+    (hC : AtomsHold rd σ sCheckC) :
+    σ (.n 1709) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 1 0 1 := by
+  have hL1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
+  have hL0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
+  have a01 : σ (.n 1701) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k02 : σ (.n 1702) = word 256 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m03 : σ (.n 1703) = σ (sLVal 0) * σ (.n 1702) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a04 : σ (.n 1704) = σ (.n 1701) + σ (.n 1703) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k05 : σ (.n 1705) = word 65536 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m06 : σ (.n 1706) = σ sUnused.2.2 * σ (.n 1705) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a07 : σ (.n 1707) = σ (.n 1704) + σ (.n 1706) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k08 : σ (.n 1708) = word 1 0 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m09 : σ (.n 1709) = σ (.n 1707) * σ (.n 1708) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  rw [m09, k08, a07, m06, k05, a04, m03, k02, a01, lval_8 hl, lval_0 hl, hN, word_eq_eOfNat, word_eq_eOfNat,
+    show (256 : Nat) = 2 ^ 8 by norm_num, show (65536 : Nat) = 2 ^ 16 by norm_num,
+    mul_comm (eOfNat (layerLeafN T 0)), Value.eOfNat_two_pow_mul (by omega), mul_comm (eOfNat N),
+    Value.eOfNat_two_pow_mul (by omega), add_assoc (σ sHm1), add_comm (eOfNat (layerLeafN T 1)),
+    Value.eOfNat_add_of_lt hL1, layerLeaf01]
+  rfl
+
 /-- **The check, sound**: the first call's cells are the digest's bytes `0 … 31` the bits spell,
 the second call's low two bytes its bytes `32`, `33`. -/
 theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
@@ -381,79 +485,25 @@ theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : By
     (h1 : σ sMd1.2.2 = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (h : AtomsHold L.read σ sCheck) :
     σ sTreeMid = eOfNat (byteN T 31) ∧ σ sHm0 = eOfNat192 (T % 2 ^ 128) ∧
       σ sHm0b = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) ∧ cellNat (σ sHm1) % 2 ^ 16 = T / 2 ^ 256 % 2 ^ 16 := by
-  have hA := h.left.left.left.left
-  have hP := h.left.left.left.right
-  have hB := h.left.left.right
-  have hU := h.left.right
-  have hC := h.right
-  have L16 : σ (sLVal 16) = eOfNat (layerLeafN T 2) := by
-    simpa using lval_at hl (l := 2) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
-  have L24 : σ (sLVal 24) = eOfNat (layerLeafN T 2 >>> 8) :=
-    lval_at hl (l := 2) (z := 8) (by norm_num) (by simp [sLeafLen]) rfl
-  have L8 : σ (sLVal 8) = eOfNat (layerLeafN T 1) := by
-    simpa using lval_at hl (l := 1) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
-  have L0 : σ (sLVal 0) = eOfNat (layerLeafN T 0) := by
-    simpa using lval_at hl (l := 0) (z := 0) (by norm_num) (by simp [sLeafLen]) rfl
-  have hL2 : layerLeafN T 2 < 2 ^ 10 := by simpa [sLeafLen] using layerLeafN_lt T 2
-  have hL1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
-  have hL0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
-  -- the tree index's middle byte
-  have tm : σ sTreeMid = eOfNat (byteN T 31) := by
-    have k : σ (.n 1618) = word 256 0 0 := hA.atom (a := .const _ _) (by simp [cst])
-    have m : σ (.n 1619) = σ (sLVal 24) * σ (.n 1618) := hA.atom (a := .mul _ _ _) (by simp [mulS])
-    have a : σ sTreeMid = σ (sLVal 16) + σ (.n 1619) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
-    rw [a, m, k, L16, L24, word_eq_eOfNat, show (256 : Nat) = 2 ^ 8 by norm_num, mul_comm,
-      Value.eOfNat_two_pow_mul (by rw [Nat.shiftRight_eq_div_pow]; omega), eOfNat_low, layerLeaf2_low]
+  rw [sCheck_split] at h
+  have hK := h.right
+  have hC := h.left.right
+  have hU := h.left.left.right
+  have hD := h.left.left.left.right
+  have hB := h.left.left.left.left.right
+  have hc := h.left.left.left.left.left.right
+  have hA := h.left.left.left.left.left.left
+  obtain ⟨tm, pad⟩ := sCheckA_sound hb hl hA
   refine ⟨tm, ?_, ?_, ?_⟩
-  · have c : σ sHm0 = σ sMd0.2.2 := hB.atom (a := .copy sHm0 _) (by simp [copyS])
+  · have c : σ sHm0 = σ sMd0.2.2 := hc.atom (a := .copy sHm0 _) (by simp [copyS])
     rw [c, h0]
-  · have pad := sPadBits_sound hb hP 5 le_rfl
-    rw [show padV 5 = .n 1635 from rfl] at pad
-    have k6 : σ (.n 1636) = word 4 0 0 := hB.atom (a := .const _ _) (by simp [cst])
-    have m7 : σ (.n 1637) = σ (.n 1635) * σ (.n 1636) := hB.atom (a := .mul _ _ _) (by simp [mulS])
-    have a8 : σ (.n 1638) = σ (sLVal 24) + σ (.n 1637) := hB.atom (a := .add _ _ _) (by simp [addS])
-    have k9 : σ (.n 1639) = pw 112 := hB.atom (a := .const _ _) (by simp [cst])
-    have m0 : σ (.n 1640) = σ (.n 1638) * σ (.n 1639) := hB.atom (a := .mul _ _ _) (by simp [mulS])
-    have a1 : σ (.n 1641) = σ sMd1.2.2 + σ (.n 1640) := hB.atom (a := .add _ _ _) (by simp [addS])
-    have k2 : σ (.n 1642) = pw 120 := hB.atom (a := .const _ _) (by simp [cst])
-    have m3 : σ (.n 1643) = σ sTreeMid * σ (.n 1642) := hB.atom (a := .mul _ _ _) (by simp [mulS])
-    have a4 : σ sHm0b = σ (.n 1641) + σ (.n 1643) := hB.atom (a := .add sHm0b _ _) (by simp [addS])
-    have b30 : σ (.n 1638) = eOfNat (byteN T 30) := by
-      rw [a8, m7, k6, pad, L24, layerLeaf2_high, word_eq_eOfNat, show (4 : Nat) = 2 ^ 2 by norm_num,
-        mul_comm, Value.eOfNat_two_pow_mul (by omega), add_comm,
-        Value.eOfNat_add_of_lt (Nat.mod_lt _ (by norm_num))]
-      congr 1
-      unfold byteN
-      have e : T / 2 ^ (247 - 5) = T / 2 ^ 240 / 4 := by rw [Nat.div_div_eq_div_mul]; norm_num
-      rw [e, show 8 * 30 = 240 by norm_num]
-      generalize T / 2 ^ 240 = X
-      omega
-    have e41 : σ (.n 1641) = eOfNat192 (T / 2 ^ 128 % 2 ^ 120) := by
-      rw [a1, m0, b30, k9, h1, pw_mul (by norm_num) (by have := byteN_lt T 30; norm_num; omega),
-        eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
-        mod_split (T / 2 ^ 128) 112 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
-    rw [a4, e41, m3, k2, tm, pw_mul (by norm_num) (by have := byteN_lt T 31; norm_num; omega),
-      eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (128 : Nat) = 120 + 8 by norm_num,
-      mod_split (T / 2 ^ (120 + 8)) 120 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
+  · have a4 : σ sHm0b = σ (.n 1641) + σ (.n 1643) := hD.atom (a := .add sHm0b _ _) (by simp [addS])
+    rw [a4, sCheckB_sound hl tm pad h1 hB]
   · obtain ⟨N, hN, hNlt⟩ := sFromMarks_sound hκ hbb (b := 1644) (n := 6) (x := 1650) (by norm_num)
       (by norm_num) hU
-    have a01 : σ (.n 1701) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [addS])
-    have k02 : σ (.n 1702) = word 256 0 0 := hC.atom (a := .const _ _) (by simp [cst])
-    have m03 : σ (.n 1703) = σ (sLVal 0) * σ (.n 1702) := hC.atom (a := .mul _ _ _) (by simp [mulS])
-    have a04 : σ (.n 1704) = σ (.n 1701) + σ (.n 1703) := hC.atom (a := .add _ _ _) (by simp [addS])
-    have k05 : σ (.n 1705) = word 65536 0 0 := hC.atom (a := .const _ _) (by simp [cst])
-    have m06 : σ (.n 1706) = σ sUnused.2.2 * σ (.n 1705) := hC.atom (a := .mul _ _ _) (by simp [mulS])
-    have a07 : σ (.n 1707) = σ (.n 1704) + σ (.n 1706) := hC.atom (a := .add _ _ _) (by simp [addS])
-    have k08 : σ (.n 1708) = word 1 0 1 := hC.atom (a := .const _ _) (by simp [cst])
-    have m09 : σ (.n 1709) = σ (.n 1707) * σ (.n 1708) := hC.atom (a := .mul _ _ _) (by simp [mulS])
-    have hK : IsInK (σ (.n 1709)) := (hC.atom (a := .assertInK (.n 1709) sUnused.2.2) (by simp)).1
-    have hN' : σ sUnused.2.2 = eOfNat N := hN
-    rw [m09, k08, a07, m06, k05, a04, m03, k02, a01, L8, L0, hN', word_eq_eOfNat, word_eq_eOfNat,
-      show (256 : Nat) = 2 ^ 8 by norm_num, show (65536 : Nat) = 2 ^ 16 by norm_num,
-      mul_comm (eOfNat (layerLeafN T 0)), Value.eOfNat_two_pow_mul (by omega), mul_comm (eOfNat N),
-      Value.eOfNat_two_pow_mul (by omega), add_assoc (σ sHm1), add_comm (eOfNat (layerLeafN T 1)),
-      Value.eOfNat_add_of_lt hL1, layerLeaf01] at hK
-    exact high_low_bytes (Nat.mod_lt _ (by norm_num)) hK
+    have hk : IsInK (σ (.n 1709)) := (hK.atom (a := .assertInK (.n 1709) sUnused.2.2) (by simp)).1
+    rw [sCheckC_sound hl hN (by simpa using hNlt) hC] at hk
+    exact high_low_bytes (Nat.mod_lt _ (by norm_num)) hk
 
 /-! ## The block -/
 
