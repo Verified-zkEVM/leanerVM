@@ -4,7 +4,7 @@ import LeanVM.Guest.Bytecode
 # The guest bytecode
 
 `guest_fetch_of` at the first and last pcs of the largest compiled function after `__loop2`
-(`sp_wots`, 23742 instructions over 12 chunks in three modules), at a `KECCAK` of each layout, at
+(`sp_wots`, 23713 instructions over 12 chunks in three modules), at a `KECCAK` of each layout, at
 the first and last
 pcs of `verify_sig_lean_sphincs` and its first `KECCAK`, at `main`'s entry, at pc `0`, and the
 padding; each side condition is one `decide +kernel`. The expected instructions are those of the guest's `DBG_DISASM` dump. And the
@@ -17,62 +17,62 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 example : Data.functions.length = 992 := by decide +kernel
 
-example : Data.codeLen = 488806 := rfl
+example : Data.codeLen = 490600 := rfl
 
 /-- `sp_wots` is function 20, the largest after `__loop2` (function 37, 114219 instructions). -/
 theorem spWots_mem : Data.f20 ∈ Data.functions := mem_functions (j := 20) rfl
 
 example : Data.f20.name = "sp_wots" ∧ Data.f20.entryPc = 31267 ∧
-    Data.f20.instructionCount = 23742 ∧ Data.f20.chunks.length = 12 := ⟨rfl, rfl, rfl, rfl⟩
+    Data.f20.instructionCount = 23713 ∧ Data.f20.chunks.length = 12 := ⟨rfl, rfl, rfl, rfl⟩
 
-/-- Its first instruction, `SET fp[2502] = 1`. -/
-example : guestProgram.fetch (addressOfIndex 31267) = some (OffsetInstruction.set 2502 1 0
+/-- Its first instruction, `SET fp[9] = 1`. -/
+example : guestProgram.fetch (addressOfIndex 31267) = some (OffsetInstruction.set 9 1 0
     0).toLeanIsaInstruction :=
   guest_fetch_of spWots_mem (i := 0) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
-/-- Its last, the return `JUMP if fp[2519] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guestProgram.fetch (addressOfIndex 55008) = some (OffsetInstruction.jump 2519 0
+/-- Its last, the return `JUMP if fp[9] ≠ 0: pc = fp[0], fp = fp[1]`. -/
+example : guestProgram.fetch (addressOfIndex 54979) = some (OffsetInstruction.jump 9 0
     1).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23741) (by decide +kernel) (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23712) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
 
-/-- A `KECCAK` writing the odd layout, `KECCAK fp[3291..+13] odd = keccak_f(fp[2], fp[3160],
-fp[32], fp[71], tail = fp[3304..+4], b8 = fp[266], cap = fp[2520..+4]) even`. -/
-example : guestProgram.fetch (addressOfIndex (31267 + 23668)) =
-    some (OffsetInstruction.keccak 2 3160 32 71 3304 266 2520 3291 false
+/-- A `KECCAK` writing the odd layout, `KECCAK fp[3358..+13] odd = keccak_f(fp[3371], fp[3372],
+fp[3373], fp[3374], tail = fp[3375..+4], b8 = fp[3379], cap = fp[3345..+4]) even`. -/
+example : guestProgram.fetch (addressOfIndex (31267 + 23699)) =
+    some (OffsetInstruction.keccak 3371 3372 3373 3374 3375 3379 3345 3358 false
         true).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23668) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23699) (by decide +kernel) rfl (by decide +kernel)
 
-/-- The next, reading the odd layout, `KECCAK fp[3308..+13] even = keccak_f(fp[3321], fp[3322],
-fp[3323], fp[3324], tail = fp[3325..+4], b8 = fp[3329], cap = fp[3300..+4]) odd`. -/
-example : guestProgram.fetch (addressOfIndex (31267 + 23678)) =
-    some (OffsetInstruction.keccak 3321 3322 3323 3324 3325 3329 3300 3308 true
+/-- The next, reading the odd layout, `KECCAK fp[3149..+13] even = keccak_f(fp[3380], fp[3381],
+fp[3382], fp[3383], tail = fp[3384..+4], b8 = fp[3389], cap = fp[3367..+4]) odd`. -/
+example : guestProgram.fetch (addressOfIndex (31267 + 23710)) =
+    some (OffsetInstruction.keccak 3380 3381 3382 3383 3384 3389 3367 3149 true
         false).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23678) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23710) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `verify_sig_lean_sphincs` is function 21 (after `sp_wots`, 20). -/
 theorem sphincs_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
 
-example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entryPc = 55009 ∧
-    Data.f21.instructionCount = 3036 := ⟨rfl, rfl, rfl⟩
+example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entryPc = 54980 ∧
+    Data.f21.instructionCount = 4859 := ⟨rfl, rfl, rfl⟩
 
-/-- Its first instruction, `DEREF *(fp[2]·g^1) = fp[4]`. -/
-example : guestProgram.fetch (addressOfIndex 55009) = some (OffsetInstruction.deref 2 1 4
+/-- Its first instruction, `DEREF *(fp[2]·g^0) = fp[4]`. -/
+example : guestProgram.fetch (addressOfIndex 54980) = some (OffsetInstruction.deref 2 0 4
     .cell).toLeanIsaInstruction :=
   guest_fetch_of sphincs_mem (i := 0) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
-/-- Its last, the return `JUMP if fp[39] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guestProgram.fetch (addressOfIndex 58044) = some (OffsetInstruction.jump 39 0
+/-- Its last, the return `JUMP if fp[67] ≠ 0: pc = fp[0], fp = fp[1]`. -/
+example : guestProgram.fetch (addressOfIndex 59838) = some (OffsetInstruction.jump 67 0
     1).toLeanIsaInstruction :=
-  guest_fetch_of sphincs_mem (i := 3035) (by decide +kernel) (by decide +kernel)
+  guest_fetch_of sphincs_mem (i := 4858) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
 
-/-- The first digest call's `KECCAK`, `KECCAK fp[6..+13] = keccak_f(fp[4], fp[32], fp[33],
-fp[34], tail = fp[35..+4], b8 = fp[40], cap = fp[42..+4])`, both layouts even. -/
-example : guestProgram.fetch (addressOfIndex (55009 + 15)) =
-    some (OffsetInstruction.keccak 4 32 33 34 35 40 42 6 false
+/-- Its first `KECCAK`, `H_msg`'s first call, `KECCAK fp[289..+13] = keccak_f(fp[288], fp[4],
+fp[5], fp[276], tail = fp[315..+4], b8 = fp[319], cap = fp[321..+4])`, both layouts even. -/
+example : guestProgram.fetch (addressOfIndex (54980 + 264)) =
+    some (OffsetInstruction.keccak 288 4 5 276 315 319 321 289 false
         false).toLeanIsaInstruction :=
-  guest_fetch_of sphincs_mem (i := 15) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of sphincs_mem (i := 264) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `main`'s first instruction, `SET fp[10] = g^65535`, the immediate as its bits. -/
 example : guestProgram.fetch (addressOfIndex 16555) = some (OffsetInstruction.set 10
@@ -93,7 +93,7 @@ example : guestProgram.fetch (addressOfIndex 17293) =
 /-- The first instruction of the program, in `__jump_tables`: `SET fp[455]` to a jump target, a
 power of `g`. -/
 example : guestProgram.fetch (addressOfIndex 0) = some (OffsetInstruction.set 455
-    11064696544855033505 0 0).toLeanIsaInstruction :=
+    14967847724940376145 0 0).toLeanIsaInstruction :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
@@ -103,7 +103,7 @@ example : guestProgram.fetch (addressOfIndex (2 ^ 19 - 1)) = some
   guest_fetch_pad (by decide) (by decide)
 
 /-- The code list agrees with `instructionAt`. -/
-example : Data.f21.code[3035]? = some (OffsetInstruction.jump 39 0 1) := by
+example : Data.f21.code[4858]? = some (OffsetInstruction.jump 67 0 1) := by
   rw [CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem sphincs_mem)
       (by decide +kernel)]
   decide +kernel
