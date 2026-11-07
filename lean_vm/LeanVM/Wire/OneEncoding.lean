@@ -124,6 +124,14 @@ theorem oneEncoding_of
       flatMap_toBytes_regroup length words hwordsLength, List.append_nil, List.append_assoc]
     rfl
 
+/-- **One encoding of the statement's decoding**, Keccak-256 over a permutation `π` in `Id`:
+bytes that decode to a proof are its encoding. -/
+theorem toBytes_of_fromBytes_of (one_encoding : OneEncodingStatement)
+    (π : KeccakState → Id KeccakState) {bytes : Bytes} {proof : Proof}
+    (hdecode : Proof.fromBytes π bytes = some proof) : proof.toBytes = bytes := by
+  rw [fromBytes_eq_withHash] at hdecode
+  exact one_encoding _ bytes proof hdecode
+
 end LeanVM.Wire
 
 end

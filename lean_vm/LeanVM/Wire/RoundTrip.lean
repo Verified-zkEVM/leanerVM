@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Wire.Spec
+public import LeanVM.Wire.Prune
 
 /-!
 # The round trip of the wire encoding
@@ -116,6 +116,36 @@ theorem roundTrip_of
   intro hmap
   change some (⟨proof.stream, x.run⟩ : Proof) = some proof
   rw [hmap]
+
+/-- The round trip from the reader/writer inverses (`ReadWriteFacts`, through
+`ReadWriteFacts.readProof_toBytes`) and the unpruning of a pruned phase. -/
+theorem roundTrip_of_facts (F : ReadWriteFacts)
+    (unprune_prune : ∀ (h : Bytes → Digest) paths height leafWords,
+      PhaseDecodable h paths height leafWords →
+        unprunePhaseWithHash (m := Id) h (prunePhase paths) = paths) :
+    RoundTripStatement :=
+  roundTrip_of (fun _ _ hw ↦ F.readProof_toBytes hw) unprune_prune
+
+/-! ## The round trip in the deployed forms -/
+
+/-- Decoding an encoding that reads back as the proof's phases pruned, with any hash in any monad:
+each pruned phase unpruned with that hash, in order. The reading needs no hash; `h` only names
+the tree the phases are opened from. -/
+theorem fromBytesWithHash_toBytes_of {proof : Proof}
+    (read_toBytes : readProof proof.toBytes = some (proof.stream, proof.openings.map prunePhase))
+    {m : Type → Type} [Monad m] (H : Bytes → m Digest) :
+    fromBytesWithHash H proof.toBytes = (do
+      let openings ← (proof.openings.map prunePhase).mapM (unprunePhaseWithHash H)
+      pure (some ⟨proof.stream, openings⟩)) :=
+  fromBytesWithHash_of_readProof H read_toBytes
+
+/-- **The round trip of the statement's decoding**, Keccak-256 over a permutation `π` in `Id`: a
+proof that survives its encoding with that hash decodes from it. -/
+theorem fromBytes_toBytes_of (round_trip : RoundTripStatement) (π : KeccakState → Id KeccakState)
+    {proof : Proof} (hw : WireDecodable (keccak256With π) proof) :
+    Proof.fromBytes π proof.toBytes = some proof := by
+  rw [fromBytes_eq_withHash]
+  exact round_trip _ proof hw
 
 end LeanVM.Wire
 
