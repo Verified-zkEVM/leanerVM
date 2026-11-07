@@ -11,13 +11,15 @@ module
 public import Statement.LeanVm
 public import Common.Prob
 public import LeanVM.Wire.Spec
+public import LeanVM.Wire.Cost
 
 /-!
 # Knowledge soundness on the wire
 
 `LeanVM.KnowledgeSoundnessOnBytes E` (`Statement/LeanVm.lean`) follows from
 `LeanVM.KnowledgeSoundness E`, for every straight-line extractor `E`, by the reduction "the
-adversary decodes its own bytes" (`knowledgeSoundnessOnBytes_of_decodeCost`):
+adversary decodes its own bytes" (`knowledgeSoundnessOnBytes_of`, from
+`knowledgeSoundnessOnBytes_of_decodeCost` at the decoding's `73728` permutation calls):
 
 * `decodingAdversary A` runs the adversary on bytes `A`, decodes its bytes
   (`Proof.fromBytes queryPermutation`) and outputs the decoded proof, or `rejectedProof` if the
@@ -186,9 +188,17 @@ theorem knowledgeSoundnessOnBytes_of_wireDecodeCost {extractor : StraightLineExt
     KnowledgeSoundnessOnBytes extractor :=
   knowledgeSoundnessOnBytes_of_decodeCost hKS hD wireDecodePermutationCalls_add_le
 
-/-- info: 'LeanVM.Wire.knowledgeSoundnessOnBytes_of_wireDecodeCost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- **Knowledge soundness on the wire, from knowledge soundness on structured proofs**, for every
+straight-line extractor: an adversary of `Q` queries that outputs bytes breaks soundness on the wire
+at most as often as the adversary that decodes its own bytes, of `Q + 73728` queries, breaks
+`KnowledgeSoundness` (`fromBytes_queryCost`, `Wire/Cost.lean`). -/
+theorem knowledgeSoundnessOnBytes_of {extractor : StraightLineExtractor}
+    (hKS : KnowledgeSoundness extractor) : KnowledgeSoundnessOnBytes extractor :=
+  knowledgeSoundnessOnBytes_of_wireDecodeCost hKS fromBytes_queryCost
+
+/-- info: 'LeanVM.Wire.knowledgeSoundnessOnBytes_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms knowledgeSoundnessOnBytes_of_wireDecodeCost
+#print axioms knowledgeSoundnessOnBytes_of
 
 end LeanVM.Wire
 
