@@ -392,9 +392,10 @@ def wire_cases(wire: dict, events: dict, data: dict, rng: random.Random) -> list
 
 
 def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) -> list:
-    cases = [("honest", "the honest proof", [])]
+    wire = wire_cases(events["wire"], events, data, rng)
+    cases = [("honest", "the honest proof", []), wire[0]]  # the honest proof, then its wire form
     cases += phase_cases(events["phases"], data, rng)
-    cases += wire_cases(events["wire"], events, data, rng)
+    cases += wire[1:]
     bounds = events["phase"] + [("end", events["stream_length"])]
     names = [name for name, _ in events["phase"]]
     for index, ((phase, first), (_, end)) in enumerate(zip(bounds, bounds[1:])):

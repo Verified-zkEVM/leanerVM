@@ -24,7 +24,7 @@ Lean-made proof is the Rust prover's (and the committed one) byte for byte. The 
 
 Usage (the three executables built first, see lean_vm/README.md):
   python3 -I scripts/prover-diff.py <cases dir> [--mutations 60] [--fuel N] [--jobs 4]
-      [--identical] [--expected tests/fixtures/verifier] [case ...]
+      [--identical] [--expected tests/fixtures/verifier] [--prove-exe P] [--verify-exe V] [case ...]
 """
 
 import argparse
@@ -59,6 +59,7 @@ def main() -> None:
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--memory-gb", type=int, default=16)
     parser.add_argument("--prove-exe", type=Path, default=PROVE_EXE)
+    parser.add_argument("--verify-exe", type=Path, help="the Lean verifier fuzz-verifier.py runs (default: its own)")
     parser.add_argument("--identical", action="store_true",
                         help="fail unless every Lean-made proof is the Rust prover's byte for byte")
     parser.add_argument("--expected", type=Path,
@@ -120,7 +121,8 @@ def main() -> None:
         log = fixtures / "fuzz.log"
         fuzz = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "fuzz-verifier.py"), str(fixtures),
                                "--mutations", str(arguments.mutations), "--jobs", str(arguments.jobs),
-                               "--memory-gb", str(arguments.memory_gb), "--log", str(log)])
+                               "--memory-gb", str(arguments.memory_gb), "--log", str(log)]
+                              + (["--lean-exe", str(arguments.verify_exe)] if arguments.verify_exe else []))
         if fuzz.returncode != 0:
             failed = True
         accepted = rejected = 0
