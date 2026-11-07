@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsTopComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3958-3969, 4063-4072` at
-  leanVM 834e6614) is complete for an honest signature: the root it reaches is the statement's.
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3953-3964, 4042-4051` at
+  leanVM d1c4c8f7) is complete for an honest signature: the root it reaches is the statement's.
 -/
 
 module

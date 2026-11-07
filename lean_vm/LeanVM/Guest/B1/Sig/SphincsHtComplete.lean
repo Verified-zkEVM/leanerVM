@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsHtComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3958-3969` at leanVM
-  834e6614) is complete: its counter hinted as `BE_32(N)`'s marks and read, then the layer.
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3953-3964` at leanVM
+  d1c4c8f7) is complete: its counter hinted as `BE_32(N)`'s marks and read, then the layer.
 -/
 
 module
@@ -68,21 +68,21 @@ structure LayerShape (l : Nat) : Prop where
   signed : NBv (sLayerBase l) (sSignedOf l)
   pad : sPad + 5 ≤ sLayerBase l
   two : 2 ≤ sLayerBase l
-  digest : 1710 ≤ sLayerBase l
+  digest : 1369 ≤ sLayerBase l
 
 theorem layerShape_zero : LayerShape 0 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨1717, by decide, rfl⟩, ⟨1719, by decide, rfl⟩,
-    ⟨8964, by decide, rfl⟩, by decide, by decide, by decide⟩
+    by decide +kernel, by decide +kernel, ⟨1376, by decide, rfl⟩, ⟨1378, by decide, rfl⟩,
+    ⟨8623, by decide, rfl⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_one : LayerShape 1 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨9248, by decide, rfl⟩, ⟨9250, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, ⟨8907, by decide, rfl⟩, ⟨8909, by decide, rfl⟩,
     ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_two : LayerShape 2 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨9521, by decide, rfl⟩, ⟨9520, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, ⟨9180, by decide, rfl⟩, ⟨9179, by decide, rfl⟩,
     ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape {l : Nat} (hl : l < 3) : LayerShape l := by
