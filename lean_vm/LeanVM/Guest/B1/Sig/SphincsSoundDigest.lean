@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsFields
 public import LeanVM.Guest.B1.Sig.SphincsBytes
+public import LeanVM.Guest.WithHashBridge
 
 /-!
 # The message digest, sound
@@ -545,6 +546,199 @@ theorem sDigestBlock_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
   rw [c0, c1, cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)),
     c2]
   omega
+
+/-! ## The statement's message digest -/
+
+theorem framingNat_bytes : leBytes framingNat 13 = [0x00, UInt8.ofNat Sphincs.contextString.length] ++
+    Sphincs.contextString := by decide
+
+/-- **`H_msg`'s input is `hmsgBytes`**: `R | PK.seed | PK.root | M' | BE_32(i)` of cells and a
+message. -/
+theorem hmsgBytes_eq (R seed root : E) (msg : HashSig.Message) (call : Sphincs.DigestCall) :
+    HashSig.littleEndianBytes 16 (cellVal R) ++ HashSig.littleEndianBytes 16 (cellVal seed) ++
+        HashSig.littleEndianBytes 16 (cellVal root) ++ Sphincs.framedMessage msg ++
+        Sphincs.bigEndianBytes 4 (BitVec.ofNat 32 call.val) =
+      hmsgBytes R seed root msg.toNat call.val := by
+  have hM := msg.isLt
+  have hbe : Sphincs.bigEndianBytes 4 (BitVec.ofNat 32 call.val) = [0, 0, 0, UInt8.ofNat call.val] := by
+    fin_cases call <;> decide
+  have h35 : leBytes msg.toNat 35 = leBytes msg.toNat 32 ++ [0, 0, 0] := by
+    rw [← leBytes_append msg.toNat 32 3, Nat.div_eq_of_lt (by norm_num; omega)]
+    rfl
+  rw [bytesLE_cellVal, bytesLE_cellVal, bytesLE_cellVal, hmsgBytes, Sphincs.framedMessage, hbe,
+    show (2 : Nat) ^ 104 = 256 ^ 13 by norm_num, show (48 : Nat) = 13 + 35 from rfl,
+    leBytes_add_mul _ _ _ _ (by simp only [framingNat]; norm_num), h35, framingNat_bytes, bytesLE_eq]
+  simp only [List.append_assoc, List.cons_append, List.nil_append]
+
+/-- **The statement's message digest, from cells**: `H_msg` of the randomizer, the key and the
+message is the number `hmsgNat` of `H_msg`'s two calls on `hmsgBytes`. -/
+theorem hmsgDigest_cells (R seed root : E) (msg : HashSig.Message) :
+    Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600
+        ⟨cellVal seed, cellVal root⟩ (cellVal R) msg) =
+      BitVec.ofNat (8 * Sphincs.digestByteCount)
+        (hmsgNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0)))
+          (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 1)))) := by
+  simp only [Sphincs.Verification.messageDigest, Sphincs.Verification.messageDigestCall,
+    keccakHash_keccakF1600, Id.run, bind, pure, sequenceFin_id]
+  rw [Sphincs.truncateMessageDigest]
+  apply BitVec.eq_of_toNat_eq
+  simp only [BitVec.toNat_ofNat, Sphincs.digestValue]
+  have k : ∀ c : Sphincs.DigestCall, (Node.keccakBits
+      (HashSig.littleEndianBytes 16 (cellVal R) ++ HashSig.littleEndianBytes 16 (cellVal seed) ++
+        HashSig.littleEndianBytes 16 (cellVal root) ++ Sphincs.framedMessage msg ++
+        Sphincs.bigEndianBytes 4 (BitVec.ofNat 32 c.val))).toNat =
+      cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat c.val))).1 +
+        2 ^ 128 * cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat c.val))).2 :=
+    fun c => by rw [hmsgBytes_eq, keccakBits_toNat]
+  simp only [k]
+  rw [Fin.sum_univ_eq_sum_range (fun c => (cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat c))).1 +
+      2 ^ 128 * cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat c))).2) * 2 ^ (256 * c))
+      Sphincs.digestCallCount, show Sphincs.digestCallCount = 2 from rfl, Finset.sum_range_succ,
+    Finset.sum_range_succ, Finset.sum_range_zero, hmsgNat]
+  generalize hN : 8 * Sphincs.digestByteCount = N
+  have h2N : 2 ^ N = 2 ^ 256 * 2 ^ 16 := by
+    rw [← hN, ← pow_add]
+    exact congrArg (fun x => 2 ^ x) (show 8 * Sphincs.digestByteCount = 256 + 16 from rfl)
+  rw [h2N]
+  have a0 := cellNat_lt (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0))).1
+  have b0 := cellNat_lt (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0))).2
+  generalize cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0))).1 = A0 at *
+  generalize cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0))).2 = B0 at *
+  generalize cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 1))).1 = A1
+  generalize cellNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 1))).2 = B1
+  simp only [Nat.mul_zero, pow_zero, mul_one, zero_add]
+  omega
+
+/-! ## Algorithm 19: the digest's fields -/
+
+/-- The statement's message digest of the number `T`. -/
+abbrev digestOf (T : Nat) : Sphincs.MessageDigest := BitVec.ofNat (8 * Sphincs.digestByteCount) T
+
+theorem two_pow_digestBits : 2 ^ (8 * Sphincs.digestByteCount) = 2 ^ 272 :=
+  congrArg (fun x => 2 ^ x) (show 8 * Sphincs.digestByteCount = 272 from rfl)
+
+theorem digestOf_toNat {T : Nat} (hT : T < 2 ^ 272) : (digestOf T).toNat = T := by
+  rw [BitVec.toNat_ofNat, two_pow_digestBits, Nat.mod_eq_of_lt hT]
+
+/-- **The statement's byte `p` is `T`'s.** -/
+theorem messageDigestByte_eq {T p : Nat} (hT : T < 2 ^ 272) :
+    Sphincs.messageDigestByte (digestOf T) p = byteN T p := by
+  rw [Sphincs.messageDigestByte, BitVec.extractLsb'_toNat, digestOf_toNat hT, Nat.shiftRight_eq_div_pow,
+    byteN]
+
+/-- **The statement's bit `p`, most significant first, is `T`'s bit `mdPos p`.** -/
+theorem messageDigestBit_eq {T p : Nat} (hT : T < 2 ^ 272) :
+    Sphincs.messageDigestBit (digestOf T) p = (T.testBit (mdPos p)).toNat := by
+  rw [Sphincs.messageDigestBit, messageDigestByte_eq hT, ← Nat.toNat_testBit, mdPos, testBit_byteN]
+  simp [show 7 - p % 8 < 8 by omega]
+
+/-- **The statement's FORS leaves are `forsLeafN`** (`base_2b`, Algorithm 19). -/
+theorem digestForsLeaves_val {T : Nat} (hT : T < 2 ^ 272) (c : Sphincs.ForsTreeIndex) :
+    (Sphincs.digestForsLeaves (digestOf T) c).val = forsLeafN T c.val := by
+  have hc := c.isLt
+  have hb : ∀ j < 10, Sphincs.messageDigestBit (digestOf T) (10 * c.val + j) =
+      (T.testBit (mdPos (10 * c.val + j))).toNat := fun j _ => messageDigestBit_eq hT
+  have hl := forsLeafN_lt T c.val
+  simp only [Sphincs.digestForsLeaves, Sphincs.forsLeafOfNat, Sphincs.forsTreeHeight]
+  simp only [List.range_succ, List.range_zero, List.nil_append, List.foldl_append, List.foldl_cons,
+    List.foldl_nil]
+  rw [hb 0 (by norm_num), hb 1 (by norm_num), hb 2 (by norm_num), hb 3 (by norm_num), hb 4 (by norm_num),
+    hb 5 (by norm_num), hb 6 (by norm_num), hb 7 (by norm_num), hb 8 (by norm_num), hb 9 (by norm_num)]
+  simp only [forsLeafN, bitsVal, Nat.add_zero] at hl ⊢
+  simp (disch := omega) only [Nat.add_sub_assoc, Nat.reduceSub, Nat.add_zero] at hl ⊢
+  norm_num at hl ⊢
+  omega
+
+/-- The index `idx` the digest picks: its layers' leaves, bottom first, eight bits each below the
+top's ten. -/
+def indexN (T : Nat) : Nat := layerLeafN T 0 + 2 ^ 8 * layerLeafN T 1 + 2 ^ 16 * layerLeafN T 2
+
+theorem layerLeafN_bytes {T : Nat} :
+    layerLeafN T 0 = byteN T 33 ∧ layerLeafN T 1 = byteN T 32 ∧
+      layerLeafN T 2 = byteN T 31 + 2 ^ 8 * (byteN T 30 % 4) := by
+  have h01 := layerLeaf01 T
+  have hlo := layerLeaf2_low T
+  have hhi := layerLeaf2_high T
+  have l0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
+  have l1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
+  have l2 : layerLeafN T 2 < 2 ^ 10 := by simpa [sLeafLen] using layerLeafN_lt T 2
+  have e33 : byteN T 33 = T / 2 ^ 256 / 2 ^ 8 % 2 ^ 8 := by
+    rw [byteN, Nat.div_div_eq_div_mul, ← pow_add]
+  have e31 : byteN T 30 % 4 = T / 2 ^ 240 % 2 ^ 2 := by
+    rw [byteN, Nat.mod_mod_of_dvd _ (by norm_num)]; norm_num
+  rw [Nat.shiftRight_eq_div_pow] at hhi
+  refine ⟨?_, ?_, ?_⟩
+  · rw [e33]; omega
+  · rw [byteN, show 8 * 32 = 256 by norm_num]; omega
+  · omega
+
+/-- **The statement's index is `indexN`** (Algorithm 19: the tree index cut to 18 bits, then the
+bottom leaf). -/
+theorem digestIndex_val {T : Nat} (hT : T < 2 ^ 272) : (Sphincs.digestIndex (digestOf T)).val = indexN T := by
+  obtain ⟨e0, e1, e2⟩ := layerLeafN_bytes (T := T)
+  have b30 := byteN_lt T 30
+  have b31 := byteN_lt T 31
+  have b32 := byteN_lt T 32
+  have b33 := byteN_lt T 33
+  simp only [Sphincs.digestIndex, Sphincs.messageDigestBigEndian, Sphincs.forsMessageByteCount,
+    Sphincs.treeIndexByteCount, Sphincs.leafIndexByteCount, List.range_succ, List.range_zero,
+    List.nil_append, List.foldl_append, List.foldl_cons, List.foldl_nil, messageDigestByte_eq hT, indexN,
+    e0, e1, e2]
+  norm_num at b30 b31 b32 b33 ⊢
+  omega
+
+/-- Layer `l`'s tree of the index: the leaves of the layers above it. -/
+def layerTreeN (T l : Nat) : Nat :=
+  if l = 0 then layerLeafN T 1 + 2 ^ 8 * layerLeafN T 2 else if l = 1 then layerLeafN T 2 else 0
+
+theorem layerLeafN_lt' (T : Nat) : layerLeafN T 0 < 2 ^ 8 ∧ layerLeafN T 1 < 2 ^ 8 ∧ layerLeafN T 2 < 2 ^ 10 :=
+  ⟨by simpa [sLeafLen] using layerLeafN_lt T 0, by simpa [sLeafLen] using layerLeafN_lt T 1,
+    by simpa [sLeafLen] using layerLeafN_lt T 2⟩
+
+/-- **Each layer's leaf of the digest's index** is the layer's leaf the digest holds. -/
+theorem leafOfIndex_digest {T : Nat} (hT : T < 2 ^ 272) (l : Sphincs.Layer) :
+    (Sphincs.leafOfIndex l (Sphincs.digestIndex (digestOf T))).val = layerLeafN T l.val := by
+  obtain ⟨h0, h1, h2⟩ := layerLeafN_lt' T
+  rw [Sphincs.leafOfIndex]
+  simp only [digestIndex_val hT, indexN, Sphincs.bitsBelowLayer, Sphincs.layerHeight]
+  fin_cases l <;> simp <;> omega
+
+/-- **Each layer's tree of the digest's index.** -/
+theorem treeOfIndex_digest {T : Nat} (hT : T < 2 ^ 272) (l : Sphincs.Layer) :
+    (Sphincs.treeOfIndex l (Sphincs.digestIndex (digestOf T))).val = layerTreeN T l.val := by
+  obtain ⟨h0, h1, h2⟩ := layerLeafN_lt' T
+  rw [Sphincs.treeOfIndex]
+  simp only [digestIndex_val hT, indexN, Sphincs.bitsBelowLayer, Sphincs.layerHeight, layerTreeN]
+  fin_cases l <;> simp <;> omega
+
+/-! ## The block, against the statement -/
+
+theorem canon_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : IsCanonical128 (eOfNat192 n) := by
+  rw [eOfNat192, isCanonical128_ofLimbs_iff, Nat.div_eq_of_lt h, Value.ofBits_zero]
+
+theorem cellPairVal_toNat (lo hi : E) : (cellPairVal lo hi).toNat = cellNat lo + 2 ^ 128 * cellNat hi := by
+  rw [cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal, Nat.shiftLeft_eq, mul_comm,
+    two_pow_mul_or (cellNat_lt lo), add_comm]
+
+/-- **The message digest's block, sound, against the statement**: the padding run; the four words at
+the claim pointer are the claim of `PK.seed`, `PK.root` and two canonical message cells; and the
+statement's `H_msg` of the claim and the randomizer is `digestOf T` for a `T` whose bits and
+fields the block holds. -/
+theorem sDigestBlock_sound_stmt {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
+    (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ sDigestBlock) :
+    PadOK σ sPad ∧ ∃ c d, ClaimAt L.read (σ (.n 0)) (σ sPP) (σ sRoot) c d ∧ IsCanonical128 c ∧
+      IsCanonical128 d ∧ ∃ T, DigestAt σ T ∧
+        Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600
+          (sphincsClaimOf (σ sPP) (σ sRoot) c d).1 (cellVal (σ sRand))
+          (sphincsClaimOf (σ sPP) (σ sRoot) c d).2) = digestOf T := by
+  obtain ⟨hp, lP, lR, M, hM, l2, l3, T, hD, hT⟩ := sDigestBlock_sound hκ hbb h
+  refine ⟨hp, _, _, ⟨lP, lR, l2, l3⟩, canon_eOfNat192 (Nat.mod_lt _ (by norm_num)),
+    canon_eOfNat192 (by omega), T, hD, ?_⟩
+  have hm : (cellPairVal (eOfNat192 (M % 2 ^ 128)) (eOfNat192 (M / 2 ^ 128))).toNat = M := by
+    rw [cellPairVal_toNat, cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (by omega)]
+    omega
+  simp only [sphincsClaimOf]
+  rw [hmsgDigest_cells, hm, ← hT]
 
 end
 end LeanVM.Guest.B1.Sig
