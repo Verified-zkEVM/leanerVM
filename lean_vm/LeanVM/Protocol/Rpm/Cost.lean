@@ -325,6 +325,15 @@ theorem allQ_openAll (root : Digest) (height width : ℕ) (hw : width ≤ maxWid
     · exact allQueriesSatisfy_bind (allQ_openAll root height width hw qs os) fun _ ↦ trivial
     · trivial
 
+theorem allQ_openPhase (root : Digest) (height width : ℕ) (hw : width ≤ maxWidth) (ps : List ℕ)
+    (phase : List Opening) :
+    AllQueriesSatisfy (openPhaseWithHash callKeccak256 root height width ps phase) Short := by
+  unfold openPhaseWithHash
+  split
+  · exact allQueriesSatisfy_bind (allQ_openAll root height width hw ps phase) fun _ ↦ by
+      split <;> trivial
+  · trivial
+
 theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgramState), WidthsLE
     maxWidth P →
     (∀ r ∈ s.roots, r.2.2 ≤ maxWidth) → AllQueriesSatisfy (Compile.runWithHash callKeccak256 callKeccakF1600 P s) Short
@@ -367,13 +376,13 @@ theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgram
   | .query i ps k, s, hP, hr => by
     simp only [Compile.runWithHash]
     split
-    · trivial
-    · rename_i root height width hi
-      refine allQueriesSatisfy_bind (allQ_openAll root height width
-        (hr _ (List.mem_of_getElem? hi)) ps s.openings) fun o ↦ ?_
+    · rename_i root height width phase rest hi _
+      refine allQueriesSatisfy_bind (allQ_openPhase root height width
+        (hr _ (List.mem_of_getElem? hi)) ps phase) fun o ↦ ?_
       split
       · exact allQ_run _ _ (hP _) hr
       · trivial
+    · trivial
 
 theorem allQ_runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) (hP : WidthsLE
     maxWidth P) :

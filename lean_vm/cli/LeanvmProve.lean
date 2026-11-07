@@ -16,10 +16,20 @@ import LeanVM.Protocol.Verifier
 
 runs `LeanVM.Prover.prove` with Keccak-256 and Keccak-f[1600] (the deployed hashes, `Id`),
 compiled as its copy with `E`'s arithmetic on machine words (`LeanVM.Prover.Fast.Prover`), at
-`fuel` nonces per proof of work (default `2^25`), and writes the proof in the four-file format
-of the Rust prover's fixtures (`lean_stream.bin`, `lean_merkle_openings.bin` in the case
-directory), which `leanvm-verify` and the Rust verifier read. It prints the time taken; if the
-prover makes no proof (`none`), it says so and exits with `1`.
+`fuel` nonces per proof of work (default `2^25`), and writes the proof in the case directory in
+the forms of the Rust prover's fixtures, which `leanvm-verify` and the Rust verifier read:
+
+* `lean_stream.bin`: the scalars, three little-endian `u64` limbs each;
+* `lean_merkle_phases.bin`: the structured unpruned openings, the Rust `Vec<Vec<MerklePath>>`, all
+  little-endian: the `u32` phase count; per phase its `u32` path count; per path its `u64` position,
+  its `u32` leaf length and that many `u64` words, its `u32` sibling count and that many 32-byte
+  digests;
+* `lean_merkle_openings.bin`: the Python's form (`verifier.py:433-445`), every phase's openings in
+  order, each its position as eight little-endian bytes, its leaf's words and its siblings;
+* `lean_proof.wire`: the proof's one wire encoding, `Proof.toBytes` (`Proof::to_bytes`,
+  `crates/fiat_shamir/src/wire.rs`).
+
+It prints the time taken; if the prover makes no proof (`none`), it says so and exits with `1`.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
@@ -116,12 +126,20 @@ def main (args : List String) : IO UInt32 := do
           is invalid, or a proof of work found no nonce below {fuel})"
         return 1
     let stream := proof.stream.flatMap scalarBytes
-    let openings := proof.openings.flatMap fun o ↦ o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
+    let openings := proof.openings.flatten.flatMap fun o ↦
+      wordLE o.leafIndex.toUInt64 ++ o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
     IO.FS.writeBinFile (dir ++ "/lean_stream.bin") ⟨stream.toArray⟩
     IO.FS.writeBinFile (dir ++ "/lean_merkle_openings.bin") ⟨openings.toArray⟩
+    let u32LE (n : ℕ) : List UInt8 := (List.range 4).map fun i ↦ UInt8.ofNat (n / 256 ^ i)
+    let phases := u32LE proof.openings.length ++ proof.openings.flatMap fun phase ↦
+      u32LE phase.length ++ phase.flatMap fun o ↦
+        wordLE o.leafIndex.toUInt64 ++ u32LE o.leaf.length ++ o.leaf.flatMap K.toBytes ++
+          u32LE o.path.length ++ o.path.flatMap digestBytes
+    IO.FS.writeBinFile (dir ++ "/lean_merkle_phases.bin") ⟨phases.toArray⟩
+    IO.FS.writeBinFile (dir ++ "/lean_proof.wire") ⟨proof.toBytes.toArray⟩
     let stop ← IO.monoMsNow
-    IO.println s!"{dir}: {proof.stream.length} scalars, {proof.openings.length} openings, \
-      {(stop - start).toFloat / 1000} s"
+    IO.println s!"{dir}: {proof.stream.length} scalars, {proof.openings.length} phases, \
+      {proof.openings.flatten.length} openings, {(stop - start).toFloat / 1000} s"
     return 0
   | _ =>
     IO.eprintln "usage: leanvm-prove <case dir> [fuel]"

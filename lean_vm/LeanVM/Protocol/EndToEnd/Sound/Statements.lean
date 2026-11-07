@@ -586,10 +586,10 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Opti
   | .query i ps k, s, h₀, h => by
     simp only [xrun]
     split
-    · rfl
     · split
       · rw [List.append_assoc]; exact xrun_append_hist H F _ _ h₀ _
       · rfl
+    · rfl
 
 /-- The extracted history of a run from a statement's root is the root followed by the
 extracted history from the empty history. -/
