@@ -330,15 +330,15 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `1130500`) limits any program; it is the
-compiled decoder's size at leanVM `834e6614`, `1130039` (proved at most that and measured exactly),
-and a slack of `461`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
+**The size bound** (`guestWitnessDecoderSizeBound`, `1130200`) limits any program; it is the
+compiled decoder's size at leanVM `d1c4c8f7`, `1129699` (proved at most that and measured exactly),
+and a slack of `501`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+(the bound was `1130500` at `834e6614`, before H_msg read the message off the claim's cells, `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
 more frame cells, and `380000` at `ed7d2b9c`, whose had far fewer), so
 no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
 many statements) fits there. That size counts the guest program's per-function tables, literals of
 the program, in full. It does not bound what a program written differently could hold: the guest's
-frame-cell table (`1087078` of the size, cells below `2^20`) packs to about a third, three cells to
+frame-cell table (`1088898` of the size, cells below `2^20`) packs to about a third, three cells to
 a limb, freeing room for about `2350` signatures' encodings. Nor is the compiled program compact:
 its size also counts, a literal `0` each, the indices without a body left by the numbering it shares
 with the extractor's compiled functions
