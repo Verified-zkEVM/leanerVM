@@ -177,11 +177,6 @@ theorem sBe16_sound {val : Nat → V} {pos n x v : Nat} (hn : n ≤ 16) (hv : v 
 
 /-! ## `is_child` -/
 
-/-- **The sibling of a node** whose two children are hinted at `x`, `x + 1`, the node climbed the
-one the bit names: the left child when the bit is `1`. -/
-def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
-  if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
-
 /-- **`is_child`, sound**: the children are the node and its sibling, in the order of the bit. -/
 theorem isChild_sound {cur bit : V} {x b : Nat} (hbit : IsBit (σ bit))
     (e1 : σ (.n b) = σ cur + σ (.n x)) (e2 : σ (.n (b + 1)) = σ (.n x) + σ (.n (x + 1)))

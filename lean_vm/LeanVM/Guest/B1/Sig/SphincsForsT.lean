@@ -81,6 +81,11 @@ def sForsAt (a1 : V) (val : Nat → V) (c z x : Nat) : List Stmt × Nat × V :=
 def isChildS (node k0 k1 bit : V) (b : Nat) : List Stmt :=
   [addS (.n b) node k0, addS (.n (b + 1)) k0 k1, mulS (.n b) bit (.n (b + 1))]
 
+/-- **The sibling of a node** whose two children are hinted at `x`, `x + 1`, the node climbed the
+one the bit names: the left child when the bit is `1`. -/
+def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
+  if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
+
 /-- A node from its two children (`keccak([pp, a0], [adr, kids[0]], out, tail=[kids[1], 0, 0, 0],
 len=80)`), from base `y`: the statements, the next base and the output run's base. -/
 def kNode (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : List Stmt × Nat × Nat :=
