@@ -3,8 +3,8 @@
 leanVM's proof travels as one byte string, `Proof::to_bytes` (`crates/fiat_shamir/src/wire.rs`), which
 prunes every Merkle phase, and is decoded by `Proof::from_bytes`, which unprunes it, hashing the
 nodes the paths share, and refuses anything but the one encoding of a proof within its bounds (the
-pruning is scaraven's idea, https://github.com/scaraven). The statement transcribes both (`Proof.fromBytes`, Statement/LeanVmVerifier.lean; `Proof.toBytes`,
-Statement/Prover/Prove.lean). This driver runs, on the same bytes,
+pruning is scaraven's idea, https://github.com/scaraven). lean_vm transcribes both (`Proof.fromBytes`, `Proof.toBytes`,
+lean_vm/LeanVM/Wire/Encoding.lean). This driver runs, on the same bytes,
 
   * the Lean transcription, `lake exe wire-diff` (cli/WireDiff.lean), compiled, Keccak-f[1600] in
     `Id` for the permutation;

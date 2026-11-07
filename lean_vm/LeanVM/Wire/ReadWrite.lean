@@ -2,13 +2,13 @@
   LeanVM.Wire.ReadWrite
 
   The wire encoding's readers and writers are inverse: each reader (`readU32`, `readWords`, …,
-  `Statement/LeanVmVerifier.lean`) reads back what its writer (`Prover.u32Bytes`, `K.toBytes`, …)
+  `LeanVM.Wire.Encoding`) reads back what its writer (`Prover.u32Bytes`, `K.toBytes`, …)
   wrote, and reads nothing else.
 -/
 
 module
 
-public import Statement.Prover.Prove
+public import LeanVM.Wire.Encoding
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 

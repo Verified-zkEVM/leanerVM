@@ -1,14 +1,13 @@
-import Statement.LeanVmVerifier
-import Statement.Prover.Prove
+import LeanVM.Wire.Encoding
 
 /-!
-# `wire-diff`: the statement's proof wire encoding on byte files
+# `wire-diff`: the proof's wire encoding on byte files
 
-The statement's transcription of leanVM's one encoding of a proof (`crates/fiat_shamir/src/wire.rs`,
+lean_vm's transcription of leanVM's one encoding of a proof (`crates/fiat_shamir/src/wire.rs`,
 each Merkle phase pruned to the siblings no other path gives, scaraven's idea,
 https://github.com/scaraven):
-`Proof.fromBytes` (`Statement/LeanVmVerifier.lean`), over Keccak-f[1600] in `Id`, and
-`Proof.toBytes` (`Statement/Prover/Prove.lean`), compiled, on byte files, so that
+`Proof.fromBytes` (`LeanVM.Wire.Encoding`), over Keccak-f[1600] in `Id`, and
+`Proof.toBytes` (`LeanVM.Wire.Encoding`), compiled, on byte files, so that
 `scripts/wire-diff.py` can set its results beside the Rust's (`scripts/wire-diff`,
 `leanvm-rust-wire`) on the same bytes:
 

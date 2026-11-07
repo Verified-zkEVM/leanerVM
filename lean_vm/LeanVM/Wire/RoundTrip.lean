@@ -1,7 +1,7 @@
 /-
   LeanVM.Wire.RoundTrip
 
-  The statement's decoding is the one with a hash of its own (`fromBytes_eq_withHash`), and a proof
+  The transcribed decoding is the one with a hash of its own (`fromBytes_eq_withHash`), and a proof
   that survives its encoding decodes from it (`roundTrip`).
 -/
 
@@ -34,7 +34,7 @@ namespace LeanVM.Wire
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile
 
-/-! ## The statement's decoding is the one with a hash -/
+/-! ## The transcribed decoding is the one with a hash -/
 
 section Deployed
 
@@ -54,7 +54,7 @@ theorem unprunePhase_eq_withHash (phase : PrunedPhase) :
     unprunePhase π phase = unprunePhaseWithHash (keccak256With π) phase := by
   simp only [unprunePhase, unprunePhaseWithHash, climbLevels_eq_withHash]
 
-/-- **The statement's decoding is the decoding with Keccak-256 over `π`.** -/
+/-- **The transcribed decoding is the decoding with Keccak-256 over `π`.** -/
 theorem fromBytes_eq_withHash (bytes : Bytes) :
     Proof.fromBytes π bytes = fromBytesWithHash (keccak256With π) bytes := by
   unfold Proof.fromBytes fromBytesWithHash
@@ -137,7 +137,7 @@ theorem fromBytesWithHash_toBytes {h : Bytes → Digest} {proof : Proof}
       pure (some ⟨proof.stream, openings⟩)) :=
   fromBytesWithHash_of_readProof H (readProof_toBytes hw)
 
-/-- **The round trip of the statement's decoding**, Keccak-256 over a permutation `π` in `Id`: a
+/-- **The round trip of the transcribed decoding**, Keccak-256 over a permutation `π` in `Id`: a
 proof that survives its encoding with that hash decodes from it. -/
 theorem fromBytes_toBytes (π : KeccakState → Id KeccakState) {proof : Proof}
     (hw : WireDecodable (keccak256With π) proof) :

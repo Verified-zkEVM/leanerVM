@@ -7,12 +7,12 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import LeanVM.Wire.Encoding
 
 /-!
 # List facts for the pruning
 
-`dedupByKey` (`Statement/LeanVmVerifier.lean`) keeps a sublist of its input, a member of each key
+`dedupByKey` (`LeanVM.Wire.Encoding`) keeps a sublist of its input, a member of each key
 it meets (`dedupByKey_sublist`, `exists_mem_dedupByKey`), and commutes with a map along its key
 (`map_dedupByKey`). `takeWhile` of the zero words gives the leading zeros of a leaf
 (`take_eq_replicate_of_le_takeWhile`, `getElem_ne_zero_of_takeWhile`).

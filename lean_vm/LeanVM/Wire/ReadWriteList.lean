@@ -7,7 +7,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import LeanVM.Wire.Encoding
 
 /-!
 # `dedupByKey` by any key, and `carriedSiblings`
