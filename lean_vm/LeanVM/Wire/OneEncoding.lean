@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Wire.RoundTrip
-public import LeanVM.Wire.OneEncodingRow
+public import LeanVM.Wire.OneEncodingSib
 
 /-!
 # One encoding
@@ -24,7 +24,8 @@ reads the bytes (`readProof`) and unprunes each phase; the encoding writes them 
   `encodePhase`.
 
 `oneEncoding_of` composes them, the siblings' step taken as a hypothesis; `oneEncoding`
-instantiates it.
+instantiates it. Nothing in the bytes written depends on the hash: the siblings written are the
+ones the phase carries, never a hashed node.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven).
@@ -61,13 +62,16 @@ theorem oneEncoding_of
     exact List.flatMap_congr fun phase hphase ↦
       (hread phase hphase).phaseToBytes_unprunePhase h (siblings h phase (hread phase hphase))
 
+/-- **One encoding**: bytes that decode, with any hash, to a proof are that proof's encoding. -/
+theorem oneEncoding : OneEncodingStatement :=
+  oneEncoding_of fun h _ hr ↦ hr.phaseSiblingBytes_unprunePhase h
+
 /-- **One encoding of the statement's decoding**, Keccak-256 over a permutation `π` in `Id`:
 bytes that decode to a proof are its encoding. -/
-theorem toBytes_of_fromBytes_of (one_encoding : OneEncodingStatement)
-    (π : KeccakState → Id KeccakState) {bytes : Bytes} {proof : Proof}
+theorem toBytes_of_fromBytes (π : KeccakState → Id KeccakState) {bytes : Bytes} {proof : Proof}
     (hdecode : Proof.fromBytes π bytes = some proof) : proof.toBytes = bytes := by
   rw [fromBytes_eq_withHash] at hdecode
-  exact one_encoding _ bytes proof hdecode
+  exact oneEncoding _ bytes proof hdecode
 
 end LeanVM.Wire
 
