@@ -6,6 +6,7 @@
 -/
 
 import LeanVM.Protocol.ExperimentBridge
+import LeanVM.Wire.Statements
 import LeanVM.Wire.Model
 
 /-!
