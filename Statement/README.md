@@ -26,8 +26,9 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`d1c4c8f70dd3245bc610a187702158989bc8275a`, the head of leanVM's pull request #662 (leanSPHINCS on
-FIPS 205's layout, one commit on `main` at `3f2ff324`, which added the proof's wire encoding;
+`3300fd1f4accd8ef404bfdc54473c0391795f702`, the head of leanVM's pull request #662 (leanSPHINCS on
+FIPS 205's layout, on `main` at `3f2ff324`, which added the proof's wire encoding; the crates and
+the guest are the same as at `d1c4c8f7`, where the citations were checked;
 [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
 sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
