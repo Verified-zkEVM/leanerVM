@@ -100,6 +100,9 @@ instance : MachineDecoding Proof where
 instance : MachineDecoding HashSig.PublicKey where
   decodeValue | .constructor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
 
+instance : MachineDecoding Sphincs.PublicKey where
+  decodeValue | .constructor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
+
 instance : MachineDecoding LeanXmss.LayerSignature where
   decodeValue
     | .constructor 0 [r, c, p] =>
@@ -266,6 +269,9 @@ instance : LawfulMachineDecoding Proof := ⟨fun ⟨s, o⟩ ↦ by
 
 instance : LawfulMachineDecoding HashSig.PublicKey := ⟨fun ⟨r, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue p)⟩ : Option HashSig.PublicKey) = _; simp⟩
+
+instance : LawfulMachineDecoding Sphincs.PublicKey := ⟨fun ⟨r, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue p)⟩ : Option Sphincs.PublicKey) = _; simp⟩
 
 instance : LawfulMachineDecoding LeanXmss.LayerSignature := ⟨fun ⟨r, c, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue c), ← decodeValue (encodeValue p)⟩ :
