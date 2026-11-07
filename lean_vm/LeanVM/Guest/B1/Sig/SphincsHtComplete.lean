@@ -140,7 +140,7 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
   have hsg := tv _ S.signed
   rw [(sCtrBlock_out l).1] at hctr
   have hL := hB.layer C rd σ2 l (sA0Of l) (sA1Of l) (sSignedOf l) (sCtrOf l) (sLayerBase l + 37) lv e sib
-    hl (by have := S.pad; omega) (S.a0.mono' (by omega)) (S.a1.mono' (by omega))
+    hl (by have := S.digest; omega) (S.a0.mono' (by omega)) (S.a1.mono' (by omega))
     (S.signed.mono' (by omega)) ⟨sLayerBase l + 36, by omega, rfl⟩
     (hp.congr (b := sLayerBase l) S.pad fun j hj => (t2 j hj).symm)
     (by rw [hpp']; exact hpp) (by rw [ha0]; exact hc0) (by rw [ha1]; exact hc1)
