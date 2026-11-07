@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsT
+public import LeanVM.Guest.B1.Sig.SphincsAdrs
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 public import LeanVM.Guest.B1.Sig.Codeword
 public import LeanVM.Guest.B1.Sig.Bytes
@@ -23,7 +24,8 @@ frame map `V`; it mentions no hash.
 * FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base (`sForsBase c`), and
   at each height `z` the hinted child that is not the node climbed (`siblingOf`, at
   `sForsKid c z`): `is_child`'s bit names the climbed one;
-* layer `l`'s signature (`sLayerOf`): its counter, the value of its four bytes (`sCtrOf l`); its
+* layer `l`'s signature (`sLayerOf`): its counter, its four bytes (`sCtrOf l`, hinted most
+  significant first and read lowest first, `sp_from_bytes`) reversed, `beWordAt 0`; its
   chain values, the chain starts of the frame `V "sp_wots" [PK.seed, a0, a1, enc] [leaf]` of the
   layer's call (`sChainValuesOf`); its path, the sibling of each level of `sp_path` (at
   `sPathKid l j`).
@@ -74,7 +76,7 @@ def sForsOpeningOf (σ : Val) (c : Nat) : Sphincs.ForsTreeOpening where
 /-- **Layer `l`'s one-time signature and path**, its chain values off the frame of its call. -/
 noncomputable def sLayerOf (σ : Val) (V : FrameMap) (l : Sphincs.Layer) :
     Sphincs.LayerSignature l where
-  counter := BitVec.ofNat 32 (cellNat (σ (sCtrOf l.val)))
+  counter := BitVec.ofNat 32 (beWordAt 0 (cellNat (σ (sCtrOf l.val))))
   chainValues := sChainValuesOf
     (V "sp_wots" [σ sPP, σ (sA0Of l.val), σ (sA1Of l.val), σ (sEncOf l.val)] [σ (sLeafOf l.val)])
   authenticationPath j :=
