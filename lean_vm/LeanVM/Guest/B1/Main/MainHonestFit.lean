@@ -49,7 +49,7 @@ theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := by
   simp [daCells, B1.Digest.digestCells]
 
 theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
-  simp [claimCells, cellsOfBytes, claimBytes, HashSig.littleEndianBytes]
+  simp [claimCells, cellsOfBytes, claimBytesOf, HashSig.littleEndianBytes]
 
 theorem length_flatMap_const {α : Type} (l : List α) (f : α → List E) (k : ℕ)
     (h : ∀ a ∈ l, (f a).length = k) : (l.flatMap f).length = k * l.length := by
