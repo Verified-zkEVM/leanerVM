@@ -1,10 +1,11 @@
 # leanerVM
 
 Lean 4 proofs about [leanVM](https://github.com/leanEthereum/leanVM) at the commit in
-[`leanvm-rev`](leanvm-rev): its verifier is knowledge sound and complete, and the schemes its
-aggregation guest program checks are secure (leanXMSS, leanSPHINCS; LeanDA's code binding given a
-knowledge-sound argument), in the random-permutation model (Keccak-f[1600] modeled as a random
-permutation). An accepted proof of the guest program is explained by a witness or by a collision
+[`leanvm-rev`](leanvm-rev): its verifier is knowledge sound and complete (and stays so through the
+proof's wire encoding, a compression layer whose pruned Merkle paths are
+[scaraven](https://github.com/scaraven)'s idea), and the schemes its aggregation guest program checks
+are secure (leanXMSS, leanSPHINCS; LeanDA's code binding given a knowledge-sound argument), in the
+random-permutation model (Keccak-f[1600] modeled as a random permutation). An accepted proof of the guest program is explained by a witness or by a collision
 of the deployed Keccak-256 (one recursion level; soundness across levels is not proved).
 
 **What is proved** is in [`Statement/`](Statement/README.md): definitions and end statements only,

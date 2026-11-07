@@ -26,8 +26,9 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`834e6614b1fe856646de252360e7373447f13654` (branch `sphincs-fips205`, leanSPHINCS on FIPS 205's
-layout with `main` merged in, [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
+`d1c4c8f70dd3245bc610a187702158989bc8275a`, the head of leanVM's pull request #662 (leanSPHINCS on
+FIPS 205's layout, one commit on `main` at `3f2ff324`, which added the proof's wire encoding;
+[`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
 sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
@@ -36,9 +37,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
 honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
 operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
-transcribe their sources; that the Rust verifier's expansion of the pruned Merkle paths the Rust
-prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
-formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
+transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
 verifier** (`EthereumProof::verify`, `aggregation/proof.rs:195-212`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
@@ -66,6 +65,29 @@ extractor's budget is `2^81 + O(N·log³N)` for `N` queries, which passes `2^128
 while the soundness bound is still `2^-28` there, and whose constant `2^81` would pay for a search of
 about `2^70` Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low
 entropy) is not what the statement certifies.
+
+**The proof and the wire.** A proof (`Proof`, `LeanVmVerifier.lean`) is the Rust verifier's: the
+scalar stream and the Merkle openings grouped in phases, one phase per commitment opened, each
+opening (`Opening`) the position it opens (`leafIndex`), the leaf's words and the full path of
+siblings, in the order the verifier samples the queries. The verifier opens a phase (`openPhase`,
+`Transcript::merkle`) in the Rust's order: it rejects unless every leaf is the commitment's width
+and every path its height (the shape), then unless the phase's positions are the queries it
+sampled, in order (the positions), then unless each path climbs to the root. The end statements are
+about this structured proof. On the wire it travels as bytes, its one encoding
+(`crates/fiat_shamir/src/wire.rs`), each phase pruned to its positions, its sizes, its distinct
+leaves and the siblings no other path gives: a compression layer, not part of the statement. The
+pruning idea and its first formalization, on leanerVM's `main` branch, are
+[scaraven](https://github.com/scaraven)'s. `lean_vm` transcribes the encoding and the decoding
+([`LeanVM/Wire/Encoding.lean`](../lean_vm/LeanVM/Wire/Encoding.lean)) and proves, as theorems of
+its own (not end statements), that nothing is lost through the layer: the round trip (an honest
+proof decodes from its encoding), the one encoding (bytes that decode to a proof are its encoding),
+the decoding's cost (at most `73728` permutation calls), and that knowledge soundness (at
+`(Q + 2^17)·2^-128 + 5(Q + 2^17)²·2^-256`, the extractor reading the decoding's queries after the
+adversary's) and completeness (at `2^-256`) carry over to the verifier and the honest prover on
+bytes ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)). That its transcription
+is the Rust's `Proof::from_bytes` and `Proof::to_bytes` is test evidence: the wire differential in
+the gate (`lean_vm/scripts/wire-diff.py`), on honest wire proofs, their mutations and the Rust
+test's vector.
 
 ## Reading order
 
@@ -142,9 +164,10 @@ theorems, then read the files in this order.
 10. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
     transcribed section by section, over any permutation in any monad, Keccak-256 the sponge over it
     (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
-    transcript (`Field.lean`'s duplex sponge, Merkle openings), and the deferring verifier an
-    aggregate runs on its children. Where the transcription's form differs from the pin's without
-    changing what it computes, its docstring gives the pin's lines and why the two agree.
+    transcript (`Field.lean`'s duplex sponge, Merkle openings), the proof (`Proof`: the stream and
+    the openings with their positions, grouped in phases, opened by `openPhase`), and the deferring
+    verifier an aggregate runs on its children. Where the transcription's form differs from the pin's without changing what it
+    computes, its docstring gives the pin's lines and why the two agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    over a permutation (`leanVmVerifier π`), the honest prover's type and **the honest prover**,
    `leanVmHonestProver`
@@ -256,7 +279,8 @@ within `2^28` committed cells), a script of the prover's moves (`Script.lean`) f
 verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Keccak*.lean`, `Whir.lean`'s ring
 switching and opening; `Mle.lean` their helper), beside the verifier's phase, whose result the next
 phase takes (`Script.alongside`), and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
-sponge, each Merkle tree built once, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
+sponge, each Merkle tree built once and each query's opening read from it with its position, one
+phase per opened commitment, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
 (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the honest
 strategy the completeness proof follows, at the execution's own witness), so a reviewer need not
 read it line by line; a reviewer checks only that it is a genuine prover: it computes its proof from

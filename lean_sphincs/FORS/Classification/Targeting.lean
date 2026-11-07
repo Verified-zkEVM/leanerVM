@@ -77,8 +77,8 @@ theorem output_ne_input (address : Address) : address.outputCoordinate ≠ addre
 
 /-! ### Message-digest inputs are not rows
 
-A message-digest input is unaddressed (`messageDigestInput`, 97 bytes). Its bytes still parse as an
-address when its randomizer equals the parsing `PK.seed`, with a 49-byte payload, so the targeting
+A message-digest input is unaddressed (`messageDigestInput`, 84 bytes). Its bytes still parse as an
+address when its randomizer equals the parsing `PK.seed`, with a 36-byte payload, so the targeting
 below leaves every digest input untargeted explicitly; no row input has that length. -/
 
 theorem parse_msg_none (parameter : PublicParameter) (active : Address → Prop) (input : HashInput)

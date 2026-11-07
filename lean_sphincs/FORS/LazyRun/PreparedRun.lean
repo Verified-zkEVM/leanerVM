@@ -499,9 +499,9 @@ theorem noQ_sequenceFin {bad : HashInput → Prop} [DecidablePred bad] {α : Typ
       exact noQ_bind (h 0) fun _ => noQ_bind (noQ_sequenceFin (fun i : Fin n => f i.succ) fun i => h i.succ)
         fun _ => trivial
 
-/-- A message-digest input is no tweakable input with a payload of other than 49 bytes. -/
+/-- A message-digest input is no tweakable input with a payload of other than 36 bytes. -/
 theorem msg_not_graph (parameter : PublicParameter) (position : Position) (payload x : HashInput)
-    (hpayload : payload.length ≠ 49) (hx : IsMsgInput x) :
+    (hpayload : payload.length ≠ 36) (hx : IsMsgInput x) :
     x ≠ tweakableHashInput parameter position.domain payload := by
   obtain ⟨p', root', message', randomness', call', rfl⟩ := hx
   exact messageDigestInput_ne_tweakableHashInput _ _ _ _ _ _ _ hpayload

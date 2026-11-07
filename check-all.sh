@@ -116,7 +116,10 @@ lean_vm() {
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
   step "lean_vm: build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests
-  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold
+  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
+    LeanVM.knowledgeSoundnessOnBytes_holds LeanVM.knowledgeSoundnessOnBytes_compiled \
+    LeanVM.completenessOnBytes_holds LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding \
+    LeanVM.Wire.fromBytes_queryCost
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"
@@ -138,8 +141,8 @@ lean_vm() {
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to
-# lean_vm: the guest's data is the one leanVM's sources give, and the Lean and Rust verifiers agree
-# on the fixtures and their mutations.
+# lean_vm: the guest's data is the one leanVM's sources give, and the Lean and Rust verifiers, and
+# the Lean and Rust wire encodings, agree on the fixtures and their mutations.
 leanvm() {
   command -v cargo > /dev/null || fail "leanvm: needs cargo; name the other projects to skip it"
   local tree
@@ -161,6 +164,12 @@ leanvm() {
   (cd lean_vm && lake build leanvm-verify)
   cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml
   (cd lean_vm && python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4)
+  # Every fixture's wire proof (`proof.wire`, `Proof::to_bytes`) and the Rust test's vector, and their
+  # mutations: the same verdicts and decoded proofs, and the round trip through `Proof.toBytes`.
+  step "leanvm: the proof's wire encoding, Lean against Rust (wire-diff)"
+  (cd lean_vm && lake build wire-diff)
+  cargo build --release --manifest-path lean_vm/scripts/wire-diff/Cargo.toml
+  (cd lean_vm && python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 8)
   step "leanvm: the statement's honest prover's proofs, Lean-made, against both verifiers (prover-diff)"
   local pd
   pd=$(mktemp -d)

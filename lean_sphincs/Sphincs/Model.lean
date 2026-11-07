@@ -6,7 +6,7 @@ import Common.WithHash
 /-!
 # The statement's leanSPHINCS and upstream's model: the maps and the verifier
 
-The proof of this project (`FORS`, leanVM's `formal/lean_sphincs` at `834e6614`) is about
+The proof of this project (`FORS`, leanVM's `formal/lean_sphincs` at `d1c4c8f7`) is about
 `FORS.Scheme`, a model of leanSPHINCS generic in its shape (`FORS.Params`), the hash a random oracle
 (`FORS.HashSpec`). At the deployed configuration, `.layered 26 3 8 24 10 1182000000` (`params`), its
 verifier, its queries answered by Keccak-256 over `π` (`schemeHashOverPermutation`), is the
