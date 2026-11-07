@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsT
+public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.SphincsAdrs
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 public import LeanVM.Guest.B1.Sig.Codeword
@@ -23,7 +24,8 @@ frame map `V`; it mentions no hash.
 * the randomizer `R`, `n347` (`sRand`, `sp_rand`);
 * FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base (`sForsBase c`), and
   at each height `z` the hinted child that is not the node climbed (`siblingOf`, at
-  `sForsKid c z`): `is_child`'s bit names the climbed one;
+  `sForsKid c z`; `SphincsSoundPath`'s until it moves to `SphincsForsT`): `is_child`'s bit names
+  the climbed one;
 * layer `l`'s signature (`sLayerOf`): its counter, its four bytes (`sCtrOf l`, hinted most
   significant first and read lowest first, `sp_from_bytes`) reversed, `beWordAt 0`; its
   chain values, the chain starts of the frame `V "sp_wots" [PK.seed, a0, a1, enc] [leaf]` of the
@@ -55,11 +57,6 @@ def sPathKid (l j : Nat) : Nat :=
   sLayerBase l + 60 + 26 * j + (if l = 2 ∧ 0 < j then 6 else 0)
 
 /-! ## Reading the values -/
-
-/-- **The sibling of a node** whose two children are hinted at `x`, `x + 1`, the node climbed the
-one the bit names (`is_child`): the left child when the bit is `1`. -/
-def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
-  if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
 
 /-- **The chain values `sp_wots`'s frame `σ` holds**: chain `i`'s start, hinted in the arm its
 group's dispatch takes, the group's digit word the exponent of its selector (`spState`, `spN`,
