@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Wire.Prune
+public import LeanVM.Wire.Unprune
 
 /-!
 # The round trip of the wire encoding
@@ -118,13 +119,10 @@ theorem roundTrip_of
   rw [hmap]
 
 /-- The round trip from the reader/writer inverses (`ReadWriteFacts`, through
-`ReadWriteFacts.readProof_toBytes`) and the unpruning of a pruned phase. -/
-theorem roundTrip_of_facts (F : ReadWriteFacts)
-    (unprune_prune : ∀ (h : Bytes → Digest) paths height leafWords,
-      PhaseDecodable h paths height leafWords →
-        unprunePhaseWithHash (m := Id) h (prunePhase paths) = paths) :
-    RoundTripStatement :=
-  roundTrip_of (fun _ _ hw ↦ F.readProof_toBytes hw) unprune_prune
+`ReadWriteFacts.readProof_toBytes`) and the unpruning of a pruned phase
+(`unprunePhase_prunePhase`). -/
+theorem roundTrip_of_facts (F : ReadWriteFacts) : RoundTripStatement :=
+  roundTrip_of (fun _ _ hw ↦ F.readProof_toBytes hw) fun _ _ _ _ hp ↦ unprunePhase_prunePhase hp
 
 /-! ## The round trip in the deployed forms -/
 
