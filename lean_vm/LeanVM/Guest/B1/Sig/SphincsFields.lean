@@ -1,379 +1,504 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFields
 
-  The fields of `verify_sig_lean_sphincs`'s digest (`lean_ethereum.py:3899-3913`, `sp_shifts`,
-  `sp_place`, at leanVM `9d8bce81`): from the bits of an integer `D`, each field's value and right
-  shifts, and the 64-bit lanes the fields are placed into.
+  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3783-3842` at leanVM
+  834e6614, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
+  bits of the digest's number, the FORS leaves and the layers' leaves read as FIPS 205's
+  Algorithm 19 reads them, their right shifts, and the digest's bytes placed back into its cells.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Sig.SphincsKec
+public import LeanVM.Guest.B1.Sig.SphincsDigestT
+public import LeanVM.Guest.B1.Sig.Shifts
 
 /-!
 # The digest's fields
 
-The digest's bits are hinted at `sBit i` (`n(51 + i)`); `BitsAt σ D` says they are the bits of `D`.
-The fields are the hypertree's three (heights `8, 8, 10`) and the 24 FORS trees' (`10` bits), field
-`f` from bit `sFieldOff f`, its value `fieldNat D f`.
+The digest is `H_msg`'s first 34 bytes: the first call's two cells and the second call's low two
+bytes. `T` is their number, little endian (`T < 2^272`): byte `k` is `byteN T k`. FIPS 205's
+Algorithm 19 reads its first 30 bytes most significant bit first (`base_2b`): its bit `p` is `T`'s
+bit `mdPos p`; FORS tree `c`'s leaf is bits `10 c … 10 c + 9` (`forsLeafN T c`). The tree index is
+bytes `30 … 32` big endian, cut to 18 bits, and the bottom leaf byte 33: the layers' leaves,
+bottom first, are byte 33, byte 32 and byte 31 below the low two bits of byte 30
+(`layerLeafN T l`, its bit `j` `T`'s bit `leafPos (8 l + j)`).
 
-* `sShifts_vals`: `sp_shifts` gives `σ (sVal i)`, the value of `i`'s field shifted right by
-  `i - off`;
-* `LaneAt`, `laneNat`, `sPlace_sound`, `sPlaces_sound`: `sp_place` places each field into the lane
-  being rebuilt, a completed lane `j` holding the word of `D`'s bits `64 j ..< 64 j + 64`;
-* `sPl_lanes`, `sIdx_val`, `sPl_last`: the four lanes, the index `idx` (the low `26` bits) and the
-  lane after the last field (bits `256 ..< 266`).
+* `shiftsG_sound`: a field read most significant bit first from bits pinned to values and its right
+  shifts (`shifts` in any bit order);
+* `pw_eq`, `pw_mul`: the compiler's words `2^s` and products by them, as `eOfNat192`;
+* `sMdByte_sound`, `sMdSum_sound`: `sp_md_byte`'s value is the digest's byte placed at its bit in the
+  cell, the running sums the cells' low bytes.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
-open LeanVM.Protocol.Verifier (eOfNat)
+open LeanVM.Protocol.Verifier (eOfNat gen)
 
 @[expose] public section
 
 variable {rd : Reader} {σ : Val}
 
-/-! ## Fields -/
+/-! ## The digest and its fields -/
 
-/-- The value of field `f` of the integer `D`. -/
-def fieldNat (D f : Nat) : Nat := D / 2 ^ sFieldOff f % 2 ^ sFieldLen f
+/-- The bit of the digest's number that is its bit `p` read most significant first: bit
+`7 - p % 8` of byte `p / 8`. -/
+def mdPos (p : Nat) : Nat := 8 * (p / 8) + (7 - p % 8)
 
-/-- **The digest's bits are those of `D`**: `sBit i` holds bit `i`, for the `266` bits the fields
-read. -/
-def BitsAt (σ : Val) (D : Nat) : Prop := ∀ i < 266, σ (sBit i) = if D.testBit i then 1 else 0
+/-- Byte `k` of the number `T`, little endian. -/
+def byteN (T k : Nat) : Nat := T / 2 ^ (8 * k) % 2 ^ 8
 
-theorem field_facts {f : Nat} (hf : f < 27) :
-    1 ≤ sFieldLen f ∧ sFieldLen f ≤ 10 ∧ sFieldOff (f + 1) = sFieldOff f + sFieldLen f ∧
-      sFieldOff f + sFieldLen f ≤ 266 := by
-  interval_cases f <;> simp [sFieldLen, sFieldOff]
+/-- **FORS tree `c`'s leaf** (Algorithm 19, `base_2b`): the digest's bits `10 c … 10 c + 9` read
+most significant first. -/
+def forsLeafN (T c : Nat) : Nat := bitsVal (fun j => T.testBit (mdPos (10 * c + 9 - j))) 10
 
-theorem sFieldOf_spec {i : Nat} (hi : i < 266) :
-    sFieldOf i < 27 ∧ sFieldOff (sFieldOf i) ≤ i ∧ i < sFieldOff (sFieldOf i) + sFieldLen (sFieldOf i) := by
-  simp only [sFieldOf]
-  split_ifs <;> simp [sFieldOff, sFieldLen] <;> (try split_ifs) <;> omega
+/-- The bit of the digest's number that is bit `b` of the layers' leaves, bottom first: the bottom
+leaf byte 33, the middle one byte 32, the top one byte 31 then the low two bits of byte 30. -/
+def leafPos (b : Nat) : Nat :=
+  if b < 8 then 264 + b else if b < 16 then 248 + b else if b < 24 then 232 + b else 216 + b
 
-theorem sFieldOf_of {f i : Nat} (hf : f < 27) (h1 : sFieldOff f ≤ i) (h2 : i < sFieldOff f + sFieldLen f) :
-    sFieldOf i = f := by
-  have := field_facts hf
-  simp only [sFieldOf]
-  interval_cases f <;> simp [sFieldOff, sFieldLen] at h1 h2 ⊢ <;> split_ifs <;> omega
+/-- **Layer `l`'s leaf** (`l < 3`, bottom first), `sLeafLen l` bits. -/
+def layerLeafN (T l : Nat) : Nat := bitsVal (fun j => T.testBit (leafPos (sLeafOff l + j))) (sLeafLen l)
 
-theorem testBit_fieldNat (D f j : Nat) (hj : j < sFieldLen f) :
-    (fieldNat D f).testBit j = D.testBit (sFieldOff f + j) := by
-  rw [fieldNat, Nat.testBit_mod_two_pow, Nat.testBit_div_two_pow]
-  simp [hj, Nat.add_comm]
+theorem bitE_eq (b : Bool) : bitE b = eOfNat b.toNat := by
+  cases b <;> simp [bitE, Value.eOfNat_zero, Value.eOfNat_one]
 
-theorem fieldNat_lt (D f : Nat) : fieldNat D f < 2 ^ sFieldLen f := Nat.mod_lt _ (by positivity)
+theorem testBit_forsLeafN (T c j : Nat) :
+    (forsLeafN T c).testBit j = (decide (j < 10) && T.testBit (mdPos (10 * c + 9 - j))) :=
+  testBit_bitsVal _ _ _
 
-theorem one_ne_zero_E : (1 : E) ≠ 0 := one_ne_zero
+theorem forsLeafN_lt (T c : Nat) : forsLeafN T c < 2 ^ 10 := bitsVal_lt _ _
 
-theorem bitsOf_field {D f : Nat} (hf : f < 27) (hb : BitsAt σ D) :
-    bitsOf σ (51 + sFieldOff f) (sFieldLen f) = fieldNat D f := by
-  obtain ⟨-, h10, -, h266⟩ := field_facts hf
-  rw [bitsOf, ← bitsVal_testBit (fieldNat_lt D f)]
-  refine bitsVal_congr fun j hj => ?_
-  rw [testBit_fieldNat D f j hj]
-  have := hb (sFieldOff f + j) (by omega)
-  rw [show sBit (sFieldOff f + j) = .n (51 + sFieldOff f + j) by simp [sBit]; omega] at this
-  rw [this]
-  split <;> simp_all
+theorem testBit_byteN (T k j : Nat) : (byteN T k).testBit j = (decide (j < 8) && T.testBit (8 * k + j)) := by
+  rw [byteN, Nat.testBit_mod_two_pow, Nat.testBit_div_two_pow, Nat.add_comm j]
 
-theorem isBit_of_bitsAt {D : Nat} (hb : BitsAt σ D) {i : Nat} (hi : i < 266) : IsBit (σ (sBit i)) := by
-  rw [hb i hi]
-  split <;> simp [IsBit]
+theorem byteN_lt (T k : Nat) : byteN T k < 2 ^ 8 := Nat.mod_lt _ (by positivity)
 
-/-- **`sp_shifts`**: `sVal i` holds the value of `i`'s field shifted right by `i - off`. -/
-theorem sShifts_vals {D : Nat} (hb : BitsAt σ D) (h : AtomsHold rd σ sShifts) :
-    ∀ i < 266, σ (sVal i) = eOfNat (fieldNat D (sFieldOf i) >>> (i - sFieldOff (sFieldOf i))) := by
-  intro i hi
-  obtain ⟨hf, h1, h2⟩ := sFieldOf_spec hi
-  set f := sFieldOf i with hfdef
-  obtain ⟨hl1, hl10, -, h266⟩ := field_facts hf
-  have hsub : ∀ x ∈ shifts (51 + sFieldOff f) (sFieldLen f) (sFieldBase f), x ∈ sShifts := by
+theorem testBit_layerLeafN (T l j : Nat) :
+    (layerLeafN T l).testBit j = (decide (j < sLeafLen l) && T.testBit (leafPos (sLeafOff l + j))) :=
+  testBit_bitsVal _ _ _
+
+theorem layerLeafN_lt (T l : Nat) : layerLeafN T l < 2 ^ sLeafLen l := bitsVal_lt _ _
+
+/-! ## Fields and their shifts -/
+
+theorem mem_shiftsG_step {bit : Nat → V} {n o r : Nat} (hr : 1 ≤ r) (hrn : r < n) :
+    ∀ x ∈ [cst (o + 3 * r - 2) (word 2 0 0),
+      mulS (.n (o + 3 * r - 1)) (.n (o + 3 * r - 2)) (.n (o + 3 * r - 3)),
+      addS (.n (o + 3 * r)) (bit r) (.n (o + 3 * r - 1))], x ∈ shiftsG bit n o := by
+  intro x hx
+  simp only [shiftsG, List.mem_cons, List.mem_flatMap, List.mem_range]
+  refine Or.inr ⟨r - 1, by omega, ?_⟩
+  rw [show r - 1 + 1 = r by omega]
+  simpa using hx
+
+/-- **`shifts` in any bit order, sound**: bit `r` of an `n`-bit field read most significant first
+at `bit r`, holding `f r`, the cell `o + 3 r` holds the field shifted right by `n - 1 - r`. -/
+theorem shiftsG_sound {bit : Nat → V} {n o : Nat} {f : Nat → Bool} (hn : 0 < n) (hn63 : n ≤ 63)
+    (hb : ∀ r < n, σ (bit r) = bitE (f r)) (h : AtomsHold rd σ (shiftsG bit n o)) :
+    ∀ r < n, σ (.n (o + 3 * r)) = eOfNat (bitsVal (fun j => f (n - 1 - j)) n >>> (n - 1 - r)) := by
+  set F := bitsVal (fun j => f (n - 1 - j)) n with hF
+  have hN : F < 2 ^ n := bitsVal_lt _ _
+  have htb : ∀ r < n, F.testBit (n - 1 - r) = f r := by
+    intro r hr
+    rw [hF, testBit_bitsVal]
+    simp [show n - 1 - r < n by omega, show n - 1 - (n - 1 - r) = r by omega]
+  intro r hr
+  induction r with
+  | zero =>
+      have e := h.atom (List.mem_cons_self ..)
+      simp only [Atom.Holds] at e
+      rw [Nat.mul_zero, Nat.add_zero, e, hb 0 hn, bitE_eq, ← htb 0 hn]
+      congr 1
+      have h1 : F >>> (n - 1) < 2 := by
+        rw [Nat.shiftRight_eq_div_pow]
+        exact Nat.div_lt_of_lt_mul (by rw [← pow_succ, show n - 1 + 1 = n by omega]; exact hN)
+      rw [shiftRight_split, show F >>> (n - 1 - 0 + 1) = 0 by
+        rw [Nat.shiftRight_eq_div_pow, show n - 1 - 0 + 1 = n by omega]; exact Nat.div_eq_of_lt hN]
+      simp
+  | succ r ih =>
+      have hm := mem_shiftsG_step (bit := bit) (o := o) (show 1 ≤ r + 1 by omega) hr
+      have e1 := h.atom (hm _ (List.mem_cons_self ..))
+      have e2 := h.atom (hm _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+      have e3 := h.atom (hm _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
+      simp only [Atom.Holds] at e1 e2 e3
+      rw [e3, e2, e1, word_two, show o + 3 * (r + 1) - 3 = o + 3 * r by omega, ih (by omega),
+        Value.gen_mul_eOfNat (by
+          have : F >>> (n - 1 - r) ≤ F := Nat.shiftRight_le _ _
+          have h63 : 2 ^ n ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) hn63
+          omega),
+        hb (r + 1) hr, bitE_eq, ← htb (r + 1) hr, add_comm,
+        show (2 : Nat) * (F >>> (n - 1 - r)) = 2 ^ 1 * (F >>> (n - 1 - r)) by ring,
+        Value.eOfNat_add_of_lt (by cases F.testBit (n - 1 - (r + 1)) <;> simp)]
+      congr 1
+      rw [shiftRight_split _ (n - 1 - (r + 1)), show n - 1 - (r + 1) + 1 = n - 1 - r by omega]
+      ring
+
+/-! ## Words `2^s` -/
+
+theorem pw_eq {s : Nat} (hs : s < 128) : pw s = coordBasis s := by
+  unfold pw coordBasis eOfNat192 word
+  split_ifs with h
+  · rw [Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) h),
+      Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) (by omega))]
+  · obtain ⟨t, rfl⟩ : ∃ t, s = 64 + t := ⟨s - 64, by omega⟩
+    rw [show 64 + t - 64 = t by omega, pow_add, Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64),
+      ← ofBits_mod (2 ^ 64 * 2 ^ t), Nat.mul_mod_right,
+      Nat.div_eq_of_lt (show 2 ^ 64 * 2 ^ t < 2 ^ 128 by
+        rw [← pow_add]; exact Nat.pow_lt_pow_right (by norm_num) (by omega))]
+
+/-- **A word times `2^s`**: below the limb's top, the bit pattern `2^s · v`. -/
+theorem pw_mul {s v : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) :
+    eOfNat v * pw s = eOfNat192 (2 ^ s * v) := by
+  rw [pw_eq hs, mul_comm, coordBasis_mul_eOfNat (by omega) h]
+
+theorem pw_lo {s : Nat} (hs : s < 64) : pw s = word (2 ^ s) 0 0 := by
+  simp only [pw, hs, ↓reduceIte]
+
+theorem pw_zero : pw 0 = 1 := by
+  rw [pw_lo (by norm_num), pow_zero, word_eq_eOfNat, Value.eOfNat_one]
+
+/-- `eOfNat192` of a value below `2^64` is `eOfNat`. -/
+theorem eOfNat_eq192 {v : Nat} (h : v < 2 ^ 64) : eOfNat v = eOfNat192 v := (eOfNat192_of_lt h).symm
+
+/-- A value and its high bits shifted back XOR to its low bits. -/
+theorem eOfNat_low (x k : Nat) : eOfNat x + eOfNat (2 ^ k * (x >>> k)) = eOfNat (x % 2 ^ k) := by
+  have hs : 2 ^ k * (x >>> k) + x % 2 ^ k = x := by
+    rw [Nat.shiftRight_eq_div_pow]; exact Nat.div_add_mod x (2 ^ k)
+  have e : eOfNat x = eOfNat (2 ^ k * (x >>> k)) + eOfNat (x % 2 ^ k) := by
+    rw [Value.eOfNat_add_of_lt (Nat.mod_lt _ (by positivity)), hs]
+  rw [e, add_comm (eOfNat (2 ^ k * _)), add_assoc, e_add_self, add_zero]
+
+/-- Two words of disjoint bits under one shift. -/
+theorem eOfNat192_shift_add {s k X q : Nat} (hq : q < 2 ^ k) :
+    eOfNat192 (2 ^ s * (2 ^ k * X)) + eOfNat192 (2 ^ s * q) = eOfNat192 (2 ^ s * (2 ^ k * X + q)) := by
+  rw [add_comm, show 2 ^ s * (2 ^ k * X) = 2 ^ (s + k) * X by rw [pow_add]; ring,
+    eOfNat192_add_shift (s := s + k) (by
+      rw [pow_add]; exact Nat.mul_lt_mul_of_pos_left hq (by positivity))]
+  congr 1
+  rw [pow_add]
+  ring
+
+/-! ## The digest's bytes -/
+/-- What `sp_md_byte` reads: FORS tree `c`'s leaf and its right shifts. -/
+def FValsAt (σ : Val) (T : Nat) : Prop := ∀ c < 24, ∀ z < 10, σ (sFVal c z) = eOfNat (forsLeafN T c >>> z)
+
+theorem mdPos_byte {i j : Nat} (hj : j < 8) : mdPos (8 * i + 7 - j) = 8 * i + j := by
+  unfold mdPos; omega
+
+/-- A byte inside a leaf, unmasked: the byte starts the leaf. -/
+theorem byte_in_low {T i c : Nat} (hc : 8 * i = 10 * c) : forsLeafN T c >>> 2 = byteN T i := by
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_shiftRight, testBit_forsLeafN, testBit_byteN]
+  by_cases hj : j < 8
+  · rw [show 10 * c + 9 - (2 + j) = 8 * i + 7 - j by omega, mdPos_byte hj]
+    simp [hj, show 2 + j < 10 by omega]
+  · simp [hj, show ¬ 2 + j < 10 by omega]
+
+/-- A byte inside a leaf, masked: the leaf shifted past the bits after the byte, its low byte. -/
+theorem byte_in {T i c : Nat} (h1 : 10 * c ≤ 8 * i) (h2 : 8 * i + 7 < 10 * c + 10) :
+    (forsLeafN T c >>> (10 * c + 2 - 8 * i)) % 2 ^ 8 = byteN T i := by
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_mod_two_pow, Nat.testBit_shiftRight, testBit_forsLeafN, testBit_byteN]
+  by_cases hj : j < 8
+  · rw [show 10 * c + 9 - (10 * c + 2 - 8 * i + j) = 8 * i + 7 - j by omega, mdPos_byte hj]
+    simp [hj, show 10 * c + 2 - 8 * i + j < 10 by omega]
+  · simp [hj]
+
+/-- A byte across two leaves: the first one's low `k1` bits, then the next one's high `8 - k1`. -/
+theorem byte_across {T i c : Nat} (h2 : 10 * c + 10 ≤ 8 * i + 7)
+    (h3 : 8 * i < 10 * c + 10) :
+    2 ^ (8 - (10 * c + 10 - 8 * i)) * (forsLeafN T c % 2 ^ (10 * c + 10 - 8 * i)) +
+      forsLeafN T (c + 1) >>> (2 + (10 * c + 10 - 8 * i)) = byteN T i := by
+  set k1 := 10 * c + 10 - 8 * i with hk1
+  have hq : forsLeafN T (c + 1) >>> (2 + k1) < 2 ^ (8 - k1) := by
+    rw [Nat.shiftRight_eq_div_pow, Nat.div_lt_iff_lt_mul (by positivity), ← pow_add,
+      show 8 - k1 + (2 + k1) = 10 by omega]
+    exact forsLeafN_lt _ _
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_two_pow_mul_add _ hq, testBit_byteN]
+  by_cases hj : j < 8 - k1
+  · simp only [hj, ↓reduceIte]
+    rw [Nat.testBit_shiftRight, testBit_forsLeafN,
+      show 10 * (c + 1) + 9 - (2 + k1 + j) = 8 * i + 7 - j by omega, mdPos_byte (by omega)]
+    simp [show j < 8 by omega, show 2 + k1 + j < 10 by omega]
+  · simp only [hj, ↓reduceIte]
+    rw [Nat.testBit_mod_two_pow, testBit_forsLeafN]
+    by_cases hj8 : j < 8
+    · rw [show 10 * c + 9 - (j - (8 - k1)) = 8 * i + 7 - j by omega, mdPos_byte hj8]
+      simp [hj8, show j - (8 - k1) < k1 by omega, show j - (8 - k1) < 10 by omega]
+    · simp [hj8, show ¬ j - (8 - k1) < k1 by omega]
+
+theorem forsLeaf_shift_lt (T c z : Nat) : forsLeafN T c >>> z < 2 ^ 64 :=
+  lt_of_le_of_lt (Nat.shiftRight_le _ _) (lt_trans (forsLeafN_lt T c) (by norm_num))
+
+theorem two_pow_mod_mul_lt {s k v : Nat} (hs : s % 64 + k ≤ 64) (hv : v < 2 ^ k) :
+    2 ^ (s % 64) * v < 2 ^ 64 :=
+  calc 2 ^ (s % 64) * v < 2 ^ (s % 64) * 2 ^ k := Nat.mul_lt_mul_of_pos_left hv (by positivity)
+    _ = 2 ^ (s % 64 + k) := (pow_add _ _ _).symm
+    _ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hs
+
+/-- **A byte inside a leaf, masked**: the leaf shifted by `z` and its low byte. -/
+theorem mdIn_mask_sound {T c z b : Nat} (hc : c < 24) (hz : z + 8 < 10) (hv : FValsAt σ T)
+    (h : AtomsHold rd σ (mdIn c z b true).1) :
+    σ (mdIn c z b true).2.2 = eOfNat ((forsLeafN T c >>> z) % 2 ^ 8) := by
+  simp only [mdIn, ↓reduceIte] at h ⊢
+  have k0 : σ (.n b) = word 256 0 0 := h.atom (a := .const (.n b) _) (by simp [cst])
+  have m1 : σ (.n (b + 1)) = σ (sFVal c (z + 8)) * σ (.n b) :=
+    h.atom (a := .mul (.n (b + 1)) _ _) (by simp [mulS])
+  have a2 : σ (.n (b + 2)) = σ (sFVal c z) + σ (.n (b + 1)) :=
+    h.atom (a := .add (.n (b + 2)) _ _) (by simp [addS])
+  rw [a2, m1, k0, hv c hc _ (by omega), hv c hc _ (by omega), word_eq_eOfNat,
+    show (256 : Nat) = 2 ^ 8 by norm_num, mul_comm, Value.eOfNat_two_pow_mul (by
+      have := forsLeafN_lt T c
+      rw [Nat.shiftRight_eq_div_pow]
+      have : forsLeafN T c / 2 ^ (z + 8) ≤ 2 ^ 10 := le_of_lt (lt_of_le_of_lt (Nat.div_le_self _ _) this)
+      omega),
+    show forsLeafN T c >>> (z + 8) = (forsLeafN T c >>> z) >>> 8 by rw [Nat.shiftRight_add],
+    eOfNat_low]
+
+/-- **A byte placed at bit `s`**. -/
+theorem mdScale_sound {s v : Nat} {m : List Stmt × Nat × V} (hs : s < 128) (hs56 : s % 64 ≤ 56)
+    (hv : v < 2 ^ 8) (hm : AtomsHold rd σ m.1 → σ m.2.2 = eOfNat v)
+    (h : AtomsHold rd σ (mdScale s m).1) : σ (mdScale s m).2.2 = eOfNat192 (2 ^ s * v) := by
+  unfold mdScale at h ⊢
+  by_cases hs0 : s = 0
+  · simp only [hs0, ↓reduceIte] at h ⊢
+    rw [hm h, pow_zero, one_mul, eOfNat_eq192 (lt_trans hv (by norm_num))]
+  · simp only [hs0, ↓reduceIte] at h ⊢
+    have k := h.atom (a := .const (.n m.2.1) (pw s)) (by simp [cst])
+    have mu := h.atom (a := .mul (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)) (by simp [mulS])
+    simp only [Atom.Holds] at k mu
+    rw [mu, k, hm h.left, pw_mul hs (two_pow_mod_mul_lt (k := 8) (by omega) hv)]
+
+/-- **A byte across two leaves**, placed at bit `s`. -/
+theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk7 : k1 ≤ 7)
+    (hs : s < 128) (hs56 : s % 64 ≤ 56) (hv : FValsAt σ T) (h : AtomsHold rd σ (mdAcross c k1 s b).1) :
+    σ (mdAcross c k1 s b).2.2 = eOfNat192 (2 ^ s * (2 ^ (8 - k1) * (forsLeafN T c % 2 ^ k1) +
+      forsLeafN T (c + 1) >>> (2 + k1))) := by
+  have hq : forsLeafN T (c + 1) >>> (2 + k1) < 2 ^ (8 - k1) := by
+    rw [Nat.shiftRight_eq_div_pow, Nat.div_lt_iff_lt_mul (by positivity), ← pow_add,
+      show 8 - k1 + (2 + k1) = 10 by omega]
+    exact forsLeafN_lt _ _
+  have hX : forsLeafN T c % 2 ^ k1 < 2 ^ k1 := Nat.mod_lt _ (by positivity)
+  have hhi : ∀ x, x ∈ [cst b (pw k1), mulS (.n (b + 1)) (sFVal c k1) (.n b),
+      addS (.n (b + 2)) (sFVal c 0) (.n (b + 1)), cst (b + 3) (pw (s + 8 - k1)),
+      mulS (.n (b + 4)) (.n (b + 2)) (.n (b + 3))] → x ∈ (mdAcross c k1 s b).1 := by
     intro x hx
-    simp only [sShifts, List.mem_flatMap, List.mem_range]
-    exact ⟨f, hf, hx⟩
-  have hs := shifts_sound (σ := σ) (bitBase := 51 + sFieldOff f) (n := sFieldLen f)
-    (outBase := sFieldBase f) (by omega) (by omega) (fun j hj => by
-      have := isBit_of_bitsAt hb (i := sFieldOff f + j) (by omega)
-      rwa [show sBit (sFieldOff f + j) = .n (51 + sFieldOff f + j) by simp [sBit]; omega] at this)
-    (h.sub hsub) (sFieldOff f + sFieldLen f - 1 - i) (by omega)
-  rw [bitsOf_field hf hb] at hs
-  rw [show sVal i = .n (sFieldBase f + 3 * (sFieldOff f + sFieldLen f - 1 - i)) by
-    simp only [sVal, ← hfdef], hs]
-  congr 2
-  omega
+    unfold mdAcross
+    split_ifs <;> exact List.mem_append_left _ hx
+  have k0 : σ (.n b) = pw k1 := h.atom (a := .const (.n b) _) (hhi _ (by simp [cst]))
+  have m1 : σ (.n (b + 1)) = σ (sFVal c k1) * σ (.n b) :=
+    h.atom (a := .mul (.n (b + 1)) _ _) (hhi _ (by simp [mulS]))
+  have a2 : σ (.n (b + 2)) = σ (sFVal c 0) + σ (.n (b + 1)) :=
+    h.atom (a := .add (.n (b + 2)) _ _) (hhi _ (by simp [addS]))
+  have k3 : σ (.n (b + 3)) = pw (s + 8 - k1) :=
+    h.atom (a := .const (.n (b + 3)) _) (hhi _ (by simp [cst]))
+  have m4 : σ (.n (b + 4)) = σ (.n (b + 2)) * σ (.n (b + 3)) :=
+    h.atom (a := .mul (.n (b + 4)) _ _) (hhi _ (by simp [mulS]))
+  have e2 : σ (.n (b + 2)) = eOfNat (forsLeafN T c % 2 ^ k1) := by
+    rw [a2, m1, k0, hv c (by omega) 0 (by omega), hv c (by omega) k1 (by omega), Nat.shiftRight_zero,
+      pw_lo (by omega), word_eq_eOfNat, mul_comm, Value.eOfNat_two_pow_mul (by
+        have h1 := forsLeafN_lt T c
+        have h2 : forsLeafN T c >>> k1 ≤ forsLeafN T c := Nat.shiftRight_le _ _
+        calc 2 ^ k1 * (forsLeafN T c >>> k1) ≤ 2 ^ 7 * 2 ^ 10 :=
+              Nat.mul_le_mul (Nat.pow_le_pow_right (by norm_num) hk7) (by omega)
+          _ < 2 ^ 64 := by norm_num),
+      eOfNat_low]
+  have e4 : σ (.n (b + 4)) = eOfNat192 (2 ^ (s + 8 - k1) * (forsLeafN T c % 2 ^ k1)) := by
+    rw [m4, e2, k3, pw_mul (by omega) (two_pow_mod_mul_lt (k := k1) (by omega) hX)]
+  have hsk : 2 ^ (s + 8 - k1) * (forsLeafN T c % 2 ^ k1) = 2 ^ s * (2 ^ (8 - k1) * (forsLeafN T c % 2 ^ k1)) := by
+    rw [← mul_assoc, ← pow_add, show s + (8 - k1) = s + 8 - k1 by omega]
+  unfold mdAcross at h ⊢
+  by_cases hs0 : s = 0
+  · simp only [hs0, ↓reduceIte] at h ⊢
+    have a5 : σ (.n (b + 5)) = σ (.n (b + 4)) + σ (sFVal (c + 1) (2 + k1)) :=
+      h.atom (a := .add (.n (b + 5)) _ _) (by simp [addS])
+    rw [a5, e4, hv (c + 1) hc _ (by omega), eOfNat_eq192 (forsLeaf_shift_lt _ _ _), hsk, hs0]
+    simpa only [pow_zero, one_mul] using eOfNat192_shift_add (s := 0) (X := forsLeafN T c % 2 ^ k1) hq
+  · simp only [hs0, ↓reduceIte] at h ⊢
+    have k5 : σ (.n (b + 5)) = pw s := h.atom (a := .const (.n (b + 5)) _) (by simp [cst])
+    have m6 : σ (.n (b + 6)) = σ (sFVal (c + 1) (2 + k1)) * σ (.n (b + 5)) :=
+      h.atom (a := .mul (.n (b + 6)) _ _) (by simp [mulS])
+    have a7 : σ (.n (b + 7)) = σ (.n (b + 4)) + σ (.n (b + 6)) :=
+      h.atom (a := .add (.n (b + 7)) _ _) (by simp [addS])
+    rw [a7, e4, m6, k5, hv (c + 1) hc _ (by omega), pw_mul hs (two_pow_mod_mul_lt (k := 8 - k1) (by omega) hq),
+      hsk, eOfNat192_shift_add hq]
 
-/-! ## Lanes -/
-
-/-- Lane `j` of `D`: its bits `64 j ..< 64 j + 64`. -/
-def laneNat (D j : Nat) : Nat := D / 2 ^ (64 * j) % 2 ^ 64
-
-/-- **The lane being rebuilt before bit `o`**: unless `o` starts a lane, it holds the word of `D`'s
-bits from the lane's start to `o`. -/
-def LaneAt (σ : Val) (D o : Nat) (lane : V) : Prop :=
-  o % 64 ≠ 0 → σ lane = eOfNat (D / 2 ^ (64 * (o / 64)) % 2 ^ (o % 64))
+/-- **`sp_md_byte`, sound**: the value is digest byte `i < 30` at bit `8 (i % 16)` of its cell. -/
+theorem sMdByte_sound {T i b : Nat} (hi : i < 30) (hv : FValsAt σ T)
+    (h : AtomsHold rd σ (sMdByte i b).1) :
+    σ (sMdByte i b).2.2 = eOfNat192 (2 ^ (8 * (i % 16)) * byteN T i) := by
+  have hc24 : 8 * i / 10 < 24 := by omega
+  have hs : 8 * (i % 16) % 64 ≤ 56 := by omega
+  have hs128 : 8 * (i % 16) < 128 := by omega
+  unfold sMdByte at h ⊢
+  by_cases hin : (8 * i + 7) / 10 = 8 * i / 10
+  · simp only [hin, ↓reduceIte] at h ⊢
+    refine mdScale_sound hs128 hs (byteN_lt T i) (fun hm => ?_) h
+    by_cases hlo : 8 * i = 10 * (8 * i / 10)
+    · have hb : (8 * i != 10 * (8 * i / 10)) = false := by rw [bne_eq_false_iff_eq]; exact hlo
+      rw [hb]
+      show σ (sFVal (8 * i / 10) (10 * (8 * i / 10) + 2 - 8 * i)) = _
+      rw [hv _ hc24 _ (by omega), show 10 * (8 * i / 10) + 2 - 8 * i = 2 by omega, byte_in_low hlo]
+    · have hb : (8 * i != 10 * (8 * i / 10)) = true := by rw [bne_iff_ne]; exact hlo
+      rw [hb] at hm ⊢
+      rw [mdIn_mask_sound hc24 (by omega) hv hm, byte_in (by omega) (by omega)]
+  · simp only [hin, ↓reduceIte] at h ⊢
+    rw [mdAcross_sound (by omega) (by omega) (by omega) hs128 hs hv h, byte_across (by omega) (by omega)]
 
 theorem mod_split (X r n : Nat) : X % 2 ^ (r + n) = 2 ^ r * (X / 2 ^ r % 2 ^ n) + X % 2 ^ r := by
-  rw [← two_pow_mul_xor (Nat.mod_lt _ (by positivity))]
-  apply Nat.eq_of_testBit_eq
-  intro j
-  simp only [Nat.testBit_xor, Nat.testBit_mod_two_pow, Nat.testBit_two_pow_mul,
-    Nat.testBit_div_two_pow]
-  by_cases hj : j < r
-  · simp [hj, show j < r + n by omega, show ¬ r ≤ j by omega]
-  · simp only [hj, decide_false, Bool.false_and, Bool.xor_false, show r ≤ j by omega, decide_true,
-      Bool.true_and]
-    rw [show j - r + r = j by omega]
-    by_cases hj2 : j < r + n
-    · simp [hj2, show j - r < n by omega]
-    · simp [hj2, show ¬ j - r < n by omega]
+  rw [pow_add, Nat.mod_mul, Nat.add_comm]
 
-theorem field_div {D o n k : Nat} (hk : k ≤ n) :
-    D / 2 ^ o % 2 ^ n / 2 ^ k = D / 2 ^ (o + k) % 2 ^ (n - k) := by
-  apply Nat.eq_of_testBit_eq
-  intro j
-  simp only [Nat.testBit_div_two_pow, Nat.testBit_mod_two_pow]
-  rw [show j + (o + k) = j + k + o by omega]
-  by_cases hj : j < n - k
-  · simp [hj, show j + k < n by omega]
-  · simp [hj, show ¬ j + k < n by omega]
+/-- **The running sums**: bytes `i ..< i + m` added to the sum of the bytes from `i0` (`0` or
+`16`) before `i`, each at its bit in the cell. -/
+theorem sMdSum_sound {T i0 : Nat} (hi0 : i0 = 0 ∨ i0 = 16) (hv : FValsAt σ T) :
+    ∀ (m i : Nat) (acc : V) (b : Nat), i0 ≤ i → i + m ≤ 30 → i + m ≤ i0 + 16 →
+      σ acc = eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i - i0))) →
+      AtomsHold rd σ (sMdSum m i acc b).1 →
+      σ (sMdSum m i acc b).2.2 = eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + m - i0)))
+  | 0, i, acc, b, _, _, _, hacc, _ => by simpa [sMdSum] using hacc
+  | m + 1, i, acc, b, h1, h2, h3, hacc, h => by
+      have h' : AtomsHold rd σ ((sMdByte i b).1 ++ [addS (.n (sMdByte i b).2.1) acc (sMdByte i b).2.2] ++
+          (sMdSum m (i + 1) (.n (sMdByte i b).2.1) ((sMdByte i b).2.1 + 1)).1) := h
+      have hx := sMdByte_sound (T := T) (by omega) hv h'.left.left
+      have ha : σ (.n (sMdByte i b).2.1) = σ acc + σ (sMdByte i b).2.2 :=
+        h'.left.right.atom (a := .add (.n (sMdByte i b).2.1) acc (sMdByte i b).2.2) (by simp [addS])
+      have hmod : i % 16 = i - i0 := by omega
+      have hnext : σ (.n (sMdByte i b).2.1) = eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + 1 - i0))) := by
+        rw [ha, hacc, hx, hmod, eOfNat192_add_shift (Nat.mod_lt _ (by positivity)),
+          show 8 * (i + 1 - i0) = 8 * (i - i0) + 8 by omega, mod_split, byteN, Nat.div_div_eq_div_mul,
+          ← pow_add, show 8 * i0 + 8 * (i - i0) = 8 * i by omega, Nat.add_comm]
+      have := sMdSum_sound hi0 hv m (i + 1) _ _ (by omega) (by omega) (by omega) hnext h'.right
+      show σ (sMdSum m (i + 1) _ _).2.2 = _
+      rw [this, show i + 1 + m = i + (m + 1) by omega]
 
-theorem field_mod {D o n k : Nat} (hk : k ≤ n) : D / 2 ^ o % 2 ^ n % 2 ^ k = D / 2 ^ o % 2 ^ k :=
-  Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 hk)
+/-- **`md0`**: the first call's first cell, the digest's bytes `0 … 15`. -/
+theorem sMd0_sound {T : Nat} (hv : FValsAt σ T) (h0 : AtomsHold rd σ (sMdByte 0 1408).1)
+    (h : AtomsHold rd σ sMd0.1) : σ sMd0.2.2 = eOfNat192 (T % 2 ^ 128) := by
+  have hb := sMdByte_sound (T := T) (i := 0) (b := 1408) (by norm_num) hv h0
+  have := sMdSum_sound (Or.inl rfl) hv 15 1 _ _ (by norm_num) (by norm_num) (by norm_num)
+    (by rw [hb]; simp [byteN]) h
+  unfold sMd0
+  simpa using this
 
-theorem two_pow_mul_lt {r v k : Nat} (hv : v < 2 ^ k) (h : r + k ≤ 64) : 2 ^ r * v < 2 ^ 64 := by
-  calc 2 ^ r * v < 2 ^ r * 2 ^ k := Nat.mul_lt_mul_of_pos_left hv (by positivity)
-    _ = 2 ^ (r + k) := (pow_add _ _ _).symm
-    _ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) h
+/-- **`md1`**: the digest's bytes `16 … 29`, at the first call's second cell's low bits. -/
+theorem sMd1_sound {T : Nat} (hv : FValsAt σ T) (h : AtomsHold rd σ sMd1.1) :
+    σ sMd1.2.2 = eOfNat192 (T / 2 ^ 128 % 2 ^ 112) := by
+  have h' : AtomsHold rd σ ((sMdByte 16 sMd0.2.1).1 ++
+      (sMdSum 13 17 (sMdByte 16 sMd0.2.1).2.2 (sMdByte 16 sMd0.2.1).2.1).1) := h
+  have hb := sMdByte_sound (T := T) (i := 16) (b := sMd0.2.1) (by norm_num) hv h'.left
+  have := sMdSum_sound (Or.inr rfl) hv 13 17 _ _ (by norm_num) (by norm_num) (by norm_num)
+    (by rw [hb]; simp [byteN]) h'.right
+  show σ (sMdSum 13 17 (sMdByte 16 sMd0.2.1).2.2 (sMdByte 16 sMd0.2.1).2.1).2.2 = _
+  simpa using this
 
-theorem word_pow_eq (k : Nat) : word (2 ^ k) 0 0 = eOfNat (2 ^ k) := word_eq_eOfNat _
+/-! ## The bits -/
 
-/-- The values of the fields, as `sShifts_vals` gives them. -/
-def ValsAt (σ : Val) (D : Nat) : Prop :=
-  ∀ i < 266, σ (sVal i) = eOfNat (fieldNat D (sFieldOf i) >>> (i - sFieldOff (sFieldOf i)))
+/-- **The digest's bits are those of `T`**: the run `n392 …` holds `T`'s bits `0 … 271`. -/
+def BitsAt (σ : Val) (T : Nat) : Prop := ∀ k < 272, σ (.n (392 + k)) = bitE (T.testBit k)
 
-theorem valsAt_field {D f : Nat} (hv : ValsAt σ D) (hf : f < 27) {k : Nat} (hk : k < sFieldLen f) :
-    σ (sVal (sFieldOff f + k)) = eOfNat (fieldNat D f >>> k) := by
-  obtain ⟨-, -, -, h266⟩ := field_facts hf
-  rw [hv _ (by omega), sFieldOf_of hf (by omega) (by omega)]
+theorem mem_sBooleans {k : Nat} (hk : k < 272) :
+    Stmt.atom (.mul (.n (392 + k)) (.n (392 + k)) (.n (392 + k))) ∈ sBooleans := by
+  unfold sBooleans
+  by_cases h1 : k < 128
+  · exact List.mem_append_left _ (List.mem_flatMap.mpr ⟨k, List.mem_range.mpr h1, List.mem_cons_self ..⟩)
+  · by_cases h2 : k < 256
+    · refine List.mem_append_left _ (List.mem_flatMap.mpr ⟨k - 128, List.mem_range.mpr (by omega), ?_⟩)
+      refine List.mem_cons_of_mem _ ?_
+      rw [show 520 + (k - 128) = 392 + k by omega]
+      exact List.mem_cons_self ..
+    · refine List.mem_append_right _ (List.mem_map.mpr ⟨k - 256, List.mem_range.mpr (by omega), ?_⟩)
+      show mulS _ _ _ = _
+      rw [show 648 + (k - 256) = 392 + k by omega]
+      rfl
+
+/-- **The bits pinned Boolean are those of their number.** -/
+theorem sBooleans_bitsAt (h : AtomsHold rd σ sBooleans) : BitsAt σ (bitsOf σ 392 272) := by
+  intro k hk
+  have hb : IsBit (σ (.n (392 + k))) := (h.atom (mem_sBooleans hk)).symm
+  rw [bitsOf, testBit_bitsVal]
+  simp only [hk, decide_true, Bool.true_and]
+  rcases isBit_cases hb with h0 | h1
+  · rw [h0]; simp [bitE]
+  · rw [h1]; simp [bitE]
+
+theorem bitsOf_lt' (σ : Val) : bitsOf σ 392 272 < 2 ^ 272 := bitsVal_lt _ _
+
+theorem sMdBit_eq {p : Nat} : sMdBit p = .n (392 + mdPos p) := by
+  simp only [sMdBit, mdPos]; congr 1; omega
+
+theorem mdPos_lt {p : Nat} (hp : p < 240) : mdPos p < 240 := by unfold mdPos; omega
+
+theorem sLeafBit_eq {b : Nat} (hb : b < 26) : sLeafBit b = .n (392 + leafPos b) := by
+  simp only [sLeafBit, leafPos]
+  split_ifs <;> congr 1 <;> omega
+
+theorem leafPos_lt {b : Nat} (hb : b < 26) : leafPos b < 272 := by
+  unfold leafPos; split_ifs <;> omega
+
+/-! ## The fields -/
+
+/-- **`sp_fors_field`, sound**: every FORS leaf and its shifts. -/
+theorem sForsFields_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sForsFields) : FValsAt σ T := by
+  intro c hc z hz
+  have hsub : ∀ x ∈ shiftsG (fun r => sMdBit (10 * c + r)) 10 (664 + 28 * c), x ∈ sForsFields := by
+    intro x hx
+    simp only [sForsFields, List.mem_flatMap, List.mem_range]
+    exact ⟨c, hc, hx⟩
+  have hs := shiftsG_sound (σ := σ) (bit := fun r => sMdBit (10 * c + r)) (n := 10)
+    (o := 664 + 28 * c) (f := fun r => T.testBit (mdPos (10 * c + r))) (by norm_num) (by norm_num)
+    (fun r hr => by
+      show σ (sMdBit (10 * c + r)) = _
+      rw [sMdBit_eq]; exact hb _ (by have := mdPos_lt (p := 10 * c + r) (by omega); omega))
+    (h.sub hsub) (9 - z) (by omega)
+  rw [show sFVal c z = .n (664 + 28 * c + 3 * (9 - z)) from rfl, hs, show 10 - 1 - (9 - z) = z by omega]
   congr 2
-  omega
 
-theorem sPlace_eq1 {lane : V} {off n b : Nat} (h1 : (off + n - 1) / 64 = off / 64) (h2 : off % 64 = 0)
-    (h3 : (off + n) % 64 ≠ 0) : sPlace lane off n b = ([], b, sVal off, none) := by
-  simp [sPlace, h1, h2, h3]
+/-- What `sp_leaf_shifts` gives: each layer's leaf and its shifts. -/
+def LValsAt (σ : Val) (T : Nat) : Prop :=
+  ∀ l < 3, ∀ z < sLeafLen l, σ (sLVal (sLeafOff l + z)) = eOfNat (layerLeafN T l >>> z)
 
-theorem sPlace_eq2 {lane : V} {off n b : Nat} (h1 : (off + n - 1) / 64 = off / 64) (h2 : off % 64 ≠ 0)
-    (h3 : (off + n) % 64 ≠ 0) : sPlace lane off n b = ([cst b (word (2 ^ (off % 64)) 0 0),
-      mulS (.n (b + 1)) (sVal off) (.n b), addS (.n (b + 2)) lane (.n (b + 1))], b + 3, .n (b + 2), none) := by
-  simp [sPlace, h1, h2, h3]
+theorem sLeafLen_le {l : Nat} : 8 ≤ sLeafLen l ∧ sLeafLen l ≤ 10 := by
+  unfold sLeafLen; split_ifs <;> omega
 
-theorem sPlace_eq3 {lane : V} {off n b : Nat} (h1 : (off + n - 1) / 64 = off / 64) (h2 : off % 64 ≠ 0)
-    (h3 : (off + n) % 64 = 0) : sPlace lane off n b = ([cst b (word (2 ^ (off % 64)) 0 0),
-      mulS (.n (b + 1)) (sVal off) (.n b), addS (.n (b + 2)) lane (.n (b + 1)), copyS (.n (b + 3)) (.n (b + 2))],
-      b + 4, .n (b + 2), some (off / 64, .n (b + 3))) := by
-  simp [sPlace, h1, h2, h3]
-
-theorem sPlace_eq4 {lane : V} {off n b : Nat} (h1 : (off + n - 1) / 64 ≠ off / 64) :
-    sPlace lane off n b = ([cst b (word (2 ^ (64 - off % 64)) 0 0),
-      mulS (.n (b + 1)) (sVal (off + (64 - off % 64))) (.n b),
-      addS (.n (b + 2)) (sVal off) (.n (b + 1)), cst (b + 3) (word (2 ^ (off % 64)) 0 0),
-      mulS (.n (b + 4)) (.n (b + 2)) (.n (b + 3)), addS (.n (b + 5)) lane (.n (b + 4))],
-      b + 6, sVal (off + (64 - off % 64)), some (off / 64, .n (b + 5))) := by
-  simp [sPlace, h1]
-
-/-- **`sp_place` of field `f`**: from the lane rebuilt so far, the lane after the field and the
-lane it completes, if any. -/
-theorem sPlace_sound {D f : Nat} (hf : f < 27) (hv : ValsAt σ D) {lane : V} {b : Nat}
-    (hl : LaneAt σ D (sFieldOff f) lane)
-    (h : AtomsHold rd σ (sPlace lane (sFieldOff f) (sFieldLen f) b).1) :
-    LaneAt σ D (sFieldOff f + sFieldLen f) (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.1 ∧
-      ∀ p ∈ (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.2.toList, σ p.2 = eOfNat (laneNat D p.1) := by
-  obtain ⟨hl1, hl10, -, h266⟩ := field_facts hf
-  have hvk : ∀ k < sFieldLen f, σ (sVal (sFieldOff f + k)) = eOfNat (fieldNat D f >>> k) :=
-    fun k hk => valsAt_field hv hf hk
-  have hFl := fieldNat_lt D f
-  have hFo : fieldNat D f = D / 2 ^ sFieldOff f % 2 ^ sFieldLen f := rfl
-  generalize fieldNat D f = F at hvk hFl hFo
-  generalize sFieldOff f = o at hl h hvk hFo h266 ⊢
-  generalize sFieldLen f = n at hl1 hl10 h hvk hFl hFo h266 ⊢
-  have hv0 : σ (sVal o) = eOfNat F := by simpa using hvk 0 (by omega)
-  obtain ⟨q, r, hr64, hor⟩ : ∃ q r, r < 64 ∧ o = 64 * q + r :=
-    ⟨o / 64, o % 64, Nat.mod_lt _ (by norm_num), (Nat.div_add_mod o 64).symm⟩
-  have hq : o / 64 = q := by omega
-  have hr : o % 64 = r := by omega
-  set X := D / 2 ^ (64 * q) with hX
-  have hFX : F = X / 2 ^ r % 2 ^ n := by rw [hFo, hX, Nat.div_div_eq_div_mul, ← pow_add, hor]
-  have sub3 : ∀ {b' : Nat} {x : Stmt}, ∀ y ∈ [cst b' (word (2 ^ (o % 64)) 0 0), mulS (.n (b' + 1)) (sVal o) (.n b'),
-      addS (.n (b' + 2)) lane (.n (b' + 1))], y ∈ [cst b' (word (2 ^ (o % 64)) 0 0),
-      mulS (.n (b' + 1)) (sVal o) (.n b'), addS (.n (b' + 2)) lane (.n (b' + 1)), x] := by
-    intro b' x y hy
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hy ⊢
-    rcases hy with h | h | h <;> simp [h]
-  by_cases h1 : (o + n - 1) / 64 = o / 64
-  · have hrn : r + n ≤ 64 := by omega
-    by_cases h2 : o % 64 = 0
-    · have h3 : (o + n) % 64 ≠ 0 := by omega
-      rw [sPlace_eq1 h1 h2 h3]
-      refine ⟨fun _ => ?_, fun p hp => by simp at hp⟩
-      show σ (sVal o) = _
-      have hr0 : r = 0 := by omega
-      rw [hv0, hFX, hr0, show (o + n) / 64 = q by omega, show (o + n) % 64 = n by omega]
-      simp [hX]
-    · have hlane : σ lane = eOfNat (X % 2 ^ r) := by rw [hl h2, hq, hr]
-      have key : ∀ {b' : Nat}, AtomsHold rd σ [cst b' (word (2 ^ (o % 64)) 0 0),
-          mulS (.n (b' + 1)) (sVal o) (.n b'), addS (.n (b' + 2)) lane (.n (b' + 1))] →
-          σ (.n (b' + 2)) = eOfNat (X % 2 ^ (r + n)) := by
-        intro b' hh
-        have c := hh.atom (a := .const (.n b') (word (2 ^ (o % 64)) 0 0)) (by simp [cst])
-        have m := hh.atom (a := .mul (.n (b' + 1)) (sVal o) (.n b')) (by simp [mulS])
-        have a := hh.atom (a := .add (.n (b' + 2)) lane (.n (b' + 1))) (by simp [addS])
-        simp only [Atom.Holds] at c m a
-        rw [a, m, c, hv0, hlane, hr, word_pow_eq, mul_comm (eOfNat F),
-          eOfNat_two_pow_mul (two_pow_mul_lt hFl hrn), add_comm,
-          eOfNat_add_of_lt (Nat.mod_lt _ (by positivity)), mod_split X r n, hFX]
-      by_cases h3 : (o + n) % 64 = 0
-      · rw [sPlace_eq3 h1 h2 h3] at h ⊢
-        refine ⟨fun h' => absurd h3 h', ?_⟩
-        intro p hp
-        simp only [Option.toList_some, List.mem_singleton] at hp
-        subst hp
-        have cp := h.atom (a := .copy (.n (b + 3)) (.n (b + 2))) (by simp [copyS])
-        simp only [Atom.Holds] at cp
-        show σ (.n (b + 3)) = _
-        rw [cp, key (h.sub sub3), show r + n = 64 by omega, laneNat, hq]
-      · rw [sPlace_eq2 h1 h2 h3] at h ⊢
-        refine ⟨fun _ => ?_, fun p hp => by simp at hp⟩
-        show σ (.n (b + 2)) = _
-        rw [key h, show (o + n) / 64 = q by omega, show (o + n) % 64 = r + n by omega]
-  · have hrn : 64 < r + n := by omega
-    have hr0 : o % 64 ≠ 0 := by omega
-    have hlane : σ lane = eOfNat (X % 2 ^ r) := by rw [hl hr0, hq, hr]
-    rw [sPlace_eq4 h1] at h ⊢
-    rw [hr] at h ⊢
-    have hkn : 64 - r < n := by omega
-    have hvk' : σ (sVal (o + (64 - r))) = eOfNat (F >>> (64 - r)) := hvk _ hkn
-    generalize hk : 64 - r = k at h hkn hvk' ⊢
-    have c0 : σ (.n b) = word (2 ^ k) 0 0 := h.atom (a := .const (.n b) (word (2 ^ k) 0 0)) (by simp [cst])
-    have m1 : σ (.n (b + 1)) = σ (sVal (o + k)) * σ (.n b) :=
-      h.atom (a := .mul (.n (b + 1)) (sVal (o + k)) (.n b)) (by simp [mulS])
-    have a2 : σ (.n (b + 2)) = σ (sVal o) + σ (.n (b + 1)) :=
-      h.atom (a := .add (.n (b + 2)) (sVal o) (.n (b + 1))) (by simp [addS])
-    have c3 : σ (.n (b + 3)) = word (2 ^ r) 0 0 :=
-      h.atom (a := .const (.n (b + 3)) (word (2 ^ r) 0 0)) (by simp [cst])
-    have m4 : σ (.n (b + 4)) = σ (.n (b + 2)) * σ (.n (b + 3)) :=
-      h.atom (a := .mul (.n (b + 4)) (.n (b + 2)) (.n (b + 3))) (by simp [mulS])
-    have a5 : σ (.n (b + 5)) = σ lane + σ (.n (b + 4)) :=
-      h.atom (a := .add (.n (b + 5)) lane (.n (b + 4))) (by simp [addS])
-    have hFk : F >>> k < 2 ^ (n - k) := by
-      rw [Nat.shiftRight_eq_div_pow, hFo, field_div hkn.le]; exact Nat.mod_lt _ (by positivity)
-    have e1 : σ (.n (b + 1)) = eOfNat (2 ^ k * (F >>> k)) := by
-      rw [m1, c0, hvk', word_pow_eq, mul_comm (eOfNat (F >>> k)),
-        eOfNat_two_pow_mul (two_pow_mul_lt hFk (by omega))]
-    have hsplitF : F = 2 ^ k * (F >>> k) + F % 2 ^ k := by
-      rw [Nat.shiftRight_eq_div_pow]; exact (Nat.div_add_mod F (2 ^ k)).symm
-    have hFmk : F % 2 ^ k < 2 ^ k := Nat.mod_lt _ (by positivity)
-    have hFs : eOfNat F = eOfNat (2 ^ k * (F >>> k)) + eOfNat (F % 2 ^ k) := by
-      rw [eOfNat_add_of_lt hFmk, ← hsplitF]
-    have e2 : σ (.n (b + 2)) = eOfNat (F % 2 ^ k) := by
-      rw [a2, hv0, e1, hFs, add_comm (eOfNat (2 ^ k * (F >>> k))), add_assoc, e_add_self, add_zero]
-    have e4 : σ (.n (b + 4)) = eOfNat (2 ^ r * (F % 2 ^ k)) := by
-      rw [m4, e2, c3, word_pow_eq, mul_comm (eOfNat (F % 2 ^ k)),
-        eOfNat_two_pow_mul (two_pow_mul_lt hFmk (by omega))]
-    refine ⟨fun _ => ?_, ?_⟩
-    · show σ (sVal (o + k)) = _
-      rw [hvk', Nat.shiftRight_eq_div_pow, hFo, field_div hkn.le]
-      congr 2
-      · congr 2; omega
-      · congr 1; omega
-    · intro p hp
-      simp only [Option.toList_some, List.mem_singleton] at hp
-      subst hp
-      show σ (.n (b + 5)) = _
-      rw [a5, e4, hlane, add_comm, eOfNat_add_of_lt (Nat.mod_lt _ (by positivity)), laneNat, hq,
-        ← hX, show (64 : Nat) = r + k by omega, mod_split X r k, hFX,
-        Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 hkn.le)]
-
-theorem sPlaces_succ (m f : Nat) (lane : V) (b : Nat) :
-    sPlaces (m + 1) f lane b =
-      ((sPlace lane (sFieldOff f) (sFieldLen f) b).1 ++
-          (sPlaces m (f + 1) (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.1
-            (sPlace lane (sFieldOff f) (sFieldLen f) b).2.1).1,
-        (sPlaces m (f + 1) (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.1
-          (sPlace lane (sFieldOff f) (sFieldLen f) b).2.1).2.1,
-        (sPlaces m (f + 1) (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.1
-          (sPlace lane (sFieldOff f) (sFieldLen f) b).2.1).2.2.1,
-        (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.2.toList ++
-          (sPlaces m (f + 1) (sPlace lane (sFieldOff f) (sFieldLen f) b).2.2.1
-            (sPlace lane (sFieldOff f) (sFieldLen f) b).2.1).2.2.2) := rfl
-
-/-- **`sp_place` of fields `f ..< f + m`**: every lane completed holds its bits, and the lane after
-is rebuilt to the next field's offset. -/
-theorem sPlaces_sound {D : Nat} (hv : ValsAt σ D) :
-    ∀ (m f : Nat) (lane : V) (b : Nat), f + m ≤ 27 → LaneAt σ D (sFieldOff f) lane →
-      AtomsHold rd σ (sPlaces m f lane b).1 →
-      LaneAt σ D (sFieldOff (f + m)) (sPlaces m f lane b).2.2.1 ∧
-        ∀ p ∈ (sPlaces m f lane b).2.2.2, σ p.2 = eOfNat (laneNat D p.1)
-  | 0, f, lane, b, _, hl, _ => ⟨by simpa [sPlaces] using hl, fun p hp => by simp [sPlaces] at hp⟩
-  | m + 1, f, lane, b, hfm, hl, h => by
-      rw [sPlaces_succ] at h ⊢
-      obtain ⟨-, -, hoff, -⟩ := field_facts (f := f) (by omega)
-      obtain ⟨l1, p1⟩ := sPlace_sound (rd := rd) (f := f) (by omega) hv hl h.left
-      rw [← hoff] at l1
-      obtain ⟨l2, p2⟩ := sPlaces_sound hv m (f + 1) _ _ (by omega) l1 h.right
-      refine ⟨by rw [show f + (m + 1) = f + 1 + m by omega]; exact l2, fun p hp => ?_⟩
-      rcases List.mem_append.mp hp with hp | hp
-      · exact p1 p hp
-      · exact p2 p hp
-
-theorem sPlaces_add (m k f : Nat) (lane : V) (b : Nat) :
-    (sPlaces (m + k) f lane b).1 = (sPlaces m f lane b).1 ++
-      (sPlaces k (f + m) (sPlaces m f lane b).2.2.1 (sPlaces m f lane b).2.1).1 := by
-  induction m generalizing f lane b with
-  | zero => simp [sPlaces]
-  | succ m ih =>
-      rw [show m + 1 + k = (m + k) + 1 by omega, sPlaces_succ, sPlaces_succ, ih]
-      simp [show f + 1 + m = f + (m + 1) by omega]
-
-theorem sPl_pairs : sPl.2.2.2 = [(0, .n 1082), (1, .n 1106), (2, .n 1127), (3, .n 1146)] := by
-  decide +kernel
-
-theorem sPl_lane : sPl.2.2.1 = .n 1060 := by decide +kernel
-
-theorem sIdx_eq : sIdx = .n 1067 := by decide +kernel
-
-theorem sLane_eq : sLane 0 = .n 1082 ∧ sLane 1 = .n 1106 ∧ sLane 2 = .n 1127 ∧ sLane 3 = .n 1146 := by
-  decide +kernel
-
-/-- **The fields placed**: the four lanes hold `D`'s 64-bit lanes, the index its low `26` bits and
-the lane after the last field its bits `256 ..< 266`. -/
-theorem sPl_sound {D : Nat} (hv : ValsAt σ D) (h : AtomsHold rd σ sPl.1) :
-    (∀ j < 4, σ (sLane j) = eOfNat (laneNat D j)) ∧ σ sIdx = eOfNat (D % 2 ^ 26) ∧
-      σ sPl.2.2.1 = eOfNat (D / 2 ^ 256 % 2 ^ 10) := by
-  have hl0 : LaneAt σ D (sFieldOff 0) (.n 1061) := fun h' => absurd rfl h'
-  obtain ⟨l27, hp⟩ := sPlaces_sound (rd := rd) hv 27 0 (.n 1061) 1062 le_rfl hl0 h
-  have h3 : AtomsHold rd σ (sPlaces 3 0 (.n 1061) 1062).1 := by
-    have := h
-    rw [show sPl.1 = (sPlaces (3 + 24) 0 (.n 1061) 1062).1 from rfl, sPlaces_add] at this
-    exact this.left
-  obtain ⟨l3, -⟩ := sPlaces_sound (rd := rd) hv 3 0 (.n 1061) 1062 (by norm_num) hl0 h3
-  refine ⟨fun j hj => ?_, ?_, ?_⟩
-  · obtain ⟨e0, e1, e2, e3⟩ := sLane_eq
-    have hm : ∀ p ∈ sPl.2.2.2, σ p.2 = eOfNat (laneNat D p.1) := hp
-    rw [sPl_pairs] at hm
-    interval_cases j
-    · rw [e0]; exact hm (0, .n 1082) (by simp)
-    · rw [e1]; exact hm (1, .n 1106) (by simp)
-    · rw [e2]; exact hm (2, .n 1127) (by simp)
-    · rw [e3]; exact hm (3, .n 1146) (by simp)
-  · have := l3 (by decide)
-    rw [show sIdx = (sPlaces 3 0 (.n 1061) 1062).2.2.1 from rfl, this]
-    norm_num [sFieldOff]
-  · have := l27 (by decide)
-    rw [show sPl.2.2.1 = (sPlaces 27 0 (.n 1061) 1062).2.2.1 from rfl, this]
-    norm_num [sFieldOff]
+/-- **`sp_leaf_shifts`, sound.** -/
+theorem sLeafShifts_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sLeafShifts) : LValsAt σ T := by
+  intro l hl z hz
+  obtain ⟨h8, h10⟩ := sLeafLen_le (l := l)
+  have hsub : ∀ x ∈ shiftsG (fun r => sLeafBit (sLeafOff l + sLeafLen l - 1 - r)) (sLeafLen l)
+      (sLeafBase l), x ∈ sLeafShifts := by
+    intro x hx
+    simp only [sLeafShifts, List.mem_flatMap, List.mem_range]
+    exact ⟨l, hl, hx⟩
+  have hoff : sLeafOff l + sLeafLen l ≤ 26 := by
+    simp only [sLeafOff, sLeafLen]; split_ifs <;> omega
+  have hs := shiftsG_sound (σ := σ) (bit := fun r => sLeafBit (sLeafOff l + sLeafLen l - 1 - r))
+    (n := sLeafLen l) (o := sLeafBase l)
+    (f := fun r => T.testBit (leafPos (sLeafOff l + sLeafLen l - 1 - r))) (by omega) (by omega)
+    (fun r hr => by
+      show σ (sLeafBit _) = _
+      rw [sLeafBit_eq (by omega)]; exact hb _ (leafPos_lt (by omega)))
+    (h.sub hsub) (sLeafLen l - 1 - z) (by omega)
+  have hpos : sLVal (sLeafOff l + z) = .n (sLeafBase l + 3 * (sLeafLen l - 1 - z)) := by
+    rcases (by omega : l = 0 ∨ l = 1 ∨ l = 2) with rfl | rfl | rfl
+    · have : z < 8 := by simpa [sLeafLen] using hz
+      simp [sLVal, sLeafOff, sLeafLen, sLeafBase, this]
+    · have : z < 8 := by simpa [sLeafLen] using hz
+      simp [sLVal, sLeafOff, sLeafLen, sLeafBase, show 8 + z < 16 by omega]
+      omega
+    · have : z < 10 := by simpa [sLeafLen] using hz
+      have h1 : ¬ 2 * 8 + z < 8 := by omega
+      have h2 : ¬ 2 * 8 + z < 16 := by omega
+      simp only [sLVal, sLeafOff, sLeafLen, sLeafBase, h1, h2, ↓reduceIte]
+      congr 1
+      omega
+  rw [hpos, hs, show sLeafLen l - 1 - (sLeafLen l - 1 - z) = z by omega]
+  congr 2
+  exact bitsVal_congr fun j hj => by congr 3; omega
 
 end
 end LeanVM.Guest.B1.Sig
