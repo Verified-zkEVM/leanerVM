@@ -21,8 +21,9 @@ The Spec's side of `open_stacked`, no guest value in it.
 * `RunsTo.withRoots`, `RunsWith.bind`, `runsWith_ret`: `RunsTo` (`B1/Common/Sponge.lean`) is a
   `RunsWith` reading no opening; runs compose.
 * `runsWith_commitP`: a commitment reads the root's two scalars (absorbed with `dsObserve`) and
-  appends the root with its shape; `runsWith_queryP`: a query consumes one opening per position,
-  each passing `openOne` (V:501) against the commitment's root, and returns their leaves.
+  appends the root with its shape; `runsWith_queryP`: a query consumes one phase, one opening per position
+  at the position, each passing `openOne` (V:501) against the commitment's root, and returns
+  their leaves.
 * `levelMid`, `levelQueries`, `whirLevelsOpen_cons`: a level of `whirLevelsOpen` (V:1791) is its
   fold rounds, its claims after them (the residual, or the next commitment with its
   out-of-domain claim), its queries and their glue, then the next level or the tail.
@@ -48,7 +49,7 @@ theorem runsWith_ret {α : Type} (a : α) (s : Fs) (roots : List (Digest × ℕ 
 
 theorem RunsWith.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1
     s2 : Fs}
-    {xs ys : List E} {os1 os2 : List Opening} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
+    {xs ys : List E} {os1 os2 : List (List Opening)} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
     (h1 : RunsWith p s xs os1 r0 a s1 r1) (h2 : RunsWith (f a) s1 ys os2 r1 b s2 r2) :
     RunsWith (p >>= f) s (xs ++ ys) (os1 ++ os2) r0 b s2 r2 := by
   intro sp hs rest orest
@@ -67,12 +68,12 @@ theorem RunsTo.bind' {α β : Type} {p : VerifierProgram α} {f : α → Verifie
 /-- `RunsWith.bind` on `VerifierProgram.bind`. -/
 theorem RunsWith.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1
     s2 : Fs}
-    {xs ys : List E} {os1 os2 : List Opening} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
+    {xs ys : List E} {os1 os2 : List (List Opening)} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}
     (h1 : RunsWith p s xs os1 r0 a s1 r1) (h2 : RunsWith (f a) s1 ys os2 r1 b s2 r2) :
     RunsWith (p.bind f) s (xs ++ ys) (os1 ++ os2) r0 b s2 r2 := RunsWith.bind h1 h2
 
 theorem RunsWith.of_eq {α : Type} {p : VerifierProgram α} {s s' t t' : Fs} {xs xs' : List E}
-    {os os' : List Opening} {r r' q q' : List (Digest × ℕ × ℕ)} {a a' : α}
+    {os os' : List (List Opening)} {r r' q q' : List (Digest × ℕ × ℕ)} {a a' : α}
     (h : RunsWith p s xs os r a t q) (hs : s = s') (hx : xs = xs') (ho : os = os') (hr : r = r')
     (ha : a = a') (ht : t = t') (hq : q = q') : RunsWith p s' xs' os' r' a' t' q' := by
   subst hs hx ho hr ha ht hq; exact h
@@ -95,39 +96,21 @@ theorem runsWith_commitP (s : Fs) (x0 x1 : E) {d : Digest} (hd : digestFromHalve
   rw [hd]
   rfl
 
-/-- Every opening passes `openAll`: their leaves, the rest of the openings. -/
-theorem openAll_eq (root : Digest) (height width : ℕ) :
-    ∀ (ps : List ℕ) (os : List Opening) (orest : List Opening), os.length = ps.length →
-      (∀ k (hk : k < ps.length) (ho : k < os.length),
-        Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true) →
-      Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps (os ++ orest)) =
-        some (os.map (·.leaf), orest)
-  | [], [], _, _, _ => rfl
-  | [], _ :: _, _, h, _ => by simp at h
-  | _ :: _, [], _, h, _ => by simp at h
-  | q :: qs, o :: os, orest, hl, hok => by
-    have h0 := hok 0 (by simp) (by simp)
-    simp only [List.getElem_cons_zero] at h0
-    have ih := openAll_eq root height width qs os orest (by simpa using hl)
-      (fun k hk ho ↦ hok (k + 1) (by simpa using hk) (by simpa using ho))
-    simp only [List.cons_append, Compile.openAllWithHash, Id.run] at h0 ih ⊢
-    simp only [bind, h0, ↓reduceIte, ih, Option.map_some, List.map_cons]
-    rfl
-
-/-- **A query** consumes one opening per position, each passing `openOne` against commitment
-`i`'s root, and returns their leaves. -/
+/-- **A query** consumes one phase: one opening per position, at the position, each passing
+`openOne` against commitment `i`'s root; it returns their leaves. -/
 theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ} {root : Digest}
     {height width : ℕ} (hi : roots[i]? = some (root, height, width)) (ps : List ℕ)
     (os : List Opening) (hl : os.length = ps.length)
     (hok : ∀ k (hk : k < ps.length) (ho : k < os.length),
-      Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true) :
-    RunsWith (VerifierProgram.queryOpenings i ps) s [] os roots (os.map (·.leaf)) s roots := by
+      Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] os[k]) = true)
+    (hidx : os.map Opening.leafIndex = ps) :
+    RunsWith (VerifierProgram.queryOpenings i ps) s [] [os] roots (os.map (·.leaf)) s roots := by
   intro sp hs rest orest
   refine ⟨sp, hs, ?_⟩
-  have := openAll_eq root height width ps os orest hl hok
+  have := openPhase_eq_leaves keccak256 hl hok hidx
   simp only [Id.run] at this
   simp only [runId, VerifierProgram.queryOpenings, Compile.runWithHash, hi, List.nil_append,
-      bind, this]
+      List.cons_append, bind, this]
   rfl
 
 /-! ## A level of `whirLevelsOpen` -/

@@ -117,7 +117,7 @@ theorem runF_frame {α : Type} {p : VerifierProgram α} {st : Whir.FSt} {a : α}
 
 theorem NoCommitA.runF_any {α : Type} (p : VerifierProgram α) : NoCommitA p → ∀ (s : Fs) (T :
     List E)
-    (O : List Opening) (R : List (Digest × ℕ × ℕ)) (a : α) (st' : Whir.FSt),
+    (O : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (a : α) (st' : Whir.FSt),
     Whir.runF p ⟨s, T, O, R⟩ = some (a, st') →
       ∀ O2 R2, Whir.runF p ⟨s, T, O2, R2⟩ = some (a, { st' with openings := O2, roots := R2 }) := by
   induction p with
@@ -153,7 +153,7 @@ theorem NoCommitA.runF_any {α : Type} (p : VerifierProgram α) : NoCommitA p �
 
 /-- **A carried run of a program without commitments is a `RunsTo`** on the words it reads. -/
 theorem runsTo_of_runF {α : Type} {p : VerifierProgram α} (hp : NoCommit p) {s : Fs} {T : List E}
-    {O : List Opening} {R : List (Digest × ℕ × ℕ)} {a : α} {st' : Whir.FSt}
+    {O : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {a : α} {st' : Whir.FSt}
     (h : Whir.runF p ⟨s, T, O, R⟩ = some (a, st')) :
     ∃ xs, T = xs ++ st'.stream ∧ RunsTo p s xs a st'.sponge := by
   obtain ⟨pre, opre, hs, ho, hf⟩ := runF_frame h
@@ -332,7 +332,7 @@ theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readAnnouncedSizes by
 /-- A run that only reads returns what the stream gives, whatever the hashes and the sponge. -/
 theorem ReadOnlyA.run_eq {α : Type} (p : VerifierProgram α) : ReadOnlyA p →
     ∀ (H H' : Bytes → Id Digest) (F F' : KeccakState → Id KeccakState) (sp sp' : Sponge) (T : List E)
-      (O O' : List Opening) (R R' : List (Digest × ℕ × ℕ)),
+      (O O' : List (List Opening)) (R R' : List (Digest × ℕ × ℕ)),
       (Id.run (Compile.runWithHash (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
         (Id.run (Compile.runWithHash (m := Id) H' F' p ⟨sp', T, O', R'⟩)).map (·.1) := by
   induction p with
@@ -349,7 +349,7 @@ theorem ReadOnlyA.run_eq {α : Type} (p : VerifierProgram α) : ReadOnlyA p →
   | query _ _ _ _ => intro hp; exact hp.elim
 
 /-- **The run's sizes are `Verifier.announcedLayoutAndRate`'s.** -/
-theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening}
+theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {L : Layout} {r : ℕ} {st' : Whir.FSt} {sp : Sponge}
     (hs : s.Carries sp) (h : Whir.runF (readAnnouncedSizes bytecode) ⟨s, T, O, R⟩ = some ((L, r),
         st')) :

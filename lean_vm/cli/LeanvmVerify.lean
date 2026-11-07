@@ -1,4 +1,5 @@
 import LeanVM.Protocol.Verifier
+import LeanVM.Wire.Encoding
 
 /-!
 # `leanvm-verify`: the deployed verifier on a proof's files
@@ -14,9 +15,10 @@ verifier on mutated proofs.
   runs `Verifier.verify` (`LeanVM/Facts/Verifier.lean`, the statement's verifier compiled, on the
   program's bytecode words) on it.
 * `lake exe leanvm-verify <bytecode> <public input> <proof wire>`: the proof's one wire encoding
-  (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`, `proof.wire`), decoded with the
-  statement's `Proof.fromBytes` over Keccak-f[1600], a proof that does not decode rejected, as
-  `LeanVM.leanVmVerifierOnBytes` does, then `Verifier.verify` on the decoded proof.
+  (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`, `proof.wire`), decoded with
+  `Proof.fromBytes` (`LeanVM/Wire/Encoding.lean`) over Keccak-f[1600], a proof that does not
+  decode rejected, as `LeanVM.leanVmVerifierOnBytes` (`LeanVM/Wire/Statements.lean`) does, then
+  `Verifier.verify` on the decoded proof.
 * `lake exe leanvm-verify --flat <bytecode> <public input> <stream> <merkle openings>`:
   `LeanVM.Protocol.Verifier.verifyFiles`, the Lean transcription of `python-verifier/verifier.py`,
   on the Python's four files (`merkle_openings.bin`: every opening, its eight-byte position, its

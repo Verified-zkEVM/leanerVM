@@ -1,6 +1,7 @@
 import Statement.Prover.Prove
 import LeanVM.Prover.Fast.Prover
 import LeanVM.Protocol.Verifier
+import LeanVM.Wire.Encoding
 
 /-!
 # `leanvm-prove`: the statement's honest prover on a program, an input and a trace

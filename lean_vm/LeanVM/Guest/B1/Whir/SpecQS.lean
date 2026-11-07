@@ -28,18 +28,18 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {β : Type}
 
-theorem qs_readE_bind (k : E → VerifierProgram β) (F : Fs) (x : E) (xs : List E) (os : List Opening)
+theorem qs_readE_bind (k : E → VerifierProgram β) (F : Fs) (x : E) (xs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) :
     queryStepsOf (VerifierProgram.readScalar.bind k) ⟨F, x :: xs, os, R⟩ =
       queryStepsOf (k x) ⟨F.absorb x dsObserve, xs, os, R⟩ := rfl
 
-theorem qs_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (os : List Opening)
+theorem qs_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) :
     queryStepsOf (VerifierProgram.sampleChallenge.bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k F.squeeze.1) ⟨F.squeeze.2, xs, os, R⟩ := rfl
 
 theorem qs_grindP_bind {bits : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (n : E) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ))
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ))
     (hp : powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true) :
     queryStepsOf ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, n :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ := by
@@ -47,7 +47,7 @@ theorem qs_grindP_bind {bits : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (
 
 theorem qs_commitP_bind {hh ww : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (x0 x1 : E) (xs :
     List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) {d : Digest}
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) {d : Digest}
     (hd : digestFromHalves (x0, x1) = some d) :
     queryStepsOf ((VerifierProgram.readCommitment hh ww).bind k) ⟨F, x0 :: x1 :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb x0 dsObserve).absorb x1 dsObserve, xs, os,
@@ -59,18 +59,18 @@ theorem qs_require_bind {c : Prop} [Decidable c] (k : Unit → VerifierProgram �
     queryStepsOf ((VerifierProgram.require c).bind k) st = queryStepsOf (k ()) st := by
   simp only [VerifierProgram.require, hc, ↓reduceIte, VerifierProgram.ret_bind]
 
-theorem qs_queryP_bind {i : ℕ} {ps : List ℕ} (k : List (List K) → VerifierProgram β) (F : Fs) (xs :
-    List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) {root : Digest} {height width : ℕ}
-    {rows : List (List K)} {rest : List Opening} (hR : R[i]? = some (root, height, width))
-    (ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) = some (rows, rest)) :
-    queryStepsOf ((VerifierProgram.queryOpenings i ps).bind k) ⟨F, xs, os, R⟩ =
-      (height, ps.zip os) :: queryStepsOf (k rows) ⟨F, xs, rest, R⟩ := by
+theorem qs_queryP_bind {i : ℕ} {ps : List ℕ} (k : List (List K) → VerifierProgram β) (F : Fs)
+    (xs : List E) (phase : List Opening) (rest : List (List Opening)) (R : List (Digest × ℕ × ℕ))
+    {root : Digest} {height width : ℕ} {rows : List (List K)}
+    (hR : R[i]? = some (root, height, width))
+    (ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) =
+      some rows) :
+    queryStepsOf ((VerifierProgram.queryOpenings i ps).bind k) ⟨F, xs, phase :: rest, R⟩ =
+      (height, ps.zip phase) :: queryStepsOf (k rows) ⟨F, xs, rest, R⟩ := by
   simp only [Id.run] at ho
   simp only [VerifierProgram.queryOpenings, VerifierProgram.bind, queryStepsOf, hR, ho, Id.run]
 
-theorem qs_readN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F : Fs) (xs : List E) (os : List
-    Opening)
+theorem qs_readN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F : Fs) (xs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)), n ≤ xs.length →
     queryStepsOf ((VerifierProgram.readScalars n).bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k (xs.take n)) ⟨F.absorbAll (xs.take n) dsObserve, xs.drop n, os, R⟩
@@ -86,7 +86,7 @@ theorem qs_readN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F : F
   | n + 1, k, F, [], os, R, hl => by simp at hl
 
 theorem qs_sampleN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)),
     queryStepsOf ((VerifierProgram.sampleChallenges n).bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k (F.squeezeN n).1) ⟨(F.squeezeN n).2, xs, os, R⟩
   | 0, k, F, xs, os, R => by simp [VerifierProgram.sampleChallenges, Fs.squeezeN]
@@ -100,7 +100,7 @@ theorem qs_sampleN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F :
     rfl
 
 theorem qs_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
-    ∀ (fuel rem : ℕ) (k : List ℕ → VerifierProgram β) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (fuel rem : ℕ) (k : List ℕ → VerifierProgram β) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)), ceilDiv rem (192 / d) ≤ fuel →
       queryStepsOf ((sampleQueriesAux d fuel rem).bind k) ⟨F, xs, os, R⟩ =
         queryStepsOf (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv rem (192 / d))).1 rem))
@@ -125,7 +125,7 @@ theorem qs_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
     rfl
 
 theorem qs_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ → VerifierProgram β) (F : Fs)
-    (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) :
+    (xs : List E) (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) :
     queryStepsOf ((sampleQueries d q).bind k) ⟨F, xs, os, R⟩ =
       queryStepsOf (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv q (192 / d))).1 q))
         ⟨(F.squeezeN (ceilDiv q (192 / d))).2, xs, os, R⟩ :=
@@ -133,7 +133,7 @@ theorem qs_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ →
 
 /-- **The fold rounds query nothing.** -/
 theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
-    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)), 2 * n ≤ xs.length →
       (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) →
       queryStepsOf ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ =
@@ -167,7 +167,7 @@ theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
 
 /-- **The tail rounds query nothing.** -/
 theorem qs_tail {K : List E × E → VerifierProgram β} :
-    ∀ (n : ℕ) (t : E) (q : List E) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (n : ℕ) (t : E) (q : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)), 2 * (n - 1) ≤ xs.length →
       (∀ c ∈ (tailTr n F q t xs).2.1, c ≠ 0) →
       queryStepsOf ((tailRoundsNZ n t q).bind K) ⟨F, xs, os, R⟩ =

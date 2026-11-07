@@ -57,7 +57,7 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeCla
       ((lanesOf bc.2).map (·.value))) s6 xsK km s7)
     {chs : List E} {s8 : Fs} (h9 : s7.squeezeN 5 = (chs, s8))
     {lam : E} {s9 : Fs} (h10 : s8.squeeze = (lam, s9))
-    {xsW : List E} {os : List Opening} {w : B1.Whir.WhirEnd} {s10 : Fs}
+    {xsW : List E} {os : List (List Opening)} {w : B1.Whir.WhirEnd} {s10 : Fs}
     {roots' : List (Digest × ℕ × ℕ)}
     (h11 : RunsWith (B1.Whir.whirOpen L.stackLog lir
       (dot (powers lam (stackClaims L bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)).length)
