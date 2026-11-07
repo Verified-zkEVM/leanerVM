@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Wire.Spec
 public import LeanVM.Wire.PruneList
+public import LeanVM.Parameters.Field
 
 /-!
 # Reading back the pruned encoding
@@ -43,12 +44,54 @@ structure ReadWriteFacts : Prop where
     readDigests ds.length (ds.flatMap digestBytes ++ rest) = some (ds, rest)
   readRows_toBytes : ∀ (w : ℕ) (rows : List (List K)) (rest : Bytes), (∀ r ∈ rows, r.length = w) →
     readRows w rows.length (rows.flatMap (·.flatMap K.toBytes) ++ rest) = some (rows, rest)
-  readStream_toBytes : ∀ (s : List E) (rest : Bytes), ∃ ws,
-    readWords (3 * s.length) (s.flatMap E.toBytes ++ rest) = some (ws, rest) ∧
-      (List.range s.length).map (fun i ↦
-        E.ofLimbs (ws.getD (3 * i) 0) (ws.getD (3 * i + 1) 0) (ws.getD (3 * i + 2) 0)) = s
+  readWords_toBytes : ∀ (ws : List K) (rest : Bytes),
+    readWords ws.length (ws.flatMap K.toBytes ++ rest) = some (ws, rest)
 
 namespace Prune
+
+/-- The three limbs of each stream element, in order. -/
+def streamWords (s : List E) : List K :=
+  s.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
+
+theorem streamWords_toBytes (s : List E) :
+    (streamWords s).flatMap K.toBytes = s.flatMap E.toBytes := by
+  induction s with
+  | nil => rfl
+  | cons x s ih =>
+    simp only [streamWords] at ih
+    simp [streamWords, ih, E.toBytes]
+
+theorem length_streamWords (s : List E) : (streamWords s).length = 3 * s.length := by
+  induction s with
+  | nil => rfl
+  | cons x s ih => simp [streamWords] at ih ⊢; omega
+
+/-- `readProof`'s regrouping of the stream's words gives the stream back. -/
+theorem regroup_streamWords :
+    ∀ s : List E, (List.range s.length).map (fun i ↦ E.ofLimbs ((streamWords s).getD (3 * i) 0)
+      ((streamWords s).getD (3 * i + 1) 0) ((streamWords s).getD (3 * i + 2) 0)) = s
+  | [] => rfl
+  | x :: s => by
+    have ih := regroup_streamWords s
+    rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map]
+    refine congrArg₂ List.cons ?_ (Eq.trans ?_ ih)
+    · simpa [streamWords] using Parameters.ofLimbs_limb x
+    · apply List.map_congr_left
+      intro i _
+      simp only [Function.comp, streamWords, List.flatMap_cons]
+      have h3 : 3 * (i + 1) = 3 * i + 3 := by ring
+      simp [List.getD_eq_getElem?_getD, h3, Nat.add_assoc]
+
+/-- The stream's form of `readProof_toBytes`, from `readWords_toBytes`. -/
+theorem readStream_of_readWords
+    (hW : ∀ (ws : List K) (rest : Bytes),
+      readWords ws.length (ws.flatMap K.toBytes ++ rest) = some (ws, rest))
+    (s : List E) (rest : Bytes) : ∃ ws,
+      readWords (3 * s.length) (s.flatMap E.toBytes ++ rest) = some (ws, rest) ∧
+        (List.range s.length).map (fun i ↦
+          E.ofLimbs (ws.getD (3 * i) 0) (ws.getD (3 * i + 1) 0) (ws.getD (3 * i + 2) 0)) = s :=
+  ⟨streamWords s, by rw [← length_streamWords, ← streamWords_toBytes]; exact hW _ _,
+    regroup_streamWords s⟩
 
 theorem zip_map_self {α β : Type} (f : α → β) :
     ∀ l : List α, l.zip (l.map f) = l.map fun a ↦ (a, f a)
@@ -371,7 +414,7 @@ inverses. -/
 theorem ReadWriteFacts.readProof_toBytes (F : ReadWriteFacts) {proof : Proof}
     (hw : WireDecodable h proof) :
     readProof proof.toBytes = some (proof.stream, proof.openings.map prunePhase) := by
-  obtain ⟨ws, hws, hstream⟩ := F.readStream_toBytes proof.stream
+  obtain ⟨ws, hws, hstream⟩ := readStream_of_readWords F.readWords_toBytes proof.stream
     (Prover.u32Bytes proof.openings.length ++ proof.openings.flatMap Prover.phaseToBytes)
   have hphases := F.readPhases_flatMap proof.openings hw.phases []
   rw [List.append_nil] at hphases
