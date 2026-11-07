@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsStagesComplete
 
-  The statement's leanSPHINCS verification (`Statement/LeanSphincs.lean` at leanVM `d1c4c8f7`) of
+  The statement's leanSPHINCS verification (`Statement/LeanSphincs.lean` at leanVM `56a4109f`) of
   an honest signature, stage by stage over the cells `verify_sig_lean_sphincs`'s completeness
   computes: the digest's number, the FORS key's cell, each layer's encoding, leaf and root.
 -/

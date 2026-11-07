@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsGlue
 
-  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4029-4030,
-  4044-4045, 4048-4049` at leanVM d1c4c8f7): each layer's `A0` and its key pair's `A1`, from the
+  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4056-4057,
+  4044-4045, 4048-4049` at leanVM 56a4109f): each layer's `A0` and its key pair's `A1`, from the
   digest's leaves.
 -/
 
@@ -19,11 +19,11 @@ public import LeanVM.Guest.B1.Sig.SphincsHash
 leaf `layerLeafN T l` (`T` the digest's number, `SphincsSoundDigest`). The guest builds the key's
 address cells from the leaves' bytes and their shifts (`lvals`, `tree_mid`):
 
-* `sForsAddrs_vals` (`G:4029-4030`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
+* `sForsAddrs_vals` (`G:4056-4057`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
   `adrsCell0 0 (layerTreeN T 0)`, `key_b = lvals[0]·2^56` is `adrsCell1 0 (layerLeafN T 0) 0 0`;
-* `sMidAddrs_vals` (`G:4044-4045`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
+* `sMidAddrs_vals` (`G:4071-4072`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
   lvals[8]·2^56`;
-* `sTopAddrs_vals` (`G:4048-4049`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
+* `sTopAddrs_vals` (`G:4075-4076`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
 * `layerAddrs`: all three as `sA0Of l`, `sA1Of l`.
 
 Field addition is XOR, so a sum of words of disjoint bits is the word of their sum
@@ -98,7 +98,7 @@ theorem treeMid_eq {T : Nat} (hm : σ sTreeMid = eOfNat (byteN T 31)) :
 
 /-! ## The glue -/
 
-/-- **The bottom layer's address** (`G:4029-4030`): `a0_b` is the bottom key's tree's `A0`, `key_b`
+/-- **The bottom layer's address** (`G:4056-4057`): `a0_b` is the bottom key's tree's `A0`, `key_b`
 its leaf's `A1`. -/
 theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sForsAddrs) :
@@ -106,16 +106,16 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
   obtain ⟨l0, l1, -, l3⟩ := lvals_four hl
   obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
-  have c0 : σ (.n 1369) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
-  have m1 : σ (.n 1370) = σ (sLVal 8) * σ (.n 1369) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
-  have c2 : σ (.n 1371) = lit (2 ^ 112) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
-  have m3 : σ (.n 1372) = σ sTreeMid * σ (.n 1371) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
-  have a4 : σ (.n 1373) = σ (.n 1370) + σ (.n 1372) := h.atom (a := .add _ _ _) (by simp [sForsAddrs, addS])
-  have c5 : σ (.n 1374) = lit (2 ^ 104) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
-  have m6 : σ (.n 1375) = σ (sLVal 24) * σ (.n 1374) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
-  have a7 : σ sA0B = σ (.n 1373) + σ (.n 1375) := h.atom (a := .add _ _ _) (by simp [sForsAddrs, addS])
-  have c8 : σ (.n 1377) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
-  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n 1377) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
+  have c0 : σ (.n 1395) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
+  have m1 : σ (.n 1396) = σ (sLVal 8) * σ (.n 1395) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
+  have c2 : σ (.n 1397) = lit (2 ^ 112) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
+  have m3 : σ (.n 1398) = σ sTreeMid * σ (.n 1397) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
+  have a4 : σ (.n 1399) = σ (.n 1396) + σ (.n 1398) := h.atom (a := .add _ _ _) (by simp [sForsAddrs, addS])
+  have c5 : σ (.n 1400) = lit (2 ^ 104) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
+  have m6 : σ (.n 1401) = σ (sLVal 24) * σ (.n 1400) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
+  have a7 : σ sA0B = σ (.n 1399) + σ (.n 1401) := h.atom (a := .add _ _ _) (by simp [sForsAddrs, addS])
+  have c8 : σ (.n 1403) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
+  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n 1403) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
   refine ⟨?_, ?_⟩
   · rw [a7, a4, m1, m3, m6, c0, c2, c5, l1, tm, l3,
       mul_lit_pow (by norm_num) (by norm_num; omega) lit120,
@@ -140,22 +140,22 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
     congr 1
     omega
 
-/-- **The middle layer's address** (`G:4044-4045`). -/
+/-- **The middle layer's address** (`G:4071-4072`). -/
 theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sMidAddrs) :
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
   obtain ⟨-, l1, -, l3⟩ := lvals_four hl
   obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
-  have c0 : σ (.n 8901) = lit (2 ^ 24) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
-  have c1 : σ (.n 8902) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
-  have m2 : σ (.n 8903) = σ sTreeMid * σ (.n 8902) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
-  have a3 : σ (.n 8904) = σ (.n 8901) + σ (.n 8903) := h.atom (a := .add _ _ _) (by simp [sMidAddrs, addS])
-  have c4 : σ (.n 8905) = lit (2 ^ 112) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
-  have m5 : σ (.n 8906) = σ (sLVal 24) * σ (.n 8905) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
-  have a6 : σ (sA0Of 1) = σ (.n 8904) + σ (.n 8906) := h.atom (a := .add _ _ _) (by simp [sMidAddrs, addS])
-  have c7 : σ (.n 8908) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
-  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n 8908) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
+  have c0 : σ (.n 8713) = lit (2 ^ 24) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
+  have c1 : σ (.n 8714) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
+  have m2 : σ (.n 8715) = σ sTreeMid * σ (.n 8714) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
+  have a3 : σ (.n 8716) = σ (.n 8713) + σ (.n 8715) := h.atom (a := .add _ _ _) (by simp [sMidAddrs, addS])
+  have c4 : σ (.n 8717) = lit (2 ^ 112) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
+  have m5 : σ (.n 8718) = σ (sLVal 24) * σ (.n 8717) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
+  have a6 : σ (sA0Of 1) = σ (.n 8716) + σ (.n 8718) := h.atom (a := .add _ _ _) (by simp [sMidAddrs, addS])
+  have c7 : σ (.n 8720) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
+  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n 8720) := h.atom (a := .mul _ _ _) (by simp [sMidAddrs, mulS])
   refine ⟨?_, ?_⟩
   · rw [a6, a3, m2, m5, c0, c1, c4, tm, l3,
       mul_lit_pow (by norm_num) (by norm_num; omega) lit120,
@@ -172,18 +172,18 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
     congr 1
     omega
 
-/-- **The top layer's address** (`G:4048-4049`): its tree is `0`. -/
+/-- **The top layer's address** (`G:4075-4076`): its tree is `0`. -/
 theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sTopAddrs) :
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, -, l3⟩ := lvals_four hl
   obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
-  have c0 : σ (.n 9175) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
-  have m1 : σ (.n 9176) = σ sTreeMid * σ (.n 9175) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
-  have c2 : σ (.n 9177) = lit (2 ^ 48) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
-  have m3 : σ (.n 9178) = σ (sLVal 24) * σ (.n 9177) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
-  have a4 : σ (sA1Of 2) = σ (.n 9176) + σ (.n 9178) := h.atom (a := .add _ _ _) (by simp [sTopAddrs, addS])
+  have c0 : σ (.n 8979) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
+  have m1 : σ (.n 8980) = σ sTreeMid * σ (.n 8979) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
+  have c2 : σ (.n 8981) = lit (2 ^ 48) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
+  have m3 : σ (.n 8982) = σ (sLVal 24) * σ (.n 8981) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
+  have a4 : σ (sA1Of 2) = σ (.n 8980) + σ (.n 8982) := h.atom (a := .add _ _ _) (by simp [sTopAddrs, addS])
   have c5 : σ (sA0Of 2) = lit (2 ^ 25) :=
     h.atom (a := .const _ _) (by simp [sTopAddrs, cst, sA0Of])
   refine ⟨?_, ?_⟩
