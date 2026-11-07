@@ -850,7 +850,7 @@ theorem capSibsOf_cost (hP : Includes P Decoder.capSibsOfC.costDeps) (cap : E)
   omega
 
 /-- A query's opening's price. -/
-@[expose] def openingPrice (R : ℕ) : ℕ := (2 * R + 6067 + 28) * 8 + 21 + 245
+@[expose] def openingPrice (R : ℕ) : ℕ := (2 * R + 6067 + 28) * 8 + 21 + 253
 
 /-- **A query's opening** (`toOpeningC`), of a level of depth at most `26`, cap depth at most
 `8`, the query's position below `2^28` and its siblings at most `20`: `openingPrice R`. -/
