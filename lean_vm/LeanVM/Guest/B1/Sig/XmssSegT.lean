@@ -245,7 +245,7 @@ def xSeg : List Stmt :=
   sPrologue ++ l0.1 ++ l1.1 ++
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
 
-/-- `__loop2`'s statements before the check (`lean_ethereum.py:4583-4591`): the raw index, its range
+/-- `__loop2`'s statements before the check (`lean_ethereum.py:4610-4618`): the raw index, its range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=
   [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0 0), mulS (.n 58) (.n 2) (.n 57),

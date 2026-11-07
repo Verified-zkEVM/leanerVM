@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.Statement
 
-  B1 for `statement_digest` (G:4059-4090; TRIAGE #86): the statement's digest, byte for byte.
+  B1 for `statement_digest` (G:4086-4117; TRIAGE #86): the statement's digest, byte for byte.
 -/
 
 module

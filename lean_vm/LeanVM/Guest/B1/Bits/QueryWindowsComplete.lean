@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.QueryWindowsHonest
 
 /-!
-# `decode_query_windows`, complete (lean_ethereum.py:799-910 at d1c4c8f7)
+# `decode_query_windows`, complete (lean_ethereum.py:799-910 at 56a4109f)
 
 **The honest valuation** is built block by block along the template `qwBody d cd`, each block
 appending the words of the values it defines (`QwStab l P`: `P` holds of every valuation extending

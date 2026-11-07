@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Bits.Log2Placed
 
 On the buffers' first words `bs` (`b i`, allocation order: `claim_pool`, the stream, `table_rows`,
 `dims_g`, `kappa_base`, `zeta`, `bus_alpha`, `fp_w`, `chi`, `z_vals`, `slices`, the ring map's
-challenges, `c_table`) and the exponent table at `sqE` (G:3346-3464, at d1c4c8f7):
+challenges, `c_table`) and the exponent table at `sqE` (G:3346-3464, at 56a4109f):
 
 0, 1. `g_power_of_word` on the rate's and the memory's log's words;
 2. `log2_ceil_in_the_exponent__L0_L34` on `g^(push total)`;

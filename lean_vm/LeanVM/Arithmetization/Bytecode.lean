@@ -12,7 +12,7 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines at `d1c4c8f7`), transcribed
+At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines at `56a4109f`), transcribed
 from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen

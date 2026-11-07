@@ -17,7 +17,7 @@ base `b`, in the order of their first occurrence, as `Fn.renumber` numbers them.
 modules prove the guest's core IR equal to the templates by kernel evaluation.
 
 `kMsg pad cells len tailRun out b` is the compiler's `emit_keccak_message`
-(`crates/lean_compiler/src/lower/builtins.rs:227-279` at leanVM `d1c4c8f7`,
+(`crates/lean_compiler/src/lower/builtins.rs:267-322` at leanVM `56a4109f`,
 `Expand.emitKeccakMessage`) from the zero state with `len=` given: the message cells (`KC`: a
 literal zero, a constant, a value) zero-extended
 to the last block's read, `0x01` XORed into byte `len` and `0x80` into the last block's last byte

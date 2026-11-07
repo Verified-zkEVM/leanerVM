@@ -1,5 +1,5 @@
 # usage: python3 -I gensort.py  — writes Tables/Vt/SortT.lean (verify_tables' block-group
-# certification, G:2158-2199 at d1c4c8f7) from vt_ir.txt (dump.py).
+# certification, G:2158-2199 at 56a4109f) from vt_ir.txt (dump.py).
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN

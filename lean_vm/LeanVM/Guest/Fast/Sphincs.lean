@@ -12,7 +12,7 @@ public import LeanVM.Cost.Rules
 # leanSPHINCS's signature reader, computable
 
 `verify_sig_lean_sphincs` (`Data.core20`, compiled function `21`, its template
-`B1/Sig/SphincsT.lean`, at leanVM d1c4c8f7) hints the randomizer, each FORS tree's secret and the
+`B1/Sig/SphincsT.lean`, at leanVM 56a4109f) hints the randomizer, each FORS tree's secret and the
 ordered children on its climb, each layer's counter and the ordered children on its path into its
 own frame, at cells its body fixes, and calls `sp_wots` (`Data.core19`, function `20`) once a
 layer, whose frame holds the layer's chain starts at cells its digit words select (`spStartAt`,

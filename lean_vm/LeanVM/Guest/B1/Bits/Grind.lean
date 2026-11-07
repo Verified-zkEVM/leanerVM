@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# `grind_check` (lean_ethereum.py:913-940 at d1c4c8f7, TRIAGE #21)
+# `grind_check` (lean_ethereum.py:913-940 at 56a4109f, TRIAGE #21)
 
 `grind_check(word, 17)` splits the word (`canonicalLimbsT (.n 0) 1`: canonical, its low limb at
 `1`), hints the low limb's 64 bits into frame cells `5 .. 68`, pins bits `63` down to `17` by

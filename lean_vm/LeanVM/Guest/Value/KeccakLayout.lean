@@ -16,15 +16,15 @@ public import LeanVM.Semantics.KeccakCells
 # The cells of a Keccak state
 
 A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, each as eight
-little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak
-state sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
+little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak state
+sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
-`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:208-249` at leanVM
-`4af2cdddd`) reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity:
-a block of `136` bytes is `8.5` cells, so an odd block starts in its first cell's limb `1`, which
-the odd layout places at lane `0`. XORing the block's nine cells into the previous output, which
-`KECCAK` wrote in that same layout, XORs its seventeen lanes into the rate (`stateOfCells_xor`),
-and the instruction is `absorbBlock` (`keccak_block`).
+`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:267-322` at leanVM `56a4109f`)
+reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity: a block of `136`
+bytes is `8.5` cells, so an odd block starts in its first cell's limb `1`, which the odd layout
+places at lane `0`. XORing the block's nine cells into the previous output, which `KECCAK` wrote in
+that same layout, XORs its seventeen lanes into the rate (`stateOfCells_xor`), and the instruction
+is `absorbBlock` (`keccak_block`).
 
 * `leLane_cellsBytes`: lane `l` of the bytes of cells is limb `l % 2` of cell `l / 2`;
 * `lane_stateOfCells`, `limb_cellsOfState`: where each lane sits;

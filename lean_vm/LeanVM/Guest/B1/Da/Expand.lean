@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Expand
 
-  `da_expand`'s template and its meaning (G:4455-4468).
+  `da_expand`'s template and its meaning (G:4482-4495).
 -/
 
 module
@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Da.Factors
 
 /-!
-# `da_expand` (G:4455-4468)
+# `da_expand` (G:4482-4495)
 
 `da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`, `core402`; `da_expand__L14_L7`,
 `core405`): the tree's nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and

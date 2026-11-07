@@ -28,7 +28,7 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation/` (leanVM `d1c4c8f7`) push for push (`honestPushes`,
+`crates/rec_aggregation/src/aggregation/` (leanVM `56a4109f`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
 (`aggregate_with_stats`, `aggregation/node.rs:58-342`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
