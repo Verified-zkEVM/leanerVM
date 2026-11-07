@@ -6,7 +6,7 @@ set_option backward.isDefEq.respectTransparency false
 
 /-!
 Compression counts of the actual verifier's logged hash inputs, for each of three hashes. An
-addressed input is `PK.seed || ADRS || payload` (`48 + |payload|` bytes), a digest call 97 bytes, and
+addressed input is `PK.seed || ADRS || payload` (`48 + |payload|` bytes), a digest call 84 bytes, and
 every hash takes an `n`-byte input as it is:
 
 * Keccak-256: `n / 136 + 1` Keccak-f permutations (the padding takes at least one byte);
@@ -187,13 +187,13 @@ end Tree
     compressions H f (forsPublicKey parameter index roots) = H.cost (48 + 16 * forsTrees) := by
   rw [forsPublicKey, compressions_tweakableHash, rootsPayload_length]
 
-/-- Every digest call hashes 97 bytes. -/
+/-- Every digest call hashes 84 bytes. -/
 @[simp] theorem compressions_messageDigest (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
-    compressions H f (messageDigest parameter root message randomness) = digestCalls * H.cost 97 := by
+    compressions H f (messageDigest parameter root message randomness) = digestCalls * H.cost 84 := by
   simp only [messageDigest, compressions_bind, compressions_sequenceFin, messageDigestCall,
-    compressions_oracleHash, messageDigestInput, framedMessage, seedTag, List.length_append,
-    bytesLE_length, bytesBE_length, List.length_cons, List.length_nil, compressions_pure, Nat.add_zero,
+    compressions_oracleHash, messageDigestInput, List.length_append,
+    bytesLE_length, bytesBE_length, compressions_pure, Nat.add_zero,
     Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
 
 theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -300,11 +300,11 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
             rw [heq hsome]
             ring
 
-/-- The verifier's cost of an accepted signature: the 97-byte digest calls, the `k` FORS trees,
+/-- The verifier's cost of an accepted signature: the 84-byte digest calls, the `k` FORS trees,
 `T_k` of their roots (`48 + 16 k` bytes), at every layer the encoding of its 16-byte message (68
 bytes), the 64 chain steps and the one-time leaf, and one node per level of the hypertree. -/
 def verifyCost : Nat :=
-  digestCalls * H.cost 97 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
+  digestCalls * H.cost 84 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
     numLayers * (H.cost 68 + 64 * stepCost H + H.cost 1072) + totalHeight * nodeCost H
 
 /-- The cost of every layer of the walk, in closed form. -/
@@ -328,7 +328,7 @@ def verifyCompressions (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : M
 theorem verify_compressions_split (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :
     verifyCompressions H f pk message signature =
-      digestCalls * H.cost 97 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
+      digestCalls * H.cost 84 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
         compressions H f (verifyLayers pk.parameter
           (digestIndex (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
             signature.randomness : OracleComp HashSpec MessageDigest))) signature numLayers

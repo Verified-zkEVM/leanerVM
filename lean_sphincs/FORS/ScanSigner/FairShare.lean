@@ -44,13 +44,13 @@ theorem NoMsg.query {input : HashInput} (h : ¬IsMsgInput input) :
   exact fun hm => absurd hm h
 
 theorem not_msg_tweakable (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput)
-    (hpayload : payload.length ≠ 49) : ¬IsMsgInput (tweakableHashInput parameter domain payload) := by
+    (hpayload : payload.length ≠ 36) : ¬IsMsgInput (tweakableHashInput parameter domain payload) := by
   rintro ⟨parameter', root, message, randomness, call, heq⟩
   exact messageDigestInput_ne_tweakableHashInput parameter' parameter root message randomness call domain
     hpayload heq.symm
 
 theorem NoMsg.tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput)
-    (hpayload : payload.length ≠ 49) :
+    (hpayload : payload.length ≠ 36) :
     NoMsg (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest) := by
   unfold Concrete.tweakableHash
   exact NoMsg.bind (NoMsg.query (not_msg_tweakable parameter domain payload hpayload)) fun _ => NoMsg.pure' _

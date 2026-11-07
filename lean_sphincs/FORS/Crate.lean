@@ -4,7 +4,7 @@ import FORS.Scheme
 # The crate's key generation and signer, in FORS's primitives
 
 `key_gen_from_seed` and `sign` of `crates/signatures/src/lean_sphincs/scheme.rs` (leanVM
-`834e6614`), function for function as `Statement/LeanSphincs.lean` transcribes them
+`d1c4c8f7`), function for function as `Statement/LeanSphincs.lean` transcribes them
 (`KeyGenerationAndSigning`), written with FORS's hash inputs, addresses and types: the key
 expansion (`expand_key`, `SK.prf` then `PK.seed`), the trees built level by level
 (`merkle_levels`), the top tree built at key generation and again at each signature (`keygen`),

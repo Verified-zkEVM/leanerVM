@@ -99,7 +99,7 @@ noncomputable def compTable (table : HiddenGraph.Table) (results : OtsKey → Op
       (keyMessages (sampleData parameterOutput fixed highs remaining)) results fields
 
 /-- The sample's targets away from message-digest inputs. A digest input is unaddressed, but its
-bytes parse as an address with a 49-byte payload when its randomizer equals the parsing `PK.seed`;
+bytes parse as an address with a 36-byte payload when its randomizer equals the parsing `PK.seed`;
 no hit of the win implication is one. -/
 noncomputable def digestFreeTargets (table : HiddenGraph.Table) (results : OtsKey → Option (Counter × Encoding))
     (input : HashInput) : Finset Digest :=

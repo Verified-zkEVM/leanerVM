@@ -209,7 +209,7 @@ def digestValue (outputs : DigestCall → HashOutput) : Nat :=
 public key (`Concrete.forsPublicKey`). -/
 abbrev ForsKey := FTree → Digest
 
-/-- `pk = (PK.root, PK.seed)`, `parameter` being `PK.seed`. -/
+/-- `pk = PK.seed || PK.root`, `parameter` being `PK.seed`. -/
 structure PublicKey where
   root : Digest
   parameter : PublicParameter
@@ -394,11 +394,11 @@ message. -/
 def randomizerHashInput (prf : HashOutput) (parameter : PublicParameter) (message : Message) : HashInput :=
   bytesLE 32 prf ++ bytesLE 16 parameter ++ framedMessage message
 
-/-- Call `call` of `H_msg(R, PK.seed, PK.root, M')`: `R || PK.seed || PK.root || M' || BE_32(call)`,
-97 bytes. -/
+/-- Call `call` of `H_msg(R, PK.seed, PK.root, M)`: `R || PK.seed || PK.root || M || BE_32(call)`,
+84 bytes, the 32-byte message unframed. -/
 def messageDigestInput (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) : HashInput :=
-  bytesLE 16 randomness ++ bytesLE 16 parameter ++ bytesLE 16 root ++ framedMessage message ++
+  bytesLE 16 randomness ++ bytesLE 16 parameter ++ bytesLE 16 root ++ bytesLE 32 message ++
     bytesBE 4 (BitVec.ofNat 32 call.val)
 
 /-! ### The target-sum code
@@ -622,7 +622,9 @@ def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : M
 def digestIndex (digest : MessageDigest) : Index :=
   (digest.extractLsb' 0 totalHeight).toFin
 
-/-- The leaf index of the first digest call, where the index is. -/
+/-- The low `h` bits of the first digest call, which the grinding loop tests for landing. Under
+FIPS 205's digest layout these are FORS leaf bits, not the index (`digestIndex`); a full key
+(`Params.full`) lands every index, so the test never decides anything and the signer signs at `R`. -/
 def blockIndex (first : HashOutput) : Index :=
   (first.extractLsb' 0 totalHeight).toFin
 

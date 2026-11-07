@@ -86,7 +86,7 @@ theorem same_word_target (message : HashInput) (counter : Counter)
 
 /-- One target per encoding tweak; the canonical successful input is its only exemption. The
 message has 16 bytes, as every verifier's: this keeps the input away from the message-digest
-inputs, which only a 45-byte message could spell. -/
+inputs, which only a 32-byte message could spell. -/
 def EncodingMatch (trace : List HashInput) : Prop :=
   ∃ message counter, message.length = 16 ∧
     exemptInput f parameter lay tree leaf referenceMessage ≠
