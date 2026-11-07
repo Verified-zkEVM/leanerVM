@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Wire.Spec
 public import LeanVM.Wire.PruneList
+public import LeanVM.Wire.ReadWrite
 public import LeanVM.Parameters.Field
 
 /-!
@@ -34,64 +35,49 @@ namespace LeanVM.Wire
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Wire.PruneList
 
-/-- The reader/writer inverses the pruning's round trip uses (`LeanVM.Wire.ReadWrite`). -/
-structure ReadWriteFacts : Prop where
-  readU32_u32Bytes : ∀ (n : ℕ) (rest : Bytes), n < 2 ^ 32 →
-    readU32 (Prover.u32Bytes n ++ rest) = some (n, rest)
-  readU32s_u32Bytes : ∀ (ns : List ℕ) (rest : Bytes), (∀ n ∈ ns, n < 2 ^ 32) →
-    readU32s ns.length (ns.flatMap Prover.u32Bytes ++ rest) = some (ns, rest)
-  readDigests_digestBytes : ∀ (ds : List Digest) (rest : Bytes),
-    readDigests ds.length (ds.flatMap digestBytes ++ rest) = some (ds, rest)
-  readRows_toBytes : ∀ (w : ℕ) (rows : List (List K)) (rest : Bytes), (∀ r ∈ rows, r.length = w) →
-    readRows w rows.length (rows.flatMap (·.flatMap K.toBytes) ++ rest) = some (rows, rest)
-  readWords_toBytes : ∀ (ws : List K) (rest : Bytes),
-    readWords ws.length (ws.flatMap K.toBytes ++ rest) = some (ws, rest)
-
 namespace Prune
 
 /-- The three limbs of each stream element, in order. -/
-def streamWords (s : List E) : List K :=
+def limbWords (s : List E) : List K :=
   s.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
 
-theorem streamWords_toBytes (s : List E) :
-    (streamWords s).flatMap K.toBytes = s.flatMap E.toBytes := by
+theorem limbWords_toBytes (s : List E) :
+    (limbWords s).flatMap K.toBytes = s.flatMap E.toBytes := by
   induction s with
   | nil => rfl
   | cons x s ih =>
-    simp only [streamWords] at ih
-    simp [streamWords, ih, E.toBytes]
+    simp only [limbWords] at ih
+    simp [limbWords, ih, E.toBytes]
 
-theorem length_streamWords (s : List E) : (streamWords s).length = 3 * s.length := by
+theorem length_limbWords (s : List E) : (limbWords s).length = 3 * s.length := by
   induction s with
   | nil => rfl
-  | cons x s ih => simp [streamWords] at ih ⊢; omega
+  | cons x s ih => simp [limbWords] at ih ⊢; omega
 
 /-- `readProof`'s regrouping of the stream's words gives the stream back. -/
-theorem regroup_streamWords :
-    ∀ s : List E, (List.range s.length).map (fun i ↦ E.ofLimbs ((streamWords s).getD (3 * i) 0)
-      ((streamWords s).getD (3 * i + 1) 0) ((streamWords s).getD (3 * i + 2) 0)) = s
+theorem regroup_limbWords :
+    ∀ s : List E, (List.range s.length).map (fun i ↦ E.ofLimbs ((limbWords s).getD (3 * i) 0)
+      ((limbWords s).getD (3 * i + 1) 0) ((limbWords s).getD (3 * i + 2) 0)) = s
   | [] => rfl
   | x :: s => by
-    have ih := regroup_streamWords s
+    have ih := regroup_limbWords s
     rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map]
     refine congrArg₂ List.cons ?_ (Eq.trans ?_ ih)
-    · simpa [streamWords] using Parameters.ofLimbs_limb x
+    · simpa [limbWords] using Parameters.ofLimbs_limb x
     · apply List.map_congr_left
       intro i _
-      simp only [Function.comp, streamWords, List.flatMap_cons]
+      simp only [Function.comp, limbWords, List.flatMap_cons]
       have h3 : 3 * (i + 1) = 3 * i + 3 := by ring
       simp [List.getD_eq_getElem?_getD, h3, Nat.add_assoc]
 
-/-- The stream's form of `readProof_toBytes`, from `readWords_toBytes`. -/
-theorem readStream_of_readWords
-    (hW : ∀ (ws : List K) (rest : Bytes),
-      readWords ws.length (ws.flatMap K.toBytes ++ rest) = some (ws, rest))
-    (s : List E) (rest : Bytes) : ∃ ws,
+/-- The stream's form of `readProof_toBytes`, from `readWords_toBytes` (`ReadWrite`'s
+`streamOfWords`, `streamWords` are not exposed). -/
+theorem readStream_of_readWords (s : List E) (rest : Bytes) : ∃ ws,
       readWords (3 * s.length) (s.flatMap E.toBytes ++ rest) = some (ws, rest) ∧
         (List.range s.length).map (fun i ↦
           E.ofLimbs (ws.getD (3 * i) 0) (ws.getD (3 * i + 1) 0) (ws.getD (3 * i + 2) 0)) = s :=
-  ⟨streamWords s, by rw [← length_streamWords, ← streamWords_toBytes]; exact hW _ _,
-    regroup_streamWords s⟩
+  ⟨limbWords s, by rw [← length_limbWords, ← limbWords_toBytes]; exact readWords_toBytes _ _,
+    regroup_limbWords s⟩
 
 theorem zip_map_self {α β : Type} (f : α → β) :
     ∀ l : List α, l.zip (l.map f) = l.map fun a ↦ (a, f a)
@@ -108,7 +94,7 @@ theorem filter_flatMap_pairs (N : List ℕ) (v : ℕ → Digest) (nodes : List (
   simp [carriedSiblings, List.filter_map, List.flatMap_map, Function.comp_def]
 
 /-- `readCarriedSiblings` reads back the carried siblings level by level, whatever their values. -/
-theorem readCarriedSiblings_bytes (F : ReadWriteFacts) (positions : List ℕ)
+theorem readCarriedSiblings_bytes (positions : List ℕ)
     (v : ℕ → ℕ → Digest) (rest : Bytes) :
     ∀ (remaining level : ℕ),
       readCarriedSiblings positions level remaining
@@ -119,8 +105,8 @@ theorem readCarriedSiblings_bytes (F : ReadWriteFacts) (positions : List ℕ)
           (fun l ↦ (carriedSiblings (levelNodes positions l)).map fun n ↦ (n, v l n)), rest)
   | 0, level => by simp [readCarriedSiblings]
   | remaining + 1, level => by
-    have ih := readCarriedSiblings_bytes F positions v rest remaining (level + 1)
-    have hd := F.readDigests_digestBytes
+    have ih := readCarriedSiblings_bytes positions v rest remaining (level + 1)
+    have hd := readDigests_digestBytes
       ((carriedSiblings (levelNodes positions level)).map (v level))
       ((List.range' (level + 1) remaining).flatMap
             (fun l ↦ ((carriedSiblings (levelNodes positions l)).map (v l)).flatMap digestBytes)
@@ -202,7 +188,8 @@ theorem prunePhase_eq (paths : List Opening) :
             fun node ↦ (node, valueAt paths level node)⟩ := rfl
 
 theorem distinctPaths_positions (paths : List Opening) :
-    (distinctPaths paths).map Opening.leafIndex = distinctPositions (paths.map Opening.leafIndex) := by
+    (distinctPaths paths).map Opening.leafIndex =
+      distinctPositions (paths.map Opening.leafIndex) := by
   rw [distinctPaths, map_dedupByKey Opening.leafIndex id Opening.leafIndex (fun _ ↦ rfl),
     sortedPaths, List.map_mergeSort (s := fun a b ↦ decide (a ≤ b)) (fun _ _ _ _ ↦ rfl)]
   rfl
@@ -211,7 +198,8 @@ theorem mem_paths_of_mem_distinctPaths {paths : List Opening} {p : Opening}
     (hp : p ∈ distinctPaths paths) : p ∈ paths :=
   List.mem_mergeSort.1 (mem_of_mem_dedupByKey hp)
 
-theorem distinctPaths_ne_nil {paths : List Opening} (h : paths ≠ []) : distinctPaths paths ≠ [] := by
+theorem distinctPaths_ne_nil {paths : List Opening} (h : paths ≠ []) :
+    distinctPaths paths ≠ [] := by
   apply dedupByKey_ne_nil
   intro hs
   simp only [sortedPaths] at hs
@@ -297,8 +285,8 @@ end Prune
 
 variable {h : Bytes → Digest} {paths : List Opening} {height leafWords : ℕ}
 
-/-- **`readPhase` reads back a decodable phase's encoding**, given the reader/writer inverses. -/
-theorem ReadWriteFacts.readPhase_phaseToBytes (F : ReadWriteFacts)
+/-- **`readPhase` reads back a decodable phase's encoding.** -/
+theorem readPhase_phaseToBytes (h : Bytes → Digest)
     (hp : PhaseDecodable h paths height leafWords) (rest : Bytes) :
     readPhase (Prover.phaseToBytes paths ++ rest) = some (prunePhase paths, rest) := by
   have hH := headHeight_eq hp
@@ -368,20 +356,20 @@ theorem ReadWriteFacts.readPhase_phaseToBytes (F : ReadWriteFacts)
         K.toBytes) = ((distinctPaths paths).map (fun p ↦ p.leaf.drop (zerosOf paths))).flatMap
           (·.flatMap K.toBytes) by rw [List.flatMap_map]]
   simp only [List.append_assoc]
-  rw [readPhase, F.readU32_u32Bytes _ _ hcount]
+  rw [readPhase, readU32_u32Bytes hcount]
   have hqs32 : ∀ n ∈ paths.map Opening.leafIndex, n < 2 ^ 32 :=
     fun n hn ↦ lt_of_lt_of_le (hqs n hn) h32
   have hreadQueries : ∀ r, readU32s paths.length
       ((paths.map Opening.leafIndex).flatMap Prover.u32Bytes ++ r) =
         some (paths.map Opening.leafIndex, r) := fun r ↦ by
-    have := F.readU32s_u32Bytes (paths.map Opening.leafIndex) r hqs32
+    have := readU32s_u32Bytes hqs32 r
     rwa [List.length_map] at this
   have hreadRows : ∀ r, readRows (leafWords - zerosOf paths)
       (distinctPositions (paths.map Opening.leafIndex)).length
       (((distinctPaths paths).map (fun p ↦ p.leaf.drop (zerosOf paths))).flatMap
         (·.flatMap K.toBytes) ++ r) =
         some ((distinctPaths paths).map (fun p ↦ p.leaf.drop (zerosOf paths)), r) := fun r ↦ by
-    have := F.readRows_toBytes _ _ r hrowLen
+    have := readRows_toBytes hrowLen r
     rwa [hrowCount] at this
   have hheight : height < 2 ^ 32 :=
     lt_of_le_of_lt hp.height_le (by norm_num [wireMaxHeight])
@@ -392,12 +380,12 @@ theorem ReadWriteFacts.readPhase_phaseToBytes (F : ReadWriteFacts)
       ∃ last ∈ (distinctPositions (paths.map Opening.leafIndex)).getLast?, last >>> height = 0 :=
     ⟨hp.height_le, hp.leafWords_le, Nat.sub_le _ _, hlast⟩
   simp only [Option.bind_eq_bind, Option.bind_some, guard_some hp.queries_le, hreadQueries,
-    F.readU32_u32Bytes _ _ hheight, F.readU32_u32Bytes _ _ hleafWords,
-    F.readU32_u32Bytes _ _ (lt_of_le_of_lt (Nat.sub_le leafWords (zerosOf paths)) hleafWords),
-    guard_some hguard, hreadRows, hleaves, guard_some hminimal, readCarriedSiblings_bytes F]
+    readU32_u32Bytes hheight, readU32_u32Bytes hleafWords,
+    readU32_u32Bytes (lt_of_le_of_lt (Nat.sub_le leafWords (zerosOf paths)) hleafWords),
+    guard_some hguard, hreadRows, hleaves, guard_some hminimal, readCarriedSiblings_bytes]
 
 /-- `readPhases` reads back decodable phases' encodings. -/
-theorem ReadWriteFacts.readPhases_flatMap (F : ReadWriteFacts) :
+theorem readPhases_flatMap :
     ∀ (phases : List (List Opening)),
       (∀ phase ∈ phases, ∃ height leafWords, PhaseDecodable h phase height leafWords) →
       ∀ rest : Bytes, readPhases phases.length (phases.flatMap Prover.phaseToBytes ++ rest) =
@@ -405,27 +393,45 @@ theorem ReadWriteFacts.readPhases_flatMap (F : ReadWriteFacts) :
   | [], _, rest => by simp [readPhases]
   | phase :: phases, hall, rest => by
     obtain ⟨height, leafWords, hp⟩ := hall phase List.mem_cons_self
-    have ih := F.readPhases_flatMap phases (fun q hq ↦ hall q (List.mem_cons_of_mem _ hq))
+    have ih := readPhases_flatMap phases (fun q hq ↦ hall q (List.mem_cons_of_mem _ hq))
     simp only [List.length_cons, List.flatMap_cons, List.append_assoc, readPhases,
-      F.readPhase_phaseToBytes hp, Option.bind_eq_bind, Option.bind_some, ih, List.map_cons]
+      readPhase_phaseToBytes _ hp, Option.bind_eq_bind, Option.bind_some, ih, List.map_cons]
 
-/-- **`readProof` reads back the encoding of a proof that survives it**, given the reader/writer
-inverses. -/
-theorem ReadWriteFacts.readProof_toBytes (F : ReadWriteFacts) {proof : Proof}
-    (hw : WireDecodable h proof) :
+/-- **`readProof` reads back the encoding of a proof that survives it.** -/
+theorem readProof_toBytes {proof : Proof} (hw : WireDecodable h proof) :
     readProof proof.toBytes = some (proof.stream, proof.openings.map prunePhase) := by
-  obtain ⟨ws, hws, hstream⟩ := readStream_of_readWords F.readWords_toBytes proof.stream
+  obtain ⟨ws, hws, hstream⟩ := readStream_of_readWords proof.stream
     (Prover.u32Bytes proof.openings.length ++ proof.openings.flatMap Prover.phaseToBytes)
-  have hphases := F.readPhases_flatMap proof.openings hw.phases []
+  have hphases := readPhases_flatMap proof.openings hw.phases []
   rw [List.append_nil] at hphases
   have hcount : proof.openings.length < 2 ^ 32 :=
     lt_of_le_of_lt hw.phases_le (by norm_num [wireMaxPhases])
   simp only [readProof, Proof.toBytes, List.append_assoc]
-  simp only [F.readU32_u32Bytes _ _ hw.stream_lt, Option.bind_eq_bind, Option.bind_some, hws,
-    F.readU32_u32Bytes _ _ hcount, guard_some hw.phases_le, hphases, hstream,
+  simp only [readU32_u32Bytes hw.stream_lt, Option.bind_eq_bind, Option.bind_some, hws,
+    readU32_u32Bytes hcount, guard_some hw.phases_le, hphases, hstream,
     guard_some (show ([] : Bytes).isEmpty from rfl)]
 
 end Phase
+
+/-- The reader/writer inverses the pruning's round trip uses (`LeanVM.Wire.ReadWrite`), as one
+hypothesis; kept for the modules stated against it before `ReadWrite` landed. -/
+structure ReadWriteFacts : Prop where
+  readU32_u32Bytes : ∀ (n : ℕ) (rest : Bytes), n < 2 ^ 32 →
+    readU32 (Prover.u32Bytes n ++ rest) = some (n, rest)
+  readU32s_u32Bytes : ∀ (ns : List ℕ) (rest : Bytes), (∀ n ∈ ns, n < 2 ^ 32) →
+    readU32s ns.length (ns.flatMap Prover.u32Bytes ++ rest) = some (ns, rest)
+  readDigests_digestBytes : ∀ (ds : List Digest) (rest : Bytes),
+    readDigests ds.length (ds.flatMap digestBytes ++ rest) = some (ds, rest)
+  readRows_toBytes : ∀ (w : ℕ) (rows : List (List K)) (rest : Bytes), (∀ r ∈ rows, r.length = w) →
+    readRows w rows.length (rows.flatMap (·.flatMap K.toBytes) ++ rest) = some (rows, rest)
+  readWords_toBytes : ∀ (ws : List K) (rest : Bytes),
+    readWords ws.length (ws.flatMap K.toBytes ++ rest) = some (ws, rest)
+
+/-- `readProof_toBytes` under the hypothesis `ReadWriteFacts`, which it no longer needs. -/
+theorem ReadWriteFacts.readProof_toBytes (_F : ReadWriteFacts) {h : Bytes → Digest}
+    {proof : Proof} (hw : WireDecodable h proof) :
+    readProof proof.toBytes = some (proof.stream, proof.openings.map prunePhase) :=
+  LeanVM.Wire.readProof_toBytes hw
 
 end LeanVM.Wire
 
