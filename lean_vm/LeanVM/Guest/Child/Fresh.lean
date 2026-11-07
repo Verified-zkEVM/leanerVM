@@ -67,11 +67,11 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → 
   | query i ps k ih =>
     simp only [VerifierProgram.bind, Compile.runWithHash]
     split
-    · rfl
     · simp only [bind]
       split
       · exact ih _ _
       · rfl
+    · rfl
 
 /-! ## The verifier, split at its evaluation -/
 
