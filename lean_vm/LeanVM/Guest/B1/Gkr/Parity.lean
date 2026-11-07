@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.WalkTags
 
 /-!
-# The layer loop's parity (lean_ethereum.py:1827-1833, 1878, 1896-1962 at d1c4c8f7)
+# The layer loop's parity (lean_ethereum.py:1827-1833, 1878, 1896-1962 at 56a4109f)
 
 `__loop6`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
 `layer = layers·(x²·depth_shift[g_bus_mu])^17` (`LAYER_SLOTS = 17`, `LAYER_PARITY = 12`).

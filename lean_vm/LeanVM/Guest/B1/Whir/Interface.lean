@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1458-1790` at leanVM `d1c4c8f7`, G below) runs
+(`crates/rec_aggregation/guests/lean_ethereum.py:1458-1790` at leanVM `56a4109f`, G below) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`, V:1836;
 `verifier.py:1124-1202`) from `verifyStackedOpening` (V:1854), up to its terminal: the terminal's
 check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3262,

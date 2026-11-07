@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.QueriesFlat
 
 /-!
-# A query's Merkle path (`walk_path`, `walk_window`, lean_ethereum.py:1321-1372 at d1c4c8f7)
+# A query's Merkle path (`walk_path`, `walk_window`, lean_ethereum.py:1321-1372 at 56a4109f)
 
 `oqPair_hash`: one `keccak(a, b, out)` of two two-cell digests (the padding run as its tail and
 capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).

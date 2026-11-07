@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.WalkPath
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# One query, assembled (`opening_query`, lean_ethereum.py:1374-1418 at d1c4c8f7)
+# One query, assembled (`opening_query`, lean_ethereum.py:1374-1418 at 56a4109f)
 
 `oqQuery_sound`: the statements of `oqQueryT` (the row, the dot product, the padding run, the
 leaf hash, the call of a sound `walk_path`) give `QueryOpens` at the position whose windows the

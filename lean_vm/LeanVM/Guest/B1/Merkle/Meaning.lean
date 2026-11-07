@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # Merkle caps: meanings (TRIAGE G #33, #34)
 
-The guest (`lean_ethereum.py` at leanVM `d1c4c8f7`, G below) opens a WHIR commitment in two
+The guest (`lean_ethereum.py` at leanVM `56a4109f`, G below) opens a WHIR commitment in two
 parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`,
 G:1336-1371, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
 node `k` (`1 ≤ k < 2^(cap_depth+1)`, node `1` the root, `2k`, `2k + 1` its children) sits at the

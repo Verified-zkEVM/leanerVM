@@ -15,16 +15,16 @@ public import LeanVM.Guest.B1.Sig.Interface
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (G:4671-4775, `core33`): from the batching seed (`AGG_SEED_*`), the
+**`aggregate_claims`** (G:4698-4802, `core33`): from the batching seed (`AGG_SEED_*`), the
 duplex sponge absorbs the children's count and every child's words, squeezes two coefficients per
 child, and one sumcheck (`batch_sumcheck`) reduces the children's claims on the bytecode to the
 claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words the memory holds
 (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs`, `bc_star_hint`
 (`MeaningAggregateClaims`).
 
-**`main`** (G:4492-4668, `core0`). Its callees with a witness, each through a witness function of
+**`main`** (G:4519-4695, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
-`__loop2` at `args` (the leanXMSS check is inline there at d1c4c8f7: `Loop2Out`, its segment read
+`__loop2` at `args` (the leanXMSS check is inline there at 56a4109f: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
 a child's proof `wV args` (`verify_sub`: `verifyDeferred` of the child's public input under the
@@ -93,7 +93,7 @@ def deferOfCells (cs : List E) : DeferredClaim := ⟨cs.take bytecodeVars, cs.ge
 /-- A proof's claim on the bytecode of its `24` cells (`defer_out`). -/
 def fixedOfCells (cs : List E) : BytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
-/-! ## `aggregate_claims` (G:4671-4774, TRIAGE #97) -/
+/-! ## `aggregate_claims` (G:4698-4801, TRIAGE #97) -/
 
 /-- **Child `c`'s words in memory**: its public input's two cells at `child_pi · g^(2c)`, its
 proof's claim at `child_fresh · g^(24c)`, its statement's deferred claim at
@@ -276,7 +276,7 @@ noncomputable def dvClaim (σ : Val) : DaClaim :=
   ⟨digestOfCells (σ (.n 390)) (σ (.n 391)), Da.scalarOfCells (σ (.n 392)) (σ (.n 393))⟩
 
 /-- `__loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
-the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4579-4592). -/
+the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4606-4619). -/
 def l2Args (σ : Val) : List E :=
   [σ (.n 2), σ (.n 40), σ (.n 66), σ (.n 52)] ++ (List.range 51).map fun j => σ (.n (325 + j))
 
@@ -308,7 +308,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
 
 /-! ## The statement -/
 
-/-- **`main`, soundly, its witness decoded** (G:4492-4668, TRIAGE #96): on a memory image whose
+/-- **`main`, soundly, its witness decoded** (G:4519-4695, TRIAGE #96): on a memory image whose
 public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
 witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness

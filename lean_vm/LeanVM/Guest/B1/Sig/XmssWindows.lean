@@ -261,7 +261,7 @@ tag `tags[slot - 1]`. -/
 def lxTagOf (z : E) (powers tags : Nat → E) (i : Nat) : E :=
   if i = 0 then z else if lxTagCarried i then tags (lxTagSlot i - 1) else powers (lxTagLog i)
 
-/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4577-4582`). -/
+/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4604-4609`). -/
 def LxTagsHold (tags : Nat → E) : Prop :=
   ∀ i < 58, lxTagCarried i = true → tags (lxTagSlot i - 1) = eOfNat i
 
