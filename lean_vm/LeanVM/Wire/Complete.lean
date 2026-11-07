@@ -75,32 +75,20 @@ theorem completenessExperimentOnBytes_eq (prog : LeanIsaProgram) (input : Public
     intro bytes
     rw [fromBytes_eq_withHash, simulateQ_fromBytesWithHash]
     rfl
-  have hin : (do
-      match ← leanVmHonestProverOnBytes queryPermutation prog input t ρ fuel with
-      | none => pure false
-      | some bytes => leanVmVerifierOnBytes queryPermutation prog input bytes :
-        OracleComp Common.RandomPermutationOracles Bool) =
-      simulateQ keccakCallsOverQueryPermutation (do
-        match ← proverWithHash prog input t ρ fuel with
-        | none => pure false
-        | some p => do
-          match ← fromBytesWithHash callKeccak256 p.toBytes with
-          | none => pure false
-          | some q => verifierWithHash callKeccak256 callKeccakF1600 prog input q) := by
-    simp only [leanVmHonestProverOnBytes, leanVmVerifierOnBytes, prover_queryPermutation, hD,
-      verifier_queryPermutation, simulateQ_bind, bind_assoc, pure_bind]
+  rw [completenessExperimentOnBytes, runWithRandomPermutation,
+    completenessExperimentOnBytesWithHash, ← simulateQ_lazy_keccakCallsOverQueryPermutation]
+  refine congrArg (fun x ↦ (simulateQ Common.lazyRandomPermutationOracles x).run' []) ?_
+  simp only [leanVmHonestProverOnBytes, leanVmVerifierOnBytes, prover_queryPermutation, hD,
+    verifier_queryPermutation, simulateQ_bind, bind_assoc, pure_bind]
+  congr 1
+  funext o
+  cases o with
+  | none => simp
+  | some p =>
+    simp only [Option.map_some, simulateQ_bind]
     congr 1
-    funext o
-    cases o with
-    | none => simp
-    | some p =>
-      simp only [Option.map_some, simulateQ_bind]
-      congr 1
-      funext r
-      cases r <;> simp
-  rw [completenessExperimentOnBytes, runWithRandomPermutation, hin,
-    simulateQ_lazy_keccakCallsOverQueryPermutation]
-  rfl
+    funext r
+    cases r <;> simp
 
 /-- **On the wire, the verdict is the structured one**, for the honest prover with the two
 calls: decoding its proof's bytes returns the proof and adds no edge (`fromBytesWithHash_run_of`).
