@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsForsComplete
+public import LeanVM.Guest.B1.Sig.SphincsSoundLayer
 
 /-!
 # A layer, complete

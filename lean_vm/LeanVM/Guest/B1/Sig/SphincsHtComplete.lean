@@ -68,21 +68,21 @@ structure LayerShape (l : Nat) : Prop where
   signed : NBv (sLayerBase l) (sSignedOf l)
   pad : sPad + 5 ≤ sLayerBase l
   two : 2 ≤ sLayerBase l
-  digest : 1369 ≤ sLayerBase l
+  digest : 1395 ≤ sLayerBase l
 
 theorem layerShape_zero : LayerShape 0 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨1376, by decide, rfl⟩, ⟨1378, by decide, rfl⟩,
-    ⟨8623, by decide, rfl⟩, by decide, by decide, by decide⟩
+    by decide +kernel, by decide +kernel, ⟨1402, by decide, rfl⟩, ⟨1404, by decide, rfl⟩,
+    ⟨8443, by decide, rfl⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_one : LayerShape 1 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨8907, by decide, rfl⟩, ⟨8909, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, ⟨8719, by decide, rfl⟩, ⟨8721, by decide, rfl⟩,
     ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_two : LayerShape 2 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨9180, by decide, rfl⟩, ⟨9179, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, ⟨8984, by decide, rfl⟩, ⟨8983, by decide, rfl⟩,
     ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape {l : Nat} (hl : l < 3) : LayerShape l := by

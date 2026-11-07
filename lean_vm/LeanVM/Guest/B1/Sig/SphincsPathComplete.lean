@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.SphincsSoundLayer
+public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.MerkleComplete
 
 /-!
@@ -77,6 +77,55 @@ theorem siblingOf_mPair {σ : Val} {bit : V} {x : Nat} {bt : Bool} {node sib : E
   rw [hb, h0, h1]
   cases bt <;> simp [mPair]
 
+/-- **A node's hash completes** (`kNode`, `pad_tail=1`): the padding's three cells and the last
+byte's constant set, then the `KECCAK` of canonical inputs. -/
+theorem kNode_complete {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (σ : Val) (hp : PadOK σ pad)
+    (hpy : pad + 5 ≤ y) (hin : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v ∧ IsCanonical128 (σ v)) :
+    Completes C rd y (kNode pad pp a0 adr k0 k1 y).2.1 (kNode pad pp a0 adr k0 k1 y).1 σ
+      (fun _ => True) := by
+  have hs : SeqOK y [cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
+      cst (y + 3) (word (2 ^ 63) 0 0)] (y + 4) := ⟨rfl, rfl, rfl, rfl, rfl⟩
+  show Completes C rd y (y + 17) ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0),
+    cst (y + 2) (word 0 0 0), cst (y + 3) (word (2 ^ 63) 0 0)] ++
+    [kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV (y + 4) 13) false false]) σ _
+  refine Completes.seqThen hs (by omega) (fun σ1 he1 hA1 => ?_)
+  have hag : AgreeBelow y σ σ1 := he1.agree
+  have hp1 : PadOK σ1 pad := hp.congr hpy hag
+  obtain ⟨q0, q1, q2, q3, q4⟩ := hp1
+  have c0 : σ1 (.n y) = word 1 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c1 : σ1 (.n (y + 1)) = word 0 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c2 : σ1 (.n (y + 2)) = word 0 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c3 : σ1 (.n (y + 3)) = word (2 ^ 63) 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have hv : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v ∧ IsCanonical128 (σ1 v) := fun v hv' =>
+    ⟨(hin v hv').1, by rw [hag.apply (hin v hv').1]; exact (hin v hv').2⟩
+  have e0 := hv pp (by simp)
+  have e1 := hv a0 (by simp)
+  have e2 := hv adr (by simp)
+  have e3 := hv k0 (by simp)
+  have e4 := hv k1 (by simp)
+  have hk := kecS_complete (C := C) (rd := rd) σ1 (o := y + 4)
+    (ins := [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)]) rfl
+    (by
+      simp only [List.mem_cons, List.not_mem_nil, or_false]
+      rintro v (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl)
+      all_goals first
+        | exact e0.1.mono' (by omega) | exact e1.1.mono' (by omega) | exact e2.1.mono' (by omega)
+        | exact e3.1.mono' (by omega) | exact e4.1.mono' (by omega) | exact ⟨_, by omega, rfl⟩)
+    (fun c => by
+      fin_cases c <;> simp only [cells13, List.map_cons, List.map_nil] <;>
+        first
+        | exact e0.2 | exact e1.2 | exact e2.2 | exact e3.2 | exact e4.2
+        | (simp only [List.getD_cons_succ, List.getD_cons_zero]
+           first
+           | (rw [c0]; exact canon_word _ _) | (rw [c1]; exact canon_word _ _)
+           | (rw [c2]; exact canon_word _ _) | (rw [c3]; exact canon_word _ _)
+           | (rw [q1]; exact canon_zero) | (rw [q2]; exact canon_zero)
+           | (rw [q3]; exact canon_zero) | (rw [q4]; exact canon_zero)))
+    false false
+  exact hk.mono le_rfl (by omega) fun _ _ => trivial
+
 /-- **A level of a tree completes**: its children hinted at `x` in the order of the bit `bt`
 (`mPair bt cur sib`), `is_child`, its address `addr` (a sequential block from `x + 4` whose value
 `adr` is canonical), then the node's 80-byte hash from `y`. -/
@@ -87,7 +136,7 @@ theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x
     {bt : Bool} (hbv : σ bit = if bt then 1 else 0) {sib : E} (hsib : IsCanonical128 sib)
     (hcc : IsCanonical128 (σ cur)) (hppc : IsCanonical128 (σ pp)) (ha0c : IsCanonical128 (σ a0))
     (hac : ∀ σ', AgreeBelow x σ σ' → AtomsHold rd σ' addr → IsCanonical128 (σ' adr)) :
-    Completes C rd x (y + 18)
+    Completes C rd x (y + 17)
       ([hintW name [.n x, .n (x + 1)]] ++ isChildS cur (.n x) (.n (x + 1)) bit (x + 2) ++ addr ++
         (kNode pad pp a0 adr (.n x) (.n (x + 1)) y).1) σ
       (fun σ' => AgreeBelow x σ σ' ∧ σ' (.n x) = (mPair bt (σ cur) sib).1 ∧
@@ -145,24 +194,16 @@ theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x
   have r1 : σ4 (.n (x + 1)) = kids.2 := (hag4.apply ⟨x + 1, by omega, rfl⟩).trans q1
   have hp4 : PadOK σ4 pad := hp.congr hpx hagx
   have hadrc : IsCanonical128 (σ4 adr) := hac σ4 hagx hA4
-  obtain ⟨hk, -, -⟩ := kMsg_complete (C := C) (rd := rd) σ4 hp4 (b := y)
-    (cells := [.cell pp, .cell a0, .cell adr, .cell (.n x), .cell (.n (x + 1))]) (len := 80)
-    (tailRun := false) (by omega)
+  have hk := kNode_complete (C := C) (rd := rd) (pad := pad) (y := y) σ4 hp4 (by omega)
     (by
       simp only [List.mem_cons, List.not_mem_nil, or_false]
       rintro c (rfl | rfl | rfl | rfl | rfl)
-      · exact ⟨hpp.mono' (by omega), by
-          show IsCanonical128 (σ4 pp); rw [hagx.apply hpp]; exact hppc⟩
-      · exact ⟨ha0.mono' (by omega), by
-          show IsCanonical128 (σ4 a0); rw [hagx.apply ha0]; exact ha0c⟩
+      · exact ⟨hpp.mono' (by omega), by rw [hagx.apply hpp]; exact hppc⟩
+      · exact ⟨ha0.mono' (by omega), by rw [hagx.apply ha0]; exact ha0c⟩
       · exact ⟨hadr, hadrc⟩
-      · exact ⟨⟨x, by omega, rfl⟩, by show IsCanonical128 (σ4 (.n x)); rw [r0]; exact hpc.1⟩
-      · exact ⟨⟨x + 1, by omega, rfl⟩, by
-          show IsCanonical128 (σ4 (.n (x + 1))); rw [r1]; exact hpc.2⟩)
-    (fun h => by simp at h)
+      · exact ⟨⟨x, by omega, rfl⟩, by rw [r0]; exact hpc.1⟩
+      · exact ⟨⟨x + 1, by omega, rfl⟩, by rw [r1]; exact hpc.2⟩)
   have hk' := hk.withExt
-  rw [show (kMsg pad [.cell pp, .cell a0, .cell adr, .cell (.n x), .cell (.n (x + 1))] 80 false
-      none y).2.1 = y + 18 from rfl] at hk'
   refine hk'.mono le_rfl le_rfl (fun σ5 h5 => ?_)
   have hag5 : AgreeBelow y σ4 σ5 := h5.2.agree
   refine ⟨fun j hj => (hagx j hj).trans (hag5 j (by omega)), ?_, ?_⟩
@@ -198,12 +239,26 @@ theorem kMsg_nb {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : 
 
 theorem kNode_numBelow {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (hpad : pad + 5 ≤ y)
     (h : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v) :
-    NumBelow (y + 18) (Stmt.valsList (kNode pad pp a0 adr k0 k1 y).1) := by
-  have := (kMsg_nb (len := 80) (tailRun := false) hpad (cells := [.cell pp, .cell a0, .cell adr,
-    .cell k0, .cell k1]) (by
-      simp only [List.mem_cons, List.not_mem_nil, or_false]
-      rintro c (rfl | rfl | rfl | rfl | rfl) <;> exact h _ (by simp))).1
-  exact this
+    NumBelow (y + 17) (Stmt.valsList (kNode pad pp a0 adr k0 k1 y).1) := by
+  intro v hv
+  simp only [kNode, cst, kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals,
+    List.append_nil, List.cons_append, List.nil_append, List.mem_cons] at hv
+  have hr : ∀ w ∈ runV (y + 4) 13, NBv (y + 17) w := runV_nb (by omega)
+  have h0 := h pp (by simp)
+  have h1 := h a0 (by simp)
+  have h2 := h adr (by simp)
+  have h3 := h k0 (by simp)
+  have h4 := h k1 (by simp)
+  rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+    rfl | rfl | rfl | rfl | hv
+  all_goals first
+    | exact ⟨_, by omega, rfl⟩
+    | exact h0.mono' (by omega)
+    | exact h1.mono' (by omega)
+    | exact h2.mono' (by omega)
+    | exact h3.mono' (by omega)
+    | exact h4.mono' (by omega)
+    | exact hr _ hv
 
 theorem sBe16_seq {val : Nat → V} {pos n x : Nat} (h0 : NBv x (val pos))
     (h8 : (n + 7) / 8 = 2 → NBv x (val (pos + 8))) :
@@ -212,11 +267,9 @@ theorem sBe16_seq {val : Nat → V} {pos n x : Nat} (h0 : NBv x (val pos))
   split
   · rename_i h2
     have q := h8 h2
-    exact ⟨rfl, ⟨rfl, q.mono' (by omega), ⟨x, by omega, rfl⟩⟩,
-      ⟨rfl, h0.mono' (by omega), ⟨x + 1, by omega, rfl⟩⟩, rfl,
-      ⟨rfl, ⟨x + 2, by omega, rfl⟩, ⟨x + 3, by omega, rfl⟩⟩, rfl,
-      ⟨rfl, q.mono' (by omega), ⟨x + 5, by omega, rfl⟩⟩,
-      ⟨rfl, ⟨x + 4, by omega, rfl⟩, ⟨x + 6, by omega, rfl⟩⟩, rfl⟩
+    exact ⟨rfl, ⟨rfl, h0.mono' (by omega), ⟨x, by omega, rfl⟩⟩, rfl,
+      ⟨rfl, q.mono' (by omega), ⟨x + 2, by omega, rfl⟩⟩,
+      ⟨rfl, ⟨x + 1, by omega, rfl⟩, ⟨x + 3, by omega, rfl⟩⟩, rfl⟩
   · exact ⟨rfl, ⟨rfl, h0.mono' (by omega), ⟨x, by omega, rfl⟩⟩, rfl⟩
 
 theorem sBe16_out (val : Nat → V) (pos n x : Nat) :
@@ -250,7 +303,7 @@ theorem sPath_le (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
       rw [sPath_succ]
       dsimp only
       refine le_trans ?_ (sPath_le pad pp a0 bit val off m (z + 1)
-        (.n ((sPathAddr val off z m (x + 4)).2.1 + 5)) ((sPathAddr val off z m (x + 4)).2.1 + 18))
+        (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) ((sPathAddr val off z m (x + 4)).2.1 + 17))
       rw [sPathAddr_next]
       unfold pathWidth
       split_ifs <;> omega
@@ -290,7 +343,7 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
             (by rw [show z + 1 + m = height by omega]; exact he)
             (fun j _ hj => by rw [hag.apply (hvn j (by omega))]; exact hval j (by omega)) hAt]
           exact canon_word _ _)
-      have hnb : NumBelow (A.2.1 + 18) (Stmt.valsList ([hintW "siblings" [.n x, .n (x + 1)]] ++
+      have hnb : NumBelow (A.2.1 + 17) (Stmt.valsList ([hintW "siblings" [.n x, .n (x + 1)]] ++
           isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2) ++ A.1 ++
           (kNode pad pp a0 A.2.2 (.n x) (.n (x + 1)) A.2.1).1)) := by
         have hle := hseqA.le
@@ -315,11 +368,11 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
           · exact ⟨x, by omega, rfl⟩
           · exact ⟨x + 1, by omega, rfl⟩
       have hle := hseqA.le
-      have hx18 : x + pathWidth m = A.2.1 + 18 := by
+      have hx18 : x + pathWidth m = A.2.1 + 17 := by
         rw [hnext]; unfold pathWidth; split_ifs <;> omega
-      refine Completes.append (m := A.2.1 + 18) (by omega)
+      refine Completes.append (m := A.2.1 + 17) (by omega)
         (sPath_le pad pp a0 bit val off m (z + 1) _ _) hnb (hlev.withAtoms (by
-          simp only [atomsOnly_append, hseqA.atoms, kNode, kMsg_atoms]; rfl)) (fun σ1 he1 h1 => ?_)
+          simp only [atomsOnly_append, hseqA.atoms, kNode]; rfl)) (fun σ1 he1 h1 => ?_)
       obtain ⟨⟨hag1, hk0, hk1⟩, hA1⟩ := h1
       have t1 : ∀ v, NBv x v → σ1 v = σ v := fun v hv => hag1.apply hv
       obtain ⟨hib, hd⟩ := bit_facts (hbit z (by omega))
@@ -327,11 +380,11 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
       have hp1 : PadOK σ1 pad := hp.congr hpx hag1
       have hlv := level_sound hp1 hib1
         (hA1.left.left.sub fun t ht => List.mem_append_right _ ht) hA1.right
-      have hcan1 : IsCanonical128 (σ1 (.n (A.2.1 + 5))) := by rw [hlv]; exact canon_hcellFst _
-      have ih := sPath_complete hh he hsib m (z + 1) (.n (A.2.1 + 5)) (A.2.1 + 18)
+      have hcan1 : IsCanonical128 (σ1 (.n (A.2.1 + 4))) := by rw [hlv]; exact canon_hcellFst _
+      have ih := sPath_complete hh he hsib m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 17)
         σ1 (by omega) (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega))
         (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
-        ⟨A.2.1 + 5, by omega, rfl⟩ hp1 (by rw [t1 _ hpp]; exact hppc) (by rw [t1 _ ha0]; exact ha0c)
+        ⟨A.2.1 + 4, by omega, rfl⟩ hp1 (by rw [t1 _ hpp]; exact hppc) (by rw [t1 _ ha0]; exact ha0c)
         hcan1 (fun j hj => by rw [t1 _ (hbn j hj)]; exact hbit j hj)
         (fun j hj => by rw [t1 _ (hvn j hj)]; exact hval j hj)
       refine ih.mono le_rfl le_rfl (fun σ' ⟨hag', hc', hs'⟩ => ⟨?_, hc', ?_⟩)
@@ -363,7 +416,7 @@ theorem sPath_atoms (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
   | 0, _, _, _ => rfl
   | m + 1, z, cur, x => by
       rw [sPath_succ]
-      simp only [atomsOnly_append, sPathAddr_atoms, kNode, kMsg_atoms,
+      simp only [atomsOnly_append, sPathAddr_atoms, kNode,
         sPath_atoms pad pp a0 bit val off m (z + 1)]
       rfl
 
