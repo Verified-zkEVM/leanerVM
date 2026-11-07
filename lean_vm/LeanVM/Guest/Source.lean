@@ -275,7 +275,8 @@ def Stmt.substList (x : String) (r : Expr) : List Stmt → List Stmt
       s' :: (if rebinds then ss else Stmt.substList x r ss)
 end
 
-/-- `substitute_body`: the substitutions in order. -/
+/-- `substitute_body`: the substitutions in order. The compiler makes them in one pass
+(`subst_all`), the same since a `Const` call substitutes literals, which name no variable. -/
 def substBody (body : List Stmt) (substs : List (String × Expr)) : List Stmt :=
   substs.foldl (fun b (x, r) => Stmt.substList x r b) body
 

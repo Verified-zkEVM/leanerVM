@@ -12,15 +12,16 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, transcribed from:
+At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines at `834e6614`), transcribed
+from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs:288-367` (`bytecode_columns`): the eleven public program
+* `crates/leanvm_core/src/cpu/layout.rs:292-362` (`bytecode_columns`): the eleven public program
   columns, the opcode then ten operand slots, offsets as g-powers, a `SET` immediate as its three
   limbs, the `DEREF` store-mode flags and `KECCAK`'s layout flags as `0` or `1`, unused slots
-  zero; `crates/leanvm_core/src/leaf.rs:765-794` stacks them at slots `3..14`
+  zero; `stack_columns` (`cpu/layout.rs:375-385`) stacks them at slots `3..14`
   (`BYTECODE_PUBLIC_SLOT = 3`);
 * `crates/leanvm_core/src/cpu/isa.rs:58-75`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`.

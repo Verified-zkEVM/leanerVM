@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmGuest
+public import LeanVM.Facts.ClaimBytes
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
 public import Statement.Fast.Schemes
@@ -27,12 +28,12 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation.rs` (leanVM `9d8bce81`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1368-1373`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1662-1945`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1540-1575`; `lean_sphincs_hints`, `aggregation.rs:1586-1625`), a child's
-(`gen_verify`, `aggregation.rs:1140-1333`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:832-940`) and LeanDA's.
+`crates/rec_aggregation/src/aggregation/` (leanVM `834e6614`) push for push (`honestPushes`,
+grouped by stream as `Hints::push` does, `aggregation/hints.rs:59-64`): the node's streams
+(`aggregate_with_stats`, `aggregation/node.rs:58-341`), a raw signature's (`lean_xmss_hints`,
+`aggregation/hints.rs:97-132`; `lean_sphincs_hints`, `aggregation/hints.rs:144-180`), a child's
+(`gen_verify`, `aggregation/child.rs:64-256`), the batching's (`aggregate_deferred_claims`,
+`aggregation/deferred.rs:244-352`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -45,11 +46,12 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1430-1497`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation/coverage.rs:49-116`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation.rs:1709-1716`), then every child's claims, child by child; a claim takes its
-  declared slot if it is still free, else the next duplicate slot. The deployed lists are
-  strictly sorted, where the first free match is the slot `binary_search` finds.
+  sorted and deduplicated, `aggregation/node.rs:105-112`), then every child's claims, child by
+  child; a claim takes its declared slot if it is still free, else the next duplicate slot. The
+  deployed lists are strictly sorted, where the first free match is the slot `binary_search`
+  finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
 
 What the bump allocator hands out is not a hint: the interpreter's allocator chooses it.
@@ -79,28 +81,28 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `CLAIM_GROUP` (`aggregation.rs:172`): the claims a claim list's digest absorbs per
+/-- `CLAIM_GROUP` (`aggregation/statement.rs:11`): the claims a claim list's digest absorbs per
 group. -/
 def claimGroup : ℕ := 17
 
-/-- `CLAIM_BIG` (`aggregation.rs:175-176`): the claims the main list loop absorbs per frame,
+/-- `CLAIM_BIG` (`aggregation/statement.rs:14-15`): the claims the main list loop absorbs per frame,
 `BIG_GROUPS = 8` groups. -/
 def claimBig : ℕ := claimGroup * 8
 
-/-- `DIGIT_GROUP` (`aggregation.rs:97`): the leanSPHINCS codeword digits the guest dispatches on at
-a time. -/
+/-- `DIGIT_GROUP` (`aggregation/hints.rs:15`): the leanSPHINCS codeword digits the guest dispatches
+on at a time. -/
 def digitGroup : ℕ := 3
 
-/-- `LX_DIGIT_GROUP` (`aggregation.rs:99`): the leanXMSS codeword digits the guest dispatches on at
-a time. -/
+/-- `LX_DIGIT_GROUP` (`aggregation/hints.rs:17`): the leanXMSS codeword digits the guest
+dispatches on at a time. -/
 def lxDigitGroup : ℕ := 4
 
-/-- `LX_WINDOW` (`aggregation.rs:101`): the leaf index bits a leanXMSS path dispatch covers. -/
+/-- `LX_WINDOW` (`aggregation/hints.rs:19`): the leaf index bits a leanXMSS path dispatch covers. -/
 def lxWindow : ℕ := 8
 
 /-! ## Encodings -/
 
-/-- `count(n)`: `g^n` (`aggregation.rs:117-119`). -/
+/-- `count(n)`: `g^n` (`aggregation/cells.rs:6-8`). -/
 def count (n : ℕ) : E := gpowE n
 
 /-- A bit as a word. -/
@@ -119,17 +121,17 @@ def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
-/-- A claim's four cells: the key's root and parameter, the message (`claim_cells`). -/
+/-- A claim's four cells: the key's two halves (leanXMSS: root, parameter; leanSPHINCS: `PK.seed`,
+`PK.root`), the message (`claim_cells`, `aggregation/statement.rs:38-55`). -/
 def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
-  cellsOfBytes (claimBytes root parameter message)
+  cellsOfBytes (claimBytesOf root parameter message)
 
-/-- The bytes of a `bits`-bit value, low first, each in the exponent (`exponent_bytes`,
-`aggregation.rs:123-127`). -/
-def exponentBytes (value bits : ℕ) : Entry :=
-  (List.range ((bits + 7) / 8)).map fun k ↦ count (value / 2 ^ (8 * k) % 256)
+/-- Bytes, each in the exponent (`exponent_bytes`, `aggregation/cells.rs:12-14`). -/
+def exponentBytes (bytes : List UInt8) : Entry :=
+  bytes.map fun b ↦ count b.toNat
 
 /-- How a list of `n` claims splits into whole frames of `claimBig`, then whole groups of
-`claimGroup`, then the rest (`list_split`, `aggregation.rs:183-191`). -/
+`claimGroup`, then the rest (`list_split`, `aggregation/statement.rs:22-30`). -/
 def listSplit (n : ℕ) : Entry :=
   [count (n / claimBig), count (n % claimBig / claimGroup), count (n % claimBig % claimGroup)]
 
@@ -139,7 +141,8 @@ def listPushes (item : String) (entries : List Entry) : List (String × Entry) :
     entries.map (item, ·)
 
 /-- A codeword's digits as the guest dispatches on them: `size` at a time, then the rest, each
-group's index little endian in base 4, in the exponent (`digit_hints`, `aggregation.rs:1526-1534`). -/
+group's index little endian in base 4, in the exponent (`digit_hints`,
+`aggregation/hints.rs:83-91`). -/
 def digitHints (size : ℕ) (digits : List ℕ) : List Entry :=
   (List.range ((digits.length + size - 1) / size)).map fun i ↦
     [count (((digits.drop (size * i)).take size).foldr (· + 4 * ·) 0)]
@@ -198,77 +201,89 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
-/-- The digest bits past the leanSPHINCS fields in the second call's first lane, which the guest
-takes as hinted bytes (`LEAN_SPHINCS_TAIL_BITS`, `aggregation.rs:131`: the fields end at bit
-`266 = 256 + 10`). -/
-def sphincsTailBits : ℕ := Sphincs.messageDigestBits - 256
+/-- The message's 32 bytes, each in the exponent, one entry (`exponent_bytes(message)`,
+`aggregation/hints.rs:155`): the guest rebuilds the message's cells from them and shifts them into
+`M'`. -/
+def sphincsMessageEntry (message : HashSig.Message) : Entry :=
+  exponentBytes (HashSig.littleEndianBytes 32 message)
 
-/-- One FORS tree's hints: the ordered children of every node on its climb, the two top nodes
-last (`fors_recover`'s visits, `fors.rs:80-100`). -/
-def sphincsForsNodes (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
-    (tree : Sphincs.ForsTreeIndex) (leaf : Sphincs.ForsLeafIndex) (opening : Sphincs.ForsTreeOpening) :
-    List (String × Entry) :=
-  let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 parameter index tree
-    leaf opening.secret)
-  let fold := fun levels ↦ Id.run (Sphincs.Verification.forsFold (m := Id) keccakF1600 parameter
-    index tree leaf opening.path levels value)
-  let below := (List.range (Sphincs.forsTreeHeight - 1)).map fun l ↦
-    ("sp_fors_nodes", ordered (leaf.val.testBit l) (fold l)
-      (if h : l < Sphincs.forsTreeHeight then opening.path ⟨l, h⟩ else 0))
-  below ++ [("sp_fors_nodes", ordered (leaf.val.testBit (Sphincs.forsTreeHeight - 1))
-    (fold (Sphincs.forsTreeHeight - 1)) (opening.path Sphincs.Verification.forsTopLevel))]
+/-- The bytes of `H_msg`'s two calls past its `34` (the second call's bytes `2` to `7`), each in the
+exponent, one entry (`exponent_bytes(&digest[DIGEST_BYTES..40])`, `aggregation/hints.rs:160`). -/
+def sphincsUnusedEntry (outputs : Sphincs.DigestCall → HashSig.HashOutput) : Entry :=
+  (List.range 6).map fun k ↦ count (Sphincs.digestValue outputs / 2 ^ (8 * (34 + k)) % 256)
 
-/-- One layer's hints: the counter, the codeword's digits, the chain values and the ordered
-children of every node on the key's path; and the root the layer reaches. -/
-def sphincsLayer (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
-    (σ : Sphincs.Signature) (layer : Sphincs.Layer) (message : List UInt8) :
+/-- A counter's four bytes, most significant first, each in the exponent, one entry
+(`exponent_bytes(&counter.to_be_bytes())`, `aggregation/hints.rs:172`). -/
+def sphincsCounterEntry (counter : Sphincs.EncodingCounter) : Entry :=
+  exponentBytes (Sphincs.bigEndianBytes 4 counter)
+
+/-- One FORS tree's hints: the ordered children of every node on its climb, from the leaf up
+(`fors_recover`'s visits, `fors.rs:94-102`). -/
+def sphincsForsNodes (publicSeed : HashSig.PublicParameter) (index : Sphincs.Index)
+    (tree : Sphincs.ForsTreeIndex) (leaf : Sphincs.ForsLeafIndex)
+    (opening : Sphincs.ForsTreeOpening) : List (String × Entry) :=
+  let path := fun level ↦
+    if h : level < Sphincs.forsTreeHeight then opening.path ⟨level, h⟩ else 0
+  let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 publicSeed index
+    tree leaf opening.secret)
+  let fold := fun levels ↦ Id.run (HashSig.OverPermutation.foldPath (m := Id)
+    (fun level node ↦ Sphincs.Verification.tweakableHash keccakF1600 publicSeed
+      (.forsNode index tree (level + 1) node))
+    leaf.val path levels value)
+  (List.range Sphincs.forsTreeHeight).map fun l ↦
+    ("sp_fors_nodes", ordered (leaf.val.testBit l) (fold l) (path l))
+
+/-- One layer's hints: the counter's bytes, the codeword's digits, the chain values and the
+ordered children of every node on the key's path; and the root the layer reaches, which the layer
+above signs. -/
+def sphincsLayer (publicSeed : HashSig.PublicParameter) (index : Sphincs.Index)
+    (σ : Sphincs.Signature) (layer : Sphincs.Layer) (signed : HashSig.Digest) :
     List (String × Entry) × HashSig.Digest :=
   let tree := Sphincs.treeOfIndex layer index
   let leaf := Sphincs.leafOfIndex layer index
   let part := σ.layers layer
-  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 parameter layer tree leaf
-    message part.counter)
+  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 publicSeed layer tree
+    leaf signed part.counter)
   let digits := (List.finRange Sphincs.chainCount).map fun i ↦ (encoding.map (· i |>.val)).getD 0
   let starts := (List.finRange Sphincs.chainCount).map fun i ↦
     ("chain_starts", [cell128 (part.chainValues i)])
-  let value := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 parameter layer tree leaf
-    message part.counter part.chainValues)).getD 0
-  let fold := fun levels ↦ Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 parameter
+  let value := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 publicSeed layer tree
+    leaf signed part.counter part.chainValues)).getD 0
+  let fold := fun levels ↦ Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 publicSeed
     layer tree leaf (Sphincs.Verification.layerPath σ layer) levels value)
   let siblings := (List.range (Sphincs.layerHeight layer)).map fun l ↦
     ("siblings", ordered (leaf.val.testBit l) (fold l) (Sphincs.Verification.layerPath σ layer l))
-  ([("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++ siblings,
+  ([("sp_counter", sphincsCounterEntry part.counter)] ++ digitGroups digits ++ starts ++ siblings,
     fold (Sphincs.layerHeight layer))
 
-/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1586-1625`): the
-randomizer, the digest's bits past its fields, every FORS tree's secret, every tree's climb, then
-each layer's, bottom first, the bottom one-time key signing the FORS key's bytes and each above
-the root below. -/
-def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation/hints.rs:144-180`): the
+message's bytes, the randomizer, `H_msg`'s bytes past its `34`, every FORS tree's secret, every
+tree's climb, then each layer's, bottom first, the bottom one-time key signing the FORS key and
+each above the root below. -/
+def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
-  let parameter := pk.parameter
+  let publicSeed := pk.publicSeed
   let outputs := fun call ↦ Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600
-    parameter message σ.randomizer call)
+    σ.randomizer publicSeed pk.root message call)
   let digest := Sphincs.truncateMessageDigest outputs
   let index := Sphincs.digestIndex digest
   let leaves := Sphincs.digestForsLeaves digest
-  let unused := Sphincs.digestValue outputs / 2 ^ Sphincs.messageDigestBits % 2 ^ (64 - sphincsTailBits)
   let trees := List.finRange Sphincs.forsTreeCount
   let secrets := trees.map fun c ↦ ("sp_fors_secrets", [cell128 (σ.forsOpening c).secret])
-  let climbs := trees.flatMap fun c ↦ sphincsForsNodes parameter index c (leaves c) (σ.forsOpening c)
-  let forsKey := Id.run (Sphincs.Verification.forsRecover (m := Id) keccakF1600 parameter index leaves
-    σ.forsOpening)
-  let (bottom, rootB) := sphincsLayer parameter index σ 0 (Sphincs.Verification.forsKeyPayload forsKey)
-  let (middle, rootM) := sphincsLayer parameter index σ 1 (HashSig.littleEndianBytes 16 rootB)
-  let (top, _) := sphincsLayer parameter index σ 2 (HashSig.littleEndianBytes 16 rootM)
-  [("sp_rand", [cell128 σ.randomizer]),
-    ("sp_unused", exponentBytes unused (64 - sphincsTailBits))] ++ secrets ++ climbs ++
-    bottom ++ middle ++ top
+  let climbs := trees.flatMap fun c ↦
+    sphincsForsNodes publicSeed index c (leaves c) (σ.forsOpening c)
+  let forsKey := Id.run (Sphincs.Verification.forsRecover (m := Id) keccakF1600 publicSeed index
+    leaves σ.forsOpening)
+  let (bottom, rootB) := sphincsLayer publicSeed index σ 0 forsKey
+  let (middle, rootM) := sphincsLayer publicSeed index σ 1 rootB
+  let (top, _) := sphincsLayer publicSeed index σ 2 rootM
+  [("sp_msg", sphincsMessageEntry message), ("sp_rand", [cell128 σ.randomizer]),
+    ("sp_unused", sphincsUnusedEntry outputs)] ++ secrets ++ climbs ++ bottom ++ middle ++ top
 
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1891-1916`). The Rust pushes the root's
+every row's cells, column by column (`aggregation/node.rs:287-312`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -318,7 +333,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1256-1300`). -/
+(`aggregation/child.rs:179-223`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
@@ -357,7 +372,7 @@ def runHeads : List ℕ → List ℕ
   | l => l
 
 /-- The group of each key of a run, numbered from `next`: a group is a maximal run of one key
-(`block_groups`, `col_groups`, `aggregation.rs:1034-1045`). -/
+(`block_groups`, `col_groups`, `aggregation/child.rs:46-57`). -/
 def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
   | _, _, [] => []
   | next, prev, k :: ks =>
@@ -369,7 +384,7 @@ framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's bloc
 def blockKey (b : BusBlock) : ℕ := 3 + b.owner
 
 /-- Every side's block groups in layout order, each as `g` to its index over the three sides,
-once per group, whose blocks are consecutive (`block_group_order`, `aggregation.rs:1190-1221`):
+once per group, whose blocks are consecutive (`block_group_order`, `aggregation/child.rs:113-144`):
 push and pull after the framework's three blocks, then count; a group is a maximal run of blocks
 of one kappa source within a side. -/
 def blockGroupOrder (layout : Layout) : Entry :=
@@ -394,7 +409,7 @@ def colKey (c : ℕ) : ℕ :=
   if c < 4 then 0 else if c < 6 then c - 3 else 3 + (globalColumnBases.filter (· ≤ c)).length
 
 /-- The committed columns' groups in stack order, each as `g` to its index, once per group,
-whose columns are consecutive (`col_group_order`, `aggregation.rs:1226-1254`): a group is a
+whose columns are consecutive (`col_group_order`, `aggregation/child.rs:149-177`): a group is a
 maximal run of committed columns, in their order, of one kappa source. -/
 def colGroupOrder (layout : Layout) : Entry :=
   let columns := committedColumns layout
@@ -432,7 +447,7 @@ def slotGaps : ℕ → List ℕ → List ℕ
 
 /-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
 flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
-(`aggregation.rs:1839-1858`). -/
+(`aggregation/node.rs:241-260`). -/
 def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
   if offsets = [] then [] else
     ("signers_split", listSplit offsets.length) ::
@@ -446,7 +461,7 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation.rs:1690-1706`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation/node.rs:86-102`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length
@@ -460,7 +475,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
-  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
+  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.publicSeed c.1.root c.2
   let slots := fun (offsets : List ℕ) ↦ childSlotPushes offsets
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,

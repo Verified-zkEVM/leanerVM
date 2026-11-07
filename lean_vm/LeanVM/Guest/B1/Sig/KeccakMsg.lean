@@ -158,7 +158,12 @@ theorem kRunFresh_sound : ∀ {ks : List KC} {b : Nat},
           | .const c => σ (.n b) = c
           | .cell o => σ (.n b) = σ o) ∧ AtomsHold rd σ (kRunFresh ks (b + 1)) := by
         cases k with
-        | zero => exact ⟨h.atom (List.mem_cons_self ..), h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
+        | zero =>
+            refine ⟨?_, h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
+            have h0 : σ (.n b) = word 0 0 0 := h.atom (List.mem_cons_self ..)
+            rw [h0]
+            simp only [word, Value.ofBits_zero]
+            exact Value.zero_eq_ofLimbs.symm
         | const c => exact ⟨h.atom (List.mem_cons_self ..), h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
         | cell o => exact ⟨h.atom (List.mem_cons_self ..), h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
       rcases j with _ | j

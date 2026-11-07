@@ -26,8 +26,8 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`9d8bce818aa7c7e18e67026e522a9b1539d0a57d` (branch `main`, PR
-#661 squash-merged, [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
+`834e6614b1fe856646de252360e7373447f13654` (branch `sphincs-fips205`, leanSPHINCS on FIPS 205's
+layout with `main` merged in, [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
 sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
@@ -40,7 +40,7 @@ transcribe their sources; that the Rust verifier's expansion of the pruned Merkl
 prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
 formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation.rs:668-685`) checks of a root more than any end
+verifier** (`EthereumProof::verify`, `aggregation/proof.rs:194-211`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
 `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
 end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one
