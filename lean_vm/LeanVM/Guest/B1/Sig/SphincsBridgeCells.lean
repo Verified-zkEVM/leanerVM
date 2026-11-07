@@ -17,13 +17,13 @@ public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 The statement's hashes of digests that are cells' values are the first cells of the guest's
 `hcell`s (`tweakableHash_sphincsCells`), so its folds are folds of cells:
 
-* `pathAdr_eq`: a path node's address cell (`pathAdr`, type `TREE`) is `adrsCell1 2 0 h i`;
+* `pathAdr_eqC`: a path node's address cell (`pathAdr`, type `TREE`) is `adrsCell1 2 0 h i`;
 * `foldPath_cells`: `foldPath` of a tweakable hash whose address cells at level `l` are `a0` and
   `adr l` is the value of `pFold` of the cells' nodes;
 * `htFold_cells`: a tree's fold is `pFold` of `pNodeE` at the tree's `A0`;
 * `forsAdrCell`, `forsLeafCell`, `forsNodeCell`, `forsRootCell`: FORS tree `c`'s addresses
   (`FORS_TREE`, at the bottom key's leaf `kp`, height `z`, index `c·2^(10-z) + s >>> z`), its leaf
-  hashed from its secret and its nodes; `forsTreeRecover_cells`, `forsRecover_cells`: a FORS tree's
+  hashed from its secret and its nodes; `forsTreeRecover_cellsC`, `forsRecover_cells`: a FORS tree's
   root and the FORS key (`FORS_ROOTS`) over cells;
 * `encDigestCell`, `encode_cells`, `otsLeaf_cells`: the encoding's digest is the first cell of the hash of
   the 68 bytes of `[P, A0, A1_enc, M, counter]`, and the one-time leaf is `wotsLeafOf` when its
@@ -41,7 +41,7 @@ open HashSig HashSig.OverPermutation
 /-! ## Folds -/
 
 /-- **A path node's address cell**: type `TREE`, height `h`, index `i`. -/
-theorem pathAdr_eq {h i : Nat} (hh : h < 256) (hi : i < 2 ^ 16) : pathAdr h i = adrsCell1 2 0 h i := by
+theorem pathAdr_eqC {h i : Nat} (hh : h < 256) (hi : i < 2 ^ 16) : pathAdr h i = adrsCell1 2 0 h i := by
   have ha : a1Hi h i < 2 ^ 64 := by unfold a1Hi; omega
   have e : pathAdr h i = lit (2 * 2 ^ 24 + 2 ^ 64 * a1Hi h i) := by
     rw [pathAdr, lit]; congr 1 <;> omega
@@ -105,7 +105,7 @@ theorem htFold_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (fun l => adrsCell1 2 0 (l + 1) (leaf.val / 2 ^ (l + 1))) leaf.val h
     (fun l _ => rfl) hsib x).trans ?_
   refine congrArg cellVal (pFold_congr_lt _ _ h x fun l hl => funext fun v => ?_)
-  rw [pNodeE, pathAdr_eq (by omega) (by
+  rw [pNodeE, pathAdr_eqC (by omega) (by
     rw [Nat.shiftRight_eq_div_pow]
     exact lt_of_le_of_lt (Nat.div_le_self _ _) (lt_of_lt_of_le hl' (by norm_num))),
     Nat.shiftRight_eq_div_pow]
@@ -131,7 +131,7 @@ def forsRootCell (pp a0 : E) (kp c s : Nat) (secret : E) (sib : Nat → E) : E :
   pFold (forsNodeCell pp a0 kp c s sib) 10 (forsLeafCell pp a0 kp c s secret)
 
 /-- **A FORS tree's root over cells**: the secret and the path the values of `secret`, `sib`. -/
-theorem forsTreeRecover_cells (pp : E) (idx : Sphincs.Index) (c : Sphincs.ForsTreeIndex)
+theorem forsTreeRecover_cellsC (pp : E) (idx : Sphincs.Index) (c : Sphincs.ForsTreeIndex)
     (s : Sphincs.ForsLeafIndex) (op : Sphincs.ForsTreeOpening) {secret : E} {sib : Nat → E}
     (hsec : cellVal secret = op.secret)
     (hsib : ∀ z (hz : z < 10), cellVal (sib z) = op.path ⟨z, hz⟩) :
@@ -182,7 +182,7 @@ theorem forsRecover_cells (pp : E) (idx : Sphincs.Index)
       keccakF1600 (cellVal pp) idx c (leaves c) (op c))) = fun c =>
       cellVal (forsRootCell pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
         (Sphincs.leafOfIndex 0 idx).val c.val (leaves c).val (secret c.val) (sib c.val)) :=
-    funext fun c => forsTreeRecover_cells pp idx c (leaves c) (op c) (hsec c) (hsib c)
+    funext fun c => forsTreeRecover_cellsC pp idx c (leaves c) (op c) (hsec c) (hsib c)
   show Sphincs.Verification.forsPublicKey (m := Id) keccakF1600 (cellVal pp) idx
     (sequenceFin (m := Id) fun c => Sphincs.Verification.forsTreeRecover (m := Id) keccakF1600
       (cellVal pp) idx c (leaves c) (op c)) = _

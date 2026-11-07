@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 The FORS block's soundness and completeness compute a tree's nodes at `fAdrE A1 c z s`, `A1` the
 key pair's cell plus `FORS_TREE` (`3·2^24`); the statement's bridge reads them at
 `forsAdrCell kp c z s`, `adrsCell1 3 kp z (c·2^(10-z) + s >>> z)`. At `A1 = adrsCell1 3 kp 0 0`
-they agree (`fAdrE_eq`), so do the roots (`fRootE_eq`) and the FORS key's hash (`forsKey_eq`, its
+they agree (`fAdrE_eqC`), so do the roots (`fRootE_eq`) and the FORS key's hash (`forsKey_eq`, its
 roots listed over `List.range 24` or `List.ofFn`). So spfors's `sForsBlock_complete` gives the
 assembly's `ForsBlockCompletes` (`forsBlockCompletes`); the encoding's cell two ways
 (`encDigestCell_eq_encOf`), so spfors's `sHtLayer_complete` gives `HtLayerCompletes`
@@ -34,7 +34,7 @@ open LeanVM.Protocol.Verifier (eOfNat)
 @[expose] public section
 
 /-- **A FORS node's address**, two ways. -/
-theorem fAdrE_eq {kp c z s : Nat} (hc : c < 24) (hz : z ≤ 10) (hs : s < 2 ^ 10) :
+theorem fAdrE_eqC {kp c z s : Nat} (hc : c < 24) (hz : z ≤ 10) (hs : s < 2 ^ 10) :
     fAdrE (adrsCell1 3 kp 0 0) c z s = forsAdrCell kp c z s := by
   have hi := fIdx_lt hc hz hs
   have hh := a1Hi_lt (h := z) (by omega) hi
@@ -51,9 +51,9 @@ theorem fRootE_eq (pp a0 : E) {kp c s : Nat} (hc : c < 24) (hs : s < 2 ^ 10) (se
     fRootE pp a0 (adrsCell1 3 kp 0 0) c s secret sib = forsRootCell pp a0 kp c s secret sib := by
   unfold fRootE forsRootCell
   rw [show fLeafE pp a0 (adrsCell1 3 kp 0 0) c s secret = forsLeafCell pp a0 kp c s secret by
-    rw [fLeafE, forsLeafCell, fAdrE_eq hc (by norm_num) hs]]
+    rw [fLeafE, forsLeafCell, fAdrE_eqC hc (by norm_num) hs]]
   refine pFold_congr_lt _ _ 10 _ fun z hz => funext fun v => ?_
-  rw [fNodeE, forsNodeCell, fAdrE_eq hc (by omega) hs]
+  rw [fNodeE, forsNodeCell, fAdrE_eqC hc (by omega) hs]
 
 /-- **The FORS key's hash**, two ways: at the key pair's cell `adrsCell1 0 kp 0 0`, `FORS_TREE` and
 `FORS_ROOTS` added. -/
