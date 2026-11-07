@@ -59,22 +59,42 @@ theorem digitSum_le (k : Nat) : ∀ n, digitSum k n ≤ 3 * n
       omega
 
 theorem armT_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) (k b : Nat) (hn : first + n ≤ I) (hd : n ≤ 3) :
+    (prodIn encIn prodOut encOut : V) (k b : Nat) (hn : first + n ≤ I) (hd : n ≤ 3)
+    (he : W.enc = W'.enc := by rfl) :
     armT W slots first n fold prodIn encIn prodOut encOut k b =
       armT W' slots first n fold prodIn encIn prodOut encOut k b := by
   have hp := h.power (digitSum k n) (by have := digitSum_le k n; omega)
-  simp only [armT, h.size, hp]
+  simp only [armT, h.size, hp, he]
   rw [walksT_weq h slots first k _ n 0 _ (by omega)]
 
+/-- An arm's next base: its walks' and its outputs', whatever its encoding. -/
+theorem armT_snd_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) (k b : Nat) (hn : first + n ≤ I) :
+    (armT W slots first n fold prodIn encIn prodOut encOut k b).2 =
+      (armT W' slots first n fold prodIn encIn prodOut encOut k b).2 := by
+  unfold armT
+  rw [h.size, walksT_weq h slots first k _ n 0 _ (by omega)]
+  split <;> rfl
+
 theorem armsT_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) (hn : first + n ≤ I) (hd : n ≤ 3) :
+    (prodIn encIn prodOut encOut : V) (hn : first + n ≤ I) (hd : n ≤ 3) (he : W.enc = W'.enc := by rfl) :
     ∀ m k b, armsT W slots first n fold prodIn encIn prodOut encOut m k b =
       armsT W' slots first n fold prodIn encIn prodOut encOut m k b
   | 0, _, _ => rfl
   | m + 1, k, b => by
       simp only [armsT]
-      rw [armT_weq h slots first n fold prodIn encIn prodOut encOut k b hn hd,
-        armsT_weq h slots first n fold prodIn encIn prodOut encOut hn hd m (k + 1)]
+      rw [armT_weq h slots first n fold prodIn encIn prodOut encOut k b hn hd he,
+        armsT_weq h slots first n fold prodIn encIn prodOut encOut hn hd he m (k + 1)]
+
+theorem armsT_snd_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) (hn : first + n ≤ I) :
+    ∀ m k b, (armsT W slots first n fold prodIn encIn prodOut encOut m k b).2 =
+      (armsT W' slots first n fold prodIn encIn prodOut encOut m k b).2
+  | 0, _, _ => rfl
+  | m + 1, k, b => by
+      simp only [armsT]
+      rw [armT_snd_weq h slots first n fold prodIn encIn prodOut encOut k b hn,
+        armsT_snd_weq h slots first n fold prodIn encIn prodOut encOut hn m (k + 1)]
 
 theorem armBase_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (hn : first + n ≤ I) (hd : n ≤ 3) :
@@ -83,7 +103,7 @@ theorem armBase_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Na
   | _, 0, _ => rfl
   | k, j + 1, b => by
       simp only [armBase]
-      rw [armT_weq h slots first n fold prodIn encIn prodOut encOut k b hn hd,
+      rw [armT_snd_weq h slots first n fold prodIn encIn prodOut encOut k b hn,
         armBase_weq h slots first n fold prodIn encIn prodOut encOut hn hd (k + 1) j]
 
 theorem slotsT_weq (h : WEq W W' I) : slotsT W = slotsT W' := by
@@ -103,10 +123,16 @@ theorem armStart_weq (h : WEq W W' I) : armStart W = armStart W' := by
   simp only [armStart, h.size]
 
 theorem groupT_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn : V) (b : Nat)
-    (hn : first + n ≤ I) (hd : n ≤ 3) :
+    (hn : first + n ≤ I) (hd : n ≤ 3) (he : W.enc = W'.enc := by rfl) :
     groupT W first n fold prodIn encIn b = groupT W' first n fold prodIn encIn b := by
   unfold groupT groupD groupArmsT
-  rw [slotsT_weq h, prodT_weq h, encT_weq h, armsT_weq h _ first n fold _ _ _ _ hn hd]
+  rw [slotsT_weq h, prodT_weq h, encT_weq h, armsT_weq h _ first n fold _ _ _ _ hn hd he]
+
+theorem groupT_snd_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn : V) (b : Nat)
+    (hn : first + n ≤ I) :
+    (groupT W first n fold prodIn encIn b).2 = (groupT W' first n fold prodIn encIn b).2 := by
+  unfold groupT groupD groupArmsT
+  rw [slotsT_weq h, prodT_weq h, encT_weq h, armsT_snd_weq h _ first n fold _ _ _ _ hn]
 
 theorem armB_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn : V) (b k : Nat)
     (hn : first + n ≤ I) (hd : n ≤ 3) :
@@ -120,25 +146,26 @@ theorem grpPos_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn 
   unfold grpPos
   rw [armStart_weq h, slotsT_weq h, armB_weq h fold prodIn encIn b k hn hd]
 
-theorem groupsT_weq (h : WEq W W' I) :
+theorem groupsT_weq (h : WEq W W' I) (he : W.enc = W'.enc := by rfl) :
     ∀ m p prod enc b, 3 * (p + m) ≤ I → groupsT W m p prod enc b = groupsT W' m p prod enc b
   | 0, _, _, _, _, _ => rfl
   | m + 1, p, prod, enc, b, hm => by
       simp only [groupsT]
-      rw [groupT_weq h _ prod enc b (by omega) (le_refl 3), prodT_weq h, encT_weq h, slotsT_weq h,
-        groupsT_weq h m (p + 1) _ _ _ (by omega)]
+      rw [groupT_weq h _ prod enc b (by omega) (le_refl 3) he, prodT_weq h, encT_weq h, slotsT_weq h,
+        groupsT_weq h he m (p + 1) _ _ _ (by omega)]
 
-theorem codewordT_weq (h : WEq W W' I) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 3 * G + 1 ≤ I) :
+theorem codewordT_weq (h : WEq W W' I) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 3 * G + 1 ≤ I)
+    (he : W.enc = W'.enc := by rfl) :
     codewordT W G target d0 b = codewordT W' G target d0 b := by
   simp only [codewordT]
-  rw [groupsT_weq h G 0 _ _ b (by omega), groupT_weq h _ _ _ _ (by omega) (by norm_num), prodT_weq h,
+  rw [groupsT_weq h he G 0 _ _ b (by omega), groupT_weq h _ _ _ _ (by omega) (by norm_num) he, prodT_weq h,
     encT_weq h, slotsT_weq h]
 
 theorem cwState_weq (h : WEq W W' I) (b : Nat) : ∀ p, 3 * p ≤ I → cwState W b p = cwState W' b p
   | 0, _ => rfl
   | p + 1, hp => by
       simp only [cwState]
-      rw [cwState_weq h b p (by omega), prodT_weq h, encT_weq h, groupT_weq h _ _ _ _ (by omega) (le_refl 3)]
+      rw [cwState_weq h b p (by omega), prodT_weq h, encT_weq h, groupT_snd_weq h _ _ _ _ (by omega)]
 
 theorem cwTip_weq (h : WEq W W' I) (b i : Nat) (hi : 3 * (i / 3) ≤ I) : cwTip W b i = cwTip W' b i := by
   unfold cwTip
