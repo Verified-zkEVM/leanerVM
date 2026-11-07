@@ -310,9 +310,11 @@ at most $N = 1\,182\,000\,000$ signing requests
 \lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
 count them). The scheme is SLH-DSA (FIPS 205) on Keccak-256 with WOTS$^+$C: every tree, chain and
 secret hash is $\mathrm{Trunc}_{16}(H(\mathrm{PK.seed} \Vert \mathrm{ADRS} \Vert M))$ with FIPS 205's
-32-byte address, FORS trees are hashed to their roots, and the digest is two counter-mode calls read
-as FIPS 205's Algorithm~19. Its secret key is the crate's, the 32-byte $\mathrm{SK.seed}$, from which
-$\mathrm{PK.seed}$ and $\mathrm{SK.prf}$ are hashed again at each signature, and its signer is the
+32-byte address, FORS trees are hashed to their roots, and the digest is two counter-mode calls on
+the 32-byte message unframed (only the randomizer's $\mathrm{PRF}_{\mathrm{msg}}$ hashes pure
+SLH-DSA's framing $M'$), read as FIPS 205's Algorithm~19. Its secret key is the crate's, the
+32-byte $\mathrm{SK.seed}$, from which $\mathrm{PK.seed}$ and $\mathrm{SK.prf}$ are hashed again at
+each signature, and its signer is the
 crate's, hash call for hash call (the top tree built once, for the root and the top path, each FORS
 tree built once, the layers from the bottom up). In leanXMSS the secret key is the crate's too: the
 key's seed $S_0$ and the public parameter $P$ key generation derived, from which the signer derives
