@@ -14,7 +14,8 @@ import LeanVM.Guest.B1.Da.DualMath
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
 (`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 3`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
-through `aggregation.rs`'s test-only `FORGE` hook) and its public input. For each case it checks
+through the test-only `FORGE` hook, `aggregation/hints.rs:50`) and its public input. For each
+case it checks
 
 * that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every raw
   signature verifies and every signature claim is a raw signature's or a child's, the DA digest is that of the claim the directly checked matrix opens, else zero or

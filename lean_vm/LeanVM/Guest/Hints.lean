@@ -202,18 +202,18 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
 /-- The message's 32 bytes, each in the exponent, one entry (`exponent_bytes(message)`,
-`aggregation/hints.rs:155`): the guest rebuilds the message's cells from them and shifts them into
+`aggregation/hints.rs:151`): the guest rebuilds the message's cells from them and shifts them into
 `M'`. -/
 def sphincsMessageEntry (message : HashSig.Message) : Entry :=
   exponentBytes (HashSig.littleEndianBytes 32 message)
 
 /-- The bytes of `H_msg`'s two calls past its `34` (the second call's bytes `2` to `7`), each in the
-exponent, one entry (`exponent_bytes(&digest[DIGEST_BYTES..40])`, `aggregation/hints.rs:160`). -/
+exponent, one entry (`exponent_bytes(&digest[DIGEST_BYTES..40])`, `aggregation/hints.rs:156`). -/
 def sphincsUnusedEntry (outputs : Sphincs.DigestCall → HashSig.HashOutput) : Entry :=
   (List.range 6).map fun k ↦ count (Sphincs.digestValue outputs / 2 ^ (8 * (34 + k)) % 256)
 
 /-- A counter's four bytes, most significant first, each in the exponent, one entry
-(`exponent_bytes(&counter.to_be_bytes())`, `aggregation/hints.rs:172`). -/
+(`exponent_bytes(&counter.to_be_bytes())`, `aggregation/hints.rs:170`). -/
 def sphincsCounterEntry (counter : Sphincs.EncodingCounter) : Entry :=
   exponentBytes (Sphincs.bigEndianBytes 4 counter)
 

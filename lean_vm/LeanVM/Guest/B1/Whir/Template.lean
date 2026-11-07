@@ -231,7 +231,7 @@ def osHead (c : OsCfg) : List Stmt × OsSt :=
     osHeap (n * oodSlots) 162,
    ⟨164, [0, 1, 2, 3, 4], 9, 10, 8, 2, 9, 11, 10, 5, none, []⟩)
 
-/-- One sumcheck round (`opening_fold`, G:1245), its challenge stored at `p·g^off`: the cursor
+/-- One sumcheck round (`opening_fold`, G:1528), its challenge stored at `p·g^off`: the cursor
 materialized, the call, the store, `b = claim + a`. -/
 def osFold (p off : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let m := osMat s.cb s.co s.k
@@ -254,7 +254,7 @@ theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), (osFolds p off n
   | 0, _, _ => rfl
   | n + 1, off, st => osFolds_mats p n (off + 1) (osFold p off st).2
 
-/-- The final level's message (`opening_final_message`, G:1526): the call, the sponge after the
+/-- The final level's message (`opening_final_message`, G:1535): the call, the sponge after the
 nonce's permutation; its first cell (the grinding word) and the nonce. -/
 def osFinal (c : OsCfg) (s : OsSt) : List Stmt × OsSt × ℕ :=
   let m := osMat s.cb s.co s.k
@@ -377,7 +377,7 @@ def osQueriesMats (c : OsCfg) (lv : OsLv) (s : OsSt) : List OsMat :=
   let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
   osMatsAfter P m3 osQbp lv.posOff flp2.2.2
 
-/-- A level's out-of-domain claim glued with the scalar `lam` (G:1515-1525), from `k`: its value
+/-- A level's out-of-domain claim glued with the scalar `lam` (G:1655-1665), from `k`: its value
 and intro reread from `ood`, the scalar stored, the running sums updated; the next scalar
 `lam²` at `k + 12`. -/
 def osOodGlue (lvl lam : ℕ) (s : OsSt) : List Stmt × OsSt :=
@@ -392,7 +392,7 @@ def osOodGlue (lvl lam : ℕ) (s : OsSt) : List Stmt × OsSt :=
     .atom (.add (.n (k + 11)) (.n s.t) (.n (k + 10))), .atom (.mul (.n (k + 12)) (.n lam) (.n lam))],
    { s with k := k + 13, c := k + 4, b := k + 7, a := k + 9, t := k + 11 })
 
-/-- The level's batch glued with the scalar `beta` (G:1676-1680), from `k`: the intro `c0, c1, c2`
+/-- The level's batch glued with the scalar `beta` (G:1667-1671), from `k`: the intro `c0, c1, c2`
 and the queries' sum `v`. -/
 def osGlue (beta v c0 c1 c2 : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
@@ -458,7 +458,7 @@ def osTail (c : OsCfg) (s : OsSt) : List Stmt × OsSt × ℕ :=
         .atom (.load (.n (j + 48 + i)) (.n tch) (c.yrLog + i))]).flatten,
    { f.2 with k := j + 48 + (yrLogCap - c.yrLog), t := j + 47 }, tch)
 
-/-- The source of entry `i` of the rotated point (G:1707-1721): the fold challenges past the lane
+/-- The source of entry `i` of the rotated point (G:1706-1720): the fold challenges past the lane
 folds, the tail challenges, the lane folds; then zeros. -/
 def osPtSrc (c : OsCfg) (tch i : ℕ) : Option (ℕ × ℕ) :=
   let lane := (c.levels.headD default).folds

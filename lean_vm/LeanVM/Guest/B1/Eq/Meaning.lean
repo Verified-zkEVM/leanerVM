@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Basic
 For each function of the guest (`lean_ethereum.py` at leanVM `834e6614`, G below) its meaning
 on its argument and return words, and `…_Spec`, the statement that its core IR relation is that
 meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtree_frame`
-(G:947-1004) have no core function of their own; their expansions are templates of
+(G:951-1009) have no core function of their own; their expansions are templates of
 `B1/Eq/Templates.lean`.
 
 | function | G | meaning |

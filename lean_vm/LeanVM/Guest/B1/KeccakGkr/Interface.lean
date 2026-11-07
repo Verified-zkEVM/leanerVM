@@ -163,7 +163,7 @@ def laterWeights (lanes slices : List E) : List E :=
 (`KC_FLIPS`). -/
 def flipsOf (ws : List E) : List E := (List.range 7).map fun i ↦ ws.getD (2 ^ i - 1) 0
 
-/-- **The claim record at `rec`** (`KC_*`, G:237-244) of the claim `c` on `y`-coordinate points:
+/-- **The claim record at `rec`** (`KC_*`, G:237-245) of the claim `c` on `y`-coordinate points:
 `KC_VALUE = 0` the value, `KC_KAPPA = 1` the sum of the instance weights, `KC_POINT = 2` a pointer
 to the point, `KC_MU = 6..21` the sixteen instance weights, `KC_LANES = 3` a pointer to the
 twenty-five lane weights; the first claim's position weights are `firstWeights`; a later claim's

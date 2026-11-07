@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 
 /-!
-# `verify_merkle_cap` (G:1188-1239, TRIAGE #34)
+# `verify_merkle_cap` (G:1193-1244, TRIAGE #34)
 
 With `L = 2^D` leaves, the expansion of `verify_merkle_cap__L{D}` is `mcBody L`:
 

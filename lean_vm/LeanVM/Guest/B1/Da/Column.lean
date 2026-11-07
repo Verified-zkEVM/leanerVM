@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.Column
 
   `da_verify_column` and its blob loop `__loop25`: what a run of a column establishes
-  (G:4115-4129).
+  (G:4400-4414).
 -/
 
 module

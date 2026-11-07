@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.ShiftMath
 
-  The carry ripple of `keccak_shifts_eq` (G:2599-2652): the multilinear extension of
+  The carry ripple of `keccak_shifts_eq` (G:2604-2657): the multilinear extension of
   "x = y + r mod 64", bit by bit with the carry.
 -/
 
@@ -79,7 +79,7 @@ theorem sum4_factor (f g : ℕ → ℕ → E) (m n : ℕ) :
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   rw [Finset.mul_sum]
 
-/-- **One step of the carry chain** (`carry_step`, G:2568-2582). -/
+/-- **One step of the carry chain** (`carry_step`, G:2573-2587). -/
 theorem carryK_snoc (as bs : List E) (hl : bs.length = as.length) (α β : E) {p r c' : ℕ}
     (hp : p < 2 ^ as.length) (hr : r < 2) (hc : c' < 2) :
     carryK (as ++ [α]) (bs ++ [β]) c' (p + 2 ^ as.length * r) =
