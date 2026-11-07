@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsT
-public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.SphincsAdrs
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 public import LeanVM.Guest.B1.Sig.Codeword
@@ -24,8 +23,7 @@ frame map `V`; it mentions no hash.
 * the randomizer `R`, `n347` (`sRand`, `sp_rand`);
 * FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base (`sForsBase c`), and
   at each height `z` the hinted child that is not the node climbed (`siblingOf`, at
-  `sForsKid c z`; `SphincsSoundPath`'s until it moves to `SphincsForsT`): `is_child`'s bit names
-  the climbed one;
+  `sForsKid c z`; `SphincsForsT`'s): `is_child`'s bit names the climbed one;
 * layer `l`'s signature (`sLayerOf`): its counter, its four bytes (`sCtrOf l`, hinted most
   significant first and read lowest first, `sp_from_bytes`) reversed, `beWordAt 0`; its
   chain values, the chain starts of the frame `V "sp_wots" [PK.seed, a0, a1, enc] [leaf]` of the

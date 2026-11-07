@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsSoundWots
+public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.SphincsSoundBlocks
 public import LeanVM.Guest.B1.Sig.SphincsSoundDigest
 public import LeanVM.Guest.B1.Sig.SphincsBridge
