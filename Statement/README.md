@@ -87,9 +87,10 @@ theorems, then read the files in this order.
 3. [`SufCma.lean`](SufCma.lean): the SUF-CMA game of a hash-based signature scheme over `π`
    (`SufCma.forgeryGame`) and its security notion (`SufCma.StronglyUnforgeable`), for one key.
 4. [`HashSignatures.lean`](HashSignatures.lean): what leanXMSS and leanSPHINCS share (namespace
-   `HashSig`): the tweakable hash's types, bytes and address (`crates/signatures/src/tweak.rs`),
-   the address with its hypertree layer and tree, zero for leanXMSS), the hash `H`, Keccak-256 over
-   a permutation `π` (`OverPermutation.keccakHash π`), and a hash
+   `HashSig`): the sizes and types both schemes use and the shape of their tweakable hash
+   `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasher`, `truncate` of
+   `crates/signatures/src/lib.rs`; each scheme lays out its own address), the hash `H`, Keccak-256
+   over a permutation `π` (`OverPermutation.keccakHash π`), and a hash
    chain, a Merkle path's fold and a Merkle tree's node (`walkChain`, `foldPath`, `buildTree`),
    which every chain, fold and tree of both schemes instantiates.
 5. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme over a permutation `π`, on the shared
