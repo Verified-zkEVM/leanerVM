@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Sig.SphincsLoads
 /-!
 # `verify_sig_lean_sphincs`, complete
 
-`G` is `lean_ethereum.py`. The body (`sBody_split`) is the statements before the root's check
+`G` is `lean_ethereum.py`. The body (`sBody_splitC`) is the statements before the root's check
 (`sPre`): the digest and FORS (`sBottom_complete`), the bottom layer, the middle layer's address
 (`sMidAddrs_vals`), the middle layer, the top layer's address (`sTopAddrs_vals`) and the top layer
 (`layer_stage`); then `root[0] == pk_root` (`G:4073`) and the return. The statement's verification
@@ -41,7 +41,7 @@ def sPre : List Stmt :=
   (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) ++
     (sLayerB.1 ++ (sMidAddrs ++ (sLayerM.1 ++ (sTopAddrs ++ sLayerT.1))))
 
-theorem sBody_split : sBody = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
+theorem sBody_splitC : sBody = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
   simp only [sBody, sAfterDigest, sPre, List.append_assoc]
 
 theorem sLayerB_end : sLayerB.2.1 = 9242 := rfl
@@ -53,8 +53,8 @@ theorem sBottom_nb : NumBelow 8977 (Stmt.valsList (sDigestBlock ++ (sForsAddrs +
 theorem sLayerB_nb : NumBelow 9242 (Stmt.valsList sLayerB.1) := numBelow_of_all (by decide +kernel)
 theorem sLayerM_nb : NumBelow 9516 (Stmt.valsList sLayerM.1) := numBelow_of_all (by decide +kernel)
 theorem sLayerT_le : 9522 ≤ sLayerT.2.1 := by decide +kernel
-theorem sLayerB_root : ∃ k < 9242, sLayerB.2.2 = .n k := ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩
-theorem sLayerM_root : ∃ k < 9516, sLayerM.2.2 = .n k := ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩
+theorem sLayerB_rootC : ∃ k < 9242, sLayerB.2.2 = .n k := ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩
+theorem sLayerM_rootC : ∃ k < 9516, sLayerM.2.2 = .n k := ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩
 theorem sAfterDigest_ptrs : loadPtrs (sForsAddrs ++ sForsB.1) = [] ∧ loadPtrs sMidAddrs = [] ∧
     loadPtrs sTopAddrs = [] := by decide +kernel
 theorem sLayerB_ptrs : ∀ q ∈ loadPtrs sLayerB.1, q < 9242 := by decide +kernel
@@ -103,7 +103,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   have hAC := hA.congr tCA
   obtain ⟨ha0C, ha1C⟩ := sMidAddrs_vals hAC.2.2.2.1.2.2.2.1 hAC.2.2.2.1.2.2.2.2 hAtC
   have hsC : σC (sSignedOf 1) = R0 := by
-    obtain ⟨k, hk, ek⟩ := sLayerB_root
+    obtain ⟨k, hk, ek⟩ := sLayerB_rootC
     show σC sLayerB.2.2 = R0
     rw [ek, tC k hk, ← ek]; exact hB0
   -- the middle layer
@@ -122,7 +122,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   have hAE := hA.congr tEA
   obtain ⟨ha0E, ha1E⟩ := sTopAddrs_vals hAE.2.2.2.1.2.2.2.1 hAE.2.2.2.1.2.2.2.2 hAtE
   have hsE : σE (sSignedOf 2) = R1 := by
-    obtain ⟨k, hk, ek⟩ := sLayerM_root
+    obtain ⟨k, hk, ek⟩ := sLayerM_rootC
     show σE sLayerM.2.2 = R1
     rw [ek, tE k hk, ← ek]; exact hD1
   -- the top layer
@@ -161,7 +161,7 @@ theorem verify_sig_lean_sphincs_complete_loads_of (hB : SphincsBlocksComplete) :
   have f0 : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
   have f1 : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1
   refine ⟨σf, f0, f1, ?_, ?_⟩
-  · rw [sBody_eq, sBody_split, holdsList_append]
+  · rw [sBody_eq, sBody_splitC, holdsList_append]
     refine hhf _ _ ⟨?_, rfl⟩
     show σf sLayerT.2.2 + σf sRoot = 0
     rw [hroot, hrt]; exact e_add_self _

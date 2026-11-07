@@ -129,7 +129,7 @@ theorem spGood_congr {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) {σ σ' : Val
   exact ⟨by rw [hσ.apply ⟨0, by omega, rfl⟩]; exact g0, by rw [hσ.apply ⟨4, by omega, rfl⟩]; exact g4,
     by rw [hσ.apply ⟨5, by omega, rfl⟩]; exact g5, gp.congr (b := B) hB hσ⟩
 
-theorem canon_lit (c : Nat) : IsCanonical128 (lit c) := canon_word _ _
+theorem canon_litC (c : Nat) : IsCanonical128 (lit c) := canon_word _ _
 
 /-- **The step reads and writes canonical cells.** -/
 theorem spWp_canon {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) :
@@ -182,7 +182,7 @@ theorem spWp_canon {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) :
       · exact ⟨hlow 4 (by norm_num), hne (by omega),
           by rw [keep _ (hne (by omega)) (hne (by omega))]; exact g4⟩
       · exact ⟨by rintro ⟨k, hk, e⟩; simp only [V.mk.injEq, true_and] at e; omega, hne (by omega),
-          by rw [e1]; exact canon_add g5 (canon_lit _)⟩
+          by rw [e1]; exact canon_add g5 (canon_litC _)⟩
       · exact ⟨h2, hvc 2 (by norm_num),
           by rw [keep _ hv0 (hvc 1 (by norm_num))]; exact hv⟩
 

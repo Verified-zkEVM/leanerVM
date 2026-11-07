@@ -86,7 +86,7 @@ theorem lvals_four {T : Nat} (hl : LValsAt σ T) :
     Nat.reduceAdd, pow_zero, Nat.div_one] at h0 h1 h2 h3
   exact ⟨h0, h1, h2, h3⟩
 
-theorem leaves_lt (T : Nat) : layerLeafN T 0 < 256 ∧ layerLeafN T 1 < 256 ∧ layerLeafN T 2 < 1024 := by
+theorem leaves_ltC (T : Nat) : layerLeafN T 0 < 256 ∧ layerLeafN T 1 < 256 ∧ layerLeafN T 2 < 1024 := by
   obtain ⟨a, b, c⟩ := layerLeafN_lt' T
   exact ⟨by simpa using a, by simpa using b, by simpa using c⟩
 
@@ -104,7 +104,7 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
     (h : AtomsHold rd σ sForsAddrs) :
     σ sA0B = adrsCell0 0 (layerTreeN T 0) ∧ σ sKeyB = adrsCell1 0 (layerLeafN T 0) 0 0 := by
   obtain ⟨l0, l1, -, l3⟩ := lvals_four hl
-  obtain ⟨b0, b1, b2⟩ := leaves_lt T
+  obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
   have c0 : σ (.n 1710) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sForsAddrs, cst])
   have m1 : σ (.n 1711) = σ (sLVal 8) * σ (.n 1710) := h.atom (a := .mul _ _ _) (by simp [sForsAddrs, mulS])
@@ -145,7 +145,7 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
     (h : AtomsHold rd σ sMidAddrs) :
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
   obtain ⟨-, l1, -, l3⟩ := lvals_four hl
-  obtain ⟨b0, b1, b2⟩ := leaves_lt T
+  obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
   have c0 : σ (.n 9242) = lit (2 ^ 24) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
   have c1 : σ (.n 9243) = lit (2 ^ 120) := h.atom (a := .const _ _) (by simp [sMidAddrs, cst])
@@ -177,7 +177,7 @@ theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
     (h : AtomsHold rd σ sTopAddrs) :
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, -, l3⟩ := lvals_four hl
-  obtain ⟨b0, b1, b2⟩ := leaves_lt T
+  obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
   have c0 : σ (.n 9516) = lit (2 ^ 56) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
   have m1 : σ (.n 9517) = σ sTreeMid * σ (.n 9516) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
