@@ -1012,7 +1012,7 @@ theorem vsOsRets_cost (hP : Includes P Decoder.vsOsRetsC.costDeps) :
 /-- A child proof's price, its candidate and `open_stacked`'s frame given. -/
 @[expose] def vsAtPrice (R S F C L : ℕ) : ℕ :=
   3 * S + C + ((R + 56) * L + 5) + (F + 10) + ((R + 56) * 121 + 5) + (11 * L + 3) +
-    ((levelPrice R (F + 10) F + 20 + 13) * 6 + 3) + ((11 * 225 + 11) * 6 + 3) + 70
+    ((levelPrice R (F + 10) F + 20 + 13) * 6 + 3) + 70
 
 /-- **A child's proof, its candidate `m` and the frame `fr` of its `open_stacked` call given**
 (`vsPiOfAtC`), the frame of price at most `F + 10`: at most `vsAtPrice R S F C L`. -/
@@ -1049,9 +1049,6 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
       have := levelOsA_cost P hrd hR hfr hfrS hVn hF (by includes) T.lanes hT.lanes c (hcok c hc)
       omega)
   have := Nat.mul_le_mul_left (levelPrice R (F + 10) F + 20 + 13) hcl6
-  have hf := flatten_map_cost P (by includes) 225 (levelOsA T.lanes rd fr Vn) (T.calls.getD m [])
-    (fun c hc ↦ length_levelOsA T.lanes _ _ c (hcok c hc))
-  have := Nat.mul_le_mul_left (11 * 225 + 11) hcl6
   unfold vsAtPrice
   omega
 

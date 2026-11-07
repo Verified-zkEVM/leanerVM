@@ -92,7 +92,9 @@ instance {α : Type} [MachineDecoding α] {n : ℕ} : MachineDecoding (Fin n →
   ⟨decodeFiniteFunction⟩
 
 instance : MachineDecoding Opening where
-  decodeValue | .constructor 0 [l, p] => do pure ⟨← decodeValue l, ← decodeValue p⟩ | _ => none
+  decodeValue
+    | .constructor 0 [i, l, p] => do pure ⟨← decodeValue i, ← decodeValue l, ← decodeValue p⟩
+    | _ => none
 
 instance : MachineDecoding Proof where
   decodeValue | .constructor 0 [s, o] => do pure ⟨← decodeValue s, ← decodeValue o⟩ | _ => none
@@ -261,8 +263,9 @@ instance {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDec
     funext i
     simp⟩
 
-instance : LawfulMachineDecoding Opening := ⟨fun ⟨l, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue l), ← decodeValue (encodeValue p)⟩ : Option Opening) = _; simp⟩
+instance : LawfulMachineDecoding Opening := ⟨fun ⟨i, l, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue i), ← decodeValue (encodeValue l),
+    ← decodeValue (encodeValue p)⟩ : Option Opening) = _; simp⟩
 
 instance : LawfulMachineDecoding Proof := ⟨fun ⟨s, o⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue o)⟩ : Option Proof) = _; simp⟩

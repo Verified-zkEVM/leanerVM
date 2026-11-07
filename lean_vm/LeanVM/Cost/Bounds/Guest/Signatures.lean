@@ -386,8 +386,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
       1492 * S + 350800 := by
   rw [Decoder.sphincsSigOfNC.costEq P hP T σ σV hσ w0 w0V hw0 w1 w1V hw1 w2 w2V hw2,
     ofFnFrom_length]
-  have := hS (.n 347)
-  have := cellNat_cost P (by includes) (σ (.n 347))
+  have := hS (.n 6)
+  have := cellNat_cost P (by includes) (σ (.n 6))
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forsTreeCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))

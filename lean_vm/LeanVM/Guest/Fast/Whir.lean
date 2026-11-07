@@ -73,7 +73,7 @@ def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Pro
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 656))) ++
       readN rd (fr (.n 8)) (osWordsTab.getD m 0),
-    (osCallsTab.getD m []).flatMap (levelOsN rd fr Vn)⟩
+    (osCallsTab.getD m []).map (levelOsN rd fr Vn)⟩
 
 /-! ## Equal to the original -/
 
@@ -127,13 +127,13 @@ theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {r : OsCall}
     hl]
   rfl
 
-theorem flatMap_zip {α β γ : Type} {g : α → List γ} {h : β → List γ} :
+theorem map_zip_of_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
     ∀ {l₁ : List α} {l₂ : List β}, l₁.length = l₂.length →
-      (∀ p ∈ l₁.zip l₂, g p.1 = h p.2) → l₁.flatMap g = l₂.flatMap h
+      (∀ p ∈ l₁.zip l₂, g p.1 = h p.2) → l₁.map g = l₂.map h
   | [], [], _, _ => rfl
   | a :: l₁, b :: l₂, hl, hp => by
-      simp only [List.flatMap_cons]
-      rw [hp (a, b) (by simp), flatMap_zip (by simpa using hl)
+      simp only [List.map_cons]
+      rw [hp (a, b) (by simp), map_zip_of_eq (by simpa using hl)
         (fun p hm ↦ hp p (List.mem_cons_of_mem _ hm))]
   | [], _ :: _, hl, _ => by simp at hl
   | _ :: _, [], hl, _ => by simp at hl
@@ -150,7 +150,7 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, getD_map_range hm]
   rw [Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
-  exact flatMap_zip hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
+  exact map_zip_of_eq hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
 
 /-! ## Consecutive cells, incrementally -/
 
@@ -365,7 +365,7 @@ def vsPiOfAt (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → 
     (fr : Val) : Proof :=
   ⟨wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 656))) ++
       wordsFrom rd ((fr (.n 8)).limb 0) (T.words.getD m 0),
-    (T.calls.getD m []).flatMap (levelOsA T.lanes rd fr Vn)⟩
+    (T.calls.getD m []).map (levelOsA T.lanes rd fr Vn)⟩
 
 /-- The child proof, its candidate `m` given: the frame of `open_stacked__L{m}`'s call read once. -/
 def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :

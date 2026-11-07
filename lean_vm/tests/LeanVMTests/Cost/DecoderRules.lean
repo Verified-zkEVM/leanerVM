@@ -126,7 +126,7 @@ def stmt : NodeStatement := mkStatement [(mkKey r p, m)] [(mkSpKey p r, m)] dige
   [encodeValue [(mkKey r p, m)], encodeValue [(mkSpKey p r, m)], encodeValue digest, encodeValue claim] ==
   some (encodeValue stmt)
 
-def proof : LeanVM.Protocol.Compile.Proof := ⟨[x], [⟨[K.ofLane 5], [digest]⟩]⟩
+def proof : LeanVM.Protocol.Compile.Proof := ⟨[x], [[⟨3, [K.ofLane 5], [digest]⟩]]⟩
 def child : Child := mkChild stmt claim proof
 #guard runOn mkChild.costDeps mkChild.costIdx [encodeValue stmt, encodeValue claim, encodeValue proof] == some (encodeValue child)
 
