@@ -65,22 +65,6 @@ def sForsAddrs : List Stmt :=
 output run's base. -/
 def sForsB : List Stmt × Nat × Nat := sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1405
 
-/-- The values `sp_fors_at(a1, vals, c, z)` takes (`sForsAt`): the height's constant (none at `z =
-0`), then at the root tree `c`'s constant (none for `c = 0`), below height `2` the index's two
-bytes (`sBe16`, five values) and the sum, else the high byte's constant (none when it is `0`), the
-low byte (two values) and the sum. -/
-def forsAtW (c z : Nat) : Nat :=
-  if z = 10 then (if c = 0 then 2 else 4)
-  else if z / 2 = 0 then (if z = 0 then 6 else 8)
-  else if c / 2 ^ (z - 2) = 0 then 5 else 7
-
-/-- The values level `z` of tree `c` takes: the pair and `is_child`'s two, the parent's address, the
-padding's three cells, the last byte's constant and the parent's thirteen. -/
-def forsLevelW (c z : Nat) : Nat := 21 + forsAtW c (z + 1)
-
-/-- The values tree `c` takes: its secret, its leaf's address and hash (twenty), its ten levels. -/
-def forsTreeW (c : Nat) : Nat := 21 + ((List.range 10).map (forsLevelW c)).sum
-
 /-- Tree `c`'s base, its secret's cell. -/
 def sForsBase (c : Nat) : Nat := 1407 + ((List.range c).map forsTreeW).sum
 
