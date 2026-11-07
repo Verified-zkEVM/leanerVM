@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Wire.RoundTrip
+public import LeanVM.Wire.ReadDet
 
 /-!
 # One encoding
@@ -88,13 +89,9 @@ theorem readPhases_eq_toBytes (h : Bytes → Digest)
     rw [phase_eq bytes phase input hphase, hbytes, hrest]
     simp only [List.map_cons, List.flatMap_cons, List.append_assoc]
 
-/-- **One encoding from its steps**: the readers' determinism (a 32-bit word, words) and the phase
+/-- **One encoding from its steps**: the readers' determinism (`ReaderConverse`) and the phase
 step (re-encoding a phase read back and unpruned gives the bytes it was read from). -/
-theorem oneEncoding_of
-    (u32_eq : ∀ bytes value rest, readU32 bytes = some (value, rest) →
-      value < 2 ^ 32 ∧ bytes = Prover.u32Bytes value ++ rest)
-    (words_eq : ∀ count bytes words rest, readWords count bytes = some (words, rest) →
-      bytes = words.flatMap K.toBytes ++ rest ∧ words.length = count)
+theorem oneEncoding_of (hc : ReaderConverse)
     (phase_eq : ∀ (h : Bytes → Digest) bytes phase rest, readPhase bytes = some (phase, rest) →
       bytes = Prover.phaseToBytes (unprunePhaseWithHash (m := Id) h phase) ++ rest) :
     OneEncodingStatement := by
@@ -113,9 +110,9 @@ theorem oneEncoding_of
       Option.guard_eq_some', Option.some.injEq, Prod.mk.injEq] at hread
     obtain ⟨length, input₁, hlength, words, input₂, hwords, phaseCount, input₃, hcount, -, -,
       phases', input₄, hphases, -, hempty, rfl, rfl⟩ := hread
-    obtain ⟨-, hbytes₁⟩ := u32_eq _ _ _ hlength
-    obtain ⟨hbytes₂, hwordsLength⟩ := words_eq _ _ _ _ hwords
-    obtain ⟨-, hbytes₃⟩ := u32_eq _ _ _ hcount
+    obtain ⟨-, hbytes₁⟩ := hc.u32_eq _ _ _ hlength
+    obtain ⟨hbytes₂, hwordsLength⟩ := hc.words_eq _ _ _ _ hwords
+    obtain ⟨-, hbytes₃⟩ := hc.u32_eq _ _ _ hcount
     obtain ⟨hphasesLength, hbytes₄⟩ := readPhases_eq_toBytes h (phase_eq h) _ _ _ _ hphases
     have hempty' : input₄ = [] := by simpa using hempty
     subst hempty'
