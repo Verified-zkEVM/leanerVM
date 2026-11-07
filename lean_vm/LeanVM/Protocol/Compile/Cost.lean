@@ -305,6 +305,19 @@ theorem isTotalQueryBound_openAll (root : Digest) (ht w : ℕ) :
         fun _ ↦ isTotalQueryBound_pure' _ 0).mono (by omega)
     · trivial
 
+/-- Opening a phase at `ps` against a root of height `ht` makes at most `|ps| · (1 + ht)`
+queries. -/
+theorem isTotalQueryBound_openPhase (root : Digest) (ht w : ℕ) (ps : List ℕ)
+    (phase : List Opening) :
+    IsTotalQueryBound (openPhaseWithHash callKeccak256 root ht w ps phase)
+      (ps.length * (1 + ht)) := by
+  unfold openPhaseWithHash
+  split
+  · rw [← Nat.add_zero (ps.length * (1 + ht))]
+    exact isTotalQueryBound_bind (isTotalQueryBound_openAll root ht w ps phase) fun o ↦ by
+      split <;> exact isTotalQueryBound_pure' _ 0
+  · trivial
+
 /-- An absorption followed by a continuation: the continuation runs at the sponge with the
 scalar appended, after one permutation when four scalars wait. -/
 theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
@@ -406,18 +419,18 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
   | .query i ps k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
     split
-    · trivial
-    · rename_i root ht w hroot
+    · next root ht w phase rest hroot hopen =>
       have hht : ht ≤ height := hs _ (List.mem_of_getElem? hroot)
       have hle : VerifierProgram.openCost height ps.length ≤ n := hp.1
       rw [show (n + s.sponge.pending.length) / 4 = ps.length * (1 + height) +
           (n - VerifierProgram.openCost height ps.length + s.sponge.pending.length) / 4 by
         unfold VerifierProgram.openCost at hle ⊢; omega]
-      refine isTotalQueryBound_bind ((isTotalQueryBound_openAll root ht w ps s.openings).mono
+      refine isTotalQueryBound_bind ((isTotalQueryBound_openPhase root ht w ps phase).mono
         (Nat.mul_le_mul_left _ (by omega))) fun o ↦ ?_
       split
       · exact isTotalQueryBound_run height _ _ _ Q (hp.2 _) hs hk
       · trivial
+    · trivial
 
 /-- A program of cost `n`, run on a proof from any seed, makes at most `n / 4` queries. -/
 theorem isTotalQueryBound_runProof {P : VerifierProgram Bool} {height n : ℕ} (hP : P.CostLE

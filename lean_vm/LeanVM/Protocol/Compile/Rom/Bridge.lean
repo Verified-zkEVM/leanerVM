@@ -97,6 +97,16 @@ theorem simulateQ_openAll (root : Digest) (ht w : ℕ) :
     · simp only [simulateQ_bind, simulateQ_openAll root ht w qs os, simulateQ_pure]
     · simp
 
+theorem simulateQ_openPhase (root : Digest) (ht w : ℕ) (ps : List ℕ) (phase : List Opening) :
+    simulateQ impl (openPhaseWithHash callKeccak256 root ht w ps phase) =
+      openPhaseWithHash (implH impl) root ht w ps phase := by
+  simp only [openPhaseWithHash]
+  split
+  · simp only [simulateQ_bind, simulateQ_openAll]
+    congr 1; funext o
+    split <;> simp
+  · simp
+
 theorem simulateQ_duplex (sp : Sponge) :
     simulateQ impl (duplex callKeccakF1600 sp) = duplex (implF impl) sp := by
   simp only [duplex, simulateQ_bind, simulateQ_queryF, simulateQ_pure]
@@ -147,12 +157,12 @@ theorem simulateQ_run :
   | .query i ps k, s => by
     simp only [runWithHash]
     split
-    · simp
-    · simp only [simulateQ_bind, simulateQ_openAll]
+    · simp only [simulateQ_bind, simulateQ_openPhase]
       congr 1; funext o
       split
       · exact simulateQ_run _ _
       · simp
+    · simp
 
 theorem simulateQ_runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) :
     simulateQ impl (runProofWithHash callKeccak256 callKeccakF1600 P seed π) =

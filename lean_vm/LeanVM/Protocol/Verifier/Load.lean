@@ -36,12 +36,13 @@ def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.
 /-- The stream's bytes. -/
 def encodeScalars (xs : List E) : Bytes := xs.flatMap eBytes
 
-/-- An opening's bytes: its leaf's words, then its siblings from the leaf up
-(`Transcript.merkle`). -/
-def openingBytes (o : Opening) : Bytes := o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
+/-- An opening's bytes: its position as eight little-endian bytes, its leaf's words, then its
+siblings from the leaf up (`Transcript.merkle`). -/
+def openingBytes (o : Opening) : Bytes :=
+  wordBytes (UInt64.ofNat o.leafIndex) ++ o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes
 
 /-- The openings file's bytes. -/
-def encodeOpenings (os : List Opening) : Bytes := os.flatMap openingBytes
+def encodeOpenings (oss : List (List Opening)) : Bytes := oss.flatMap (·.flatMap openingBytes)
 
 /-! ## Round trips -/
 
@@ -177,22 +178,37 @@ theorem digestBytes_length' (d : Digest) : (digestBytes d).length = 32 := digest
 /-- An opening's shape: its height (siblings) and width (leaf words). -/
 def openingShape (o : Opening) : ℕ × ℕ := (o.path.length, o.leaf.length)
 
-theorem readOpening_bytes (o : Opening) (rest : Bytes) :
+theorem readOpening_bytes (o : Opening) (ho : o.leafIndex < 2 ^ 64) (rest : Bytes) :
     readOpening o.path.length o.leaf.length (openingBytes o ++ rest) = some (o, rest) := by
-  simp [readOpening, openingBytes, readMany_flatMap kBytes_length kOfBytes_kBytes,
+  have hp : readMany 8 natOfBytes 1 (openingBytes o ++ rest) =
+      some ([o.leafIndex], o.leaf.flatMap K.toBytes ++ o.path.flatMap digestBytes ++ rest) := by
+    simp only [readMany, openingBytes, List.append_assoc,
+      List.take_left' (wordBytes_length _), List.drop_left' (wordBytes_length _), wordBytes_length,
+      ↓reduceIte, Option.map_some, natOfBytes]
+    have := laneOfBytes_wordBytes_append (UInt64.ofNat o.leafIndex) []
+    simp only [List.append_nil] at this
+    rw [this, UInt64.toNat_ofNat_of_lt' ho]
+  simp [readOpening, hp, readMany_flatMap kBytes_length kOfBytes_kBytes,
     readMany_flatMap digestBytes_length digestOfBytes_digestBytes]
 
 theorem readOpening_spec {height width : ℕ} {b rest : Bytes} {o : Opening}
     (h : readOpening height width b = some (o, rest)) :
     openingShape o = (height, width) ∧ openingBytes o ++ rest = b := by
   simp only [readOpening, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
-  obtain ⟨⟨leaf, b1⟩, h1, ⟨path, b2⟩, h2, he⟩ := h
+  obtain ⟨⟨position, b0⟩, h0, ⟨leaf, b1⟩, h1, ⟨path, b2⟩, h2, he⟩ := h
   simp only [Option.pure_def, Option.some.injEq, Prod.mk.injEq] at he
   obtain ⟨rfl, rfl⟩ := he
+  obtain ⟨hl0, hb0⟩ := readMany_spec (enc := fun n ↦ wordBytes (UInt64.ofNat n))
+    (fun c hc ↦ by
+      rw [natOfBytes, UInt64.ofNat_toNat, wordBytes_laneOfBytes (by omega),
+        List.take_of_length_le (by omega)]) h0
   obtain ⟨hl1, hb1⟩ := readMany_spec (fun _ ↦ kBytes_kOfBytes_of_length) h1
   obtain ⟨hl2, hb2⟩ := readMany_spec (fun _ ↦ digestBytes_digestOfBytes) h2
   refine ⟨by simp [openingShape, hl1, hl2], ?_⟩
-  simp only [openingBytes, List.append_assoc, hb2, hb1]
+  match position, hl0 with
+  | [p], _ =>
+    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil] at hb0
+    simp only [openingBytes, List.append_assoc, hb2, hb1, List.headD_cons, hb0]
 
 end
 end LeanVM.Protocol.Verifier
