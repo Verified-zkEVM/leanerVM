@@ -10,7 +10,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 The scheme of `crates/signatures/src/lean_sphincs` (`mod.rs`, `hash.rs`, `wots.rs`, `fors.rs`,
 `scheme.rs`; the shared `hasher` and `truncate` of `crates/signatures/src/lib.rs`), specified in
-`doc/lean_sphincs`, at leanVM `834e6614`: SLH-DSA (FIPS 205) on Keccak-256, with WOTS+C as its
+`doc/lean_sphincs`, at leanVM `d1c4c8f7`: SLH-DSA (FIPS 205) on Keccak-256, with WOTS+C as its
 one-time signature and a hypertree of layers of different heights.
 
 * Every hash of a tree, a chain or a secret is `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` (`th`, `prf`),
@@ -20,10 +20,11 @@ one-time signature and a hypertree of layers of different heights.
   SK.seed ‖ 0))` and `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)` (§sec:keys). Every secret is one `PRF`
   call on `SK.seed`. Key generation builds the top tree; the public key is `(PK.seed, PK.root)`.
 * A signature's randomizer is `R = PRF_msg(SK.prf, PK.seed, M')`, `M' = 0x00 ‖ 11 ‖ leanSPHINCS ‖
-  M` pure SLH-DSA's framing of the message. The digest `H_msg(R, PK.seed, PK.root, M')` is two
-  calls on `R ‖ PK.seed ‖ PK.root ‖ M'` and a big-endian counter, whose first 34 bytes FIPS 205's
-  Algorithm 19 reads as the leaves of the FORS trees (`base_2b`), the tree index and the bottom
-  leaf (big-endian): an index `idx < 2^26` and one leaf in each of 24 FORS trees of height 10.
+  M` pure SLH-DSA's framing of the message. The digest `H_msg(R, PK.seed, PK.root, M)` is two
+  calls on `R ‖ PK.seed ‖ PK.root ‖ M`, the 32-byte message unframed, and a big-endian counter,
+  whose first 34 bytes FIPS 205's Algorithm 19 reads as the leaves of the FORS trees (`base_2b`),
+  the tree index and the bottom leaf (big-endian): an index `idx < 2^26` and one leaf in each of
+  24 FORS trees of height 10.
 * FORS (§sec:fts): every tree is hashed to its root, and the FORS public key is `T_k` of the 24
   roots; the bottom one-time key signs it.
 * The hypertree has 3 layers, of heights 8, 8 and 10 from the bottom (§sec:layer). Index `idx`
@@ -33,13 +34,13 @@ one-time signature and a hypertree of layers of different heights.
   `T = 128` read from the encoding hash by `base_2b`, and the least counter `c < 2^32` whose
   encoding is a codeword; the encoding hash has an address type of its own, `7`.
 
-**The signer** is the crate's, hash call for hash call (`sign`, `sign_with`, `scheme.rs:299-335`):
+**The signer** is the crate's, hash call for hash call (`sign`, `sign_with`, `scheme.rs:316-352`):
 `SK.seed` expanded (`SK.prf`, then `PK.seed`), the top tree built level by level (`keygen`, whose
 levels the top layer's path is read from), the randomizer, the digest's two calls, each FORS tree
 built once (its secrets, its leaves, its levels) and `T_k` of their roots, then the layers from the
 bottom up, each a one-time signature (the counter search, the chain starts, the chains) followed by
 its tree's levels (the top layer's from key generation). The crate computes a tree's one-time
-leaves and the 24 FORS trees in parallel (`parallel::map_collect`, `scheme.rs:265`, `fors.rs:65`),
+leaves and the 24 FORS trees in parallel (`parallel::map_collect`, `scheme.rs:282`, `fors.rs:65`),
 fixing no order among those calls: here they run in leaf order and in tree order, the calls and
 their inputs the crate's. Every input of a counter search is 68 bytes, one Keccak block, so the
 crate's search, which finishes a copy of the absorbed `PK.seed ‖ ADRS ‖ M` per counter, makes the
@@ -60,22 +61,22 @@ open HashSig
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-/-- The encoding counter's bits, `32` (`COUNTER_LEN`, 4 bytes, `mod.rs:50`). -/
+/-- The encoding counter's bits, `32` (`COUNTER_LEN`, 4 bytes, `mod.rs:51`). -/
 def counterBits : Nat := 32
-/-- `v`, the chains of a one-time key, `64` (`V`, `mod.rs:58`). -/
+/-- `v`, the chains of a one-time key, `64` (`V`, `mod.rs:59`). -/
 def chainCount : Nat := 64
-/-- `T`, the digit sum of a codeword, `128` (`TARGET_SUM`, `mod.rs:61`). -/
+/-- `T`, the digit sum of a codeword, `128` (`TARGET_SUM`, `mod.rs:62`). -/
 def targetSum : Nat := 128
 /-- Encoding counters tried per one-time signature, `C_max` (`MAX_ENCODING_ATTEMPTS`,
-`mod.rs:63`). -/
+`mod.rs:64`). -/
 def encodingAttemptLimit : Nat := 2 ^ 32
-/-- `d`, the layers of the hypertree, `3` (`LAYERS`, `mod.rs:67`). -/
+/-- `d`, the layers of the hypertree, `3` (`LAYERS`, `mod.rs:68`). -/
 def layerCount : Nat := 3
-/-- `h`, the bits of an index, `8 + 8 + 10 = 26` (`H`, `mod.rs:71`). -/
+/-- `h`, the bits of an index, `8 + 8 + 10 = 26` (`H`, `mod.rs:72`). -/
 def indexBits : Nat := 26
-/-- `k`, the trees of a FORS instance, `24` (`FORS_TREES`, `mod.rs:75`). -/
+/-- `k`, the trees of a FORS instance, `24` (`FORS_TREES`, `mod.rs:76`). -/
 def forsTreeCount : Nat := 24
-/-- `a`, the height of a FORS tree, `10` (`FORS_HEIGHT`, `mod.rs:77`). -/
+/-- `a`, the height of a FORS tree, `10` (`FORS_HEIGHT`, `mod.rs:78`). -/
 def forsTreeHeight : Nat := 10
 /-- `N`, the signatures a key makes at most: the end statement's limit, `1,182,000,000`
 (`doc/lean_sphincs` §sec:security, `main.tex:323-324`, the Lean proof's count; the crate's key is
@@ -88,7 +89,7 @@ abbrev Layer := Fin layerCount
 instance : NeZero layerCount := ⟨by decide⟩
 
 /-- `h_l`, the height of each tree of layer `l`: `8, 8, 10` from the bottom (`LAYER_HEIGHTS`,
-`mod.rs:69`). -/
+`mod.rs:70`). -/
 def layerHeight (layer : Layer) : Nat := if layer.val = 2 then 10 else 8
 
 /-- The top layer, `d - 1`, whose single tree's root is `PK.root`. -/
@@ -111,7 +112,7 @@ abbrev ChainIndex := Fin chainCount
 abbrev Encoding := ChainIndex → WinternitzDigit
 
 /-- The secret key: `SK.seed`, 32 bytes, all of the key (`LeanSphincsSecretKey`, `scheme.rs:46-50`;
-`Seed`, `mod.rs:34-36`). `PK.seed` and `SK.prf` are its hashes, which the signer derives again at
+`Seed`, `mod.rs:35-37`). `PK.seed` and `SK.prf` are its hashes, which the signer derives again at
 each signature, as the crate's does (`expand_key`). -/
 abbrev SecretKey := MasterSeed
 
@@ -181,7 +182,7 @@ structure LayerSignature (layer : Layer) where
 deriving DecidableEq
 
 /-- The randomizer, the FORS opening, and each layer's one-time signature and path, bottom first:
-7740 bytes (`LeanSphincsSignature`, `scheme.rs:93-101`; `SIG_SIZE`, `mod.rs:100-104`). The crate
+7740 bytes (`LeanSphincsSignature`, `scheme.rs:93-101`; `SIG_SIZE`, `mod.rs:101-105`). The crate
 keeps the three paths in one array, `paths`, read by layer (`path`). -/
 structure Signature where
   /-- The randomizer `R`. -/
@@ -291,7 +292,7 @@ deriving DecidableEq
 pair (`OtsKey::adrs`, `wots.rs:41-44`); a chain step carries the chain and the position it leaves
 (`chain`, `wots.rs:53-61`), the leaf has type `WOTS_PK` (`wots_leaf_hash`, `wots.rs:63-66`), the
 encoding `WOTS_ENC` (`encoder`, `wots.rs:68-73`); a node of the hypertree its height and index,
-key pair zero (`node`, `scheme.rs:252-260`). A FORS instance's address is that of the bottom key
+key pair zero (`node`, `scheme.rs:269-277`). A FORS instance's address is that of the bottom key
 of its index, `K_0(idx)` (`fors_adrs`, `fors.rs:27-31`): a leaf has height `0`, a node its height,
 each the tree index of `forsTreeIndex` (`fors_node_adrs`, `fors_leaf`, `fors_node`,
 `fors.rs:33-54`), and the roots' hash type `FORS_ROOTS` (`fors_key`, `fors.rs:56-59`). -/
@@ -330,34 +331,35 @@ def keygenDomainFields : KeygenDomain → Address
         (forsTreeIndex forsTree 0 forsLeaf.val)
 
 /-- `PK.seed ‖ ADRS ‖ M`, the input of every addressed hash (`hasher`, `lib.rs:16-23`,
-`hash.rs:82-85`). -/
+`hash.rs:80-83`). -/
 def addressedHashInput (publicSeed : PublicParameter) (address : Address) (payload : HashInput) :
     HashInput :=
   hasherInput publicSeed address.toBytes payload
 
-/-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS` (`mod.rs:39`). -/
+/-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS` (`mod.rs:40`). -/
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
 
-/-- `CONTEXT`, the context string pure SLH-DSA signs under: the same 11 bytes (`hash.rs:102-103`).
--/
-def contextString : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
+/-- `CONTEXT`, the context string `PRF_msg` frames the message under: the scheme's tag, `SEED_TAG`
+(`hash.rs:100-103`). -/
+def contextString : HashInput := seedTag
 
-/-- `M' = 0x00 ‖ len(ctx) ‖ ctx ‖ M`, 45 bytes (`framed`, `hash.rs:107-115`). -/
+/-- `M' = 0x00 ‖ len(ctx) ‖ ctx ‖ M`, 45 bytes, pure SLH-DSA's framing, which only `PRF_msg` hashes
+(`framed`, `hash.rs:107-115`). -/
 def framedMessage (message : Message) : HashInput :=
   [0x00, UInt8.ofNat contextString.length] ++ contextString ++ littleEndianBytes 32 message
 
 /-! #### The message digest: two calls, `m = 34` bytes -/
 
-/-- `m`, the bytes of `H_msg`: `30 + 3 + 1 = 34` (`DIGEST_BYTES`, `mod.rs:85`). -/
+/-- `m`, the bytes of `H_msg`: `30 + 3 + 1 = 34` (`DIGEST_BYTES`, `mod.rs:86`). -/
 def digestByteCount : Nat := 34
-/-- `⌈k a / 8⌉ = 30`, the bytes of the FORS message `md` (`MD_BYTES`, `mod.rs:81`). -/
+/-- `⌈k a / 8⌉ = 30`, the bytes of the FORS message `md` (`MD_BYTES`, `mod.rs:82`). -/
 def forsMessageByteCount : Nat := 30
-/-- `⌈(h - h_0) / 8⌉ = 3`, the bytes of the tree index (`TREE_INDEX_BYTES`, `mod.rs:82`). -/
+/-- `⌈(h - h_0) / 8⌉ = 3`, the bytes of the tree index (`TREE_INDEX_BYTES`, `mod.rs:83`). -/
 def treeIndexByteCount : Nat := 3
-/-- `⌈h_0 / 8⌉ = 1`, the bytes of the bottom leaf index (`LEAF_INDEX_BYTES`, `mod.rs:83`). -/
+/-- `⌈h_0 / 8⌉ = 1`, the bytes of the bottom leaf index (`LEAF_INDEX_BYTES`, `mod.rs:84`). -/
 def leafIndexByteCount : Nat := 1
 
-/-- The Keccak-256 calls that give them, `⌈34 / 32⌉ = 2` (`DIGEST_CALLS`, `mod.rs:87`). -/
+/-- The Keccak-256 calls that give them, `⌈34 / 32⌉ = 2` (`DIGEST_CALLS`, `mod.rs:88`). -/
 def digestCallCount : Nat := 2
 
 /-- A digest call `i`, which its counter carries. -/
@@ -373,7 +375,7 @@ abbrev MessageDigest := BitVec (8 * digestByteCount)
 def digestValue (outputs : DigestCall → HashOutput) : Nat :=
   ∑ call : DigestCall, (outputs call).toNat * 2 ^ (256 * call.val)
 
-/-- `Trunc_m(D_0 ‖ D_1)`, the first 34 bytes of the calls (`h_msg`, `hash.rs:128-139`: the crate
+/-- `Trunc_m(D_0 ‖ D_1)`, the first 34 bytes of the calls (`h_msg`, `hash.rs:128-140`: the crate
 returns all 64, of which `digest_fields` reads these). -/
 def truncateMessageDigest (outputs : DigestCall → HashOutput) : MessageDigest :=
   BitVec.ofNat (8 * digestByteCount) (digestValue outputs)
@@ -448,13 +450,13 @@ open HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` at an address (`th`, `hash.rs:87-90`; `truncate`,
+/-- `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` at an address (`th`, `hash.rs:85-88`; `truncate`,
 `lib.rs:25-28`). -/
 def addressedHash (publicSeed : PublicParameter) (address : Address) (payload : HashInput) :
     m Digest := do
   return truncateHash (← keccakHash π (addressedHashInput publicSeed address payload))
 
-/-- `F`, `H` and `T_l` at a hash domain's address (`th`, `th_digests`, `hash.rs:87-95`). -/
+/-- `F`, `H` and `T_l` at a hash domain's address (`th`, `th_digests`, `hash.rs:85-93`). -/
 abbrev tweakableHash (publicSeed : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     m Digest :=
   addressedHash π publicSeed (hashDomainFields domain) payload
@@ -501,8 +503,9 @@ def otsLeaf (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
 
 /-! #### The hypertree -/
 
-/-- `Tree.fold` (`tree_fold`, `ordered`, `scheme.rs:247-250, 337-352`): fold the key's leaf value
-and a path into its tree's root, the node at height `z + 1` hashing its children in index order. -/
+/-- `Tree.fold` (`tree_fold`, `path_fold`, `ordered`, `scheme.rs:247-267, 354-366`): fold the key's
+leaf value and a path into its tree's root, the node at height `z + 1` hashing its children in index
+order. -/
 def treeFold (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (path : Nat → Digest) : Nat → Digest → m Digest :=
   foldPath
@@ -518,7 +521,7 @@ def forsLeafHash (publicSeed : PublicParameter) (index : Index) (forsTree : Fors
 
 /-- The root of a FORS tree an opening reaches: the leaf hashed, then folded up its `a` path
 nodes, the node at height `z + 1` hashing its children in index order (`fors_recover`,
-`fors.rs:86-105`). -/
+`fors.rs:86-103`; `path_fold`, `scheme.rs:247-262`). -/
 def forsTreeRecover (publicSeed : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) (opening : ForsTreeOpening) : m Digest := do
   let value ← forsLeafHash π publicSeed index forsTree leaf opening.secret
@@ -532,7 +535,7 @@ def forsPublicKey (publicSeed : PublicParameter) (index : Index)
     (roots : ForsTreeIndex → Digest) : m Digest :=
   tweakableHash π publicSeed (.forsRoots index) (digestsPayload roots)
 
-/-- `fors_pkFromSig` (`fors_recover`, `fors.rs:86-105`): the FORS public key an opening reaches at
+/-- `fors_pkFromSig` (`fors_recover`, `fors.rs:86-103`): the FORS public key an opening reaches at
 the digest's leaves, `T_k` of the roots its trees reach. -/
 def forsRecover (publicSeed : PublicParameter) (index : Index)
     (leaves : ForsTreeIndex → ForsLeafIndex) (opening : ForsTreeIndex → ForsTreeOpening) :
@@ -543,15 +546,15 @@ def forsRecover (publicSeed : PublicParameter) (index : Index)
 
 /-! #### The message digest -/
 
-/-- Digest call `i`, `D_i = H(R ‖ PK.seed ‖ PK.root ‖ M' ‖ BE_32(i))`, 97 bytes, untruncated
-(`h_msg`, `hash.rs:128-139`). -/
+/-- Digest call `i`, `D_i = H(R ‖ PK.seed ‖ PK.root ‖ M ‖ BE_32(i))`, 84 bytes, untruncated, the
+32-byte message unframed (`h_msg`, `hash.rs:128-140`). -/
 def messageDigestCall (randomizer : Randomizer) (publicSeed : PublicParameter) (root : Digest)
     (message : Message) (call : DigestCall) : m HashOutput :=
   keccakHash π (littleEndianBytes 16 randomizer ++ littleEndianBytes 16 publicSeed ++
-    littleEndianBytes 16 root ++ framedMessage message ++
+    littleEndianBytes 16 root ++ littleEndianBytes 32 message ++
     bigEndianBytes 4 (BitVec.ofNat 32 call.val))
 
-/-- `H_msg(R, PK.seed, PK.root, M')`, the key's (`message_digest`, `scheme.rs:226-229`). -/
+/-- `H_msg(R, PK.seed, PK.root, M)`, the key's (`message_digest`, `scheme.rs:226-229`). -/
 def messageDigest (publicKey : PublicKey) (randomizer : Randomizer) (message : Message) :
     m MessageDigest := do
   let outputs ← sequenceFin fun call =>
@@ -568,7 +571,7 @@ def layerPath (signature : Signature) (layer : Layer) (level : Nat) : Digest :=
 /-- The walk up the hypertree, `layersLeft + 1` layers from the top: at layer
 `l = d - 1 - layersLeft`, whose one-time key `K_l(idx)` signs `message` (the FORS public key at the
 bottom, the root of the tree below above it), recover the one-time leaf and fold its path; the top
-layer's root is the result (the loop of `verify`, `scheme.rs:363-368`). -/
+layer's root is the result (the loop of `verify`, `scheme.rs:377-382`). -/
 def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Signature) :
     Nat → Digest → m (Option Digest)
   | 0, _ => pure none
@@ -589,7 +592,7 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
       else
         pure none
 
-/-- `Ver(pk, m, σ)` (`verify`, `scheme.rs:354-374`): compute the digest, recover the FORS public
+/-- `Ver(pk, m, σ)` (`verify`, `scheme.rs:368-388`): compute the digest, recover the FORS public
 key, walk the layers up (the one-time leaf, the path) and compare with `PK.root`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest π publicKey signature.randomizer message
@@ -615,7 +618,7 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-! #### The key -/
 
-/-- What `slh_keygen_internal` takes (`ExpandedKey`, `hash.rs:141-147`). -/
+/-- What `slh_keygen_internal` takes (`ExpandedKey`, `hash.rs:142-148`). -/
 structure ExpandedKey where
   /-- `SK.seed`, the secret key. -/
   secretSeed : MasterSeed
@@ -628,7 +631,7 @@ structure ExpandedKey where
 def keyDerivationInput (secretSeed : MasterSeed) (domain : UInt8) : HashInput :=
   seedTag ++ littleEndianBytes 32 secretSeed ++ [domain]
 
-/-- `expand_key` (`hash.rs:149-165`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
+/-- `expand_key` (`hash.rs:150-166`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order the crate's struct literal
 computes them. -/
 def expandKey (secretSeed : SecretKey) : m ExpandedKey := do
@@ -637,7 +640,7 @@ def expandKey (secretSeed : SecretKey) : m ExpandedKey := do
   return ⟨secretSeed, secretPrfKey, truncateHash publicSeedOutput⟩
 
 /-- `PRF(PK.seed, SK.seed, ADRS) = Trunc_16(H(PK.seed ‖ ADRS ‖ SK.seed))` at a secret's address
-(`prf`, `hash.rs:97-100`). -/
+(`prf`, `hash.rs:95-98`). -/
 def prf (key : ExpandedKey) (domain : KeygenDomain) : m Digest :=
   addressedHash π key.publicSeed (keygenDomainFields domain) (littleEndianBytes 32 key.secretSeed)
 
@@ -709,7 +712,7 @@ def otsSign (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeL
     (message : Digest) : m (Option (EncodingCounter × (ChainIndex → Digest))) :=
   otsSignFrom π key layer tree leaf message encodingAttemptLimit 0
 
-/-- `tree_levels` (`scheme.rs:262-275`): the levels of tree `tree` of layer `layer`, its leaves
+/-- `tree_levels` (`scheme.rs:279-292`): the levels of tree `tree` of layer `layer`, its leaves
 first (each a one-time key's leaf; the crate computes them in parallel, here in leaf order) and
 its root last. -/
 def treeLevels (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
@@ -753,14 +756,14 @@ def forsOpen (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → For
 
 /-! #### Key generation and signing -/
 
-/-- `slh_keygen_internal` (`keygen`, `scheme.rs:283-292`): the public key, `PK.seed` and the root
+/-- `slh_keygen_internal` (`keygen`, `scheme.rs:300-309`): the public key, `PK.seed` and the root
 of the top tree (tree `0` of the top layer, `OtsKey::of_index(LAYERS - 1, 0)`), with the top tree's
 levels, which signing reuses. -/
 def keygenInternal (key : ExpandedKey) : m (PublicKey × List (List Digest)) := do
   let top ← treeLevels π key topLayer 0
   return (⟨key.publicSeed, levelNode top (layerHeight topLayer) 0⟩, top)
 
-/-- `Gen` (`key_gen_from_seed`, `scheme.rs:277-281`): the secret key is `SK.seed`, the public key
+/-- `Gen` (`key_gen_from_seed`, `scheme.rs:294-298`): the secret key is `SK.seed`, the public key
 that of its expansion. -/
 def keygenFromSeed (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
   let key ← expandKey π secretSeed
@@ -770,7 +773,7 @@ def keygenFromSeed (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
 /-- Layer `l`'s one-time signature of `message` with `K_l(idx)` (`wots_sign`), then the key's
 tree's levels, built here below the top layer and `top` (key generation's) at it: the layer's
 signature with the key's path, and the tree's root, which the layer above signs (the loop of
-`sign_with`, `scheme.rs:316-328`). -/
+`sign_with`, `scheme.rs:333-345`). -/
 def signLayer (key : ExpandedKey) (top : List (List Digest)) (index : Index) (layer : Layer)
     (message : Digest) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
@@ -788,7 +791,7 @@ def layerSignatures (bottom : LayerSignature 0) (middle : LayerSignature 1)
   | ⟨2, _⟩ => top
   | ⟨_ + 3, h⟩ => absurd h (by unfold layerCount; omega)
 
-/-- `slh_sign_internal`, deterministic (`opt_rand = PK.seed`; `sign_with`, `scheme.rs:307-335`):
+/-- `slh_sign_internal`, deterministic (`opt_rand = PK.seed`; `sign_with`, `scheme.rs:324-352`):
 key generation's top tree and public key, the randomizer `R = PRF_msg(SK.prf, PK.seed, M')`, the
 digest's index and leaves, the FORS instance built once (its key and its opening), then the layers
 from the bottom up, each signing what the layer below gives: the FORS public key at the bottom,
@@ -804,7 +807,7 @@ def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Sign
   let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
   return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
-/-- `Sign` (`sign`, `scheme.rs:299-305`): the key's expansion (`expand_key`), then `sign_with`. -/
+/-- `Sign` (`sign`, `scheme.rs:316-322`): the key's expansion (`expand_key`), then `sign_with`. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let key ← expandKey π secretKey
   signWithExpandedKey π key message

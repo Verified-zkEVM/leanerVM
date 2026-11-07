@@ -103,7 +103,8 @@ theorems, then read the files in this order.
    Keccak-256 with WOTS+C (FIPS 205's 32-byte address, `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` for every
    tree, chain and secret hash; FORS of 24 trees of height 10, hashed to their roots and `T_k`,
    under a hypertree of three WOTS+C layers of heights 8, 8, 10; the digest `H_msg`, two
-   counter-mode calls read as FIPS 205's Algorithm 19; its signature the randomizer, the FORS
+   counter-mode calls on the 32-byte message unframed (only `PRF_msg` hashes pure SLH-DSA's
+   framing `M'`), read as FIPS 205's Algorithm 19; its signature the randomizer, the FORS
    opening and each layer's counter, chain values and path), its secret key the crate's, `SK.seed`
    (`PK.seed` and `SK.prf` its hashes), its public key `(PK.seed, PK.root)`, with the crate's
    deterministic signer, hash call for hash call (`expand_key`, the top tree level by level and
