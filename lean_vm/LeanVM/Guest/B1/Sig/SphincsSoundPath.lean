@@ -129,6 +129,44 @@ theorem eOfNat_mul_word_hi' {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) :
 
 variable {rd : Reader} {σ : Val}
 
+/-- **`sp_be16`'s multiplier**: `g^8 · 2^120 + 2^112`, the `y` limb's `g^64` reduced (`G:3846`). -/
+theorem be16HiW_eq : be16HiW = eOfNat 256 * lit (2 ^ 120) + lit (2 ^ 112) := by
+  rw [show lit (2 ^ 120) = word 0 (2 ^ 56) 0 by norm_num [lit],
+    show lit (2 ^ 112) = word 0 (2 ^ 48) 0 by norm_num [lit], be16HiW, mul_comm, eOfNat, word,
+    word, word, ofLimbs_mul_ofK, ofLimbs_add, ofLimbs_inj]
+  decide +kernel
+
+/-- **An index's two bytes placed**: `v · 2^120 + (v >> 8) · (g^8 · 2^120 + 2^112)`, `v < 2^16`, is
+the index of an `A1`: the high bits' part at `g^128` cancels. -/
+theorem be16_split {v : Nat} (hv : v < 2 ^ 16) :
+    eOfNat v * lit (2 ^ 120) + eOfNat (v / 256) * be16HiW = word 0 (a1Hi 0 v) 0 := by
+  have hq : v / 256 < 2 ^ 8 := by omega
+  have hv' : eOfNat v = eOfNat 256 * eOfNat (v / 256) + eOfNat (v % 256) := by
+    have e1 : eOfNat 256 * eOfNat (v / 256) = eOfNat (2 ^ 8 * (v / 256)) :=
+      eOfNat_two_pow_mul (s := 8) (by omega)
+    have e2 : eOfNat (2 ^ 8 * (v / 256)) + eOfNat (v % 256) = eOfNat (2 ^ 8 * (v / 256) + v % 256) :=
+      eOfNat_add_of_lt (by omega)
+    rw [e1, e2]
+    congr 1
+    omega
+  have hX : eOfNat v * lit (2 ^ 120) + eOfNat (v / 256) * be16HiW =
+      eOfNat (v % 256) * lit (2 ^ 120) + eOfNat (v / 256) * lit (2 ^ 112) +
+        (eOfNat 256 * eOfNat (v / 256) * lit (2 ^ 120) +
+          eOfNat 256 * eOfNat (v / 256) * lit (2 ^ 120)) := by
+    rw [hv', be16HiW_eq]
+    ring
+  have e4 : eOfNat (v % 256) * lit (2 ^ 120) = word 0 (2 ^ 56 * (v % 256)) 0 := by
+    rw [show (2 : Nat) ^ 120 = 2 ^ 64 * 2 ^ 56 by norm_num, lit_hi (by norm_num),
+      eOfNat_mul_word_hi' (by omega)]
+  have e6 : eOfNat (v / 256) * lit (2 ^ 112) = word 0 (2 ^ 48 * (v / 256)) 0 := by
+    rw [show (2 : Nat) ^ 112 = 2 ^ 64 * 2 ^ 48 by norm_num, lit_hi (by norm_num),
+      eOfNat_mul_word_hi' (by omega)]
+  rw [hX, e_add_self, add_zero, e4, e6, word_add_word, Nat.xor_zero]
+  congr 1
+  rw [show 2 ^ 56 * (v % 256) = 2 ^ 48 * (2 ^ 8 * (v % 256)) by ring, pow_mul_xor_pow_mul,
+    two_pow_mul_xor hq, a1Hi]
+  ring
+
 /-- **`sp_be16`, sound**: an `n`-bit value `v` (`n ≤ 16`), its shift by eight given when it has a
 second byte, is placed as the index of an `A1`. -/
 theorem sBe16_sound {val : Nat → V} {pos n x v : Nat} (hn : n ≤ 16) (hv : v < 2 ^ n)
@@ -139,40 +177,15 @@ theorem sBe16_sound {val : Nat → V} {pos n x v : Nat} (hn : n ≤ 16) (hv : v 
   by_cases h2 : (n + 7) / 8 = 2
   · have q8 := h8 (by omega)
     simp only [sBe16, h2, ↓reduceIte] at h ⊢
-    have a1 : σ (.n (x + 1)) = σ (val (pos + 8)) * σ (.n x) :=
-      h.atom (a := .mul _ _ _) (by simp [mulS])
-    have c0 : σ (.n x) = word 256 0 0 := h.atom (a := .const (.n x) _) (by simp [cst])
-    have a2 : σ (.n (x + 2)) = σ (val pos) + σ (.n (x + 1)) :=
-      h.atom (a := .add (.n (x + 2)) _ _) (by simp [addS])
-    have c3 : σ (.n (x + 3)) = lit (2 ^ 120) := h.atom (a := .const (.n (x + 3)) _) (by simp [cst])
-    have a4 : σ (.n (x + 4)) = σ (.n (x + 2)) * σ (.n (x + 3)) :=
-      h.atom (a := .mul (.n (x + 4)) _ _) (by simp [mulS])
-    have c5 : σ (.n (x + 5)) = lit (2 ^ 112) := h.atom (a := .const (.n (x + 5)) _) (by simp [cst])
-    have a6 : σ (.n (x + 6)) = σ (val (pos + 8)) * σ (.n (x + 5)) :=
-      h.atom (a := .mul (.n (x + 6)) _ _) (by simp [mulS])
-    have a7 : σ (.n (x + 7)) = σ (.n (x + 4)) + σ (.n (x + 6)) :=
-      h.atom (a := .add (.n (x + 7)) _ _) (by simp [addS])
-    have hq : v / 256 < 2 ^ 8 := by omega
-    have e1 : σ (.n (x + 1)) = eOfNat (2 ^ 8 * (v / 256)) := by
-      rw [a1, c0, q8, word_eq_eOfNat, mul_comm, show (256 : Nat) = 2 ^ 8 from rfl,
-        eOfNat_two_pow_mul (by omega)]
-    have e2 : σ (.n (x + 2)) = eOfNat (v % 256) := by
-      have hv' : eOfNat v = eOfNat (2 ^ 8 * (v / 256)) + eOfNat (v % 256) := by
-        rw [eOfNat_add_of_lt (by omega : v % 256 < 2 ^ 8)]
-        congr 1
-        omega
-      rw [a2, e1, h0, hv', add_comm (eOfNat (2 ^ 8 * (v / 256))), add_assoc, e_add_self, add_zero]
-    have e4 : σ (.n (x + 4)) = word 0 (2 ^ 56 * (v % 256)) 0 := by
-      rw [a4, e2, c3, show (2 : Nat) ^ 120 = 2 ^ 64 * 2 ^ 56 by norm_num, lit_hi (by norm_num),
-        eOfNat_mul_word_hi' (by omega)]
-    have e6 : σ (.n (x + 6)) = word 0 (2 ^ 48 * (v / 256)) 0 := by
-      rw [a6, q8, c5, show (2 : Nat) ^ 112 = 2 ^ 64 * 2 ^ 48 by norm_num, lit_hi (by norm_num),
-        eOfNat_mul_word_hi' (by omega)]
-    rw [a7, e4, e6, word_add_word, Nat.xor_zero]
-    congr 1
-    rw [show 2 ^ 56 * (v % 256) = 2 ^ 48 * (2 ^ 8 * (v % 256)) by ring, pow_mul_xor_pow_mul,
-      two_pow_mul_xor hq, a1Hi]
-    ring
+    have c0 : σ (.n x) = lit (2 ^ 120) := h.atom (a := .const (.n x) _) (by simp [cst])
+    have a1 : σ (.n (x + 1)) = σ (val pos) * σ (.n x) :=
+      h.atom (a := .mul (.n (x + 1)) _ _) (by simp [mulS])
+    have c2 : σ (.n (x + 2)) = be16HiW := h.atom (a := .const (.n (x + 2)) _) (by simp [cst])
+    have a3 : σ (.n (x + 3)) = σ (val (pos + 8)) * σ (.n (x + 2)) :=
+      h.atom (a := .mul (.n (x + 3)) _ _) (by simp [mulS])
+    have a4 : σ (.n (x + 4)) = σ (.n (x + 1)) + σ (.n (x + 3)) :=
+      h.atom (a := .add (.n (x + 4)) _ _) (by simp [addS])
+    rw [a4, a1, a3, c0, c2, h0, q8, be16_split hv16]
   · have hv8 : v < 256 := lt_of_lt_of_le hv (by
       calc 2 ^ n ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) (by omega)
         _ = 256 := by norm_num)
@@ -233,17 +246,54 @@ theorem kMsg_cells_sound {pad : Nat} (hp : PadOK σ pad) {vs : List V} {len b : 
     rw [flatMap_cellBytes_length, List.length_map]; omega)]
 
 theorem kNode_shape (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) :
-    (kNode pad pp a0 adr k0 k1 y).2.1 = y + 18 ∧ (kNode pad pp a0 adr k0 k1 y).2.2 = y + 5 := by
+    (kNode pad pp a0 adr k0 k1 y).2.1 = y + 17 ∧ (kNode pad pp a0 adr k0 k1 y).2.2 = y + 4 := by
   constructor <;> rfl
 
-/-- **A node's 80-byte hash** of `P`, `A0`, its address and its two children. -/
+theorem padCells_five (a b c d e : E) :
+    padCells [a, b, c, d, e] 80 = [a, b, c, d, e, word 1 0 0, 0, 0, word (2 ^ 63) 0 0] := by
+  simp [padCells, xorByte, padRead, rate, byteCell]
+
+/-- **A node's 80-byte hash** of `P`, `A0`, its address and its two children: the right child read
+in place, the three cells after it set to the padding (`pad_tail=1`). -/
 theorem kNode_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr k0 k1 : V} {y : Nat}
     (h : AtomsHold rd σ (kNode pad pp a0 adr k0 k1 y).1) :
-    (σ (.n (y + 5)), σ (.n (y + 6))) = hcell [σ pp, σ a0, σ adr, σ k0, σ k1] := by
-  have := kMsg_cells_sound (vs := [pp, a0, adr, k0, k1]) (len := 80) hp rfl h
-  have e : (kMsg pad (List.map KC.cell [pp, a0, adr, k0, k1]) 80 false none y).2.2 = y + 5 := rfl
-  rw [e] at this
-  simpa using this
+    (σ (.n (y + 4)), σ (.n (y + 5))) = hcell [σ pp, σ a0, σ adr, σ k0, σ k1] := by
+  obtain ⟨-, p1, p2, p3, p4⟩ := hp
+  have c0 : σ (.n y) = word 1 0 0 := h.atom (a := .const (.n y) _) (by simp [kNode, cst])
+  have c1 : σ (.n (y + 1)) = word 0 0 0 := h.atom (a := .const (.n (y + 1)) _) (by simp [kNode, cst])
+  have c2 : σ (.n (y + 2)) = word 0 0 0 := h.atom (a := .const (.n (y + 2)) _) (by simp [kNode, cst])
+  have c3 : σ (.n (y + 3)) = word (2 ^ 63) 0 0 :=
+    h.atom (a := .const (.n (y + 3)) _) (by simp [kNode, cst])
+  set ins : List V := [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
+    .n (pad + 2), .n (pad + 3), .n (pad + 4)] with hins
+  have hk := h.atom (a := .keccak ins (runV (y + 4) 13) false false) (by simp [kNode, kecS, hins])
+  obtain ⟨-, -, hk⟩ := hk
+  have hget : ∀ k : Fin 13, cells13 (ins.map σ) k = σ (ins.getD k.val (.n 0)) := fun k => by
+    simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
+    rw [List.getElem?_eq_getElem (by simp [hins])]
+    rfl
+  have := keccak_one (cells := [σ pp, σ a0, σ adr, σ k0, σ k1]) (len := 80) (by simp)
+    (by simp [rate])
+    (fun j hj => by
+      rw [cellsBytes_eq_flatMap, List.getD_eq_getElem?_getD, List.getElem?_eq_none (by
+        rw [flatMap_cellBytes_length]; simp; omega)]
+      rfl)
+    (fun k hk => by
+      rw [hget, padCells_five]
+      obtain ⟨k, hk13⟩ := k
+      simp only at hk
+      interval_cases k <;> simp [hins, c0, c1, c2, c3, word_zero])
+    (fun k hk => by
+      rw [hget]
+      obtain ⟨k, hk13⟩ := k
+      simp only at hk
+      interval_cases k <;> simp [hins, p1, p2, p3, p4])
+    hk
+  have hlen : (cellsBytes [σ pp, σ a0, σ adr, σ k0, σ k1]).length ≤ 80 := by
+    rw [cellsBytes_eq_flatMap, flatMap_cellBytes_length]; simp
+  rw [List.take_of_length_le hlen] at this
+  rw [hcell, ← cellsBytes_eq_flatMap, ← this.2]
+  simp [cells13, runV]
 
 /-- **One level of a tree**: the children hinted at `x` and checked by `is_child` against `cur` and
 the bit `bit`, then hashed at the address `adr` holding `A`, give the parent of `cur` and its
@@ -252,7 +302,7 @@ theorem level_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr cur bit : V} {x y
     (hbit : IsBit (σ bit))
     (hc : AtomsHold rd σ (isChildS cur (.n x) (.n (x + 1)) bit (x + 2)))
     (hk : AtomsHold rd σ (kNode pad pp a0 adr (.n x) (.n (x + 1)) y).1) :
-    σ (.n (y + 5)) = (hcell [σ pp, σ a0, σ adr, (mPair (decide (σ bit = 1)) (σ cur)
+    σ (.n (y + 4)) = (hcell [σ pp, σ a0, σ adr, (mPair (decide (σ bit = 1)) (σ cur)
       (siblingOf σ bit x)).1, (mPair (decide (σ bit = 1)) (σ cur) (siblingOf σ bit x)).2]).1 := by
   have e1 : σ (.n (x + 2)) = σ cur + σ (.n x) :=
     hc.atom (a := .add (.n (x + 2)) cur (.n x)) (by simp [isChildS, addS])
@@ -274,7 +324,7 @@ def pNodeE (pp a0 : E) (e : Nat) (sib : Nat → E) (z : Nat) (v : E) : E :=
     (mPair (e.testBit z) v (sib z)).2]).1
 
 /-- A path level's width when `m` levels follow it. -/
-def pathWidth (m : Nat) : Nat := if m = 0 then 23 else if (m + 7) / 8 = 2 then 32 else 26
+def pathWidth (m : Nat) : Nat := if m = 0 then 22 else if (m + 7) / 8 = 2 then 28 else 25
 
 /-- The hinted sibling of level `j` of `sPath … m z cur x` (`0` outside its levels). -/
 def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) : Nat → Nat → Nat → Nat → E
@@ -299,21 +349,21 @@ theorem sPath_succ (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off m z : Nat)
           (sPathAddr val off z m (x + 4)).1 ++
           (kNode pad pp a0 (sPathAddr val off z m (x + 4)).2.2 (.n x) (.n (x + 1))
             (sPathAddr val off z m (x + 4)).2.1).1 ++
-          (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 5))
-            ((sPathAddr val off z m (x + 4)).2.1 + 18)).1,
-        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 5))
-            ((sPathAddr val off z m (x + 4)).2.1 + 18)).2.1,
-        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 5))
-            ((sPathAddr val off z m (x + 4)).2.1 + 18)).2.2) := by
+          (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr val off z m (x + 4)).2.1 + 17)).1,
+        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr val off z m (x + 4)).2.1 + 17)).2.1,
+        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr val off z m (x + 4)).2.1 + 17)).2.2) := by
   simp only [sPath, sPathAddr, (kNode_shape ..).1, (kNode_shape ..).2]
 
 theorem sBe16_next (val : Nat → V) (pos n x : Nat) :
-    (sBe16 val pos n x).2.1 = x + (if (n + 7) / 8 = 2 then 8 else 2) := by
+    (sBe16 val pos n x).2.1 = x + (if (n + 7) / 8 = 2 then 5 else 2) := by
   unfold sBe16; split <;> rfl
 
-/-- The address part of a path level ends `pathWidth m - 18` after its base. -/
+/-- The address part of a path level ends `pathWidth m - 17` after its base. -/
 theorem sPathAddr_next (val : Nat → V) (off z m x : Nat) :
-    (sPathAddr val off z m (x + 4)).2.1 = x + pathWidth m - 18 := by
+    (sPathAddr val off z m (x + 4)).2.1 = x + pathWidth m - 17 := by
   unfold sPathAddr pathWidth
   by_cases hm0 : m = 0
   · simp [hm0]
@@ -390,12 +440,12 @@ theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat �
         hA.left.left.left.sub fun s hs => List.mem_append_right _ hs
       have hlv := level_sound hp hib hc hk
       have hrest := sPath_sound hp hh he hbit hval m (z + 1) _ _ (by omega) hA.right
-      have hfirst : σ (.n ((sPathAddr val off z m (x + 4)).2.1 + 5)) =
+      have hfirst : σ (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) =
           pNodeE (σ pp) (σ a0) e (sPathSib σ bit off (m + 1) z x) z (σ cur) := by
         rw [hlv, hd, hadr]
         simp [pNodeE, sPathSib]
       rw [hrest, nIter, hfirst, sPathAddr_next,
-        show x + pathWidth m - 18 + 18 = x + pathWidth m by unfold pathWidth; split_ifs <;> omega]
+        show x + pathWidth m - 17 + 17 = x + pathWidth m by unfold pathWidth; split_ifs <;> omega]
       refine nIter_congr _ _ _ fun j hj => ?_
       unfold pNodeE
       simp only [sPathSib, show j ≠ z by omega, ite_false]
