@@ -26,8 +26,8 @@ work, the commitments with their extracted words, and the rows the openings retu
 
 * `xrun_of_run`: an accepting run in `Option` has an extracted history.
 * `xrun_prefix`: the history extends the history the run starts from.
-* `answer_of_openAll`: when the answers are injective (no collision), the rows an accepted
-  opening returns are the rows the extracted word holds (`answer`), so the extracted history of
+* `answer_of_openPhase`: when the answers are injective (no collision), the rows an accepted
+  phase of openings returns are the rows the extracted word holds (`answer`), so the extracted history of
   an accepted run is an interactive run of the program (`LeanVM.Protocol.Compile.Rom.Final`).
 
 The verifier of the random-oracle theorem seeds its sponge by the seeding `σ` and runs `P`
@@ -85,11 +85,12 @@ noncomputable def xrun {α : Type} : VerifierProgram α → VerifierProgramState
           (h ++ [Ev.commit height width (extract H root height width)])
       | none => none
     | _ => none
-  | .query i ps k, s, h => match s.roots[i]? with
-    | none => none
-    | some (root, height, width) => match openAllWithHash H root height width ps s.openings with
-      | some (some (rows, rest)) => xrun (k rows) { s with openings := rest } (h ++ [Ev.query rows])
+  | .query i ps k, s, h => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest =>
+      match openPhaseWithHash H root height width ps phase with
+      | some (some rows) => xrun (k rows) { s with openings := rest } (h ++ [Ev.query rows])
       | _ => none
+    | _, _ => none
 
 /-- An accepting run in `Option` has an extracted history, ending at the same state. -/
 theorem xrun_of_run {α : Type} :
@@ -144,14 +145,14 @@ theorem xrun_of_run {α : Type} :
   | .query i ps k, s, h, _, _, hr => by
     simp only [runWithHash] at hr
     split at hr
-    · simp [pure] at hr
-    · rename_i root height width hroot
+    · next root height width phase rest hroot hopen =>
       simp only [bind, Option.bind_eq_some_iff] at hr
       obtain ⟨o, ho, hr⟩ := hr
-      rcases o with _ | ⟨rows, rest⟩
+      rcases o with _ | rows
       · simp [pure] at hr
       · obtain ⟨hist, hh⟩ := xrun_of_run (k rows) _ (h ++ [Ev.query rows]) hr
-        exact ⟨hist, by simp only [xrun, hroot, ho, hh]⟩
+        exact ⟨hist, by simp only [xrun, hroot, hopen, ho, hh]⟩
+    · simp [pure] at hr
 
 /-- The extracted history extends the history the run starts from. -/
 theorem xrun_prefix {α : Type} :
@@ -194,10 +195,10 @@ theorem xrun_prefix {α : Type} :
   | .query i ps k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · split at hr
       · exact (List.prefix_append _ _).trans (xrun_prefix _ _ _ hr)
       · simp at hr
+    · simp at hr
 
 end XRun
 
@@ -227,23 +228,41 @@ theorem rows_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) (root 
         rw [← hrows.1, List.map_cons, extract_eq_of_openOne hH hb,
           rows_of_openAll hH root ht w qs os hr]
 
+/-- With injective answers, the rows of an accepted phase are the rows the extracted word holds
+at the positions. -/
+theorem rows_of_openPhase {H : Bytes → Option Digest} (hH : AnswersInj H) (root : Digest)
+    (ht w : ℕ) (ps : List ℕ) (phase : List Opening) {rows : List (List K)}
+    (h : openPhaseWithHash (m := Option) H root ht w ps phase = some (some rows)) :
+    rows = ps.map fun q ↦ extract H root ht w (q % 2 ^ ht) := by
+  unfold openPhaseWithHash at h
+  split at h
+  · simp only [bind, Option.bind_eq_some_iff] at h
+    obtain ⟨o, ho, h⟩ := h
+    rcases o with _ | ⟨rows', rest⟩
+    · simp [pure] at h
+    · simp only [pure, Option.some.injEq] at h
+      rw [← h]
+      exact rows_of_openAll hH root ht w ps phase ho
+  · simp [pure] at h
+
 /-- The roots a run holds, as the commitments of its extracted history. -/
 def RootsInv (H : Bytes → Option Digest) (s : VerifierProgramState) (h : List Ev) : Prop :=
   commits h = s.roots.map fun r ↦ (r.2.1, r.2.2, extract H r.1 r.2.1 r.2.2)
 
-/-- **Openings answer from the extracted words.** With injective answers, an accepted opening
-of the `i`-th root returns the rows the `i`-th commitment of the extracted history holds. -/
-theorem answer_of_openAll {H : Bytes → Option Digest} (hH : AnswersInj H) {s : VerifierProgramState}
-    {h : List Ev} (hR : RootsInv H s h) {i : ℕ} {root : Digest} {ht w : ℕ}
-    (hi : s.roots[i]? = some (root, ht, w)) {ps : List ℕ} {rows : List (List K)}
-    {rest : List Opening}
-    (ho : openAllWithHash (m := Option) H root ht w ps s.openings = some (some (rows, rest))) :
+/-- **Openings answer from the extracted words.** With injective answers, an accepted phase
+of openings of the `i`-th root returns the rows the `i`-th commitment of the extracted history
+holds. -/
+theorem answer_of_openPhase {H : Bytes → Option Digest} (hH : AnswersInj H)
+    {s : VerifierProgramState} {h : List Ev} (hR : RootsInv H s h) {i : ℕ} {root : Digest}
+    {ht w : ℕ} (hi : s.roots[i]? = some (root, ht, w)) {ps : List ℕ} {rows : List (List K)}
+    {phase : List Opening}
+    (ho : openPhaseWithHash (m := Option) H root ht w ps phase = some (some rows)) :
     answer h i ps = some rows := by
-  rw [answer, hR, List.getElem?_map, hi, rows_of_openAll hH root ht w ps s.openings ho]
+  rw [answer, hR, List.getElem?_map, hi, rows_of_openPhase hH root ht w ps phase ho]
   rfl
 
 theorem rootsInv_append_query {H : Bytes → Option Digest} {s : VerifierProgramState} {h : List Ev}
-    (hR : RootsInv H s h) (rows : List (List K)) (rest : List Opening) :
+    (hR : RootsInv H s h) (rows : List (List K)) (rest : List (List Opening)) :
     RootsInv H { s with openings := rest } (h ++ [Ev.query rows]) := by
   simp only [RootsInv, commits_append, commits, List.append_nil]
   exact hR

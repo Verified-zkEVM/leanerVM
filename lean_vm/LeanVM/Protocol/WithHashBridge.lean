@@ -77,6 +77,12 @@ theorem openAll_eq_withHash (root : Digest) (height width : ℕ) (ps : List ℕ)
     | nil => rfl
     | cons o os => simp only [openAll, openAllWithHash, openOne_eq_withHash, ih]
 
+theorem openPhase_eq_withHash (root : Digest) (height width : ℕ) (ps : List ℕ)
+    (phase : List Opening) :
+    openPhase F root height width ps phase =
+      openPhaseWithHash (keccak256With F) root height width ps phase := by
+  simp only [openPhase, openPhaseWithHash, openAll_eq_withHash]; rfl
+
 theorem run_eq_withHash {α : Type} (P : VerifierProgram α) : ∀ s : VerifierProgramState,
     run F P s = runWithHash (keccak256With F) F P s := by
   induction P with
@@ -86,7 +92,7 @@ theorem run_eq_withHash {α : Type} (P : VerifierProgram α) : ∀ s : VerifierP
   | sample k ih => intro s; simp only [run, runWithHash, ih]
   | grind bits k ih => intro s; simp only [run, runWithHash, ih]; rfl
   | commit height width k ih => intro s; simp only [run, runWithHash, ih]; rfl
-  | query i ps k ih => intro s; simp only [run, runWithHash, ih, openAll_eq_withHash]; rfl
+  | query i ps k ih => intro s; simp only [run, runWithHash, ih, openPhase_eq_withHash]; rfl
 
 theorem runProof_eq_withHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) :
     runProof F P seed π = runProofWithHash (keccak256With F) F P seed π := by
