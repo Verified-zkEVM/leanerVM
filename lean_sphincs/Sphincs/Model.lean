@@ -109,8 +109,13 @@ theorem fieldBytes_tweakFields (addressType : AddressType) (layer tree keyPair h
 
 /-- A model hash domain whose FORS node lies in its tree, as every algorithm's does. -/
 def InRange : FORS.HashDomain → Prop
+  | .chain .. => True
+  | .leaf .. => True
+  | .node .. => True
+  | .encoding .. => True
+  | .forsLeaf .. => True
   | .forsNode _ _ level node => node.val < 2 ^ (10 - (level.val + 1))
-  | _ => True
+  | .forsRoots _ => True
 
 /-- A model hash domain as the statement's: the layer reversed, a FORS level as its height. -/
 def toDomain : FORS.HashDomain → HashDomain
@@ -488,5 +493,219 @@ theorem digestLeaves_eq (outputs : DigestCall → HashOutput) :
   exact (Nat.mod_eq_of_lt hlt).symm
 
 end Digest
+
+/-! ## Verification -/
+
+section Verification
+
+open Verification
+
+variable (parameter : FORS.PublicParameter)
+
+theorem decodeDigest_eq (digest : Digest) :
+    FORS.TargetSum.decodeDigest digest = TargetSum.decodeDigest digest := by
+  have henc : FORS.TargetSum.digestEncoding digest = TargetSum.base2bDigits digest := rfl
+  unfold FORS.TargetSum.decodeDigest TargetSum.decodeDigest
+  rw [henc]
+  rfl
+
+theorem simulateQ_chainWalk (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (chainIndex : FORS.ChainIndex) (start : ℕ) :
+    ∀ (steps : ℕ) (value : FORS.Digest),
+      simulateQ σ (FORS.Concrete.chainWalk (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+        chainIndex start steps value) =
+        chainWalk queryPermutation parameter (toLayer lay) tree (toLeaf leaf) chainIndex start steps
+          value
+  | 0, value => by
+    simp only [FORS.Concrete.chainWalk, chainWalk, walkChain]
+    exact sim_pure _
+  | steps + 1, value => by
+    simp only [FORS.Concrete.chainWalk, sim_bind,
+      simulateQ_chainWalk lay tree leaf chainIndex start steps]
+    simp only [chainWalk, walkChain]
+    refine bind_eq_of rfl fun previous ↦ ?_
+    by_cases h : start + steps < 3
+    · rw [dite_eq_left (show start + steps < FORS.chainLength - 1 from h),
+        dite_eq_left (show start + steps < HashSig.chainLength - 1 from h)]
+      simp only [simulateQ_tweakableHash _ (.chain _ _ _ _ _) trivial]
+      rfl
+    · rw [dite_eq_right (show ¬start + steps < FORS.chainLength - 1 from h),
+        dite_eq_right (show ¬start + steps < HashSig.chainLength - 1 from h), sim_pure]
+      rfl
+
+theorem simulateQ_recoverChain (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (chainIndex : FORS.ChainIndex) (digit : FORS.Digit) (value : FORS.Digest) :
+    simulateQ σ (FORS.Concrete.recoverChain (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+      chainIndex digit value) =
+      recoverChain queryPermutation parameter (toLayer lay) tree (toLeaf leaf) chainIndex digit
+        value :=
+  simulateQ_chainWalk parameter lay tree leaf chainIndex _ _ _
+
+theorem simulateQ_leafHash (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (endpoints : FORS.ChainIndex → FORS.Digest) :
+    simulateQ σ (FORS.Concrete.leafHash (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+      endpoints) = leafHash queryPermutation parameter (toLayer lay) tree (toLeaf leaf) endpoints :=
+  simulateQ_tweakableHash _ (.leaf lay tree leaf) trivial _
+
+theorem simulateQ_encode (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (message : FORS.Digest) (counter : FORS.Counter) :
+    simulateQ σ (FORS.Concrete.encode (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+      (FORS.Concrete.rootPayload message) counter) =
+      encode queryPermutation parameter (toLayer lay) tree (toLeaf leaf) message counter := by
+  simp only [FORS.Concrete.encode, encode, sim_bind, sim_pure, simulateQ_tweakableHash _ (.encoding _ _ _) trivial]
+  rfl
+
+theorem simulateQ_otsLeaf (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (message : FORS.Digest) (counter : FORS.Counter) (values : FORS.ChainIndex → FORS.Digest) :
+    simulateQ σ (FORS.Concrete.otsLeaf (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+      (FORS.Concrete.rootPayload message) counter values) =
+      otsLeaf queryPermutation parameter (toLayer lay) tree (toLeaf leaf) message counter values := by
+  simp only [FORS.Concrete.otsLeaf, otsLeaf, sim_bind, simulateQ_encode]
+  refine bind_eq_of rfl fun encoding ↦ ?_
+  rcases encoding with _ | encoding
+  · exact sim_pure _
+  · simp only [sim_bind, sim_pure, simulateQ_sequenceFin, simulateQ_recoverChain,
+      simulateQ_leafHash]
+    rfl
+
+theorem simulateQ_treeFold (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
+    (path : ℕ → FORS.Digest) :
+    ∀ (levels : ℕ) (value : FORS.Digest),
+      simulateQ σ (FORS.Concrete.treeFold (m := OracleComp FORS.HashSpec) parameter lay tree leaf
+        path levels value) =
+        treeFold queryPermutation parameter (toLayer lay) tree (toLeaf leaf) path levels value
+  | 0, value => by
+    simp only [FORS.Concrete.treeFold, treeFold, foldPath]
+    exact sim_pure _
+  | levels + 1, value => by
+    simp only [FORS.Concrete.treeFold, sim_bind, simulateQ_treeFold lay tree leaf path levels]
+    simp only [treeFold, foldPath]
+    refine bind_eq_of rfl fun current ↦ ?_
+    by_cases hbit : leaf.val.testBit levels = true
+    · simp only [hbit, toLeaf, ↓reduceIte, simulateQ_tweakableHash _ (.node _ _ _ _) trivial]
+      rfl
+    · simp only [hbit, toLeaf, Bool.false_eq_true, ↓reduceIte, simulateQ_tweakableHash _ (.node _ _ _ _) trivial]
+      rfl
+
+theorem simulateQ_forsFold (index : FORS.Index) (forsTree : FORS.FTree) (leaf : FORS.FLeaf)
+    (path : Fin FORS.forsHeight → FORS.Digest) :
+    ∀ (levels : ℕ), levels ≤ 10 → ∀ (value : FORS.Digest),
+      simulateQ σ (FORS.Concrete.forsFold (m := OracleComp FORS.HashSpec) parameter index forsTree
+        leaf path levels value) =
+        foldPath (fun level node ↦ tweakableHash queryPermutation parameter
+            (.forsNode index forsTree (level + 1) node))
+          leaf.val (fun level ↦ if h : level < forsTreeHeight then path ⟨level, h⟩ else 0)
+          levels value
+  | 0, _, value => by
+    simp only [FORS.Concrete.forsFold, foldPath]
+    exact sim_pure _
+  | levels + 1, hlevels, value => by
+    simp only [FORS.Concrete.forsFold, sim_bind,
+      simulateQ_forsFold index forsTree leaf path levels (by omega)]
+    simp only [foldPath]
+    refine bind_eq_of rfl fun current ↦ ?_
+    have hlevel : levels < FORS.forsHeight := show levels < 10 by omega
+    have hlt : levels < forsTreeHeight := hlevel
+    have hrange : InRange (.forsNode index forsTree ⟨levels, hlevel⟩
+        ⟨leaf.val / 2 ^ (levels + 1), Nat.lt_of_le_of_lt (Nat.div_le_self _ _) leaf.isLt⟩) := by
+      show leaf.val / 2 ^ (levels + 1) < 2 ^ (10 - (levels + 1))
+      have hleaf : leaf.val < 2 ^ (10 - (levels + 1)) * 2 ^ (levels + 1) := by
+        rw [← pow_add, show 10 - (levels + 1) + (levels + 1) = 10 by omega]
+        exact leaf.isLt
+      exact (Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)).2 hleaf
+    rw [dite_eq_left hlevel]
+    simp only [hlt, ↓reduceDIte]
+    by_cases hbit : leaf.val.testBit levels = true
+    · simp only [hbit, ↓reduceIte, simulateQ_tweakableHash _ _ hrange]
+      rfl
+    · simp only [hbit, Bool.false_eq_true, ↓reduceIte, simulateQ_tweakableHash _ _ hrange]
+      rfl
+
+theorem simulateQ_forsTreeRecover (index : FORS.Index) (forsTree : FORS.FTree)
+    (leaf : FORS.FLeaf) (opening : FORS.TreeOpening) :
+    simulateQ σ (FORS.Concrete.treeRecover (m := OracleComp FORS.HashSpec) parameter index forsTree
+      leaf opening) =
+      forsTreeRecover queryPermutation parameter index forsTree leaf
+        (ofModelTreeOpening opening) := by
+  simp only [FORS.Concrete.treeRecover, forsTreeRecover, sim_bind, FORS.Concrete.forsLeafHash,
+    simulateQ_tweakableHash _ (.forsLeaf _ _ _) trivial, simulateQ_forsFold _ _ _ _ _ FORS.forsHeight le_rfl]
+  rfl
+
+theorem simulateQ_forsRecover (index : FORS.Index) (leaves : FORS.FTree → FORS.FLeaf)
+    (opening : FORS.FTree → FORS.TreeOpening) :
+    (simulateQ σ (FORS.Concrete.forsRecover (m := OracleComp FORS.HashSpec) parameter index leaves
+        opening) >>= fun roots ↦
+      simulateQ σ (FORS.Concrete.forsPublicKey (m := OracleComp FORS.HashSpec) parameter index
+        roots)) =
+      forsRecover queryPermutation parameter index leaves
+        (fun forsTree ↦ ofModelTreeOpening (opening forsTree)) := by
+  simp only [FORS.Concrete.forsRecover, forsRecover, simulateQ_sequenceFin,
+    simulateQ_forsTreeRecover, FORS.Concrete.forsPublicKey, simulateQ_tweakableHash _ (.forsRoots _) trivial]
+  rfl
+
+theorem simulateQ_messageDigestCall (root : FORS.Digest) (message : FORS.Message)
+    (randomizer : FORS.Randomness) (call : FORS.DigestCall) :
+    simulateQ σ (FORS.Concrete.messageDigestCall (m := OracleComp FORS.HashSpec) parameter root
+      message randomizer call) =
+      messageDigestCall queryPermutation randomizer parameter root message call := by
+  simp only [FORS.Concrete.messageDigestCall, simulateQ_oracleHash, messageDigestCall]
+  rfl
+
+theorem signaturePath_eq (signature : Signature) (lay : FORS.Layer) :
+    FORS.Concrete.signaturePath (toModelSignature signature) lay =
+      layerPath signature (toLayer lay) := by
+  funext level
+  fin_cases lay <;> rfl
+
+theorem simulateQ_verifyLayers (index : FORS.Index) (signature : Signature) :
+    ∀ (layersLeft : ℕ) (message : FORS.Digest),
+      simulateQ σ (FORS.Concrete.verifyLayers (m := OracleComp FORS.HashSpec) parameter index
+        (toModelSignature signature) layersLeft (FORS.Concrete.rootPayload message)) =
+        verifyLayers queryPermutation parameter index signature layersLeft message
+  | 0, _ => by
+    simp only [FORS.Concrete.verifyLayers, verifyLayers]
+    exact sim_pure _
+  | layersLeft + 1, message => by
+    have ih := simulateQ_verifyLayers index signature layersLeft
+    rw [FORS.Concrete.verifyLayers]
+    simp only [verifyLayers]
+    by_cases hlayer : layersLeft < 3
+    · rw [dite_eq_left (show layersLeft < FORS.numLayers from hlayer),
+        dite_eq_left (show layersLeft < layerCount from hlayer)]
+      interval_cases layersLeft <;>
+      · simp only [sim_bind, simulateQ_otsLeaf]
+        refine bind_eq_of rfl fun found ↦ ?_
+        rcases found with _ | value
+        · exact sim_pure _
+        · simp only [sim_bind, simulateQ_treeFold]
+          refine bind_eq_of (by rw [signaturePath_eq]; rfl) fun root ↦ ?_
+          simp only [↓reduceIte, Nat.succ_ne_zero, sim_pure, ih]
+          rfl
+    · rw [dite_eq_right (show ¬layersLeft < FORS.numLayers from hlayer),
+        dite_eq_right (show ¬layersLeft < layerCount from hlayer), sim_pure]
+      rfl
+
+/-- **The verifier**: the model's, its queries answered by Keccak-256 over `π`, is the statement's,
+through the maps. -/
+theorem simulateQ_verify (publicKey : PublicKey) (message : FORS.Message) (signature : Signature) :
+    simulateQ σ (FORS.Concrete.verify (m := OracleComp FORS.HashSpec) (toModelPublicKey publicKey)
+      message (toModelSignature signature)) =
+      verify queryPermutation publicKey message signature := by
+  simp only [FORS.Concrete.verify, Verification.verify, FORS.Concrete.messageDigest,
+    Verification.messageDigest, bind_assoc, pure_bind, sim_bind,
+    simulateQ_sequenceFin, simulateQ_messageDigestCall]
+  refine bind_eq_of rfl fun outputs ↦ ?_
+  have hindex := digestIndex_eq outputs
+  have hleaves := digestLeaves_eq outputs
+  simp only [asModel] at hindex hleaves
+  rw [hindex, hleaves]
+  conv_lhs => rw [← bind_assoc]
+  refine bind_eq_of (simulateQ_forsRecover _ _ _ _) fun forsKey ↦ ?_
+  refine bind_eq_of (simulateQ_verifyLayers _ _ _ _ _) fun found ↦ ?_
+  rcases found with _ | root
+  · exact sim_pure _
+  · exact sim_pure _
+
+end Verification
 
 end Sphincs.Model
