@@ -57,7 +57,7 @@ theorem vi_pure {α : Type} {a b : α} {st st' : TSt}
 theorem vi_ret {α : Type} {a b : α} {st st' : TSt}
     (h : runT (VerifierProgram.ret a) st = some (b, st')) : b = a ∧ st' = st := vi_pure h
 
-theorem vi_readE {s : Fs} {zs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
+theorem vi_readE {s : Fs} {zs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)}
     {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
     ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
   cases zs with
@@ -79,7 +79,7 @@ theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT VerifierProgram.sampleChall
   exact ⟨h.1.symm, h.2.symm⟩
 
 /-- `n` reads take the next `n` words, absorbed. -/
-theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List Opening)
+theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
     runT (VerifierProgram.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
       ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
@@ -125,7 +125,7 @@ theorem vi_require {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
 /-! ## Sumchecks -/
 
 /-- **The pack rounds, read back.** -/
-theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List Opening)
+theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : E × E × List E) (st' : TSt),
     runT (keccakPackRounds rs v sc) ⟨s, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E)) (rest : List E), ms.length = rs.length ∧
@@ -160,7 +160,7 @@ theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List
       · simp only [packRunF]; exact hst
 
 /-- **The position rounds, read back.** -/
-theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Opening)
+theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : List E × E) (st' : TSt),
     runT (sumcheck v 4 (List.replicate n none)) ⟨s, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E × E)) (rest : List E), ms.length = n ∧
@@ -198,7 +198,7 @@ theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Openi
       · rw [localRunF_cons]; exact hst
 
 /-- **The plain rounds, read back.** -/
-theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Opening)
+theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : List E × E) (st' : TSt),
     runT (sumcheck v 3 (List.replicate n none)) ⟨s, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E)) (rest : List E), ms.length = n ∧
@@ -242,7 +242,7 @@ theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List Openi
 
 /-- **A layer, read back**: its product, its pack and position rounds' messages, `t`, its two
 checks, the claim it returns and the sponge after it. -/
-theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os : List Opening}
+theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {st' : TSt}
     (h : runT (verifyKeccakLayer L step c) ⟨s, zs, os, R⟩ = some (c', st')) :
     ∃ (product : List E) (packMsgs : List (E × E)) (localMsgs : List (E × E × E)) (t : E × E × E)
@@ -314,7 +314,7 @@ def ChainOk (L : ℕ) : List ℕ → KeccakClaim → Fs → List LT → Prop
 
 /-- **The layers, read back.** -/
 theorem vi_layers {L : ℕ} : ∀ (steps : List ℕ) (c : KeccakClaim) (s : Fs) (zs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (c' : KeccakClaim) (st' : TSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (c' : KeccakClaim) (st' : TSt),
     runT (keccakLayers L steps c) ⟨s, zs, os, R⟩ = some (c', st') →
       ∃ (Ts : List LT) (rest : List E), ChainOk L steps c s Ts ∧
         zs = Ts.flatMap ltXs ++ rest ∧ c' = (chainEnd steps c s Ts).1 ∧

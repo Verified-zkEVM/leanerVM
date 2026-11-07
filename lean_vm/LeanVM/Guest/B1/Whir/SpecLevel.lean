@@ -201,7 +201,7 @@ end SpLv
 
 /-- **A level's queries and intro, backwards**, from the sponge `F2` with nothing waiting. -/
 theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
-    {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
+    {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
     {K : WhirStateT → VerifierProgram β}
     (h : runF ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
@@ -219,11 +219,12 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
     let qs := queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
       (F2.squeezeN nsq).1 level.queries
     let lam := (F2.squeezeN nsq).2.squeeze.1
-    ∃ (osL osR : List Opening) (ic0 ic2 : E) (xsR : List E) (root : Digest) (height width : ℕ),
-      os = osL ++ osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
+    ∃ (osL : List Opening) (osR : List (List Opening)) (ic0 ic2 : E) (xsR : List E) (root : Digest) (height width : ℕ),
+      os = osL :: osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
         Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
+      osL.map Opening.leafIndex = qs ∧
       runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),
@@ -235,14 +236,15 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
   intro nsq qs lam
   rw [runF_sampleQueries_bind hd, runF_sampleE_bind] at h
   obtain ⟨hlam, h⟩ := runF_require_bind h
-  obtain ⟨root, height, width, rows, rest, hR, ho, h⟩ := runF_queryP_bind h
-  obtain ⟨osL, eos, hol, hok, hrows⟩ := openAll_inv _ _ _ _ _ _ _ ho
+  obtain ⟨root, height, width, rows, osL, rest, hR, eos, ho, h⟩ := runF_queryP_bind h
+  obtain ⟨hol, hok, hrows⟩ := openPhase_inv ho
+  have hidx := (openPhase_some keccak256 ho).2.1
   rw [sumcheck3_bind] at h
   obtain ⟨ic0, xs1, hx1, h1⟩ := runF_readE_bind h
   obtain ⟨ic2, xs2, hx2, h2⟩ := runF_readE_bind h1
   subst hx1 hx2 hrows
   rw [squeeze_absorb_two] at h2
-  exact ⟨osL, rest, ic0, ic2, xs2, root, height, width, eos, rfl, hlam, hR, hol, hok, h2⟩
+  exact ⟨osL, rest, ic0, ic2, xs2, root, height, width, eos, rfl, hlam, hR, hol, hok, hidx, h2⟩
 
 /-! ## The last level's shape -/
 
@@ -285,7 +287,7 @@ theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : 
 
 /-- `rest_inv` on `levelRestNZ`. -/
 theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
-    {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
+    {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
     {K : WhirStateT → VerifierProgram β}
     (h : runF ((levelRestNZ ml index level lf ws1 pending).bind K) ⟨F2, xs, os, R⟩ = some r) :
@@ -293,11 +295,12 @@ theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E
     let qs := queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
       (F2.squeezeN nsq).1 level.queries
     let lam := (F2.squeezeN nsq).2.squeeze.1
-    ∃ (osL osR : List Opening) (ic0 ic2 : E) (xsR : List E) (root : Digest) (height width : ℕ),
-      os = osL ++ osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
+    ∃ (osL : List Opening) (osR : List (List Opening)) (ic0 ic2 : E) (xsR : List E) (root : Digest) (height width : ℕ),
+      os = osL :: osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
         Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
+      osL.map Opening.leafIndex = qs ∧
       runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),

@@ -208,17 +208,10 @@ theorem run_reads (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
     · simp at h
   | query i ps k ih =>
     intro n Q hp s r h
-    simp only [Compile.runWithHash] at h
-    split at h
-    · simp at h
-    · next root height width hr =>
-      change (match openAllWithHash H root height width ps s.openings with
-        | some (rows, rest) => _ | none => _) = _ at h
-      split at h
-      · next rows rest ho =>
-        obtain ⟨ys, hys, hl⟩ := ih rows (hp rows) h
-        exact ⟨ys, hys, hl⟩
-      · simp at h
+    obtain ⟨_, _, _, _, _, rows, _, _, _, h'⟩ :=
+      (Compile.runWithHash_query_eq_some_iff H F i ps k s r).mp h
+    obtain ⟨ys, hys, hl⟩ := ih rows (hp rows) h'
+    exact ⟨ys, hys, hl⟩
 
 /-- **An accepted proof's stream has at most the program's reads.** -/
 theorem stream_le_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : VerifierProgram Bool}

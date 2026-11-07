@@ -33,19 +33,18 @@ theorem runF_ret_some {a : α} {st : FSt} {r : α × FSt} (h : runF (VerifierPro
     some r) :
     r = (a, st) := (Option.some.inj h).symm
 
-theorem runF_readE_bind {k : E → VerifierProgram β} {F : Fs} {xs : List E} {os : List Opening}
+theorem runF_readE_bind {k : E → VerifierProgram β} {F : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (h : runF (VerifierProgram.readScalar.bind k) ⟨F, xs, os, R⟩ = some r) :
     ∃ x xs', xs = x :: xs' ∧ runF (k x) ⟨F.absorb x dsObserve, xs', os, R⟩ = some r := by
   cases xs with
   | nil => simp [VerifierProgram.readScalar, VerifierProgram.bind, runF] at h
   | cons x xs => exact ⟨x, xs, rfl, h⟩
 
-theorem runF_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (os : List Opening)
+theorem runF_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) :
     runF (VerifierProgram.sampleChallenge.bind k) ⟨F, xs, os, R⟩ = runF (k F.squeeze.1) ⟨F.squeeze.2, xs, os, R⟩ := rfl
 
-theorem runF_grindP_bind {bits : ℕ} {k : Unit → VerifierProgram β} {F : Fs} {xs : List E} {os : List
-    Opening}
+theorem runF_grindP_bind {bits : ℕ} {k : Unit → VerifierProgram β} {F : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
     (h : runF ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, xs, os, R⟩ = some r) :
     ∃ n xs', xs = n :: xs' ∧ powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true ∧
@@ -60,7 +59,7 @@ theorem runF_grindP_bind {bits : ℕ} {k : Unit → VerifierProgram β} {F : Fs}
     · simp at h
 
 theorem runF_commitP_bind {hh ww : ℕ} {k : Unit → VerifierProgram β} {F : Fs} {xs : List E}
-    {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
+    {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
     (h : runF ((VerifierProgram.readCommitment hh ww).bind k) ⟨F, xs, os, R⟩ = some r) :
     ∃ x0 x1 xs' d, xs = x0 :: x1 :: xs' ∧ digestFromHalves (x0, x1) = some d ∧
       runF (k ()) ⟨(F.absorb x0 dsObserve).absorb x1 dsObserve, xs', os, R ++ [(d, hh, ww)]⟩ =
@@ -76,20 +75,28 @@ theorem runF_commitP_bind {hh ww : ℕ} {k : Unit → VerifierProgram β} {F : F
     · simp at h
 
 theorem runF_queryP_bind {i : ℕ} {ps : List ℕ} {k : List (List K) → VerifierProgram β} {F : Fs}
-    {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
+    {xs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
     (h : runF ((VerifierProgram.queryOpenings i ps).bind k) ⟨F, xs, os, R⟩ = some r) :
-    ∃ (root : Digest) (height width : ℕ) (rows : List (List K)) (rest : List Opening),
-      R[i]? = some (root, height, width) ∧
-      Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) = some (rows, rest) ∧
+    ∃ (root : Digest) (height width : ℕ) (rows : List (List K)) (phase : List Opening)
+      (rest : List (List Opening)),
+      R[i]? = some (root, height, width) ∧ os = phase :: rest ∧
+      Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) =
+        some rows ∧
       runF (k rows) ⟨F, xs, rest, R⟩ = some r := by
-  simp only [VerifierProgram.queryOpenings, VerifierProgram.bind, runF] at h
-  split at h
-  · simp at h
-  · rename_i root height width hr
-    split at h
-    · rename_i rows rest ho
-      exact ⟨root, height, width, rows, rest, hr, ho, h⟩
-    · simp at h
+  cases hR : R[i]? with
+  | none => simp [VerifierProgram.queryOpenings, VerifierProgram.bind, runF, hR] at h
+  | some v =>
+    obtain ⟨root, height, width⟩ := v
+    cases os with
+    | nil => simp [VerifierProgram.queryOpenings, VerifierProgram.bind, runF, hR] at h
+    | cons phase rest =>
+      simp only [VerifierProgram.queryOpenings, VerifierProgram.bind, runF, hR] at h
+      cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+          phase) with
+      | none => simp [ho] at h
+      | some rows =>
+        simp only [ho] at h
+        exact ⟨root, height, width, rows, phase, rest, rfl, rfl, ho, h⟩
 
 theorem runF_require_bind {c : Prop} [Decidable c] {k : Unit → VerifierProgram β} {st : FSt} {r :
     β × FSt}
@@ -101,7 +108,7 @@ theorem runF_require_bind {c : Prop} [Decidable c] {k : Unit → VerifierProgram
 
 /-- **`readN n`, backwards**: the next `n` words, absorbed. -/
 theorem runF_readN_bind : ∀ (n : ℕ) {k : List E → VerifierProgram β} {F : Fs} {xs : List E}
-    {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt},
+    {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {r : β × FSt},
     runF ((VerifierProgram.readScalars n).bind k) ⟨F, xs, os, R⟩ = some r →
       n ≤ xs.length ∧
       runF (k (xs.take n)) ⟨F.absorbAll (xs.take n) dsObserve, xs.drop n, os, R⟩ = some r
@@ -123,7 +130,7 @@ theorem runF_readN_bind : ∀ (n : ℕ) {k : List E → VerifierProgram β} {F :
 
 /-- **`sampleN n`**: the next `n` challenges. -/
 theorem runF_sampleN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)),
     runF ((VerifierProgram.sampleChallenges n).bind k) ⟨F, xs, os, R⟩ =
       runF (k (F.squeezeN n).1) ⟨(F.squeezeN n).2, xs, os, R⟩
   | 0, k, F, xs, os, R => by simp [VerifierProgram.sampleChallenges, Fs.squeezeN]
@@ -138,7 +145,7 @@ theorem runF_sampleN_bind : ∀ (n : ℕ) (k : List E → VerifierProgram β) (F
 
 /-- **The query positions**: `ceilDiv rem (192/d)` challenges, cut into positions. -/
 theorem runF_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
-    ∀ (fuel rem : ℕ) (k : List ℕ → VerifierProgram β) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (fuel rem : ℕ) (k : List ℕ → VerifierProgram β) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)), ceilDiv rem (192 / d) ≤ fuel →
       runF ((sampleQueriesAux d fuel rem).bind k) ⟨F, xs, os, R⟩ =
         runF (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv rem (192 / d))).1 rem))
@@ -175,7 +182,7 @@ theorem ceilDiv_le_self {a b : ℕ} (hb : 1 ≤ b) : ceilDiv a b ≤ a := by
 
 theorem runF_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ → VerifierProgram β)
     (F : Fs)
-    (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) :
+    (xs : List E) (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) :
     runF ((sampleQueries d q).bind k) ⟨F, xs, os, R⟩ =
       runF (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv q (192 / d))).1 q))
         ⟨(F.squeezeN (ceilDiv q (192 / d))).2, xs, os, R⟩ :=

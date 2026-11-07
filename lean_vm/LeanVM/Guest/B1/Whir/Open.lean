@@ -154,7 +154,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     (hp' : fn'.params.map σ = fs ++ [target, root0, root1, cur])
     (hh : Stmt.HoldsList C rd σ fn'.body False (fun rs ↦ rs = rets)) :
     OpenOutW rd μ r root fs target cur rets (readN rd cur (osWordsLen c))
-      ((osQCalls c 0 c.levels (osHead c).2).flatMap
+      ((osQCalls c 0 c.levels (osHead c).2).map
         (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2)) := by
   have hn := hF.n2
   obtain ⟨fn, hfind, hps, hbody⟩ := hfnc

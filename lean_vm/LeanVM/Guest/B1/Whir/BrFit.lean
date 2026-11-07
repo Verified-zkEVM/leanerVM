@@ -35,12 +35,12 @@ structure ChainEndP (lane : ℕ) (Lf : SpLv) (xsR : List E) (res : WhirEnd × FS
   fin : Lf.fin = true
   len : 2 * (Lf.ml - 1) ≤ xsR.length
   nz : ∀ c ∈ (tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR).2.1, c ≠ 0
-  res : ∃ (osR : List Opening) (R : List (Digest × ℕ × ℕ)), Lf.Ok R (Vector.replicate 4 0) ∧
+  res : ∃ (osR : List (List Opening)) (R : List (Digest × ℕ × ℕ)), Lf.Ok R (Vector.replicate 4 0) ∧
     res = (Lf.wend lane xsR, ⟨(tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR).1,
       xsR.drop (2 * (Lf.ml - 1)), osR, R⟩)
 
 theorem chain_end : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     ChainEndP lane (Ls.getLastD default) (xs.drop (Ls.map SpLv.words).flatten.length) res
   | [level], lvl, ws, F, xs, os, R, [L], res, h => by
@@ -72,7 +72,7 @@ theorem wsEnd_glued (L : SpLv) : L.wsEnd.glued = L.ws.glued ++ recClaims (recOf 
   · simp [SpLv.wsEnd, SpLv.pending, h, glue_one, recOf, recClaims, SpLv.ws1]
 
 theorem chain_glued : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     (Ls.getLastD default).wsEnd.glued = ws.glued ++ (Ls.map recOf).flatMap recClaims
   | [level], lvl, ws, F, xs, os, R, [L], res, h => by
@@ -93,7 +93,7 @@ theorem chain_glued : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) 
   | _ :: _ :: _, _, _, _, _, _, _, [], _, h => by simp [SpChain] at h
 
 theorem chain_foldsNz : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res → (∀ x ∈ ws.folds, x ≠ 0) →
     ∀ x ∈ (Ls.getLastD default).wsEnd.folds, x ≠ 0
   | [level], lvl, ws, F, xs, os, R, [L], res, h, h0 => by
@@ -179,7 +179,7 @@ theorem getLastD_eq_getD {α : Type} [Inhabited α] : ∀ (l : List α), l ≠ [
 
 /-- **The trace of an accepting run with no zero challenge fits the candidate.** -/
 theorem trFit_of_run {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
-    {target : E} {q0 : List E} {F0 : Fs} {xs : List E} {os : List Opening} {root : Digest}
+    {target : E} {q0 : List E} {F0 : Fs} {xs : List E} {os : List (List Opening)} {root : Digest}
     {Ls : List SpLv} {res : WhirEnd × FSt}
     (hch : SpChain μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, q0, [], []⟩ F0 xs os
       [(root, stackShape μ r)] Ls res) :

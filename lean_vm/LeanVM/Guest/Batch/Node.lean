@@ -39,7 +39,7 @@ theorem rsRun_length : ∀ (rounds : List (E × E)) (claim : E) (sp : Sponge),
 /-- **The rounds read their messages**: a run of `k` rounds, then a continuation, on a stream
 reads `2k` scalars and runs the continuation on the rest. -/
 theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β) :
-    ∀ (k : ℕ) (claim : E) (sp : Sponge) (zs : List E) (os : List Opening)
+    ∀ (k : ℕ) (claim : E) (sp : Sponge) (zs : List E) (os : List (List Opening))
       (roots : List (Digest × ℕ × ℕ)) {r : β × VerifierProgramState},
       runD ((sumcheckRoundsProgram claim k).bind f) ⟨sp, zs, os, roots⟩ = some r →
         2 * k ≤ zs.length ∧ ∃ x sp', runD (f x) ⟨sp', zs.drop (2 * k), os, roots⟩ = some r

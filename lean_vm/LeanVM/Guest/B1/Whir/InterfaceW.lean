@@ -22,10 +22,11 @@ function's own valuation `σ` and the frame map `V`, reading words only.
   the candidate reads: the first quadratic's two, each level's `2·folds`, its next commitment's
   six (root, out-of-domain value, intro, nonce) or the final message and its nonce, its intro's
   two, and the tail's `2·(yrLog - 1)`;
-* the openings: level by level, the queries of the level's `opening_queries` call (`osQCalls`,
+* the openings, one phase per level: the queries of the level's `opening_queries` call (`osQCalls`,
   the calls the template makes, its words values of `σ`), read off the callee's frame `V name
   args rets` and its loop's frames (`oqsOf`), each with the cap's siblings from the memory
-  (`capSibsOf`, the cells `verify_merkle_cap` checks): `⟨row, below-cap ++ cap siblings⟩`.
+  (`capSibsOf`, the cells `verify_merkle_cap` checks): `⟨position, row, below-cap ++ cap
+  siblings⟩`.
 
 `OpenOutW` is `OpenOut` at given words and openings. `open_stacked_sound_w_Spec osW`: under a call
 relation `C ≤ Rel` unfolding at `V`, a valuation `σ` holding the candidate's body on the
@@ -43,7 +44,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- **`OpenOut` at the words `xs` and the openings `os`.** -/
 def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur : E)
-    (rets : List E) (xs : List E) (os : List Opening) : Prop :=
+    (rets : List E) (xs : List E) (os : List (List Opening)) : Prop :=
   ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
     ReadsAt rd cur xs ∧
     RunsWith (whirOpen μ r target) ⟨fs, []⟩ xs os [(root, stackShape μ r)] w s' roots' ∧
@@ -53,7 +54,7 @@ def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cu
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
 
 theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E} {target cur : E}
-    {rets xs : List E} {os : List Opening} (h : OpenOutW rd μ r root fs target cur rets xs os) :
+    {rets xs : List E} {os : List (List Opening)} (h : OpenOutW rd μ r root fs target cur rets xs os) :
     OpenOut rd μ r root fs target cur rets := by
   obtain ⟨w, s', roots', h1, h2, h3, h4⟩ := h
   exact ⟨xs, os, w, s', roots', h1, h2, h3, h4⟩
@@ -116,9 +117,9 @@ def capSibsOf (rd : Reader) (cap : E) (D p : ℕ) : List Digest :=
   (List.range D).map fun j ↦
     digestOfCells (memRead rd cap (2 * capSib D p j)) (memRead rd cap (2 * capSib D p j + 1))
 
-/-- A query's opening: its row, its siblings below the cap, then the cap's. -/
+/-- A query's opening: its position, its row, its siblings below the cap, then the cap's. -/
 def toOpening (rd : Reader) (cap : E) (cd depth : ℕ) (w : QW) : Opening :=
-  ⟨w.2.1, w.2.2 ++ capSibsOf rd cap cd (w.1 / 2 ^ (depth - cd))⟩
+  ⟨w.1, w.2.1, w.2.2 ++ capSibsOf rd cap cd (w.1 / 2 ^ (depth - cd))⟩
 
 /-- The `opening_queries` shape of a level. -/
 def lvOq (lvl : ℕ) (lv : OsLv) : Oq :=
@@ -144,10 +145,11 @@ def osLevelOs (rd : Reader) (σ : Val) (Fr : FrameMap) :
   | (lvl, lv, name, args, rets) => lvOpenings rd σ lv (lvW rd Fr lvl lv name) (name, args, rets)
 
 /-- **`open_stacked`'s witness** at the candidate `m`, from its valuation `σ` and the frames `V`:
-the stream words at the cursor and the levels' openings. -/
-def open_stacked_osW (rd : Reader) (m : ℕ) (σ : Val) (V : FrameMap) : List E × List Opening :=
+the stream words at the cursor and the levels' openings, one phase per level. -/
+def open_stacked_osW (rd : Reader) (m : ℕ) (σ : Val) (V : FrameMap) :
+    List E × List (List Opening) :=
   (readN rd (σ (.n 8)) (osWordsLen (osCfg m)),
-    (osQCalls (osCfg m) 0 (osCfg m).levels (osHead (osCfg m)).2).flatMap (osLevelOs rd σ V))
+    (osQCalls (osCfg m) 0 (osCfg m).levels (osHead (osCfg m)).2).map (osLevelOs rd σ V))
 
 /-! ## The statement -/
 
@@ -157,7 +159,8 @@ capacity cells `fs`, the claim `target`, the root's two cells and the cursor, re
 on a memory image of at most `2^32` words (the query windows' range checks), gives `OpenOutW` at
 the words and openings `osW L.read (candidate μ r) σ V`. Proved as
 `open_stacked_sound_w` for `open_stacked_osW`. -/
-def open_stacked_sound_w_Spec (osW : Reader → ℕ → Val → FrameMap → List E × List Opening) :
+def open_stacked_sound_w_Spec
+    (osW : Reader → ℕ → Val → FrameMap → List E × List (List Opening)) :
     Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap), UnfoldsV L.read C V →
     CallRel.Le C (coreProgram.Rel L.read) →

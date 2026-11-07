@@ -116,7 +116,7 @@ abbrev runId {α : Type} (p : VerifierProgram α) (st : VerifierProgramState) : 
 `xs` and returns `a`, leaving a sponge the guest carries as `s'`, on any rest of the stream, any
 openings and any roots. -/
 def RunsTo {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (a : α) (s' : Fs) : Prop :=
-  ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (os : List Opening)
+  ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (os : List (List Opening))
     (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, s'.Carries sp' ∧
       runId p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
 
