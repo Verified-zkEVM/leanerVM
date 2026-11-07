@@ -5,7 +5,6 @@
   the structured bound `2^-256` (`LeanVM.CompletenessOnBytes`).
 -/
 
-import LeanVM.Prover.End
 import LeanVM.Protocol.ExperimentBridge
 import LeanVM.Wire.Model
 
@@ -25,8 +24,10 @@ the lazily sampled permutation. Its verdict is the structured experiment's
    the honest prover's proofs survive their encoding and that it hashed every input their paths
    climb through (`HonestWireFacts`, track wcparams);
 3. so the experiment on the wire is the structured one with the two calls
-   (`completenessExperimentOnBytes_eq_withHash`), whose rejection probability is at most
-   `2^-256` (`completenessWithHash_holds`).
+   (`completenessExperimentOnBytesWithHash_eq`), and `CompletenessOnBytes` follows from
+   `CompletenessWithHash` (`completenessOnBytes_of`), its rejection probability at most `2^-256`
+   (`completenessWithHash_holds`; `LeanVM.Wire.completenessOnBytes_holds`,
+   `LeanVM/Wire/CompleteEnd.lean`).
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven).
@@ -123,10 +124,12 @@ theorem completenessExperimentOnBytesWithHash_eq (hf : HonestWireFacts) (prog : 
       hz
     simp only [simulateQ_bind, StateT.run_bind, hrun, pure_bind]
 
-/-- **Completeness on the wire**, from what it needs of the honest prover. -/
-theorem completenessOnBytes_of (hf : HonestWireFacts) : CompletenessOnBytes := by
+/-- **Completeness on the wire**, from what it needs of the honest prover and the structured
+completeness with the two calls: the same bound `2^-256`. -/
+theorem completenessOnBytes_of (hf : HonestWireFacts) (hc : CompletenessWithHash) :
+    CompletenessOnBytes := by
   intro prog input t ρ hv hs hρ
   rw [completenessExperimentOnBytes_eq, completenessExperimentOnBytesWithHash_eq hf]
-  exact completenessWithHash_holds prog input t ρ hv hs hρ
+  exact hc prog input t ρ hv hs hρ
 
 end LeanVM.Wire

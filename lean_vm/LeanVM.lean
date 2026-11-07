@@ -20,6 +20,8 @@ import LeanVM.Guest.DecoderProgram
 import LeanVM.Cost.DecoderSpec
 import LeanVM.Cost.Bounds.Guest.Budget
 import LeanVM.Cost.GuestDecoding
+import LeanVM.Wire.Sound
+import LeanVM.Wire.Complete
 
 /-! # The end theorems of leanVM
 
@@ -64,6 +66,13 @@ random-permutation model where an adversary is involved, except the memory-decod
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
   `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
   sound for the straight-line extractor `transcriptExtractor`, and complete;
+* `LeanVM.Wire.knowledgeSoundnessOnBytes_of knowledgeSoundness_holds : KnowledgeSoundnessOnBytes
+  transcriptExtractor` and `LeanVM.Wire.completenessOnBytes_holds : CompletenessOnBytes`
+  (`Statement/LeanVm.lean`): the same on the wire, the proof as its one encoding (`Proof.toBytes`)
+  that the verifier decodes (`Proof.fromBytes`) before it verifies (`LeanVM/Wire/Sound.lean`, by
+  the adversary that decodes its own bytes, at most `73728` more permutation calls;
+  `LeanVM/Wire/Complete.lean`, by the round trip `LeanVM.Wire.roundTrip` and decoding after the
+  honest prover adding no edge to the permutation, `LeanVM.Wire.fromBytesWithHash_run_of`);
 * `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
   definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
   (`Statement/LeanVmGuest.lean`;
@@ -102,6 +111,9 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 
 example : LeanVM.KnowledgeSoundness LeanVM.transcriptExtractor := LeanVM.knowledgeSoundness_holds
 example : LeanVM.Completeness := LeanVM.completeness_holds
+example : LeanVM.KnowledgeSoundnessOnBytes LeanVM.transcriptExtractor :=
+  LeanVM.Wire.knowledgeSoundnessOnBytes_of LeanVM.knowledgeSoundness_holds
+example : LeanVM.CompletenessOnBytes := LeanVM.Wire.completenessOnBytes_holds
 example : LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.guestProgram LeanVM.Guest.End.decode :=
   LeanVM.Guest.End.guest_knowledge
 example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
@@ -151,6 +163,18 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 /-- info: 'LeanVM.completeness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.completeness_holds
+
+/-- info: 'LeanVM.Wire.knowledgeSoundnessOnBytes_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Wire.knowledgeSoundnessOnBytes_of
+
+/-- info: 'LeanVM.Wire.completenessOnBytes_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Wire.completenessOnBytes_holds
+
+/-- info: 'LeanVM.Wire.roundTrip' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Wire.roundTrip
 
 /-- info: 'LeanVM.Rpm.soundnessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -262,6 +286,10 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
     rw [LeanVM.Cost.extractorOf_extractorProgram]
     exact LeanVM.knowledgeSoundness_holds
   leanVmCompleteness := LeanVM.completeness_holds
+  leanVmKnowledgeSoundnessOnBytes := LeanVM.Wire.knowledgeSoundnessOnBytes_of (by
+    rw [LeanVM.Cost.extractorOf_extractorProgram]
+    exact LeanVM.knowledgeSoundness_holds)
+  leanVmCompletenessOnBytes := LeanVM.Wire.completenessOnBytes_holds
   guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   statementDigestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteOnHonestChildren := LeanVM.Guest.Completeness.guest_complete_on_honest_children
