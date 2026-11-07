@@ -128,7 +128,7 @@ structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Na
   tip : ∀ r < n, σ (.n (slots r 2)) =
     chainT f (first + r) (3 - k / 4 ^ r % 4) (k / 4 ^ r % 4) (σ (start r))
   prod : σ prodOut = (if fold then 1 else σ prodIn) * σ (W.power (digitSum k n))
-  enc : σ encOut = (if fold then 0 else σ encIn) + lit (k * 4 ^ first)
+  enc : σ encOut = (if fold then 0 else σ encIn) + lit (W.enc first n k)
 
 /-- The start of chain `r` in arm `k` from base `b`. -/
 def armStart (W : WotsT) (slots : Nat → Nat → Nat) (fold : Bool) (k b r : Nat) : V :=
@@ -186,10 +186,10 @@ theorem armT_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
         simp
       have e := he.atom (List.mem_singleton_self _)
       simp only [Atom.Holds] at e
-      have hl : lit (0 * 4 ^ first) = 0 := by simp [lit, word_zero]
+      have hl : lit (W.enc first n 0) = 0 := by simp [W.enc_zero, lit, word_zero]
       rw [e, hl, add_zero, henc0]
     · have he : AtomsHold rd σ
-          [cst (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2 (lit (k * 4 ^ first)),
+          [cst (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2 (lit (W.enc first n k)),
             addS encOut (if fold then V.n b else encIn)
               (.n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2)] := by
         refine h.sub fun x hx => ?_
