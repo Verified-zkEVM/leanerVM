@@ -163,11 +163,11 @@ include hrd hR hFp
 
 /-- **The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer** (`sphincsAtFpC`):
 the three `sp_wots` frames looked up (each search at most `F`), the reader at the words of the four
-frames (`frameValAt`, `R + 1551` each): at most `3·F + 1507·(R + 1551) + 351200`. -/
+frames (`frameValAt`, `R + 1551` each): at most `3·F + 1507·(R + 1551) + 351500`. -/
 theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : ReaderTabs)
     (hRt : SpTabsOK Rt.sphincs) (o : Option K) :
     machineCost P Decoder.sphincsAtFpC.costIdx [encodeValue Rt, encodeValue table, rdV,
-      encodeValue o] ≤ 3 * F + 1507 * (R + 1551) + 351200 := by
+      encodeValue o] ≤ 3 * F + 1507 * (R + 1551) + 351500 := by
   rw [Decoder.sphincsAtFpC.costEq P hP Rt table rd rdV hrd o]
   have hs : ∀ v : V, RunsApp P (.closure Decoder.sphincsAtFpC.lam0.costIdx [rdV, encodeValue o])
       [encodeValue v] (encodeValue (Decoder.frameValAt rd o 21 v)) :=
@@ -214,13 +214,13 @@ theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : R
 
 /-- **The leanSPHINCS signature checked at slot address `p`** (`sphincsAtFrameTC`), at `main`'s
 valuation `σ` of price at most `S`: `verify_sig_lean_sphincs`' frame looked up once, then
-`sphincsAtFp`: at most `2·S + 4·F + 1507·(R + 1551) + 351225`. -/
+`sphincsAtFp`: at most `2·S + 4·F + 1507·(R + 1551) + 351525`. -/
 theorem sphincsAtFrameT_cost (hP : Includes P Decoder.sphincsAtFrameTC.costDeps) (Rt : ReaderTabs)
     (hRt : SpTabsOK Rt.sphincs) {σ : Val} {σV : MachineValue}
     (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
     {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S) (p : E) :
     machineCost P Decoder.sphincsAtFrameTC.costIdx [encodeValue Rt, encodeValue table, rdV, σV,
-      encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351225 := by
+      encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351525 := by
   rw [Decoder.sphincsAtFrameTC.costEq P hP Rt table rd rdV hrd σ σV hσ p]
   have := hS (.n 68)
   have := hFp 21 [p, σ (.n 68)] [] (by norm_num) (by simp)
@@ -243,7 +243,7 @@ theorem sphincsClosure_cost (hP : Includes P Decoder.decTopFramesC.lam2.costDeps
     (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
     {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S) (p : E) :
     appCost P (.closure Decoder.decTopFramesC.lam2.costIdx [encodeValue Rt, rdV, σV,
-      encodeValue table]) [encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351236 := by
+      encodeValue table]) [encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351536 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
     List.nil_append, Decoder.decTopFramesC.lam2.costEq P hP Rt rd rdV hrd σ σV hσ]
   have := sphincsAtFrameT_cost P hrd hR table hFp (by includes) Rt hRt hσ hS p
@@ -318,7 +318,7 @@ at most `64` words at most `F4`. -/
 
 /-- The leanSPHINCS reader's price at the frames stage: `main`'s valuation of price `S`, the
 reader's `R`, a frame search at most `F`. -/
-@[expose] def sphincsReaderPrice (R S F : ℕ) : ℕ := 2 * S + 4 * F + 1507 * (R + 1551) + 351236
+@[expose] def sphincsReaderPrice (R S F : ℕ) : ℕ := 2 * S + 4 * F + 1507 * (R + 1551) + 351536
 
 /-- `da_verify`'s witness's price at a frame of the frame map of price `F`: its rows at most
 `1024 = 2^10` (`dvWitN_cost_1024`). -/

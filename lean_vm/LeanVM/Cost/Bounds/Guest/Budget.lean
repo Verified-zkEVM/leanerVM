@@ -39,7 +39,7 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
-  `topConstPrice`, at most `425345621611 + 40774872·F` (`2^38.63 + 2^25.28·F`,
+  `topConstPrice`, at most `426293655144 + 40774872·F` (`2^38.63 + 2^25.28·F`,
   `topConst_valid_le`, each child's cursor at most `8192` words by `valid_cursor`), the
   `guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts·F`
   (`topConst_le`).
@@ -57,13 +57,13 @@ attribute [local instance] lexOrd
 
 /-- The constant's linear form in the frame map's price, the address tables apart, at a valid
 run's counts (`16` children, `65535` slots in the two regions together, `65535` declared claims
-and raw signatures a scheme, each child's cursor at most `8192` words): `425345621611 + 40774872·F`. -/
+and raw signatures a scheme, each child's cursor at most `8192` words): `426293655144 + 40774872·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
       8192 (dvFramePrice gLogPrice (F + 9)) (xmssReaderPrice 1271 (4 * F))
       (sphincsReaderPrice 1271 (1271 + 1525) F) 16 65535
         65535) ≤
-      425345621611 + 40774872 * F := by
+      426293655144 + 40774872 * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice sphincsReaderPrice
     xmssReaderPrice xmssPrice xPartPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice kidSlotsInPrice

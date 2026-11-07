@@ -19,7 +19,7 @@ valuation: a signature has a fixed shape, so its price is `a·S + b`:
 * leanSPHINCS, its four valuations (`verify_sig_lean_sphincs`' and the three `sp_wots` frames)
   each of price at most `S`, its positions off the tables (`offAtA`), the counter big-endian
   (`beWordAt_cost`): `forsOpeningA_cost` (`41·S + 1500`), `layerA_cost` (`169·S + 104600`),
-  **`sphincsSigOfA_cost`**: `1492·S + 350500`; the words of a layer's call of `sp_wots`
+  **`sphincsSigOfA_cost`**: `1492·S + 350800`; the words of a layer's call of `sp_wots`
   (`spWotsArgs_cost`, `spWotsRets_cost`), by which the decoder finds its frame.
 -/
 
@@ -373,7 +373,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
 
 /-- **A leanSPHINCS signature, off the tables `T`** (`sphincsSigOfNC`, `sphincsSigOfA`):
 `verify_sig_lean_sphincs`' valuation `σ` and the three `sp_wots` frames `w0`, `w1`, `w2`, each a
-valuation of price at most `S`: at most `1492·S + 350500`. -/
+valuation of price at most `S`: at most `1492·S + 350800`. -/
 theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T : SpTabs)
     (hT : SpTabsOK T) {w0 w1 w2 : Val} {w0V w1V w2V : MachineValue}
     (hw0 : ∀ v : V, RunsApp P w0V [encodeValue v] (encodeValue (w0 v)))
@@ -383,7 +383,7 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
     (hw2 : ∀ v : V, RunsApp P w2V [encodeValue v] (encodeValue (w2 v)))
     (hW2 : ∀ v : V, appCost P w2V [encodeValue v] ≤ S) :
     machineCost P Decoder.sphincsSigOfNC.costIdx [encodeValue T, σV, w0V, w1V, w2V] ≤
-      1492 * S + 350500 := by
+      1492 * S + 350800 := by
   rw [Decoder.sphincsSigOfNC.costEq P hP T σ σV hσ w0 w0V hw0 w1 w1V hw1 w2 w2V hw2,
     ofFnFrom_length]
   have := hS (.n 347)
