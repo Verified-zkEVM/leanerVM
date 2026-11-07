@@ -30,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- **`open_stacked`'s calls are sound with the witness `osW`.** -/
-def OsSoundW (C : CallRel) (rd : Reader) (osW : ℕ → List E → List E → List E × List Opening) :
+def OsSoundW (C : CallRel) (rd : Reader) (osW : ℕ → List E → List E → List E × List (List Opening)) :
     Prop :=
   ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 → ∀ (root : Digest) (fs : List E)
     (target root0 root1 cur : E) (rets : List E), fs.length = 5 →
@@ -57,7 +57,7 @@ theorem candidate_lt {μ r : ℕ} (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r �
 /-- **The dispatch** (G:3521-3527): the fused `match` on `g^candidate` calls the candidate's
 specialization of `open_stacked`, whose returns are `OpenOutW` at the witness. -/
 theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
-    {osW : ℕ → List E → List E → List E × List Opening} (hos : OsSoundW C rd osW) {μ r : ℕ}
+    {osW : ℕ → List E → List E → List E × List (List Opening)} (hos : OsSoundW C rd osW) {μ r : ℕ}
     (hμ1 : 22 ≤ μ) (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
     (h1901 : σ (.n 1687) = gen ^ B1.Whir.candidate μ r)
     (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1687) = ofK (addressOfIndex j) ∧

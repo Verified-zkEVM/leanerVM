@@ -84,15 +84,17 @@ theorem queriesOf_le {p q : VerifierProgram α} (hpq : VerifierProgram.Le p q) :
     | none => simp [hr] at h
     | some x =>
       obtain ⟨root, height, width⟩ := x
-      simp only [hr, openAll_eq_withHash, keccak256With_keccakF1600] at h ⊢
-      cases ho : Id.run (openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none => simp [ho] at h
-      | some y =>
-        obtain ⟨rows, rest⟩ := y
-        simp only [ho] at h ⊢
-        rcases List.mem_cons.mp h with h | h
-        · exact List.mem_cons.mpr (Or.inl h)
-        · exact List.mem_cons_of_mem _ (ih rows h)
+      cases os with
+      | nil => simp [hr] at h
+      | cons phase rest =>
+        simp only [hr, openPhase_eq_withHash, keccak256With_keccakF1600] at h ⊢
+        cases ho : Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+        | none => simp [ho] at h
+        | some rows =>
+          simp only [ho] at h ⊢
+          rcases List.mem_cons.mp h with h | h
+          · exact List.mem_cons.mpr (Or.inl h)
+          · exact List.mem_cons_of_mem _ (ih rows h)
 
 /-! ## The calculus -/
 

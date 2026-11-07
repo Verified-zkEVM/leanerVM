@@ -87,7 +87,7 @@ theorem Always.run {α : Type} {P : α → Prop} (p : VerifierProgram α) :
     · exact ih _ (h _) hr
   | sample k ih =>
     intro st st' a h hr
-    exact ih _ (h _) hr
+    exact ih _ (h _) hr'
   | grind b k ih =>
     intro st st' a h hr
     simp only [runId, Compile.runWithHash] at hr
@@ -113,17 +113,9 @@ theorem Always.run {α : Type} {P : α → Prop} (p : VerifierProgram α) :
     · cases hr
   | query i ps k ih =>
     intro st st' a h hr
-    simp only [runId, Compile.runWithHash] at hr
-    split at hr
-    · cases hr
-    · rename_i _ root height width _
-      change (match Compile.openAllWithHash (m := Id) keccak256 root height width ps st.openings with
-        | some (rows, rest) => Compile.runWithHash (m := Id) keccak256 keccakF1600 (k rows)
-            (VerifierProgramState.mk st.sponge st.stream rest st.roots)
-        | none => none) = some (a, st') at hr
-      split at hr
-      · exact ih _ (h _) hr
-      · cases hr
+    obtain ⟨_, _, _, _, _, rows, _, _, _, hr'⟩ :=
+      (Compile.runWithHash_query_eq_some_iff keccak256 keccakF1600 i ps k st (a, st')).mp hr
+    exact ih _ (h _) hr'
 
 /-- **A run from a carried sponge returns one of the values.** -/
 theorem RunsTo.always {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α} {P : α

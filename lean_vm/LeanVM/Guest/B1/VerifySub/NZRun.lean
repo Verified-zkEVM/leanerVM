@@ -93,18 +93,20 @@ theorem runF_eq_runT {α : Type} (p : VerifierProgram α) : ∀ st : Whir.FSt,
     | none => rfl
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      simp only
-      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none =>
-        simp only [Option.map_none]
-      | some v' =>
-        obtain ⟨rows, rest⟩ := v'
+      cases os with
+      | nil => rfl
+      | cons phase rest =>
         simp only
-        exact ih rows _
+        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none =>
+          simp only [Option.map_none]
+        | some rows =>
+          simp only
+          exact ih rows _
 
 /-- **A carried run consuming all it is given is a `RunsWith`.** -/
-theorem runsWith_of_runF {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List
-    Opening}
+theorem runsWith_of_runF {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {a : α} {s' : Fs} {R' : List (Digest × ℕ × ℕ)}
     (h : Whir.runF p ⟨s, xs, os, R⟩ = some (a, ⟨s', [], [], R'⟩)) :
     Whir.RunsWith p s xs os R a s' R' := by
@@ -195,12 +197,15 @@ theorem queriesOf_eq_steps {α : Type} (p : VerifierProgram α) : ∀ (st : Whir
     | none => rfl
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      simp only [Compile.openAll_eq_withHash, keccak256With_keccakF1600]
-      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none => rfl
-      | some v' =>
-        obtain ⟨rows, rest⟩ := v'
-        exact congrArg _ (ih rows ⟨s, stream, rest, roots⟩ sp hs)
+      cases os with
+      | nil => rfl
+      | cons phase rest =>
+        simp only [Compile.openPhase_eq_withHash, keccak256With_keccakF1600]
+        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none => rfl
+        | some rows =>
+          exact congrArg _ (ih rows ⟨s, stream, rest, roots⟩ sp hs)
 
 /-- G7's agreement of a query step's openings is B1-b's. -/
 theorem batchAgrees_of {d : ℕ} {qs : List (ℕ × Opening)} (h : Limits.OpeningsAgree d qs) :

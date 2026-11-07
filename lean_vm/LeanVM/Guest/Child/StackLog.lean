@@ -130,7 +130,7 @@ on a stream starting with `l` returns a value the relation admits, the rest of t
 theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Prop}
     (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
     ∀ (l : List E) (p : VerifierProgram β) (cs : Commits), Follows R (Script.sendList l) p cs →
-      ∀ (sp : Sponge) (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
+      ∀ (sp : Sponge) (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
         ∃ b sp', Compile.runWithHash H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
           R cs () b
   | [], p, cs, hf, sp, rest, os, roots => by

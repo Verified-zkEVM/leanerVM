@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 structure TSt where
   sponge : Fs
   stream : List E
-  openings : List Opening
+  openings : List (List Opening)
   roots : List (Digest × ℕ × ℕ)
 
 /-- **A run on the carried sponge.** -/
@@ -59,12 +59,12 @@ def runT {α : Type} : VerifierProgram α → TSt → Option (α × TSt)
           roots := s.roots ++ [(root, height, width)] }
       | none => none
     | _ => none
-  | .query i ps k, s => match s.roots[i]? with
-    | none => none
-    | some (root, height, width) =>
-      match Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps s.openings) with
-      | some (rows, rest) => runT (k rows) { s with openings := rest }
+  | .query i ps k, s => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest =>
+      match Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+      | some rows => runT (k rows) { s with openings := rest }
       | none => none
+    | _, _ => none
 
 theorem runT_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : TSt) :
     runT (p.bind f) st = (runT p st).bind (fun r ↦ runT (f r.1) r.2) := by
@@ -94,41 +94,10 @@ theorem runT_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierPr
   | query i ps k ih =>
     simp only [VerifierProgram.bind, runT]
     split
-    · rfl
     · split
       · exact ih _ _
       · rfl
-
-/-- The openings `openAll` consumes are a prefix. -/
-theorem openAll_frame (root : Digest) (height width : ℕ) : ∀ (qs : List ℕ) (os : List Opening)
-    (rows : List (List K)) (rest : List Opening),
-    Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width qs os) = some (rows, rest) →
-      ∃ pre, os = pre ++ rest ∧ ∀ orest,
-        Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width qs (pre ++ orest)) =
-          some (rows, orest)
-  | [], os, rows, rest, h => by
-    simp only [Compile.openAllWithHash, Id.run, pure, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    exact ⟨[], rfl, fun orest => by simp [Compile.openAllWithHash, Id.run, pure]⟩
-  | q :: qs, [], rows, rest, h => by simp [Compile.openAllWithHash, Id.run, pure] at h
-  | q :: qs, o :: os, rows, rest, h => by
-    simp only [Compile.openAllWithHash, Id.run, bind] at h ⊢
-    split at h
-    · rename_i hok
-      cases hr : Compile.openAllWithHash (m := Id) keccak256 root height width qs os with
-      | none => simp [hr, pure] at h
-      | some v =>
-        obtain ⟨rows', rest'⟩ := v
-        rw [hr] at h
-        simp only [pure, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
-        obtain ⟨rfl, rfl⟩ := h
-        obtain ⟨pre, hpre, hf⟩ := openAll_frame root height width qs os rows' rest' hr
-        refine ⟨o :: pre, by rw [hpre]; rfl, fun orest => ?_⟩
-        have := hf orest
-        simp only [Id.run] at this
-        simp only [List.cons_append, Compile.openAllWithHash, bind, hok, ↓reduceIte, this, pure,
-          Option.map_some]
-    · simp [pure] at h
+    · rfl
 
 /-- **A run keeps the words and openings it does not read.** -/
 theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
@@ -191,19 +160,23 @@ theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
   | query i ps k ih =>
     intro st a st' h
     obtain ⟨s, stream, os, R⟩ := st
-    simp only [runT] at h
-    split at h
-    · simp at h
-    · rename_i root height width hR
-      split at h
-      · rename_i rows rest hop
-        obtain ⟨pre, opre, h1, h2, hf⟩ := ih rows _ a st' h
-        obtain ⟨opre0, hos, hof⟩ := openAll_frame root height width ps os rows rest hop
-        refine ⟨pre, opre0 ++ opre, h1, by simp only at h2 ⊢; rw [hos, h2, List.append_assoc],
-          fun zs orest => ?_⟩
-        simp only [runT, hR, List.append_assoc, hof (opre ++ orest)]
-        exact hf zs orest
-      · simp at h
+    cases hR : R[i]? with
+    | none => simp [runT, hR] at h
+    | some v =>
+      obtain ⟨root, height, width⟩ := v
+      cases os with
+      | nil => simp [runT, hR] at h
+      | cons phase rest =>
+        simp only [runT, hR] at h
+        cases hop : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none => simp [hop] at h
+        | some rows =>
+          simp only [hop] at h
+          obtain ⟨pre, opre, h1, h2, hf⟩ := ih rows _ a st' h
+          refine ⟨pre, phase :: opre, h1, by simp only at h2 ⊢; rw [h2]; rfl, fun zs orest => ?_⟩
+          simp only [runT, hR, List.cons_append, hop]
+          exact hf zs orest
 
 /-- The `Fs` a sponge's carrier is. -/
 def fsOfT (sp : Sponge) : Fs := ⟨capOf sp.state, sp.pending⟩
@@ -287,18 +260,24 @@ theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
   | query i ps k ih =>
     intro st sp hs a st' h
     obtain ⟨s, stream, os, R⟩ := st
-    simp only [runT] at h
-    split at h
-    · simp at h
-    · rename_i root height width hR
-      split at h
-      · rename_i rows rest hop
-        obtain ⟨sp', c1, c2⟩ := ih rows ⟨s, stream, rest, R⟩ sp hs a st' h
-        refine ⟨sp', c1, ?_⟩
-        simp only [Id.run] at hop
-        simp only [runId, Compile.runWithHash, bind, hR, hop]
-        exact c2
-      · simp at h
+    cases hR : R[i]? with
+    | none => simp [runT, hR] at h
+    | some v =>
+      obtain ⟨root, height, width⟩ := v
+      cases os with
+      | nil => simp [runT, hR] at h
+      | cons phase rest =>
+        simp only [runT, hR] at h
+        cases hop : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none => simp [hop] at h
+        | some rows =>
+          simp only [hop] at h
+          obtain ⟨sp', c1, c2⟩ := ih rows ⟨s, stream, rest, R⟩ sp hs a st' h
+          refine ⟨sp', c1, ?_⟩
+          simp only [Id.run] at hop
+          simp only [runId, Compile.runWithHash, bind, hR, hop]
+          exact c2
 
 /-- **The deployed run is the carried run.** -/
 theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp : Sponge),
@@ -381,16 +360,19 @@ theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
     | none => simp [hr, pure] at h
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      simp only [hr] at h ⊢
-      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none =>
-        simp only [Id.run] at ho
-        simp [ho, pure] at h
-      | some v' =>
-        obtain ⟨rows, rest⟩ := v'
-        simp only [Id.run] at ho
-        simp only [ho] at h
-        exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
+      cases os with
+      | nil => simp [hr, pure] at h
+      | cons phase rest =>
+        simp only [hr] at h ⊢
+        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none =>
+          simp only [Id.run] at ho
+          simp [ho, pure] at h
+        | some rows =>
+          simp only [Id.run] at ho
+          simp only [ho] at h
+          exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
 
 
 /-- The roots only grow. -/
@@ -438,13 +420,20 @@ theorem runT_roots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
   | query i ps k ih =>
     intro st a st' h
     obtain ⟨s, stream, os, R⟩ := st
-    simp only [runT] at h
-    split at h
-    · simp at h
-    · split at h
-      · rename_i rows rest _
-        exact ih rows ⟨s, stream, rest, R⟩ a st' h
-      · simp at h
+    cases hR : R[i]? with
+    | none => simp [runT, hR] at h
+    | some v =>
+      obtain ⟨root, height, width⟩ := v
+      cases os with
+      | nil => simp [runT, hR] at h
+      | cons phase rest =>
+        simp only [runT, hR] at h
+        cases hop : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none => simp [hop] at h
+        | some rows =>
+          simp only [hop] at h
+          exact ih rows ⟨s, stream, rest, R⟩ a st' h
 
 /-- A run from no roots to no roots runs from any roots. -/
 theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),

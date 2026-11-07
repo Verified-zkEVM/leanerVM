@@ -51,12 +51,13 @@ def vsOsRets (σ : Val) : List E := [σ (.n 1692), σ (.n 1693), σ (.n 1694), �
 
 /-- The child proof, given `open_stacked`'s witness function `osW` (candidate, arguments,
 returns ↦ stream words, openings). -/
-def piOfW (osW : ℕ → List E → List E → List E × List Opening) (rd : Reader) (σ : Val) : Proof :=
+def piOfW (osW : ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
+    Proof :=
   let w := osW (dispatchIdx (σ (.n 1687))) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 656))) ++ w.1, w.2⟩
 
 /-- `open_stacked`'s witness function at the frame map `V`. -/
-def vsOsW (rd : Reader) (V : FrameMap) : ℕ → List E → List E → List E × List Opening :=
+def vsOsW (rd : Reader) (V : FrameMap) : ℕ → List E → List E → List E × List (List Opening) :=
   fun m args rets ↦ B1.Whir.open_stacked_osW rd m (V (B1.Whir.openNames.getD m "") args rets) V
 
 /-- **The child proof `verify_sub` checks**, read off its valuation, the memory and the frame

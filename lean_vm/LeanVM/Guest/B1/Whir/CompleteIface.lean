@@ -127,8 +127,8 @@ def whirOpenNZ (logN logInvRate : ℕ) (target : E) : VerifierProgram WhirEnd :=
 /-- **No zero challenge** (DESIGN §5.2.1): the run of `whirOpen μ r target` from the sponge
 `⟨capOf S, []⟩` on the words `xs` and the openings `os`, the root committed, passes
 `whirOpenNZ`: no fold challenge, tail challenge or level's batching challenge `λ` is zero. -/
-def NoZeroChallenge (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (os : List Opening)
-    (root : Digest) : Prop :=
+def NoZeroChallenge (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
+    (os : List (List Opening)) (root : Digest) : Prop :=
   ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
     RunsWith (whirOpenNZ μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots'
 
@@ -138,7 +138,7 @@ def NoZeroChallenge (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (o
 structure FSt where
   sponge : Fs
   stream : List E
-  openings : List Opening
+  openings : List (List Opening)
   roots : List (Digest × ℕ × ℕ)
 
 /-- **The query steps of a run** (`Compile.run` on the carried sponge, Keccak-256): each `query`
@@ -165,13 +165,12 @@ def queryStepsOf {α : Type} : VerifierProgram α → FSt → List (ℕ × List 
           roots := s.roots ++ [(root, height, width)] }
       | none => []
     | _ => []
-  | .query i ps k, s => match s.roots[i]? with
-    | none => []
-    | some (root, height, width) =>
-      match Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps s.openings) with
-      | some (rows, rest) =>
-        (height, ps.zip s.openings) :: queryStepsOf (k rows) { s with openings := rest }
+  | .query i ps k, s => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest =>
+      match Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+      | some rows => (height, ps.zip phase) :: queryStepsOf (k rows) { s with openings := rest }
       | none => []
+    | _, _ => []
 
 /-- The heap index of the node at level `l` (the leaves at `0`) above the leaf `q` of a tree of
 height `depth`. -/
@@ -193,8 +192,8 @@ def BatchAgrees (depth : ℕ) (qs : List (ℕ × Opening)) : Prop :=
 /-- **The openings agree in the caps** (DESIGN §5.2.3): at every query step of the run of
 `whirOpen μ r target` from `⟨capOf S, []⟩` on `xs` and `os`, the root committed, the step's
 openings agree wherever they meet. -/
-def CapsAgree (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E) (os : List Opening)
-    (root : Digest) : Prop :=
+def CapsAgree (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
+    (os : List (List Opening)) (root : Digest) : Prop :=
   ∀ b ∈ queryStepsOf (whirOpen μ r target) ⟨⟨capOf S, []⟩, xs, os, [(root, stackShape μ r)]⟩,
     BatchAgrees b.1 b.2
 
@@ -222,7 +221,7 @@ words `xs` at the cursor, the call returns the run's claim, the point buffers' p
 glued weight and its residual's value. Proved as `open_stacked_complete_holds`. -/
 def open_stacked_complete_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
-    ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
+    ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List (List Opening))
       (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
       NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →

@@ -74,7 +74,7 @@ theorem stackClaims_weight (L : Layout) (claims : List ColumnClaim) (out : Colum
       stackWeight L (openedClaims claims [out]) rp (ringCoefficients chs) lam x := rfl
 
 theorem runsWith_whirOpen_target {μ r : ℕ} {t t' : E} (h : t = t') {s s' : Fs} {xs : List E}
-    {os : List Opening} {roots roots' : List (Digest × ℕ × ℕ)} {w : B1.Whir.WhirEnd}
+    {os : List (List Opening)} {roots roots' : List (Digest × ℕ × ℕ)} {w : B1.Whir.WhirEnd}
     (hr : B1.Whir.RunsWith (B1.Whir.whirOpen μ r t) s xs os roots w s' roots') :
     B1.Whir.RunsWith (B1.Whir.whirOpen μ r t') s xs os roots w s' roots' := h ▸ hr
 

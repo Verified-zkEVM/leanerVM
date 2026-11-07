@@ -127,13 +127,13 @@ theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {r : OsCall}
     hl]
   rfl
 
-theorem map_zip_of_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
+theorem map_zip_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
     ∀ {l₁ : List α} {l₂ : List β}, l₁.length = l₂.length →
       (∀ p ∈ l₁.zip l₂, g p.1 = h p.2) → l₁.map g = l₂.map h
   | [], [], _, _ => rfl
   | a :: l₁, b :: l₂, hl, hp => by
       simp only [List.map_cons]
-      rw [hp (a, b) (by simp), map_zip_of_eq (by simpa using hl)
+      rw [hp (a, b) (by simp), map_zip_eq (by simpa using hl)
         (fun p hm ↦ hp p (List.mem_cons_of_mem _ hm))]
   | [], _ :: _, hl, _ => by simp at hl
   | _ :: _, [], hl, _ => by simp at hl
@@ -150,7 +150,7 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, getD_map_range hm]
   rw [Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
-  exact map_zip_of_eq hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
+  exact map_zip_eq hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
 
 /-! ## Consecutive cells, incrementally -/
 

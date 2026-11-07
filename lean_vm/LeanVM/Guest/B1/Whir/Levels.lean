@@ -81,7 +81,7 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
     LevelsOk c logN lvl lvs cfg → CalleesOk rd c lvl lvs → QWOk rd C Wf lvl lvs →
     LvIn rd σ lvl (lvs.headD default) st ws R root → WinTabs rd (σ (.n osWin)) →
     AllOk C rd σ (osLevels c lvl lvs st).1 →
-    ∃ (xs : List E) (os : List Opening) (R' : List (Digest × ℕ × ℕ)) (ms : List E)
+    ∃ (xs : List E) (os : List (List Opening)) (R' : List (Digest × ℕ × ℕ)) (ms : List E)
       (ws' : WhirStateT) (rs : List OsRec),
       ReadsAt rd (st.cur σ) xs ∧
       RunsWith (whirLevelsHead logN lvl cfg ws) (st.F σ) xs os R
@@ -96,7 +96,7 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
       (osLevels c lvl lvs st).2.fs.length = 5 ∧ PadOk σ (osLevels c lvl lvs st).2.pad ∧
       (osLevels c lvl lvs st).2.co ≤ 8 ∧
       (osLevels c lvl lvs st).2.cur σ = st.cur σ * gen ^ xs.length ∧
-      os = (osQCalls c lvl lvs st).flatMap (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2) ∧
+      os = (osQCalls c lvl lvs st).map (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2) ∧
       xs.length = lvsWords c lvl lvs
   | [lv], [level], lvl, st, ws, R, root, hok, hcal, hqw, hin, hwt, hall => by
     obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
@@ -105,7 +105,7 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
       exact this
     obtain ⟨xs, os, ws', ms, r, hrd, hrun, hmsl, hfm, hgl, hrec, hfl, hfch, hq, ht, hfs, hpad,
       hco, hcur, hos, hxl⟩ := osLevel_final_sound hle hqw.1 hcal.1 hcfg hfold h4 hml hlen hfin hin hwt hall'
-    exact ⟨xs, os, R, ms, ws', [r], hrd, hrun, hmsl, hfm, by simpa using hgl, rfl,
+    exact ⟨xs, [os], R, ms, ws', [r], hrd, hrun, hmsl, hfm, by simpa using hgl, rfl,
       fun i hi _ ↦ by
         obtain rfl : i = 0 := by simpa using hi
         simpa using hrec, hfl, hfch, hq, ht, hfs, hpad, hco, hcur,
@@ -124,7 +124,7 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
       ht, hfs, hpad, hco, hcur2, hos2, hxl2⟩ :=
       osLevels_sound hle (lv' :: lvs) (next :: cfg) (lvl + 1) _ ws1 _ root' hrest hcal.2 hqw.2 hin1
         hwt hall.2
-    refine ⟨xs1 ++ xs2, os1 ++ os2, R', ms, ws', r :: rs, readsAt_append hrd1 (by
+    refine ⟨xs1 ++ xs2, [os1] ++ os2, R', ms, ws', r :: rs, readsAt_append hrd1 (by
         rw [← hcur1]; exact hrd2), ?_, hmsl, hfm, ?_, by simp [hrl], ?_, hfl, hfch, hq, ht, hfs,
       hpad, hco, ?_, ?_, ?_⟩
     · exact RunsWith.bind' hrun1 hrun2

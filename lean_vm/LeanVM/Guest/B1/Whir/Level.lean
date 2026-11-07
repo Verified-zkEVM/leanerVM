@@ -157,7 +157,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (root' : Digest) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
-      RunsWith (levelHead logN lvl level (next :: rest) ws) (st.F σ) xs os R
+      RunsWith (levelHead logN lvl level (next :: rest) ws) (st.F σ) xs [os] R
         ([], lv.logCols, ws') ((osLevel c lvl lv st).2.F σ) (R ++ [(root', lv'.depth, lvWidth (lvl + 1) lv')]) ∧
       LvIn rd σ (lvl + 1) lv' (osLevel c lvl lv st).2 ws' (R ++ [(root', lv'.depth, lvWidth (lvl + 1) lv')])
         root' ∧
@@ -225,12 +225,12 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
         target := σ (.n st1.t)
         quad := st1.quad σ
         folds := ws.folds ++ chs }
-      [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)]) F' xs3 os
+      [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)]) F' xs3 [os]
       (R ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))]) ws'
       ((osLevelB c lvl lv st2).2.F σ)
       (R ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))]) := by
     rw [hml', hco.sponge]; exact hrun3
-  refine ⟨xs1 ++ ([ra, rb, y, c0, c2, nonce] ++ (xs3 ++ [])), [] ++ ([] ++ (os ++ [])), ws', d,
+  refine ⟨xs1 ++ ([ra, rb, y, c0, c2, nonce] ++ (xs3 ++ [])), os, ws', d,
     ⟨lam, qs, some z, lv.foldsOff + lv.folds, lv.logCols⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · refine readsAt_append hrd1 (readsAt_append ?_ ?_)
     · rw [hx1, ← hcur1]; exact hrd2
@@ -263,8 +263,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
     simp only [OsSt.cur] at this hcur1
     rw [pow_add, ← mul_assoc, this, hcur1, hx1]
     ring
-  · simp only [List.nil_append, List.append_nil]
-    rw [hos]
+  · rw [hos]
     simp only [bOs, osQCall, hc, ↓reduceIte]
     rfl
   · simp only [List.length_append, hx1, hxl3, List.length_cons, List.length_nil]
@@ -283,7 +282,7 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (ms : List E) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
-      RunsWith (levelHead logN lvl level [] ws) (st.F σ) xs os R
+      RunsWith (levelHead logN lvl level [] ws) (st.F σ) xs [os] R
         (ms, lv.logCols, ws') ((osLevel c lvl lv st).2.F σ) R ∧
       ms.length = c.yrLen ∧ ReadsAt rd (σ (.n osFmsg)) ms ∧
       ws'.glued = ws.glued ++ recClaims r ∧ RecStored rd σ c lvl lv r ∧
@@ -344,10 +343,10 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
       { ws with
         target := σ (.n st1.t)
         quad := st1.quad σ
-        folds := ws.folds ++ chs } []) ⟨st2.fsv σ, []⟩ xs3 os R ws'
+        folds := ws.folds ++ chs } []) ⟨st2.fsv σ, []⟩ xs3 [os] R ws'
       ((osLevelB c lvl lv st2).2.F σ) R := by
     rw [hml']; exact hrun3
-  refine ⟨xs1 ++ ((ms ++ [nonce]) ++ (xs3 ++ [])), [] ++ ([] ++ (os ++ [])), ws', ms,
+  refine ⟨xs1 ++ ((ms ++ [nonce]) ++ (xs3 ++ [])), os, ws', ms,
     ⟨lam, qs, none, lv.foldsOff + lv.folds, lv.logCols⟩, ?_, ?_, hmsl, hfm, ?_, ?_, ?_, ?_, hq3,
     ht3, hfs3, hpad3, ?_, ?_, ?_, ?_⟩
   · refine readsAt_append hrd1 (readsAt_append ?_ ?_)
@@ -376,8 +375,7 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
     simp only [OsSt.cur] at this hcur1
     rw [pow_add, ← mul_assoc, this, hcur1, hx1]
     ring
-  · simp only [List.nil_append, List.append_nil]
-    rw [hos]
+  · rw [hos]
     simp only [bOs, osQCall, hc, ↓reduceIte]
     rfl
   · simp only [List.length_append, hx1, hxl3, hmsl, List.length_cons, List.length_nil]; omega

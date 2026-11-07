@@ -191,13 +191,13 @@ abbrev pointCap : ℕ := 40
 /-! ## Runs with openings and commitments -/
 
 /-- From any Spec sponge the guest carries as `s`, the program `p` reads exactly the stream words
-`xs` and the openings `os`, the commitments read so far being `roots`, and returns `a`, leaving a
-sponge the guest carries as `s'` and the commitments `roots'`, on any rest of the stream and of
-the openings. -/
-def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : List Opening)
+`xs` and the phases of openings `os`, the commitments read so far being `roots`, and returns `a`,
+leaving a sponge the guest carries as `s'` and the commitments `roots'`, on any rest of the stream
+and of the phases. -/
+def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : List (List Opening))
     (roots : List (Digest × ℕ × ℕ)) (a : α) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)) : Prop :=
-  ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (orest : List Opening), ∃ sp' : Sponge,
-    s'.Carries sp' ∧ runId p ⟨sp, xs ++ rest, os ++ orest, roots⟩ = some (a, ⟨sp', rest, orest, roots'⟩)
+  ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (orest : List (List Opening)),
+    ∃ sp' : Sponge, s'.Carries sp' ∧ runId p ⟨sp, xs ++ rest, os ++ orest, roots⟩ = some (a, ⟨sp', rest, orest, roots'⟩)
 
 /-! ## What a call establishes -/
 
@@ -210,7 +210,7 @@ run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer ho
 its glued weight and its residual's value. -/
 def OpenOut (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur : E)
     (rets : List E) : Prop :=
-  ∃ (xs : List E) (os : List Opening) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
+  ∃ (xs : List E) (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
     ReadsAt rd cur xs ∧
     RunsWith (whirOpen μ r target) ⟨fs, []⟩ xs os [(root, stackShape μ r)] w s' roots' ∧
     w.point.length = μ ∧

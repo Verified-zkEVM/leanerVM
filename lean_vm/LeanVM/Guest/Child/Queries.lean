@@ -41,8 +41,8 @@ theorem zip_map_append {β γ : Type} (ps : List β) (f : β → γ) (rest : Lis
 
 /-- **The honest proof's query steps are honest batches.** -/
 theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
-    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List Opening)
-      (restS : List E) (restO : List Opening),
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening))
+      (restS : List E) (restO : List (List Opening)),
       S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       InRange p ((commits h).map (·.1)) (fun _ _ ↦ True) →
       proveFrom keccak256 keccakF1600 S fuel p sp h = some (xs, os) →
@@ -152,18 +152,17 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       have hw : WellShaped w word := hws _ (List.mem_of_getElem? hc)
       have hroot : (rootsOf keccak256 (commits h))[i]? = some (treeRoot keccak256 ht word, ht, w) := by
         simp [rootsOf, hc]
-      have hopen := openAll_openingAt keccak256 hw (height := ht) ps (t.2 ++ restO)
+      have hopen := openPhase_openingAt keccak256 hw (height := ht) ps
       have hgi : ((commits h).map (·.1)).getD i 0 = ht := by
         simp [List.getD_eq_getElem?_getD, hc]
-      simp only [Limits.queryStepsOf, hroot, List.append_assoc, openAll_eq_withHash,
+      simp only [Limits.queryStepsOf, hroot, List.cons_append, openPhase_eq_withHash,
         keccak256With_keccakF1600] at hb
-      rw [show Id.run (openAllWithHash (m := Id) keccak256 (treeRoot keccak256 ht word) ht w ps
-        (ps.map (openingAt keccak256 ht word) ++ (t.2 ++ restO))) =
-          some (ps.map fun q ↦ word (q % 2 ^ ht), t.2 ++ restO) from hopen] at hb
+      rw [show Id.run (openPhaseWithHash (m := Id) keccak256 (treeRoot keccak256 ht word) ht w ps
+        (ps.map (openingAt keccak256 ht word))) =
+          some (ps.map fun q ↦ word (q % 2 ^ ht)) from hopen] at hb
       simp only at hb
       rcases List.mem_cons.mp hb with rfl | hb
-      · refine ⟨ht, word, ps, ?_, fun q hq ↦ hgi ▸ hir.1 q hq⟩
-        rw [zip_map_append]
+      · exact ⟨ht, word, ps, rfl, fun q hq ↦ hgi ▸ hir.1 q hq⟩
       · refine ih _ _ _ t.1 t.2 restS restO hacc hws' (hcq ▸ hir.2 _) htt b ?_
         rw [hcq]
         exact hb

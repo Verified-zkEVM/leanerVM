@@ -92,9 +92,21 @@ def smallestNonce (π : Proof) : Bool :=
 
 /-! ## Mutations rejected -/
 
-/-- Replace the first opening. -/
+/-- Replace the first opening of the first phase. -/
 def mapOpening (f : Opening → Opening) (π : Proof) : Proof :=
-  { π with openings := π.openings.modifyHead f }
+  { π with openings := π.openings.modifyHead (·.modifyHead f) }
+
+/- One phase, of one opening. -/
+#guard proof?.map (·.openings.map List.length) = some [1]
+
+/- A wrong position, the leaf and path left as they are (the position check). -/
+#guard !accepts 3 (proof?.map (mapOpening fun o ↦ { o with leafIndex := o.leafIndex + 2 }))
+
+/- An empty phase in place of the query's. -/
+#guard !accepts 3 (proof?.map fun π ↦ { π with openings := [[]] })
+
+/- An extra phase. -/
+#guard !accepts 3 (proof?.map fun π ↦ { π with openings := π.openings ++ [[]] })
 
 /- A tampered leaf word. -/
 #guard !accepts 3 (proof?.map (mapOpening fun o ↦ { o with leaf := o.leaf.modifyHead (· + 1) }))

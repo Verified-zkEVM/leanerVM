@@ -116,7 +116,7 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
     {root : Digest} (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
     (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2)
-    (qs : List ℕ) (hqlt : ∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth)
+    (qs : List ℕ) (hqsl : qs.length = lv.queries) (hqlt : ∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth)
     (hpos : ∀ k < lv.queries, ∃ bp, LoadHolds rd (σ (.n osQbp)) (lv.posOff + k) bp ∧
       FrameRun rd bp (qwN lv.depth lv.capDepth) fun i ↦ gen ^ qwVal lv.depth lv.capDepth (qs.getD k 0) i)
     (hlamN : σ (.n lamN) = σ (.n lam) ^ lv.queries)
@@ -135,7 +135,8 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
       σ (.n (osQueries c lvl lv lam lamN s).2.2.2.2.2) = ic2 ∧
       σ (.n (osQueries c lvl lv lam lamN s).2.2.2.2.1) =
         σ (.n (osQueries c lvl lv lam lamN s).2.2.1) + ic2 ∧
-      MatsOk σ (osQueriesMats c lv s) := by
+      MatsOk σ (osQueriesMats c lv s) ∧
+      (lvOpenings rd σ lv W (osQueriesCall c lvl lv lam lamN s)).map Opening.leafIndex = qs := by
   obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6⟩ := hbo
   set k := s.k
   set P := c.plan
@@ -216,14 +217,14 @@ theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
   simp only [lvOpenings, List.map_cons, List.map_nil, List.headD_cons]
   have hm' := meaningW_args hm (A' := [σ (.n cp.2.1), σ (.n flp.2.1), σ (.n lam), σ (.n lamN),
     σ (.n bp.2.1), σ (.n (k + 1)), σ (.n g)]) (by rw [ecp2, eflp2, ← ecp, ← eflp])
-  obtain ⟨hol, hop, hsum⟩ := queries_open_w (q := lv.queries) (N0 := N0) (cap0 := σ (.n cp2.2.1))
+  obtain ⟨hol, hop, hsum, hidx⟩ := queries_open_w (q := lv.queries) (N0 := N0) (cap0 := σ (.n cp2.2.1))
     (by rw [ecp2, ← ecp]) hm'
     (hCap _ _ (hle _ _ _ hcap)) hroot hcd hcd8 hcdd eg (by omega) (oqCount_q _ _)
-    (by split_ifs <;> simp; omega) (by by_cases h : lvl = 0 <;> simp [h]) qs hqlt hbits hlamN
+    (by split_ifs <;> simp; omega) (by by_cases h : lvl = 0 <;> simp [h]) qs hqsl hqlt hbits hlamN
     (width := if lvl = 0 then lv.interleave else 3 * lv.interleave) (width_eq lvl lv.interleave)
     (specRow lvl) rs (fun row w hrow hw ↦ rowDot_spec hs hrsl hlo hhi row w
       (hrow.trans (width_eq lvl lv.interleave).symm) hw)
-  refine ⟨σ (.n (g + 2)), σ (.n (g + 3)), hol, hop, hsum, ?_, rfl, rfl, hi1, hmq⟩
+  refine ⟨σ (.n (g + 2)), σ (.n (g + 3)), hol, hop, hsum, ?_, rfl, rfl, hi1, hmq, hidx⟩
   intro i hi
   rcases i with _ | _ | i
   · exact load_cur (by simpa using hi0)
