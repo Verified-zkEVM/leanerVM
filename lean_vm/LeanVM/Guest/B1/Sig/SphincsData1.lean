@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsData1
 
   `verify_sig_lean_sphincs` in the guest's core IR agrees with the template `sAfterDigest` after
-  the digest block, on statements 3080 to 4579.
+  the digest block, on statements 2832 to 4331.
 -/
 
 module
@@ -19,17 +19,17 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 open scoped Dec in
 theorem sAfterDigest_slice_1500 :
-    ((Data.core20.body.drop 1580).drop 1500).take 500 = (sAfterDigest.drop 1500).take 500 := by
+    ((Data.core20.body.drop 1332).drop 1500).take 500 = (sAfterDigest.drop 1500).take 500 := by
   decide +kernel
 
 open scoped Dec in
 theorem sAfterDigest_slice_2000 :
-    ((Data.core20.body.drop 1580).drop 2000).take 500 = (sAfterDigest.drop 2000).take 500 := by
+    ((Data.core20.body.drop 1332).drop 2000).take 500 = (sAfterDigest.drop 2000).take 500 := by
   decide +kernel
 
 open scoped Dec in
 theorem sAfterDigest_slice_2500 :
-    ((Data.core20.body.drop 1580).drop 2500).take 500 = (sAfterDigest.drop 2500).take 500 := by
+    ((Data.core20.body.drop 1332).drop 2500).take 500 = (sAfterDigest.drop 2500).take 500 := by
   decide +kernel
 
 end
