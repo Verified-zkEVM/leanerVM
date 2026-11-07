@@ -178,7 +178,7 @@ theorem keygenInput_ne_hashInput (parameter parameter' : PublicParameter)
 /-! ### Separation by length
 
 The unaddressed inputs (`keySeedInput`, `randomizerHashInput`, `messageDigestInput`) have no address,
-so they are told apart from each other and from the addressed ones by their lengths: 44, 93 and 97
+so they are told apart from each other and from the addressed ones by their lengths: 44, 93 and 84
 bytes, against `48 + payload` for a tweakable hash and 80 for a seed derivation. -/
 
 theorem keySeedInput_length (seed : MasterSeed) (domain : Nat) : (keySeedInput seed domain).length = 44 := by
@@ -193,8 +193,8 @@ theorem randomizerHashInput_length (prf : HashOutput) (parameter : PublicParamet
 
 theorem messageDigestInput_length (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) :
-    (messageDigestInput parameter root message randomness call).length = 97 := by
-  simp only [messageDigestInput, List.length_append, bytesLE_length, bytesBE_length, framedMessage_length]
+    (messageDigestInput parameter root message randomness call).length = 84 := by
+  simp only [messageDigestInput, List.length_append, bytesLE_length, bytesBE_length]
 
 theorem keySeedInput_ne_tweakableHashInput (seed : MasterSeed) (index : Nat) (parameter : PublicParameter)
     (domain : HashDomain) (payload : HashInput) :
@@ -212,7 +212,7 @@ theorem randomizerHashInput_ne_tweakableHashInput (prf : HashOutput) (parameter 
 
 theorem messageDigestInput_ne_tweakableHashInput (parameter parameter' : PublicParameter) (root : Digest)
     (message : Message) (randomness : Randomness) (call : DigestCall) (domain : HashDomain)
-    {payload : HashInput} (hpayload : payload.length ≠ 49) :
+    {payload : HashInput} (hpayload : payload.length ≠ 36) :
     messageDigestInput parameter root message randomness call ≠ tweakableHashInput parameter' domain payload :=
   fun h => by
     have := congrArg List.length h
@@ -283,10 +283,10 @@ theorem messageDigestInput_injective {parameter parameter' : PublicParameter} {r
       call = call' := by
   unfold messageDigestInput at h
   obtain ⟨h, hcall⟩ := List.append_inj' h (by simp [bytesBE_length])
-  obtain ⟨h, hmessage⟩ := List.append_inj' h (by rw [framedMessage_length, framedMessage_length])
+  obtain ⟨h, hmessage⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, hroot⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨hrandomness, hparameter⟩ := List.append_inj' h (by simp [bytesLE_length])
-  refine ⟨bytesLE_injective hparameter, bytesLE_injective hroot, framedMessage_injective hmessage,
+  refine ⟨bytesLE_injective hparameter, bytesLE_injective hroot, bytesLE_injective hmessage,
     bytesLE_injective hrandomness, Fin.ext (ofNat_inj_of_lt (digestCall_lt call) (digestCall_lt call') ?_)⟩
   exact bytesBE_injective hcall
 
