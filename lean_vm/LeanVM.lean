@@ -21,7 +21,7 @@ import LeanVM.Cost.DecoderSpec
 import LeanVM.Cost.Bounds.Guest.Budget
 import LeanVM.Cost.GuestDecoding
 import LeanVM.Wire.Sound
-import LeanVM.Wire.Complete
+import LeanVM.Wire.CompleteEnd
 
 /-! # The end theorems of leanVM
 
@@ -71,7 +71,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   (`Statement/LeanVm.lean`): the same on the wire, the proof as its one encoding (`Proof.toBytes`)
   that the verifier decodes (`Proof.fromBytes`) before it verifies (`LeanVM/Wire/Sound.lean`, by
   the adversary that decodes its own bytes, at most `73728` more permutation calls;
-  `LeanVM/Wire/Complete.lean`, by the round trip `LeanVM.Wire.roundTrip` and decoding after the
+  `LeanVM/Wire/Complete.lean`, `CompleteEnd.lean`, by the round trip `LeanVM.Wire.roundTrip` and decoding after the
   honest prover adding no edge to the permutation, `LeanVM.Wire.fromBytesWithHash_run_of`);
 * `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
   definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
