@@ -74,10 +74,10 @@ exponent. -/
 #guard digitGroups [1, 2, 3, 0] == [("digits", [count 57]), ("digits", [count 0])]
 
 /- A list of `n` claims splits into `n / 136` whole frames of eight groups, then the rest's whole
-groups of 17 and the claims after them; `exponent_bytes` is the value's bytes, low first. -/
+groups of 17 and the claims after them; `exponent_bytes` puts each byte in the exponent. -/
 #guard listSplit 40 == [count 0, count 2, count 6]
 #guard listSplit 300 == [count 2, count 1, count 11]
-#guard exponentBytes 0x30201 22 == [count 1, count 2, count 3]
+#guard exponentBytes [1, 2, 3] == [count 1, count 2, count 3]
 
 /-! ## Coverage -/
 
