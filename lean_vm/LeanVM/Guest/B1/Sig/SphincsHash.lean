@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Sig.SphincsHash
 
   leanSPHINCS's addressed hash (the statement's, over Keccak-f[1600] in `Id`) as a function of the
-  guest's cells (leanVM d1c4c8f7, `crates/signatures/src/lean_sphincs/hash.rs:28-93`,
-  `lean_ethereum.py:484-510, 3763-3774, 3953-3962`).
+  guest's cells (leanVM 56a4109f, `crates/signatures/src/lean_sphincs/hash.rs:28-93`,
+  `lean_ethereum.py:484-510, 3763-3774, 3965-3974`).
 -/
 
 module
@@ -31,7 +31,7 @@ bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethere
   `wots.rs:68-73`), are the first 68 bytes of the cells `[P, A0, A1] ++ M ++ [counter]`, the
   counter cell holding `BE_32(c)` in its low four bytes: the number `beWordAt 0 c`, `c`'s bytes
   reversed. The guest builds that number from four hinted bytes, the first lowest
-  (`sp_from_bytes`, `lean_ethereum.py:3763-3774`; `sp_layer`, `lean_ethereum.py:3953-3962`), so
+  (`sp_from_bytes`, `lean_ethereum.py:3763-3774`; `sp_layer`, `lean_ethereum.py:3965-3974`), so
   the hinted bytes are `BE_32(c)` in order;
 * `adrsCell1_add_words23`, `adrsCell1_add_word0`, `adrsCell1_add_step`, `adrsCell1_add_type`: the
   guest's constants added to an `A1` cell (field addition is XOR, the bits disjoint) set its words:

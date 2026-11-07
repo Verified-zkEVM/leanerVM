@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundPath
 
-  `sp_path` (`lean_ethereum.py:3930-3949` at leanVM d1c4c8f7) is sound: whatever children are
+  `sp_path` (`lean_ethereum.py:3941-3961` at leanVM 56a4109f) is sound: whatever children are
   hinted, the node a path reaches is the tree's fold of the hinted siblings; with the pieces the
   FORS trees share (`is_child`, `sp_be16`, a node's 80-byte hash).
 -/
@@ -332,7 +332,7 @@ def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) : Nat → Nat → Nat → 
   | m + 1, z, x, j => if j = z then siblingOf σ (bit (off + z)) x
       else sPathSib σ bit off m (z + 1) (x + pathWidth m) j
 
-/-- A path level's address (`G:3941-3945`) from base `x`, `m` levels after it: below the root the
+/-- A path level's address (`G:3953-3957`) from base `x`, `m` levels after it: below the root the
 index `val (off + z + 1)` (`sBe16`) plus the constant, at the root the constant alone. The
 statements, the next base and the address. -/
 def sPathAddr (val : Nat → V) (off z m x : Nat) : List Stmt × Nat × V :=
