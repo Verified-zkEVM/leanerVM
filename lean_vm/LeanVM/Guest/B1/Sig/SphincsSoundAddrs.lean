@@ -98,27 +98,27 @@ theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sFo
     σ sA0B = adrsCell0 0 (layerTreeN T 0) ∧ σ sKeyB = adrsCell1 0 (layerLeafN T 0) 0 0 := by
   obtain ⟨v0, v8, v24, vm⟩ := lval_cells hD
   obtain ⟨b0, b1, b2⟩ := leaves_lt T
-  have c0 : σ (.n 1710) = lit (2 ^ 120) := h.atom (a := .const (.n 1710) _) (by simp [sForsAddrs, cst])
-  have m1 : σ (.n 1711) = σ (sLVal 8) * σ (.n 1710) := h.atom (a := .mul (.n 1711) _ _) (by simp [sForsAddrs, mulS])
-  have c2 : σ (.n 1712) = lit (2 ^ 112) := h.atom (a := .const (.n 1712) _) (by simp [sForsAddrs, cst])
-  have m3 : σ (.n 1713) = σ sTreeMid * σ (.n 1712) := h.atom (a := .mul (.n 1713) _ _) (by simp [sForsAddrs, mulS])
-  have a4 : σ (.n 1714) = σ (.n 1711) + σ (.n 1713) := h.atom (a := .add (.n 1714) _ _) (by simp [sForsAddrs, addS])
-  have c5 : σ (.n 1715) = lit (2 ^ 104) := h.atom (a := .const (.n 1715) _) (by simp [sForsAddrs, cst])
-  have m6 : σ (.n 1716) = σ (sLVal 24) * σ (.n 1715) := h.atom (a := .mul (.n 1716) _ _) (by simp [sForsAddrs, mulS])
-  have a7 : σ sA0B = σ (.n 1714) + σ (.n 1716) := h.atom (a := .add sA0B _ _) (by simp [sForsAddrs, addS])
-  have c8 : σ (.n 1718) = lit (2 ^ 56) := h.atom (a := .const (.n 1718) _) (by simp [sForsAddrs, cst])
-  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n 1718) := h.atom (a := .mul sKeyB _ _) (by simp [sForsAddrs, mulS])
+  have c0 : σ (.n 1369) = lit (2 ^ 120) := h.atom (a := .const (.n 1369) _) (by simp [sForsAddrs, cst])
+  have m1 : σ (.n 1370) = σ (sLVal 8) * σ (.n 1369) := h.atom (a := .mul (.n 1370) _ _) (by simp [sForsAddrs, mulS])
+  have c2 : σ (.n 1371) = lit (2 ^ 112) := h.atom (a := .const (.n 1371) _) (by simp [sForsAddrs, cst])
+  have m3 : σ (.n 1372) = σ sTreeMid * σ (.n 1371) := h.atom (a := .mul (.n 1372) _ _) (by simp [sForsAddrs, mulS])
+  have a4 : σ (.n 1373) = σ (.n 1370) + σ (.n 1372) := h.atom (a := .add (.n 1373) _ _) (by simp [sForsAddrs, addS])
+  have c5 : σ (.n 1374) = lit (2 ^ 104) := h.atom (a := .const (.n 1374) _) (by simp [sForsAddrs, cst])
+  have m6 : σ (.n 1375) = σ (sLVal 24) * σ (.n 1374) := h.atom (a := .mul (.n 1375) _ _) (by simp [sForsAddrs, mulS])
+  have a7 : σ sA0B = σ (.n 1373) + σ (.n 1375) := h.atom (a := .add sA0B _ _) (by simp [sForsAddrs, addS])
+  have c8 : σ (.n 1377) = lit (2 ^ 56) := h.atom (a := .const (.n 1377) _) (by simp [sForsAddrs, cst])
+  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n 1377) := h.atom (a := .mul sKeyB _ _) (by simp [sForsAddrs, mulS])
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 1711) = eOfNat192 (2 ^ (104 + 16) * layerLeafN T 1) := by
+  have p1 : σ (.n 1370) = eOfNat192 (2 ^ (104 + 16) * layerLeafN T 1) := by
     rw [m1, v8, c0, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p3 : σ (.n 1713) = eOfNat192 (2 ^ (104 + 8) * m) := by
+  have p3 : σ (.n 1372) = eOfNat192 (2 ^ (104 + 8) * m) := by
     rw [m3, vm, hm', c2, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p6 : σ (.n 1716) = eOfNat192 (2 ^ 104 * q) := by
+  have p6 : σ (.n 1375) = eOfNat192 (2 ^ 104 * q) := by
     rw [m6, v24, hq', c5, show (2 : Nat) ^ 104 = 2 ^ (64 + 40) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 0 + beWordAt 2 (layerTreeN T 0 / 2 ^ 32) + beWordAt 3 (layerTreeN T 0) =
@@ -155,23 +155,23 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
   obtain ⟨-, v8, v24, vm⟩ := lval_cells hD
   obtain ⟨-, b1, b2⟩ := leaves_lt T
-  have c0 : σ (.n 9242) = lit (2 ^ 24) := h.atom (a := .const (.n 9242) _) (by simp [sMidAddrs, cst])
-  have c1 : σ (.n 9243) = lit (2 ^ 120) := h.atom (a := .const (.n 9243) _) (by simp [sMidAddrs, cst])
-  have m2 : σ (.n 9244) = σ sTreeMid * σ (.n 9243) := h.atom (a := .mul (.n 9244) _ _) (by simp [sMidAddrs, mulS])
-  have a3 : σ (.n 9245) = σ (.n 9242) + σ (.n 9244) := h.atom (a := .add (.n 9245) _ _) (by simp [sMidAddrs, addS])
-  have c4 : σ (.n 9246) = lit (2 ^ 112) := h.atom (a := .const (.n 9246) _) (by simp [sMidAddrs, cst])
-  have m5 : σ (.n 9247) = σ (sLVal 24) * σ (.n 9246) := h.atom (a := .mul (.n 9247) _ _) (by simp [sMidAddrs, mulS])
-  have a6 : σ (sA0Of 1) = σ (.n 9245) + σ (.n 9247) := h.atom (a := .add (sA0Of 1) _ _) (by simp [sMidAddrs, addS])
-  have c7 : σ (.n 9249) = lit (2 ^ 56) := h.atom (a := .const (.n 9249) _) (by simp [sMidAddrs, cst])
-  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n 9249) := h.atom (a := .mul (sA1Of 1) _ _) (by simp [sMidAddrs, mulS])
+  have c0 : σ (.n 8901) = lit (2 ^ 24) := h.atom (a := .const (.n 8901) _) (by simp [sMidAddrs, cst])
+  have c1 : σ (.n 8902) = lit (2 ^ 120) := h.atom (a := .const (.n 8902) _) (by simp [sMidAddrs, cst])
+  have m2 : σ (.n 8903) = σ sTreeMid * σ (.n 8902) := h.atom (a := .mul (.n 8903) _ _) (by simp [sMidAddrs, mulS])
+  have a3 : σ (.n 8904) = σ (.n 8901) + σ (.n 8903) := h.atom (a := .add (.n 8904) _ _) (by simp [sMidAddrs, addS])
+  have c4 : σ (.n 8905) = lit (2 ^ 112) := h.atom (a := .const (.n 8905) _) (by simp [sMidAddrs, cst])
+  have m5 : σ (.n 8906) = σ (sLVal 24) * σ (.n 8905) := h.atom (a := .mul (.n 8906) _ _) (by simp [sMidAddrs, mulS])
+  have a6 : σ (sA0Of 1) = σ (.n 8904) + σ (.n 8906) := h.atom (a := .add (sA0Of 1) _ _) (by simp [sMidAddrs, addS])
+  have c7 : σ (.n 8908) = lit (2 ^ 56) := h.atom (a := .const (.n 8908) _) (by simp [sMidAddrs, cst])
+  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n 8908) := h.atom (a := .mul (sA1Of 1) _ _) (by simp [sMidAddrs, mulS])
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p2 : σ (.n 9244) = eOfNat192 (2 ^ (112 + 8) * m) := by
+  have p2 : σ (.n 8903) = eOfNat192 (2 ^ (112 + 8) * m) := by
     rw [m2, vm, hm', c1, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p5 : σ (.n 9247) = eOfNat192 (2 ^ 112 * q) := by
+  have p5 : σ (.n 8906) = eOfNat192 (2 ^ 112 * q) := by
     rw [m5, v24, hq', c4, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 1 + beWordAt 2 (layerTreeN T 1 / 2 ^ 32) + beWordAt 3 (layerTreeN T 1) =
@@ -195,19 +195,19 @@ theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTop
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, v24, vm⟩ := lval_cells hD
   obtain ⟨-, -, b2⟩ := leaves_lt T
-  have c0 : σ (.n 9516) = lit (2 ^ 56) := h.atom (a := .const (.n 9516) _) (by simp [sTopAddrs, cst])
-  have m1 : σ (.n 9517) = σ sTreeMid * σ (.n 9516) := h.atom (a := .mul (.n 9517) _ _) (by simp [sTopAddrs, mulS])
-  have c2 : σ (.n 9518) = lit (2 ^ 48) := h.atom (a := .const (.n 9518) _) (by simp [sTopAddrs, cst])
-  have m3 : σ (.n 9519) = σ (sLVal 24) * σ (.n 9518) := h.atom (a := .mul (.n 9519) _ _) (by simp [sTopAddrs, mulS])
-  have a4 : σ (sA1Of 2) = σ (.n 9517) + σ (.n 9519) := h.atom (a := .add (sA1Of 2) _ _) (by simp [sTopAddrs, addS])
+  have c0 : σ (.n 9175) = lit (2 ^ 56) := h.atom (a := .const (.n 9175) _) (by simp [sTopAddrs, cst])
+  have m1 : σ (.n 9176) = σ sTreeMid * σ (.n 9175) := h.atom (a := .mul (.n 9176) _ _) (by simp [sTopAddrs, mulS])
+  have c2 : σ (.n 9177) = lit (2 ^ 48) := h.atom (a := .const (.n 9177) _) (by simp [sTopAddrs, cst])
+  have m3 : σ (.n 9178) = σ (sLVal 24) * σ (.n 9177) := h.atom (a := .mul (.n 9178) _ _) (by simp [sTopAddrs, mulS])
+  have a4 : σ (sA1Of 2) = σ (.n 9176) + σ (.n 9178) := h.atom (a := .add (sA1Of 2) _ _) (by simp [sTopAddrs, addS])
   have c5 : σ (sA0Of 2) = lit (2 ^ 25) := h.atom (a := .const (sA0Of 2) _) (by simp [sTopAddrs, cst, sA0Of])
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 9517) = eOfNat192 (2 ^ (48 + 8) * m) := by
+  have p1 : σ (.n 9176) = eOfNat192 (2 ^ (48 + 8) * m) := by
     rw [m1, vm, hm', c0, eOfNat_mul_lit_lo (by omega) (by norm_num)]
-  have p3 : σ (.n 9519) = eOfNat192 (2 ^ 48 * q) := by
+  have p3 : σ (.n 9178) = eOfNat192 (2 ^ 48 * q) := by
     rw [m3, v24, hq', c2, eOfNat_mul_lit_lo (by omega) (by norm_num)]
   constructor
   · rw [c5, lit_eq _ (by norm_num), adrsCell0, cellOf128_eq_eOfNat192 (by

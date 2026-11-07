@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSig
 
   The leanSPHINCS signature `verify_sig_lean_sphincs` checks, read off its valuation and the frames
-  of its three `sp_wots` calls (leanVM 834e6614).
+  of its three `sp_wots` calls (leanVM d1c4c8f7).
 -/
 
 module
@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Main.Frames
 `sphincsSigOf σ V` reads the signature off `verify_sig_lean_sphincs`'s valuation `σ` and the
 frame map `V`; it mentions no hash.
 
-* the randomizer `R`, `n347` (`sRand`, `sp_rand`);
+* the randomizer `R`, `n6` (`sRand`, `sp_rand`);
 * FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base (`sForsBase c`), and
   at each height `z` the hinted child that is not the node climbed (`siblingOf`, at
   `sForsKid c z`; `SphincsForsT`'s): `is_child`'s bit names the climbed one;
