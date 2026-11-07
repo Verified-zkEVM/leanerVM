@@ -125,14 +125,15 @@ def main() -> None:
                               + (["--lean-exe", str(arguments.verify_exe)] if arguments.verify_exe else []))
         if fuzz.returncode != 0:
             failed = True
-        accepted = rejected = 0
+        accepted = rejected = honest = 0
         bad = []
         for line in log.read_text().splitlines():
             fields = line.split("\t")
             fixture, index, category, label, lean, _, rust = fields[:7]
             both_accept = lean == "accept" and rust == "accept"
             both_reject = lean != "accept" and rust != "accept"
-            if category == "honest":
+            if category == "honest":  # each proof's structured and wire forms
+                honest += 1
                 accepted += both_accept
                 if not both_accept:
                     bad.append(f"honest proof of {fixture} not accepted: Lean {lean}, Rust {rust}")
@@ -140,14 +141,15 @@ def main() -> None:
                 rejected += both_reject
                 if not both_reject:
                     bad.append(f"{fixture} #{index} {label}: Lean {lean}, Rust {rust}")
-        print(f"\nLean-made proofs accepted by both verifiers: {accepted} of {len(rows)}; "
+        print(f"\nLean-made proofs accepted by both verifiers: {accepted} of {honest} "
+              f"({len(rows)} proofs, structured and wire); "
               f"mutations rejected by both: {rejected}")
         print("\ncase                    Lean prover s  Rust prover s  identical  committed")
         for row in rows:
             print(f"{row[0]:23} {row[1]:>13}  {row[2]:>13}  {row[3]:>9}  {row[4]:>9}")
         for b in bad:
             print("FAIL", b)
-        sys.exit(1 if failed or bad or accepted != len(rows) else 0)
+        sys.exit(1 if failed or bad or honest != 2 * len(rows) or accepted != honest else 0)
     finally:
         shutil.rmtree(fixtures, ignore_errors=True)
 
