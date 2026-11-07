@@ -10,7 +10,8 @@ public import LeanVM.Guest.Fast.Whir
 The readers of a callee's witness off its check's frame, restated off arrays (`Guest/Fast/`, each
 proved equal to the deployed decoder's reader there at the tables built; leanXMSS's in
 `Xmss.lean`, next in the chain): a leanSPHINCS signature off
-`verify_sig_lean_sphincs`' and its three `sp_wots` frames (`sphincsSigOfA`), a child's proof off
+`verify_sig_lean_sphincs`' and its three `sp_wots` frames (`sphincsSigOfA`, its positions off the
+tables `SpTabs`), a child's proof off
 `verify_sub`'s and the frame map keyed by index (`vsPiOfA`, `vsPiOfA_tabs`, the cursor's length
 `cl` a parameter). Their tables (`XmssTabs`, `SpTabs`, `WhirTabs`: the lanes of `g^k`, the
 chain starts, the selectors and path bases, `open_stacked`'s stream words and calls) are arrays the decoder's top level builds once
@@ -60,10 +61,15 @@ cost_compile cwCellC := cwCellA
 
 /-! ## leanSPHINCS -/
 
+cost_compile spForsBaseC := spForsBase
 cost_compile forsOpeningAC := forsOpeningA
+cost_compile spLayerBaseC := spLayerBase
 cost_compile spCtrC := spCtr
-cost_compile spPathC := spPath
-cost_compile spBitC := spBit
+cost_compile spEncC := spEnc
+cost_compile spLeafC := spLeaf
+cost_compile spA0C := spA0
+cost_compile spA1C := spA1
+cost_compile beWordAtC := LeanVM.Guest.B1.Sig.beWordAt
 cost_compile layerAC := layerA
 cost_compile sphincsSigOfNC := sphincsSigOfA
 cost_compile spWotsArgsC := spWotsArgs
