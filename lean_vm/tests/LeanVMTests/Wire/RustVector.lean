@@ -11,7 +11,8 @@ leanVM PR #662 head `d1c4c8f7`): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `
 `(q >> l) ^ 1`), and the stream `[F192::new(1, 2, 3)]`. As the Rust asserts: the encoding is
 `(4 + 24) + 4 + (4 + 3·4) + 3·4 + 2·2·8 + 2·32 = 156` bytes (the stream; the phase count; the
 queries; three sizes; two rows of two words, the common zero word dropped; two siblings); it
-decodes, with Keccak-256 over Keccak-f[1600], to the proof; and one more byte is refused.
+decodes, with Keccak-256 over Keccak-f[1600], to the proof, whose encoding is the bytes; and one
+more byte is refused.
 
 Each check is run compiled (`#guard`, the hash compiled by `Statement.Fast.Keccak`). The kernel
 does not reduce the encoding or the decoding themselves: both sort the positions with core's
@@ -61,5 +62,8 @@ def decode (bytes : Bytes) : Option Proof :=
 #guard (decode proof.toBytes).map fields == some (fields proof)
 
 #guard (decode (proof.toBytes ++ [0])).isNone
+
+/- One encoding: the decoded proof's encoding is the bytes. -/
+#guard (decode proof.toBytes).map Proof.toBytes == some proof.toBytes
 
 end LeanVMTests.Wire.RustVector
