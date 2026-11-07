@@ -1,4 +1,5 @@
 import FORS.Statement
+import FORS.Scheme.DigestView
 import Statement.LeanSphincs
 import Common.WithHash
 
@@ -193,5 +194,299 @@ theorem simulateQ_oracleHash (input : FORS.HashInput) :
     keccak256OverPermutation, keccakHash, Functor.map_map]
   refine congrArg (· <$> _) (funext fun digest ↦ ?_)
   simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes, Vector.toList]
+
+
+/-! ### Binds
+
+The model's computations are in `OracleComp FORS.HashSpec`, the statement's hash spec up to
+unfolding: the simulation lemmas of its binds, stated in that monad, so that `simp` sees them. -/
+
+theorem sim_bind {α β : Type} (x : OracleComp FORS.HashSpec α) (f : α → OracleComp FORS.HashSpec β) :
+    simulateQ σ (@Bind.bind (OracleComp FORS.HashSpec) _ α β x f) =
+      simulateQ σ x >>= fun a ↦ simulateQ σ (f a) :=
+  simulateQ_bind _ _ _
+
+theorem sim_pure {α : Type} (a : α) :
+    simulateQ σ (@Pure.pure (OracleComp FORS.HashSpec) _ α a) = pure a :=
+  simulateQ_pure _ _
+
+theorem sim_map {α β : Type} (f : α → β) (x : OracleComp FORS.HashSpec α) :
+    simulateQ σ (@Functor.map (OracleComp FORS.HashSpec) _ α β f x) = f <$> simulateQ σ x :=
+  simulateQ_map _ _ _
+
+/-- Two binds agree when their computations and their continuations do. -/
+theorem bind_eq_of {m : Type → Type} [Monad m] {α β : Type} {x y : m α} {f g : α → m β}
+    (hx : x = y) (hfg : ∀ a, f a = g a) : x >>= f = y >>= g := by
+  rw [hx, funext hfg]
+
+/-- A hash query of a domain in range is the statement's tweakable hash. -/
+theorem simulateQ_tweakableHash (parameter : FORS.PublicParameter) (domain : FORS.HashDomain)
+    (h : InRange domain) (payload : FORS.HashInput) :
+    simulateQ σ (FORS.Concrete.tweakableHash (m := OracleComp FORS.HashSpec) parameter domain
+      payload) =
+      Verification.tweakableHash queryPermutation parameter (toDomain domain) payload := by
+  simp only [FORS.Concrete.tweakableHash, sim_bind, sim_pure, simulateQ_oracleHash,
+    tweakableHashInput_eq parameter domain h, Verification.tweakableHash,
+    Verification.addressedHash]
+  rfl
+
+theorem simulateQ_sequenceFin {α : Type} {n : ℕ} (c : Fin n → OracleComp FORS.HashSpec α) :
+    simulateQ σ (FORS.Concrete.sequenceFin (m := OracleComp FORS.HashSpec) c) =
+      sequenceFin fun i ↦ simulateQ σ (c i) := by
+  induction n with
+  | zero => simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_pure]
+  | succ n ih =>
+    simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_bind, sim_pure, ih]
+
+/-! ## The maps of keys and signatures -/
+
+/-- A statement public key as the model's: `PK.root`, and `PK.seed` as the parameter. -/
+def toModelPublicKey (publicKey : PublicKey) : FORS.PublicKey :=
+  ⟨publicKey.root, publicKey.publicSeed⟩
+
+/-- A model public key as the statement's. -/
+def ofModelPublicKey (publicKey : FORS.PublicKey) : PublicKey :=
+  ⟨publicKey.parameter, publicKey.root⟩
+
+/-- The public keys correspond. -/
+def publicKeyEquiv : FORS.PublicKey ≃ PublicKey where
+  toFun := ofModelPublicKey
+  invFun := toModelPublicKey
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+/-- A FORS tree's opening, the model's from the statement's. -/
+def toModelTreeOpening (opening : ForsTreeOpening) : FORS.TreeOpening :=
+  ⟨opening.secret, opening.path⟩
+
+/-- A FORS tree's opening, the statement's from the model's. -/
+def ofModelTreeOpening (opening : FORS.TreeOpening) : ForsTreeOpening :=
+  ⟨opening.secret, opening.path⟩
+
+theorem layerHeight_ofLayer (layer : Layer) :
+    FORS.layerHeight (ofLayer layer) = layerHeight layer := by
+  rw [← layerHeight_toLayer, toLayer_ofLayer]
+
+/-- A statement signature as the model's: the layers reversed, each path read through its length's
+equality. -/
+def toModelSignature (signature : Signature) : FORS.Signature where
+  randomness := signature.randomizer
+  fors forsTree := toModelTreeOpening (signature.forsOpening forsTree)
+  layers lay :=
+    ⟨(signature.layers (toLayer lay)).counter, (signature.layers (toLayer lay)).chainValues,
+      fun level ↦ (signature.layers (toLayer lay)).authenticationPath
+        (Fin.cast (layerHeight_toLayer lay).symm level)⟩
+
+/-- A model signature as the statement's. -/
+def ofModelSignature (signature : FORS.Signature) : Signature where
+  randomizer := signature.randomness
+  forsOpening forsTree := ofModelTreeOpening (signature.fors forsTree)
+  layers layer :=
+    ⟨(signature.layers (ofLayer layer)).counter, (signature.layers (ofLayer layer)).chainValues,
+      fun level ↦ (signature.layers (ofLayer layer)).path
+        (Fin.cast (layerHeight_ofLayer layer).symm level)⟩
+
+/-- **The signatures correspond.** -/
+def signatureEquiv : FORS.Signature ≃ Signature where
+  toFun := ofModelSignature
+  invFun := toModelSignature
+  left_inv signature := by
+    rcases signature with ⟨randomness, fors, layers⟩
+    simp only [toModelSignature, ofModelSignature, toModelTreeOpening, ofModelTreeOpening]
+    congr 1
+    funext lay
+    fin_cases lay <;> rfl
+  right_inv signature := by
+    rcases signature with ⟨randomizer, forsOpening, layers⟩
+    simp only [toModelSignature, ofModelSignature, toModelTreeOpening, ofModelTreeOpening]
+    congr 1
+    funext layer
+    fin_cases layer <;> rfl
+
+/-! ## The digest's fields
+
+The model packs the index and the FORS leaves into one bit vector (`FORS.truncateMessageDigest`),
+the statement keeps the 34 bytes and reads the fields off them: both read the bytes of the calls
+(`FORS.digestOutputBytes`) as FIPS 205's Algorithm 19 does. -/
+
+section Digest
+
+open FORS.Concrete (outputBit digestOutputBytes_length testBit_digestOutputByte testBit_digestFieldsValue
+  testBit_digestIndexValue digestIndexValue_lt msbField_lt beInt_append)
+
+theorem digestCalls_eq : FORS.digestCalls = 2 := rfl
+
+/-- The statement's digest calls as the model's (the same type at `params`). -/
+abbrev asModel (outputs : DigestCall → HashOutput) : FORS.DigestCall → FORS.HashOutput := outputs
+
+theorem mdBytes_eq : FORS.mdBytes = 30 := rfl
+
+theorem treeIndexBytes_eq : FORS.treeIndexBytes = 3 := rfl
+
+theorem leafIndexBytes_eq : FORS.leafIndexBytes = 1 := rfl
+
+theorem bottomHeight_eq : FORS.bottomHeight = 8 := rfl
+
+theorem messageDigestBits_eq : FORS.messageDigestBits = 266 := rfl
+
+/-- Bit `g` of the statement's value of the calls is bit `g` of the calls. -/
+theorem testBit_digestValue (outputs : DigestCall → HashOutput) (g : ℕ) (hg : g < 512) :
+    (digestValue outputs).testBit g = outputBit (asModel outputs) g := by
+  have h0 := (outputs ⟨0, by decide⟩).isLt
+  have hsum : digestValue outputs =
+      2 ^ 256 * (outputs ⟨1, by decide⟩).toNat + (outputs ⟨0, by decide⟩).toNat := by
+    show (∑ call : Fin 2, (outputs call).toNat * 2 ^ (256 * call.val)) = _
+    rw [Fin.sum_univ_two]
+    change (outputs ⟨0, by decide⟩).toNat * 2 ^ (256 * 0) +
+      (outputs ⟨1, by decide⟩).toNat * 2 ^ (256 * 1) = _
+    ring
+  rw [hsum, Nat.testBit_two_pow_mul_add _ h0, outputBit]
+  have hc : g / 256 < FORS.digestCalls := by rw [digestCalls_eq]; omega
+  rw [dite_eq_left hc]
+  by_cases hlt : g < 256
+  · have h1 : g / 256 = 0 := by omega
+    have h2 : g % 256 = g := by omega
+    simp only [hlt, ↓reduceIte, BitVec.getLsbD, h1, h2]
+    rfl
+  · have h1 : g / 256 = 1 := by omega
+    have h2 : g % 256 = g - 256 := by omega
+    simp only [hlt, ↓reduceIte, BitVec.getLsbD, h1, h2]
+    rfl
+
+/-- Byte `p` of the statement's digest is byte `p` of the calls. -/
+theorem messageDigestByte_eq (outputs : DigestCall → HashOutput) (p : ℕ) (hp : p < 34) :
+    messageDigestByte (truncateMessageDigest outputs) p =
+      ((FORS.digestOutputBytes (asModel outputs)).getD p 0).toNat := by
+  apply Nat.eq_of_testBit_eq
+  intro t
+  by_cases ht : t < 8
+  · rw [testBit_digestOutputByte (asModel outputs) p t ht, ← testBit_digestValue outputs _ (by omega)]
+    simp only [messageDigestByte, truncateMessageDigest, BitVec.testBit_toNat,
+      BitVec.getLsbD_extractLsb', BitVec.getLsbD_ofNat, ht, decide_true, Bool.true_and]
+    have : 8 * p + t < 8 * digestByteCount := by unfold digestByteCount; omega
+    simp only [this, decide_true, Bool.true_and]
+  · have h8 : (2 : ℕ) ^ 8 ≤ 2 ^ t := Nat.pow_le_pow_right (by decide) (by omega)
+    have hl : messageDigestByte (truncateMessageDigest outputs) p < 2 ^ t :=
+      lt_of_lt_of_le (BitVec.isLt _) h8
+    have hr : ((FORS.digestOutputBytes (asModel outputs)).getD p 0).toNat < 2 ^ t :=
+      lt_of_lt_of_le (UInt8.toNat_lt _) h8
+    rw [Nat.testBit_lt_two_pow hl, Nat.testBit_lt_two_pow hr]
+
+theorem messageDigestBigEndian_succ (digest : MessageDigest) (start count : ℕ) :
+    messageDigestBigEndian digest start (count + 1) =
+      256 * messageDigestBigEndian digest start count + messageDigestByte digest (start + count) := by
+  simp only [messageDigestBigEndian, List.range_succ, List.foldl_append, List.foldl_cons,
+    List.foldl_nil]
+
+/-- The statement's big-endian reading of the digest's bytes is the model's of the calls'. -/
+theorem messageDigestBigEndian_eq (outputs : DigestCall → HashOutput) (start : ℕ) :
+    ∀ count, start + count ≤ 34 →
+      messageDigestBigEndian (truncateMessageDigest outputs) start count =
+        FORS.beInt (((FORS.digestOutputBytes (asModel outputs)).drop start).take count)
+  | 0, _ => by simp [messageDigestBigEndian, FORS.beInt]
+  | count + 1, h => by
+    have hlen := digestOutputBytes_length (asModel outputs)
+    rw [digestCalls_eq] at hlen
+    rw [messageDigestBigEndian_succ, messageDigestBigEndian_eq outputs start count (by omega),
+      messageDigestByte_eq outputs _ (by omega), List.take_add_one, List.getElem?_drop,
+      List.getElem?_eq_getElem (by omega), Option.toList_some, beInt_append,
+      List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
+    rfl
+
+theorem totalHeight_eq : FORS.totalHeight = 26 := rfl
+
+/-- The statement's index is the model's value of the index bytes. -/
+theorem digestIndex_val (outputs : DigestCall → HashOutput) :
+    (digestIndex (truncateMessageDigest outputs)).val =
+      FORS.digestIndexValue (FORS.digestOutputBytes (asModel outputs)) := by
+  simp only [digestIndex, FORS.digestIndexValue, mdBytes_eq, treeIndexBytes_eq, leafIndexBytes_eq,
+    bottomHeight_eq, totalHeight_eq, forsMessageByteCount, treeIndexByteCount, leafIndexByteCount,
+    messageDigestBigEndian_eq outputs 30 3 (by omega), messageDigestBigEndian_eq outputs 33 1 (by omega)]
+
+/-- The model's index is its value of the index bytes (at every shape). -/
+theorem modelDigestIndex_val {P : FORS.Params} (outputs : FORS.DigestCall → FORS.HashOutput) :
+    (FORS.Concrete.digestIndex (FORS.truncateMessageDigest outputs)).val =
+      FORS.digestIndexValue (FORS.digestOutputBytes outputs) := by
+  apply Nat.eq_of_testBit_eq
+  intro q
+  simp only [FORS.Concrete.digestIndex, BitVec.val_toFin, BitVec.testBit_toNat,
+    BitVec.getLsbD_extractLsb', FORS.truncateMessageDigest, BitVec.getLsbD_ofNat,
+    testBit_digestFieldsValue, Nat.zero_add]
+  by_cases hq : q < FORS.totalHeight
+  · have h2 : q < FORS.messageDigestBits := by unfold FORS.messageDigestBits; omega
+    simp [hq, h2]
+  · have hlt : FORS.digestIndexValue (FORS.digestOutputBytes outputs) < 2 ^ q :=
+      lt_of_lt_of_le (digestIndexValue_lt _) (Nat.pow_le_pow_right (by decide) (by omega))
+    simp [hq, Nat.testBit_lt_two_pow hlt]
+
+/-- **The index**: the model's is the statement's. -/
+theorem digestIndex_eq (outputs : DigestCall → HashOutput) :
+    FORS.Concrete.digestIndex (FORS.truncateMessageDigest (asModel outputs)) =
+      digestIndex (truncateMessageDigest outputs) :=
+  Fin.ext ((modelDigestIndex_val (asModel outputs)).trans (digestIndex_val outputs).symm)
+
+/-- The model's leaf of tree `κ` is the `a` bits of the leaf bytes from bit `a κ` (at every
+shape). -/
+theorem modelDigestLeaves_val {P : FORS.Params} (outputs : FORS.DigestCall → FORS.HashOutput)
+    (κ : FORS.FTree) :
+    (FORS.Concrete.digestLeaves (FORS.truncateMessageDigest outputs) κ).val =
+      FORS.msbField (FORS.digestOutputBytes outputs) (FORS.forsHeight * κ.val) FORS.forsHeight := by
+  have hoff := FORS.leafOffset_add_le κ
+  have ha := FORS.forsHeight_pos
+  apply Nat.eq_of_testBit_eq
+  intro t
+  simp only [FORS.Concrete.digestLeaves, BitVec.val_toFin, BitVec.testBit_toNat,
+    BitVec.getLsbD_extractLsb', FORS.truncateMessageDigest, BitVec.getLsbD_ofNat,
+    testBit_digestFieldsValue]
+  by_cases ht : t < FORS.forsHeight
+  · unfold FORS.Concrete.leafOffset at hoff ⊢
+    have h1 : FORS.totalHeight + FORS.forsHeight * κ.val + t < FORS.messageDigestBits := by omega
+    have h2 : ¬FORS.totalHeight + FORS.forsHeight * κ.val + t < FORS.totalHeight := by omega
+    have h3 : (FORS.totalHeight + FORS.forsHeight * κ.val + t - FORS.totalHeight) /
+        FORS.forsHeight = κ.val := by
+      rw [show FORS.totalHeight + FORS.forsHeight * κ.val + t - FORS.totalHeight =
+        t + FORS.forsHeight * κ.val by omega, Nat.add_mul_div_left _ _ ha, Nat.div_eq_of_lt ht,
+        Nat.zero_add]
+    have h4 : (FORS.totalHeight + FORS.forsHeight * κ.val + t - FORS.totalHeight) %
+        FORS.forsHeight = t := by
+      rw [show FORS.totalHeight + FORS.forsHeight * κ.val + t - FORS.totalHeight =
+        t + FORS.forsHeight * κ.val by omega, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
+    simp only [ht, h1, h2, h3, h4, κ.isLt, decide_true, Bool.true_and, ↓reduceIte, ↓reduceDIte]
+  · have hlt := lt_of_lt_of_le (msbField_lt (FORS.digestOutputBytes outputs)
+      (FORS.forsHeight * κ.val) FORS.forsHeight)
+      (Nat.pow_le_pow_right (n := 2) (by decide) (show FORS.forsHeight ≤ t by omega))
+    simp [ht, Nat.testBit_lt_two_pow hlt]
+
+/-- Bit `p` of the statement's digest, read most significant bit first, is the calls'. -/
+theorem messageDigestBit_eq (outputs : DigestCall → HashOutput) (p : ℕ) (hp : p < 272) :
+    messageDigestBit (truncateMessageDigest outputs) p =
+      FORS.msbBit (FORS.digestOutputBytes (asModel outputs)) p := by
+  rw [messageDigestBit, messageDigestByte_eq outputs _ (by omega), FORS.msbBit]
+
+/-- **The FORS leaves**: the model's are the statement's. -/
+theorem digestLeaves_eq (outputs : DigestCall → HashOutput) :
+    FORS.Concrete.digestLeaves (FORS.truncateMessageDigest (asModel outputs)) =
+      digestForsLeaves (truncateMessageDigest outputs) := by
+  funext κ
+  apply Fin.ext
+  rw [modelDigestLeaves_val]
+  have hfold : (List.range forsTreeHeight).foldl (fun value j ↦ 2 * value +
+        messageDigestBit (truncateMessageDigest outputs) (forsTreeHeight * κ.val + j)) 0 =
+      FORS.msbField (FORS.digestOutputBytes (asModel outputs)) (FORS.forsHeight * κ.val)
+        FORS.forsHeight := by
+    unfold FORS.msbField
+    refine List.foldl_ext _ _ _ fun value j hj ↦ ?_
+    have hκ := κ.isLt
+    have hj' := List.mem_range.mp hj
+    change j < 10 at hj'
+    change κ.val < 24 at hκ
+    rw [messageDigestBit_eq outputs _ (by unfold forsTreeHeight; omega)]
+    rfl
+  have hlt := msbField_lt (FORS.digestOutputBytes (asModel outputs)) (FORS.forsHeight * κ.val)
+    FORS.forsHeight
+  simp only [digestForsLeaves, forsLeafOfNat, hfold]
+  exact (Nat.mod_eq_of_lt hlt).symm
+
+end Digest
 
 end Sphincs.Model
