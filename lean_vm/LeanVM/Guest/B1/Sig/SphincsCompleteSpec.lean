@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
-  The completeness statements of leanSPHINCS's guest functions at leanVM `834e6614`: `sp_wots`
+  The completeness statements of leanSPHINCS's guest functions at leanVM `3300fd1f`: `sp_wots`
   (`Data.core19`), a leaf, and `verify_sig_lean_sphincs` (`Data.core20`), which calls it three
   times, in the forms `main`'s completeness consumes.
 -/
@@ -15,9 +15,9 @@ public import LeanVM.Guest.Memory.Regions
 /-!
 # leanSPHINCS's completeness statements
 
-`sp_wots(pp, a0, a1, encoding)` (`lean_ethereum.py:3902-3933`) recovers the leaf of the one-time
+`sp_wots(pp, a0, a1, encoding)` (`lean_ethereum.py:3897-3928`) recovers the leaf of the one-time
 key whose address is `(a0, a1)` and whose encoding digest is `encoding`;
-`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3972-4073`) calls it once per
+`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3967-4051`) calls it once per
 layer. So `verify_sig_lean_sphincs`'s body holds only under a call relation that holds of its three
 calls, and its completeness is stated under any call relation holding of every honest call of
 `sp_wots` (`SpWotsCalls`).

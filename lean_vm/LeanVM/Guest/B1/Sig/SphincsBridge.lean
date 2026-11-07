@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsBridge
 
   The statement's leanSPHINCS verification (`Sphincs.verifyWithKeccak`, `Statement/LeanSphincs.lean`
-  at leanVM `834e6614`) stage by stage: its message digest, its FORS key, and its walk up the layers.
+  at leanVM `3300fd1f`) stage by stage: its message digest, its FORS key, and its walk up the layers.
 -/
 
 module
