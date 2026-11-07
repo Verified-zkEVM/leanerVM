@@ -37,8 +37,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
 honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
 operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
-transcribe their sources (the proof's wire encoding among them: what is proved of it and what is
-test evidence is below, **The proof on the wire**); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
+transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
 verifier** (`EthereumProof::verify`, `aggregation/proof.rs:194-211`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
@@ -67,40 +66,28 @@ while the soundness bound is still `2^-28` there, and whose constant `2^81` woul
 about `2^70` Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low
 entropy) is not what the statement certifies.
 
-**The proof on the wire.** A proof (`Proof`, `LeanVmVerifier.lean`) is the Rust verifier's: the
+**The proof and the wire.** A proof (`Proof`, `LeanVmVerifier.lean`) is the Rust verifier's: the
 scalar stream and the Merkle openings grouped in phases, one phase per commitment opened, each
 opening (`Opening`) the position it opens (`leafIndex`), the leaf's words and the full path of
 siblings, in the order the verifier samples the queries. The verifier opens a phase (`openPhase`,
 `Transcript::merkle`) in the Rust's order: it rejects unless every leaf is the commitment's width
 and every path its height (the shape), then unless the phase's positions are the queries it
-sampled, in order (the positions), then unless each path climbs to the root. The proof travels as
-bytes, its one encoding (`crates/fiat_shamir/src/wire.rs`), which prunes each phase to the queries'
-positions, the height, the leaf width and the row width (the least that drops only zero words), the
-distinct leaves ascending without the zero words they all begin with, and the siblings no other
-path gives, bottom level first; the pruning idea and its first formalization, on leanerVM's `main`
-branch, are [scaraven](https://github.com/scaraven)'s. The statement transcribes both directions:
-the encoding `Proof.toBytes` (`Prover/Prove.lean`, `to_bytes`, no hashing) and the decoding
-`Proof.fromBytes` (`LeanVmVerifier.lean`, `from_bytes`, over the permutation in any monad, hashing
-the nodes the paths share, refusing everything but the one encoding of a proof within the bounds
-`MAX_PHASES` `8`, `MAX_QUERIES` `256`, `MAX_LEAF_WORDS` `64` and `MAX_HEIGHT` `32`: trailing bytes, a
-non-minimal row width, a position out of range). The verifier on bytes decodes, then verifies, and
-rejects bytes that encode no proof (`leanVmVerifierOnBytes`); the honest prover on bytes is the
-honest proof's encoding (`leanVmHonestProverOnBytes`). **Proved**, in `lean_vm`
-([`LeanVM/Wire/`](../lean_vm/LeanVM/Wire/); the round trip, the one encoding and completeness on
-the wire are not yet merged on this branch): the round trip, `fromBytes (toBytes p) = some p` for
-every proof each of whose phases one Merkle tree opens within the bounds (`WireDecodable`: one
-height and one leaf width per phase, positions below `2^height`, the paths agreeing on the tree),
-which the honest prover's proofs are; the one encoding, `fromBytes b = some p → toBytes p = b`; the
-decoding's cost, at most `D = 73728` permutation calls (eight phases of at most `256` leaves of at
-most `64` words, four calls each, and `32` levels of at most `256` nodes, one call each); and the
-two end statements on the wire, **`KnowledgeSoundnessOnBytes`** at `(Q + 2^17)·2^-128 +
-5(Q + 2^17)²·2^-256` (`KnowledgeSoundness` for the adversary that decodes its own bytes: the
-extractor reads the adversary's transcript followed by the decoding's, a public deterministic
-computation of the bytes; `2^17` covers `2^14 + D`) and **`CompletenessOnBytes`** at `2^-256`.
-**Test evidence** (not yet merged on this branch): that the Lean decoding gives the Rust `Proof::from_bytes`'s result, and the
-encoding `to_bytes`'s: the wire differential in the gate (`lean_vm/scripts/wire-diff.py`) on honest
-wire proofs and their mutations (truncations, appended bytes, changed counts, a non-minimal row
-width, positions out of range, a surplus sibling) and on the Rust test's vector.
+sampled, in order (the positions), then unless each path climbs to the root. The end statements are
+about this structured proof. On the wire it travels as bytes, its one encoding
+(`crates/fiat_shamir/src/wire.rs`), each phase pruned to its positions, its sizes, its distinct
+leaves and the siblings no other path gives: a compression layer, not part of the statement. The
+pruning idea and its first formalization, on leanerVM's `main` branch, are
+[scaraven](https://github.com/scaraven)'s. `lean_vm` transcribes the encoding and the decoding
+([`LeanVM/Wire/Encoding.lean`](../lean_vm/LeanVM/Wire/Encoding.lean)) and proves, as theorems of
+its own (not end statements), that nothing is lost through the layer: the round trip (an honest
+proof decodes from its encoding), the one encoding (bytes that decode to a proof are its encoding),
+the decoding's cost (at most `73728` permutation calls), and that knowledge soundness (at
+`(Q + 2^17)·2^-128 + 5(Q + 2^17)²·2^-256`, the extractor reading the decoding's queries after the
+adversary's) and completeness (at `2^-256`) carry over to the verifier and the honest prover on
+bytes ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)). That its transcription
+is the Rust's `Proof::from_bytes` and `Proof::to_bytes` is test evidence: the wire differential in
+the gate (`lean_vm/scripts/wire-diff.py`), on honest wire proofs, their mutations and the Rust
+test's vector.
 
 ## Reading order
 
@@ -178,9 +165,8 @@ theorems, then read the files in this order.
     transcribed section by section, over any permutation in any monad, Keccak-256 the sponge over it
     (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
     transcript (`Field.lean`'s duplex sponge, Merkle openings), the proof (`Proof`: the stream and
-    the openings with their positions, grouped in phases, opened by `openPhase`), the proof's wire
-    decoding (`Proof.fromBytes`, `wire.rs`), and the deferring verifier an aggregate runs on its
-    children. Where the transcription's form differs from the pin's without changing what it
+    the openings with their positions, grouped in phases, opened by `openPhase`), and the deferring
+    verifier an aggregate runs on its children. Where the transcription's form differs from the pin's without changing what it
     computes, its docstring gives the pin's lines and why the two agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    over a permutation (`leanVmVerifier π`), the honest prover's type and **the honest prover**,
@@ -192,12 +178,7 @@ theorems, then read the files in this order.
    from the statement, the transcript and the proof, an execution or none), the transcript's
    permutation queries (`permutationQueries`), **`LeanVM.KnowledgeSoundness extractor`** (for a
    given extractor; it asks for some valid execution, not necessarily the one the proof commits to),
-   **`LeanVM.Completeness`**; and the same on the wire: the verifier on bytes
-   (`leanVmVerifierOnBytes`: `Proof.fromBytes`, then the verifier), the honest prover on bytes
-   (`leanVmHonestProverOnBytes`: `Proof.toBytes` of the honest proof), the experiment on bytes
-   (`knowledgeSoundnessExperimentOnBytes`: the adversary outputs bytes, decoded in the transcript
-   the extractor reads), **`LeanVM.KnowledgeSoundnessOnBytes extractor`** and
-   **`LeanVM.CompletenessOnBytes`**.
+   **`LeanVM.Completeness`**.
 12. [`CostMachine.lean`](CostMachine.lean): the cost machine (`MachineValue`, `PrimitiveOperation`,
     `Term`, `MachineProgram`, `evaluateTerm`, `run`, a program's `size`, and `outputWithin`, a
     program's output within a size bound and a budget): a first-order functional language on natural
@@ -299,8 +280,7 @@ verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Keccak*.lean`, `Whi
 switching and opening; `Mle.lean` their helper), beside the verifier's phase, whose result the next
 phase takes (`Script.alongside`), and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
 sponge, each Merkle tree built once and each query's opening read from it with its position, one
-phase per opened commitment, the proof-of-work nonce searched among the first `fuel`), and the
-proof's encoding on the wire (`Prove.lean`'s `Proof.toBytes`, which hashes nothing). Its correctness is proved
+phase per opened commitment, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
 (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the honest
 strategy the completeness proof follows, at the execution's own witness), so a reviewer need not
 read it line by line; a reviewer checks only that it is a genuine prover: it computes its proof from
@@ -340,8 +320,6 @@ proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
 | --- | --- | --- |
 | `LeanVM.KnowledgeSoundness (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)` (the program's size within `leanVmKnowledgeExtractorSizeBound` included) | `LeanVM.knowledgeSoundness_holds` (for `transcriptExtractor`) and `LeanVM.Cost.extractorOf_extractorProgram` (with `LeanVM.Cost.extractorProgram_size_le`) | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean), [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
-| `LeanVM.KnowledgeSoundnessOnBytes (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)` | `LeanVM.Wire.knowledgeSoundnessOnBytes_of` (from `KnowledgeSoundness`, by the adversary that decodes its own bytes, at the decoding's cost `LeanVM.Wire.fromBytes_queryCost`) at the program above | [`lean_vm/LeanVM/Wire/Sound.lean`](../lean_vm/LeanVM/Wire/Sound.lean), [`…/Wire/Cost.lean`](../lean_vm/LeanVM/Wire/Cost.lean) |
-| `LeanVM.CompletenessOnBytes` | `LeanVM.Wire.completenessOnBytes_holds`, from `completeness_holds`, the round trip `LeanVM.Wire.roundTrip` and the honest proofs' being decodable (not yet merged) | [`lean_vm/LeanVM/Wire/Complete.lean`](../lean_vm/LeanVM/Wire/Complete.lean), [`…/Wire/RoundTrip.lean`](../lean_vm/LeanVM/Wire/RoundTrip.lean), [`…/Wire/Honest.lean`](../lean_vm/LeanVM/Wire/Honest.lean) |
 | `LeanVM.Node.GuestKnowledgeSoundness guestWitnessDecoder` (the program's size within `guestWitnessDecoderSizeBound` included) | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its size, `LeanVM.Cost.decoderProgram_size_le`; its price within the budget, `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`) and `guest_knowledge`; `guestKnowledge_of_decode` is the same for `decode` | [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean), [`…/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`…/Cost/Bounds/Guest/Budget.lean`](../lean_vm/LeanVM/Cost/Bounds/Guest/Budget.lean), [`…/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.StatementDigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |
 | `LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren` | `LeanVM.Guest.Completeness.guest_complete_on_honest_children`, from `LeanVM.Guest.Budget.guest_complete_covered` (children the guest program accepts, `AcceptableChild`, every seed), `guest_child_complete` (an honest proof is such a child) and `LeanVM.Guest.Child.freshClaim_unique` (the deferring verifier accepts a proof with at most one true claim) | [`lean_vm/LeanVM/Guest/HonestChildren.lean`](../lean_vm/LeanVM/Guest/HonestChildren.lean), [`…/Guest/Child/Covered.lean`](../lean_vm/LeanVM/Guest/Child/Covered.lean), [`…/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
