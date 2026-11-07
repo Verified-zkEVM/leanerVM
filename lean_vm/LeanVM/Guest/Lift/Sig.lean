@@ -81,12 +81,14 @@ set_option maxRecDepth 100000 in
 /-- **An honest call of `sp_wots` loads nothing**, from B1's completeness, in any region. -/
 theorem sp_wots_relIn (hc : B1.Sig.sp_wots_complete_Spec) {rd : Reader} (R : ℕ → Prop)
     (hrd : B1.Sig.MemOK rd 64) : B1.Sig.SpWotsCalls (coreProgram.RelIn rd R) := by
-  intro parameter layer tree leaf digest values hv
-  obtain ⟨σ, h0, h1, h2, hb⟩ := hc (coreProgram.Rel rd) rd parameter layer tree leaf digest values
+  intro publicSeed layer tree leaf digest values hv
+  obtain ⟨σ, h0, h12, h3, hb⟩ := hc (coreProgram.Rel rd) rd publicSeed layer tree leaf digest values
     hrd hv
+  have h1 := congrArg Prod.fst h12
+  have h2 := congrArg Prod.snd h12
   refine relIn_of_leaf B1.Sig.find_sp_wots spWots_leafOk (fun σ' es vs _ hw A hA => ?_)
     ((B1.Sig.rel_iff_body B1.Sig.find_sp_wots _ _).mpr
-      ⟨σ, by rw [B1.Sig.sp_wots_params]; simp [h0, h1, h2], hb⟩)
+      ⟨σ, by rw [B1.Sig.sp_wots_params]; simp only at h1 h2; simp [h0, h1, h2, h3], hb⟩)
   have hall : (Out.ret es vs).All (EvLeafOk noLoad) := by
     have := walk_leafOk (σ := σ') Data.core19.body spWots_leafOk
     exact (show walk σ' Data.core19.body = .ret es vs from hw) ▸ this
@@ -105,9 +107,9 @@ set_option maxRecDepth 100000 in
 /-- **`verify_sig_lean_sphincs` loads only the claim and the byte table**, its calls of `sp_wots`
 loading nothing, from B1's completeness with its loads. -/
 theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.SphincsCompleteSpecs)
-    {rd : Reader} {R : ℕ → Prop} {p bb : E} {pk : HashSig.PublicKey} {m : HashSig.Message}
+    {rd : Reader} {R : ℕ → Prop} {p bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
     {sig : Sphincs.Signature} (hrd : B1.Sig.MemOK rd 256) (hbb : B1.Sig.ByteBits rd bb)
-    (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
+    (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.publicSeed) (B1.Sig.cellOf128 pk.root)
       (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
     (hv : Sphincs.verifyWithKeccak pk m sig = true)
     (hreg : ∀ k < 4, ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ R i)

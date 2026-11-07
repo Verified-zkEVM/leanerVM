@@ -83,7 +83,7 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
     (fun k hk => mf_region fs fp seed s w (i := 0) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
-  have hd : (hm fs fp seed s w).xd = claimListDigest s.claims.xmss := rfl
+  have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClXT clHonest
   rw [ha, hn', hd, mf_xmss_digest]
   exact key
@@ -96,13 +96,13 @@ theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s 
     simp only [claimBig, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =
-      s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+      s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
+        (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) := by
     rw [← List.flatMap_append]; rfl
-  have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.sphincs
+  have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
+    (fun c => mf_claimCells_length c.1.publicSeed c.1.root c.2) s.claims.sphincs
+  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
+    (fun c => mf_claimCells_canon c.1.publicSeed c.1.root c.2) s.claims.sphincs
   have key := claim_list_digest_completeAtT fs cert (Lin := hLmain fs fp seed s w)
     (eP := mfB fs fp seed s w 1) hn hl hc
     (fun rd h => by
@@ -112,7 +112,7 @@ theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s 
     (fun k hk => mf_region fs fp seed s w (i := 1) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
-  have hd : (hm fs fp seed s w).sd = claimListDigest s.claims.sphincs := rfl
+  have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClST clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
   exact key

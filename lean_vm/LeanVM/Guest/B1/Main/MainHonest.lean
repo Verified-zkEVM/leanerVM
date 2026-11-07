@@ -110,8 +110,8 @@ def hData : MainData where
   nd := (w.daMatrix.map fun _ => 1).getD 0
   pick := daPick s w
   seed := seed
-  xd := claimListDigest s.claims.xmss
-  sd := claimListDigest s.claims.sphincs
+  xd := claimListDigest xmssPublicKeyBytes s.claims.xmss
+  sd := claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs
   sdg := statementDigest seed s
   daR := (w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]
   dap := s.claims.daDigest
@@ -120,7 +120,7 @@ def hData : MainData where
 /-- **`main`'s honest buffers' words**, in allocation order. -/
 def hOwn : List (List E) :=
   [(s.claims.xmss ++ (xPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
-    (s.claims.sphincs ++ (sPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
+    (s.claims.sphincs ++ (sPlan s w).duplicates).flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2),
     hCover s w,
     (List.range 256).map fun v => word v 0 0,
     (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells,

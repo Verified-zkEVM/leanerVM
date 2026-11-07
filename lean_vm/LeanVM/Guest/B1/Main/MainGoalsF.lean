@@ -132,8 +132,8 @@ theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonic
 
 /-! ### The signature claims -/
 
-theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, HashSig.littleEndianBytes]
+theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytesOf r p m).length = 64 := by
+  simp [claimBytesOf, HashSig.littleEndianBytes]
 
 theorem mf_claimCells_length (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
   simp [claimCells, cellsOfBytes, mf_claimBytes_length]
@@ -145,12 +145,12 @@ theorem mf_claimCells_canon (r p : BitVec 128) (m : BitVec 256) : AllCanonical (
   simp [IsCanonical128, cellOfBytes]
 
 theorem mf_claimCells_bytes (r p : BitVec 128) (m : BitVec 256) :
-    cellsBytes (claimCells r p m) = claimBytes r p m :=
+    cellsBytes (claimCells r p m) = claimBytesOf r p m :=
   mf_cellsBytes_ofBytes (n := 4) (by rw [mf_claimBytes_length])
 
 /-- **The leanXMSS list's digest is its cells'.** -/
 theorem mf_xmss_digest (l : List LeanXmssClaim) :
-    claimListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+    claimListDigest xmssPublicKeyBytes l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
   rw [claimListDigest, claimListPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
@@ -158,8 +158,8 @@ theorem mf_xmss_digest (l : List LeanXmssClaim) :
 
 /-- **The leanSPHINCS list's digest is its cells'.** -/
 theorem mf_sphincs_digest (l : List LeanSphincsClaim) :
-    claimListDigest l =
-      keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+    claimListDigest Sphincs.PublicKey.toBytes l =
+      keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.publicSeed c.1.root c.2)) := by
   rw [claimListDigest, claimListPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c

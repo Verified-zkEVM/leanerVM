@@ -91,7 +91,7 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     hLS hL15 hL16 hCL
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
-  have hd : (hm fs fp seed s w).xd = claimListDigest s.claims.xmss := rfl
+  have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClXTB clHonest
   rw [ha, hn', hd, mf_xmss_digest]
   exact key
@@ -112,13 +112,13 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     simp only [claimBig, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =
-      s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+      s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
+        (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) := by
     rw [← List.flatMap_append]; rfl
-  have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.sphincs
+  have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
+    (fun c => mf_claimCells_length c.1.publicSeed c.1.root c.2) s.claims.sphincs
+  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
+    (fun c => mf_claimCells_canon c.1.publicSeed c.1.root c.2) s.claims.sphincs
   have key := claim_list_digest_completeAtTB fs cert (Lin := hLmain fs fp seed s w)
     (eP := mfB fs fp seed s w 1) hn hl hc
     (fun rd h => by
@@ -129,7 +129,7 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     hLS hL15 hL16 hCL
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
-  have hd : (hm fs fp seed s w).sd = claimListDigest s.claims.sphincs := rfl
+  have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClSTB clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
   exact key

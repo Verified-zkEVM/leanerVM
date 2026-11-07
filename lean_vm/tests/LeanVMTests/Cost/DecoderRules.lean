@@ -43,6 +43,9 @@ cost_compile mkKey := mkKey
 def keyRoot (k : HashSig.PublicKey) : ℕ := k.root.toNat
 cost_compile keyRoot := keyRoot
 
+def mkSpKey (s r : BitVec 128) : Sphincs.PublicKey := ⟨s, r⟩
+cost_compile mkSpKey := mkSpKey
+
 def mkStatement (xs : List LeanXmssClaim) (ss : List LeanSphincsClaim) (d : LeanVM.Protocol.Digest)
     (c : DeferredClaim) : NodeStatement := ⟨⟨xs, ss, d⟩, c⟩
 cost_compile mkStatement := mkStatement
@@ -114,12 +117,13 @@ def p : BitVec 128 := BitVec.ofNat 128 77
 #guard runOn bvFin.costDeps bvFin.costIdx [encodeValue (2 ^ 100 + 3 : ℕ)] == some (encodeValue r)
 #guard runOn mkKey.costDeps mkKey.costIdx [encodeValue r, encodeValue p] == some (encodeValue (mkKey r p))
 #guard runOn keyRoot.costDeps keyRoot.costIdx [encodeValue (mkKey r p)] == some (encodeValue (2 ^ 100 + 3 : ℕ))
+#guard runOn mkSpKey.costDeps mkSpKey.costIdx [encodeValue p, encodeValue r] == some (encodeValue (mkSpKey p r))
 
 def digest : LeanVM.Protocol.Digest := #v[1, 2, 3, 4]
 def claim : DeferredClaim := ⟨[x, x], x⟩
-def stmt : NodeStatement := mkStatement [(mkKey r p, m)] [(mkKey p r, m)] digest claim
+def stmt : NodeStatement := mkStatement [(mkKey r p, m)] [(mkSpKey p r, m)] digest claim
 #guard runOn mkStatement.costDeps mkStatement.costIdx
-  [encodeValue [(mkKey r p, m)], encodeValue [(mkKey p r, m)], encodeValue digest, encodeValue claim] ==
+  [encodeValue [(mkKey r p, m)], encodeValue [(mkSpKey p r, m)], encodeValue digest, encodeValue claim] ==
   some (encodeValue stmt)
 
 def proof : LeanVM.Protocol.Compile.Proof := ⟨[x], [⟨[K.ofLane 5], [digest]⟩]⟩

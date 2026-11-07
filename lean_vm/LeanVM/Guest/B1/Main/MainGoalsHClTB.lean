@@ -129,7 +129,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
       (ccB fs SB (hKid s w c).es) := by
   have hcov := cover_bound hl
   have hlen := (hl.childClaimListsBelow2Pow16 _ (List.getElem_mem hc)).2
-  have hT := kid_length_flatMap_const (f := fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
+  have hT := kid_length_flatMap_const (f := fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
     (s.claims.sphincs ++ (sPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.sphincs.length) =>
@@ -143,7 +143,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
     (base := (hKid s w c).base * gen ^ (hKid s w c).ex)
     (o := fun j => ((sPlan s w).childSlots.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.sphincs.flatMap
-      fun c => claimCells c.1.root c.1.parameter c.2)
+      fun c => claimCells c.1.publicSeed c.1.root c.2)
     (by rw [hKid_es hc]; simp only [B1.Digest.claimBig, B1.Digest.maxKeys]; omega)
     (by rw [hKid_es hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
@@ -170,7 +170,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
             (s.claims.sphincs ++ (sPlan s w).duplicates).length := hlt
         have := loadHolds_getD r2 (k := 4 * ((sPlan s w).childSlots.getD c []).getD j 0 + i)
           (by rw [hT]; omega)
-        rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
+        rw [getD_flatMap_uniform (f := fun c => claimCells c.1.publicSeed c.1.root c.2) _
           (fun a _ => kid_length_claimCells _ _ _) _ hlt2 i hi] at this
         have eT : (s.claims.sphincs ++ (sPlan s w).duplicates)[((sPlan s w).childSlots.getD c []).getD j 0]'hlt2 =
             w.children[c].statement.claims.sphincs[j] := by
@@ -179,7 +179,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
           rw [List.getElem?_eq_getElem hlt2] at h
           simpa using h
         rw [eT] at this
-        rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
+        rw [getD_flatMap_uniform (f := fun c => claimCells c.1.publicSeed c.1.root c.2) _
           (fun a _ => kid_length_claimCells _ _ _) j hj i hi]
         exact this)
     (fun j hj => by
@@ -198,7 +198,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
       rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 1) (by omega)
         (show _ < ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap
-          fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
+          fun c => claimCells c.1.publicSeed c.1.root c.2).length by rw [hT]; omega))
     hLS
   rw [hKid_cs hc, sphincsList_cells]
   rw [pow_add (a := gen) (hP fs fp seed s w 2)] at this

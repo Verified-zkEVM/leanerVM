@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Interface
 public import LeanVM.Guest.B1.Digest.ChildDigest
+public import LeanVM.Facts.ClaimBytes
 
 /-!
 # `main`: claims, digests and cells
@@ -122,8 +123,8 @@ theorem bytes32_cellPairVal (c d : E) :
 
 /-- **A claim's 64 bytes are its four cells' bytes.** -/
 theorem claimBytes_cells (a b c d : E) :
-    claimBytes (Sig.cellVal a) (Sig.cellVal b) (Sig.cellPairVal c d) = cellsBytes [a, b, c, d] := by
-  rw [claimBytes, bytes16_cellVal, bytes16_cellVal, bytes32_cellPairVal]
+    claimBytesOf (Sig.cellVal a) (Sig.cellVal b) (Sig.cellPairVal c d) = cellsBytes [a, b, c, d] := by
+  rw [claimBytesOf, bytes16_cellVal, bytes16_cellVal, bytes32_cellPairVal]
   simp [cellsBytes, List.append_assoc]
 
 /-! ## Digests in cells -/
