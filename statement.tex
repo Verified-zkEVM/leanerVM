@@ -679,7 +679,7 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 36514 + 33\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 17531\cnt{sphincs} + 186063\cnt{da}
+W = 36514 + 33\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 20060\cnt{sphincs} + 186063\cnt{da}
   + 218735\cnt{rows} \\ + 101\cnt{pad} + 25793\cnt{child} + 51\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
@@ -694,7 +694,7 @@ $r=4$ & 305591 & 308425 & 321286 & 323875 & 326652 & 332304 & 345407
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 876\cnt{sphincs} +
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 899\cnt{sphincs} +
 2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
 $\gamma$ between $4460$ and $9517$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
@@ -710,7 +710,7 @@ $\mathrm{dig}_{iv_G}(s)$ with $2^{21} < \mathrm{size}(t) \le 2^{28}$ (committed 
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
 children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
-check costs $G$ about three leanXMSS ones, $17531$ words against $6159$), $\cnt{rows}$ blobs held directly (the rows of
+check costs $G$ about three leanXMSS ones, $20060$ words against $6159$), $\cnt{rows}$ blobs held directly (the rows of
 at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
 \cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
 (a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
@@ -733,11 +733,11 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2627$ leanXMSS or $950$ leanSPHINCS signatures (each declared once), and a node holding one DA
+$2627$ leanXMSS or $831$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148} and \texttt{9d8bce81}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
+\texttt{1a379148}, \texttt{9d8bce81} and \texttt{834e6614}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
