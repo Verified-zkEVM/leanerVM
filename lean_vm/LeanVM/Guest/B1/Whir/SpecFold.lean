@@ -66,6 +66,23 @@ theorem openAll_inv (root : Digest) (height width : ℕ) :
         · exact hok k (by simpa using hk) (by simpa using ho')
     · simp [pure] at h
 
+/-- **A phase that passes `openPhase`**: one opening per position, each passing `openOne`, the
+rows their leaves. -/
+theorem openPhase_inv {root : Digest} {height width : ℕ} {ps : List ℕ} {phase : List Opening}
+    {rows : List (List K)}
+    (h : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) =
+      some rows) :
+    phase.length = ps.length ∧
+      (∀ k (hk : k < ps.length) (ho : k < phase.length),
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width ps[k] phase[k]) =
+          true) ∧
+      rows = phase.map (·.leaf) := by
+  obtain ⟨-, -, ho⟩ := openPhase_some keccak256 h
+  obtain ⟨osL, e, hl, hok, hr⟩ := openAll_inv root height width ps phase rows [] ho
+  rw [List.append_nil] at e
+  subst e
+  exact ⟨hl, hok, hr⟩
+
 /-! ## The fold rounds -/
 
 theorem sumcheck3_bind {β : Type} (claim : E) (k : List E → VerifierProgram β) :
@@ -83,7 +100,7 @@ theorem squeeze_absorb_two (F : Fs) (d0 d2 : E) :
 
 /-- **The fold rounds, backwards.** -/
 theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → VerifierProgram β} :
-    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
       runF ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ = some r →
         2 * n ≤ xs.length ∧ (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) ∧
@@ -156,7 +173,7 @@ theorem tailTr_length : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E
 
 /-- **The tail rounds, backwards.** -/
 theorem tailNZ_inv {β : Type} {K : List E × E → VerifierProgram β} :
-    ∀ (n : ℕ) (t : E) (q : List E) (F : Fs) (xs : List E) (os : List Opening)
+    ∀ (n : ℕ) (t : E) (q : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
       runF ((tailRoundsNZ n t q).bind K) ⟨F, xs, os, R⟩ = some r →
         2 * (n - 1) ≤ xs.length ∧ (∀ c ∈ (tailTr n F q t xs).2.1, c ≠ 0) ∧

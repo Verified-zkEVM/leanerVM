@@ -32,7 +32,7 @@ theorem SpLv.ws1_folds_length (L : SpLv) : L.ws1.folds.length = L.ws.folds.lengt
 
 /-- **Each level after the first opens a tree of height `L.D`.** -/
 theorem chain_heights : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res → R.length = lvl + 1 →
     ∀ i, i + 1 < Ls.length → (Ls.getD (i + 1) default).height = (Ls.getD (i + 1) default).D
   | [level], lvl, ws, F, xs, os, R, [L], res, _, _, i, hi => absurd hi (by simp)
@@ -65,7 +65,7 @@ theorem chain_heights : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT
 
 /-- **The first level opens the committed root's tree**, at the shape it was committed with. -/
 theorem chain_height0 {cfg : List Whir.Level} {lvl : ℕ} {ws : WhirStateT} {F : Fs} {xs : List E}
-    {os : List Opening} {R : List (Digest × ℕ × ℕ)} {Ls : List SpLv} {res : WhirEnd × FSt}
+    {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {Ls : List SpLv} {res : WhirEnd × FSt}
     (h : SpChain logN lane lvl cfg ws F xs os R Ls res) :
     ((Ls.getD 0 default).root, (Ls.getD 0 default).height, (Ls.getD 0 default).width) =
       R.getD lvl default := by
@@ -81,7 +81,7 @@ theorem chain_height0 {cfg : List Whir.Level} {lvl : ℕ} {ws : WhirStateT} {F :
 
 /-- **Each level after the first opens a tree of width `3·2^fold`**, its fold its Spec level's. -/
 theorem chain_widths : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
-    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res → R.length = lvl + 1 →
     ∀ i, i + 1 < Ls.length →
       (Ls.getD (i + 1) default).width = 3 * 2 ^ (Ls.getD (i + 1) default).level.fold

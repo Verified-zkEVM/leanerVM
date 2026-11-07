@@ -164,7 +164,8 @@ theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
         (powers (σ (.n (bLam c lvl lv st))) lv.queries) ∧
       ReadsAt rd (st.cur σ) [ic0, ic2] ∧ σ (.n (bQ c lvl lv st).2.2.2.1) = ic0 ∧
       σ (.n (bQ c lvl lv st).2.2.2.2.2) = ic2 ∧
-      σ (.n (bQ c lvl lv st).2.2.2.2.1) = σ (.n (bQ c lvl lv st).2.2.1) + ic2 := by
+      σ (.n (bQ c lvl lv st).2.2.2.2.1) = σ (.n (bQ c lvl lv st).2.2.1) + ic2 ∧
+      os.map Opening.leafIndex = qs := by
   intro F2 qs
   obtain ⟨hdepth, hqq, hq2, hqd, hper, hsqz, hdig, hpo, hsq0, hsqo, hsq5, hrow, hcd, hcd8, hcdd,
     hbo⟩ := hcfg
@@ -186,11 +187,11 @@ theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) 
     simp only [qs, queriesOf, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hk,
       Option.map_some, Option.getD_some]
     exact Nat.mod_lt _ (by positivity)
-  obtain ⟨ic0, ic2, hol, hop, hsum, hrd, e0, e2, e1, hmq⟩ :=
+  obtain ⟨ic0, ic2, hol, hop, hsum, hrd, e0, e2, e1, hmq, hidx⟩ :=
     osQueries_sound hle hq (by simpa [hmsq] using hmats) hrow hcd hcd8 hcdd hRW hCap W hQW hlf hfch
-      hr0 hr1 qs hqlt (fun k hk ↦ (tab k hk).2) hlamN hbo
+      hr0 hr1 qs (by simp [qs, queriesOf]) hqlt (fun k hk ↦ (tab k hk).2) hlamN hbo
   refine ⟨hlam, hfsv, hpad', hfs', by simp [qs, queriesOf], hqlt, fun k hk ↦ (tab k hk).1, hlamN,
-    hl0, hmu, hmq, _, ic0, ic2, rfl, hol, hop, hsum, ?_, e0, e2, e1⟩
+    hl0, hmu, hmq, _, ic0, ic2, rfl, hol, hop, hsum, ?_, e0, e2, e1, hidx⟩
   exact hrd
 
 theorem specRows_eq (lvl : ℕ) (words : List (List K)) :
@@ -209,11 +210,12 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
     (hop : ∀ k (hk : k < (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries).length)
       (ho : k < os.length), Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
         (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries)[k] os[k]) = true)
+    (hidx : os.map Opening.leafIndex = queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries)
     (ic0 ic2 : E) :
     let qs := queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries
     let lam := (F.squeezeN nsq).2.squeeze.1
     let enf := enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf (powers lam qs.length)
-    RunsWith (levelRest ml lvl level lf ws pending) F [ic0, ic2] os R
+    RunsWith (levelRest ml lvl level lf ws pending) F [ic0, ic2] [os] R
       (glueT lam ws (pending ++ [(enf, [ic0, enf + ic2, ic2],
         fun x ↦ inducedWeight ml qs (powers lam qs.length) x)]))
       ⟨(F.squeezeN nsq).2.squeeze.2.cap, [(ic0, dsObserve), (ic2, dsObserve)]⟩ R := by
@@ -227,7 +229,7 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
       (sampleQueriesAux_run d hper level.queries level.queries F (ceilDiv_le hper)) R
   set nsq := ceilDiv level.queries (192 / d)
   have h2 := RunsTo.withRoots (runsTo_sampleE (F.squeezeN nsq).2) R
-  have h3 := runsWith_queryP (F.squeezeN nsq).2.squeeze.2 R hR qs os hol hop
+  have h3 := runsWith_queryP (F.squeezeN nsq).2.squeeze.2 R hR qs os hol hop hidx
   have h4 := RunsTo.withRoots (runsTo_round3 (F.squeezeN nsq).2.squeeze.2 enf ic0 ic2) R
   have hF4 : (((F.squeezeN nsq).2.squeeze.2.absorb ic0 dsObserve).absorbAll [ic2] dsObserve) =
       ⟨(F.squeezeN nsq).2.squeeze.2.cap, [(ic0, dsObserve), (ic2, dsObserve)]⟩ := by
@@ -282,7 +284,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
     {pending : List (E × List E × (List E → E))} (hpend : PendOk rd σ c lvl pending) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (lam : E) (qs : List ℕ),
       os = bOs c lvl lv st rd σ W ∧ ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧
-      RunsWith (levelRest ml lvl level lf ws pending) ⟨st.fsv σ, []⟩ xs os R ws'
+      RunsWith (levelRest ml lvl level lf ws pending) ⟨st.fsv σ, []⟩ xs [os] R ws'
         ((osLevelB c lvl lv st).2.F σ) R ∧
       ws'.quad = (osLevelB c lvl lv st).2.quad σ ∧ ws'.target = σ (.n (osLevelB c lvl lv st).2.t) ∧
       (∃ (enf : E) (intro : List E), ws' = glueT lam ws (pending ++
@@ -304,7 +306,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
       have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
     subst hpend'
     obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hlamN, hl0, hmu, hmq, os, ic0, ic2, hos, hol,
-      hop, hsum, hrd, e0, e2, e1⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
+      hop, hsum, hrd, e0, e2, e1, hidx⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
       hq hloop hdec hwt hRW hCap W hQW hfs hpad hmats hlf hfch hr0 hr1
     obtain ⟨gq, gt⟩ := osGlue_sound hgl
     rw [hbm, hlamN] at hbeta
@@ -312,7 +314,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
     have hqq := hcfg.queries
     have hrun := levelRest_run (F := ⟨st.fsv σ, []⟩) (ws := ws) (lf := lf) (pending := [])
       (nsq := lv.squeezes) hd hcfg.per (by rw [hqq]; exact hcfg.squeezes) hR os
-      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) ic0 ic2
+      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) (by rw [hqq]; exact hidx) ic0 ic2
     rw [hqq] at hrun
     have hql : (queriesOf (192 / lv.depth) lv.depth
         (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by
@@ -345,7 +347,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
       have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
     subst hpe
     obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hlamN, hl0, hmu, hmq, os, ic0, ic2, hos, hol,
-      hop, hsum, hrd, e0, e2, e1⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
+      hop, hsum, hrd, e0, e2, e1, hidx⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
       hq hloop hdec hwt hRW hCap W hQW hfs hpad hmats hlf hfch hr0 hr1
     obtain ⟨y', c0', c2', hy', hc0', hc2', hlo, oq, ot, ob⟩ := osOodGlue_sound hog
     rw [hbm, hlamN] at hbeta
@@ -360,7 +362,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
     have hrun := levelRest_run (F := ⟨st.fsv σ, []⟩) (ws := ws) (lf := lf)
       (pending := [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)])
       (nsq := lv.squeezes) hd hcfg.per (by rw [hqq]; exact hcfg.squeezes) hR os
-      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) ic0 ic2
+      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) (by rw [hqq]; exact hidx) ic0 ic2
     rw [hqq] at hrun
     have hql : (queriesOf (192 / lv.depth) lv.depth
         (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by

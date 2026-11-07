@@ -48,19 +48,19 @@ def SpLv.wend (L : SpLv) (lane : ℕ) (xsR : List E) : WhirEnd :=
     (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.2⟩
 
 /-- **The honest chain of levels.** -/
-def SpChain (logN lane : ℕ) : ℕ → List Whir.Level → WhirStateT → Fs → List E → List Opening →
+def SpChain (logN lane : ℕ) : ℕ → List Whir.Level → WhirStateT → Fs → List E → List (List Opening) →
     List (Digest × ℕ × ℕ) → List SpLv → WhirEnd × FSt → Prop
   | index, [level], ws, F, xs, os, R, [L], res =>
     L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = true ∧ L.ws = ws ∧ L.F = F ∧
-      L.Ok R (Vector.replicate 4 0) ∧ ∃ (xsR : List E) (osR : List Opening),
-        xs = L.words ++ xsR ∧ os = L.os ++ osR ∧ 2 * (L.ml - 1) ≤ xsR.length ∧
+      L.Ok R (Vector.replicate 4 0) ∧ ∃ (xsR : List E) (osR : List (List Opening)),
+        xs = L.words ++ xsR ∧ os = L.os :: osR ∧ 2 * (L.ml - 1) ≤ xsR.length ∧
         (∀ c ∈ (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1, c ≠ 0) ∧
         res = (L.wend lane xsR, ⟨(tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).1,
           xsR.drop (2 * (L.ml - 1)), osR, R⟩)
   | index, level :: next :: rest, ws, F, xs, os, R, L :: Ls, res =>
     L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = false ∧ L.ws = ws ∧ L.F = F ∧
-      ∃ (d : Digest) (xsR : List E) (osR : List Opening), L.Ok R d ∧ xs = L.words ++ xsR ∧
-        os = L.os ++ osR ∧
+      ∃ (d : Digest) (xsR : List E) (osR : List (List Opening)), L.Ok R d ∧ xs = L.words ++ xsR ∧
+        os = L.os :: osR ∧
         SpChain logN lane (index + 1) (next :: rest) L.wsEnd L.Fend xsR osR
           (R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]) Ls res
   | _, _, _, _, _, _, _, _, _ => False
@@ -80,7 +80,7 @@ theorem SpLv.wsEnd_folds (L : SpLv) : L.wsEnd.folds = L.ws.folds ++ L.chs := by
 
 /-- **The levels of an accepting run, chained.** -/
 theorem nz_chain {c : OsCfg} {logN lane : ℕ} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
-    (index : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E) (os : List Opening)
+    (index : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : WhirEnd × FSt),
     LevelsOk c logN index lvs cfg → ws.folds.length = (lvs.headD default).foldsOff →
     F.pend.length = 2 → index < R.length →
@@ -133,7 +133,7 @@ theorem start_absorb (S : KeccakState) (c0 c2 : E) :
 
 /-- **The honest trace of an accepting run with no zero challenge**, at a candidate's facts. -/
 theorem nz_trace {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
-    {target : E} {S : KeccakState} {xs : List E} {os : List Opening} {root : Digest} {w : WhirEnd}
+    {target : E} {S : KeccakState} {xs : List E} {os : List (List Opening)} {root : Digest} {w : WhirEnd}
     {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s'
       roots')

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Guest.B1.Common.Phase
 public import LeanVM.Protocol.WithHash
 
 /-!
@@ -109,11 +110,11 @@ theorem run_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierPro
   | query i ps k ih =>
     simp only [runId, VerifierProgram.bind, Compile.runWithHash]
     split
-    · rfl
     · simp only [bind]
       split
       · exact ih _ _
       · rfl
+    · rfl
 
 theorem runsTo_ret {α : Type} (a : α) (s : Fs) : RunsTo (pure a : VerifierProgram α) s [] a s :=
   fun sp h _ _ _ => ⟨sp, h, rfl⟩

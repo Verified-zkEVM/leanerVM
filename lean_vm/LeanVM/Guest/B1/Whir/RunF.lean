@@ -51,12 +51,12 @@ def runF {α : Type} : VerifierProgram α → FSt → Option (α × FSt)
           roots := s.roots ++ [(root, height, width)] }
       | none => none
     | _ => none
-  | .query i ps k, s => match s.roots[i]? with
-    | none => none
-    | some (root, height, width) =>
-      match Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps s.openings) with
-      | some (rows, rest) => runF (k rows) { s with openings := rest }
+  | .query i ps k, s => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest =>
+      match Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+      | some rows => runF (k rows) { s with openings := rest }
       | none => none
+    | _, _ => none
 
 theorem runF_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : FSt) :
     runF (p.bind f) st = (runF p st).bind (fun r ↦ runF (f r.1) r.2) := by
@@ -86,10 +86,10 @@ theorem runF_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierPr
   | query i ps k ih =>
     simp only [VerifierProgram.bind, runF]
     split
-    · rfl
     · split
       · exact ih _ _
       · rfl
+    · rfl
 
 theorem runF_bind_some {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {st : FSt}
     {r : β × FSt}
@@ -189,20 +189,23 @@ theorem runF_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : FSt) (sp 
     | none => simp [hr, pure] at h
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      simp only [hr] at h ⊢
-      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none =>
-        simp only [Id.run] at ho
-        simp [ho, pure] at h
-      | some v' =>
-        obtain ⟨rows, rest⟩ := v'
-        simp only [Id.run] at ho
-        simp only [ho] at h
-        exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
+      cases os with
+      | nil => simp [hr, pure] at h
+      | cons phase rest =>
+        simp only [hr] at h ⊢
+        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none =>
+          simp only [Id.run] at ho
+          simp [ho, pure] at h
+        | some rows =>
+          simp only [Id.run] at ho
+          simp only [ho] at h
+          exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
 
 /-- **An accepting run is a carried run.** -/
-theorem runF_of_runsWith {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List
-    Opening}
+theorem runF_of_runsWith {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E}
+    {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {a : α} {s' : Fs} {R' : List (Digest × ℕ × ℕ)}
     (h : RunsWith p s xs os R a s' R') {sp : Sponge} (hs : s.Carries sp) :
     runF p ⟨s, xs, os, R⟩ = some (a, ⟨s', [], [], R'⟩) := by
@@ -258,14 +261,18 @@ theorem queriesOf_bind {α β : Type} (p : VerifierProgram α) (f : α → Verif
     | none => simp [VerifierProgram.bind, queryStepsOf, runF, hr]
     | some v =>
       obtain ⟨root, height, width⟩ := v
-      cases ho : Id.run (Compile.openAllWithHash (m := Id) keccak256 root height width ps os) with
-      | none =>
-        simp only [Id.run] at ho
-        simp [VerifierProgram.bind, queryStepsOf, runF, hr, ho, Id.run]
-      | some v' =>
-        obtain ⟨rows, rest⟩ := v'
-        simp only [Id.run] at ho
-        simp only [VerifierProgram.bind, queryStepsOf, runF, hr, ho, ih, Id.run, List.cons_append]
+      cases os with
+      | nil => simp [VerifierProgram.bind, queryStepsOf, runF, hr]
+      | cons phase rest =>
+        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
+            phase) with
+        | none =>
+          simp only [Id.run] at ho
+          simp [VerifierProgram.bind, queryStepsOf, runF, hr, ho, Id.run]
+        | some rows =>
+          simp only [Id.run] at ho
+          simp only [VerifierProgram.bind, queryStepsOf, runF, hr, ho, ih, Id.run,
+            List.cons_append]
 
 /-! ## Refinement -/
 

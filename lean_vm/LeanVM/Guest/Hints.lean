@@ -330,16 +330,16 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
   if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
   else digestCells step.2.2 ++ digestCells step.2.1
 
-/-- One level's Merkle hints, from its commitment's height, its positions and their openings:
-per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
-`merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation/child.rs:179-223`). -/
+/-- One level's Merkle hints, from its commitment's height, its positions and its phase of
+openings: per opening, at its position (`leaf_index`), its leaf's words and the ordered children
+below the cap (`merkle_leaf_rows`, `merkle_children`), and the level's cap nodes and their
+parents' activity flags (`aggregation/child.rs:179-223`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
   let pathDepth := depth - capDepth
-  let climbs := (positions.zip openings).map fun (q, o) ↦
-    (o, climbSteps (2 ^ depth + q) (merkleLeafDigest o.leaf) o.path)
+  let climbs := openings.map fun o ↦
+    (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
     [("merkle_leaf_rows", o.leaf.map ofK),
       ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
@@ -352,14 +352,14 @@ def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     (Array.replicate (2 ^ capDepth) 0)
   (pushes, nodes.toList.flatMap digestCells, active.toList)
 
-/-- Every level's Merkle hints, the openings consumed in order; the caps and the flags of all
-levels each make one entry. -/
-def merkleHints : List (ℕ × List ℕ) → List Opening → List (String × Entry) × Entry × Entry
-  | [], _ => ([], [], [])
-  | (depth, positions) :: rest, openings =>
-    let (pushes, caps, active) := levelHints depth positions (openings.take positions.length)
-    let (pushes', caps', active') := merkleHints rest (openings.drop positions.length)
+/-- Every level's Merkle hints, the level with its phase of openings, in order (the levels
+zipped with the phases); the caps and the flags of all levels each make one entry. -/
+def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
+  | (depth, positions) :: rest, phase :: phases =>
+    let (pushes, caps, active) := levelHints depth positions phase
+    let (pushes', caps', active') := merkleHints rest phases
     (pushes ++ pushes', caps ++ caps', active ++ active')
+  | _, _ => ([], [], [])
 
 /-- A side's blocks in the order the stacked leaf cube lays them out, by offset. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=

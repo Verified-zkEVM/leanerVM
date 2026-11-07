@@ -143,11 +143,16 @@ theorem runD_bind {α β : Type} (f : α → VerifierProgram β) :
     · exact runD_bind f k _
     · rfl
   | .query i ps k, s => by
-    rcases h : s.roots[i]? with _ | ⟨root, height, width⟩
-    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h]
+    rcases h : s.roots[i]? with _ | ⟨root, height, width⟩ <;>
+      rcases hs : s.openings with _ | ⟨phase, rest⟩
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h, hs]
       rfl
-    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h]
-      rcases ho : Id.run (openAllWithHash keccak256 root height width ps s.openings) with _ | ⟨rows, rest⟩
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h, hs]
+      rfl
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h, hs]
+      rfl
+    · simp only [runD, VerifierProgram.bind, Compile.runWithHash, h, hs]
+      rcases ho : Id.run (openPhaseWithHash keccak256 root height width ps phase) with _ | rows
       · simp only [Id.run] at ho
         simp only [id_bind, ho]
         rfl
@@ -159,7 +164,7 @@ theorem runD_bind {α β : Type} (f : α → VerifierProgram β) :
 whatever follows in the proof. -/
 def RunsTo {α : Type} (p : VerifierProgram α) (sp : Sponge) (xs : List E) (a : α) (sp' : Sponge) :
     Prop :=
-  ∀ (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
+  ∀ (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
     runD p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
 
 theorem runsTo_ret {α : Type} (a : α) (sp : Sponge) : RunsTo (VerifierProgram.ret a) sp [] a sp :=
@@ -291,7 +296,7 @@ theorem runD_require_true (c : Prop) [Decidable c] (s : VerifierProgramState) :
 /-- A run continues where its first program's run ends. -/
 theorem runD_bind_of_runsTo {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {sp sp'
     : Sponge}
-    {xs : List E} {a : α} (hp : RunsTo p sp xs a sp') (rest : List E) (os : List Opening)
+    {xs : List E} {a : α} (hp : RunsTo p sp xs a sp') (rest : List E) (os : List (List Opening))
     (roots : List (Digest × ℕ × ℕ)) :
     runD (p >>= f) ⟨sp, xs ++ rest, os, roots⟩ = runD (f a) ⟨sp', rest, os, roots⟩ := by
   show runD (p.bind f) _ = _

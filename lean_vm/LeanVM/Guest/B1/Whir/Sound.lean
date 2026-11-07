@@ -136,11 +136,11 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   · unfold open_stacked_osW
     rw [hcur]
     have heq : (osQCalls (osCfg (candidate μ r)) 0 (osCfg (candidate μ r)).levels
-        (osHead (osCfg (candidate μ r))).2).flatMap (osLevelOs rd σ V) =
+        (osHead (osCfg (candidate μ r))).2).map (osLevelOs rd σ V) =
         (osQCalls (osCfg (candidate μ r)) 0 (osCfg (candidate μ r)).levels
-        (osHead (osCfg (candidate μ r))).2).flatMap
+        (osHead (osCfg (candidate μ r))).2).map
           (fun e ↦ lvOpenings rd σ e.2.1 (lvW rd V e.1 e.2.1 (osQueriesName e.1 e.2.1)) e.2.2) := by
-      refine List.flatMap_congr fun e he ↦ ?_
+      refine List.map_congr_left fun e he ↦ ?_
       obtain ⟨lvl, lv, name, args, rets'⟩ := e
       have := osQCalls_name _ _ _ _ _ he
       simp only at this

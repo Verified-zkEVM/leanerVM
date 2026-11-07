@@ -130,18 +130,10 @@ theorem run_refines {α : Type} {P' P : VerifierProgram α} (h : Refines P' P) :
         exact ih _ _ hr
   | @query i ps k k' _ ih =>
     intro s r hr
-    unfold Compile.runWithHash at hr ⊢
-    cases hroot : s.roots[i]? with
-    | none => simp [hroot] at hr
-    | some t =>
-      obtain ⟨root, height, width⟩ := t
-      simp only [hroot, Id.run_bind] at hr ⊢
-      cases ho : Id.run (openAllWithHash H root height width ps s.openings) with
-      | none => simp [ho] at hr
-      | some q =>
-        obtain ⟨rows, rest⟩ := q
-        simp only [ho] at hr ⊢
-        exact ih _ _ _ hr
+    obtain ⟨root, height, width, phase, rest, rows, hroot, hos, ho, hr⟩ :=
+      (Compile.runWithHash_query_eq_some_iff H F i ps k' s r).mp hr
+    exact (Compile.runWithHash_query_eq_some_iff H F i ps k s r).mpr
+      ⟨root, height, width, phase, rest, rows, hroot, hos, ho, ih _ _ _ hr⟩
 
 /-- **A refining program accepts only what the program accepts.** -/
 theorem runProof_refines {P' P : VerifierProgram Bool} (h : Refines P' P) (seed : KeccakState) (π
