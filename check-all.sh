@@ -116,7 +116,10 @@ lean_vm() {
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
   step "lean_vm: build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests
-  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold
+  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
+    LeanVM.knowledgeSoundnessOnBytes_holds LeanVM.knowledgeSoundnessOnBytes_compiled \
+    LeanVM.completenessOnBytes_holds LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding \
+    LeanVM.Wire.fromBytes_queryCost
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"
