@@ -38,7 +38,7 @@ open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 ## Loading a proof from its four files
 
 From `verifier.py`, lines 102-105 (`E.from_bytes`), 212-233 (`Digest`),
-336-345 (`Proof.load`), 426-445 (`Transcript._merkle_data`, `Transcript.merkle`) and 1522-1540
+336-345 (`Proof.load`), 427-445 (`Transcript._merkle_data`, `Transcript.merkle`) and 1522-1540
 (`main`). The pinned Rust prover writes the same files
 (`crates/leanvm_core/tests/verifiers/python_verifier.rs`, `python_verify`).
 
@@ -49,13 +49,14 @@ The four files:
 * `stream.bin`: the scalar stream, 24 bytes per `E` element, its three limbs in order
   (`decodeScalars`);
 * `merkle_openings.bin`: every Merkle opening in the order the verifier reads them, each its
-  leaf's words (8 bytes each) and then one 32-byte sibling per level, with no length fields.
+  position (8 little-endian bytes), its leaf's words (8 bytes each) and then one 32-byte sibling
+  per level, with no length fields.
 
 ### Cutting the openings
 
-The Python reads the openings file lazily, `8 · leaf_words` bytes then `32 · height` bytes per
-queried position, the shape coming from the commitment it opens. `Proof.openings` is that byte
-string already cut (`LeanVM.Protocol.Compile.Run`, *Deviation*). The cut is computed here from
+The Python reads the openings file lazily, `8` bytes, `8 · leaf_words` bytes then `32 · height`
+bytes per queried position, the shape coming from the commitment it opens. `Proof.openings` is
+that byte string already cut, in phases (`LeanVM.Protocol.Compile.Run`, *Deviation*). The cut is computed here from
 the verifier's own configuration rather than by a second interpreter of the program: the
 announced sizes at the head of the stream, read by the program's own `readAnnouncedSizes`, fix the
 stack's log-size and the rate exponent, and `Whir.ladder` fixes the WHIR ladder, whose level `ℓ`
@@ -115,11 +116,16 @@ def decodeDigest (b : Bytes) : Option Digest :=
 /-- `stream.bin`: the scalars (`Proof.load`). -/
 def decodeScalars (b : Bytes) : Option (List E) := decodeAll 24 eOfBytes b
 
-/-- Read one opening of the given height and width (`Transcript._merkle_data`). -/
+/-- The natural number of eight little-endian bytes (`int.from_bytes(…, "little")`). -/
+def natOfBytes (b : Bytes) : ℕ := (laneOfBytes b).toNat
+
+/-- Read one opening of the given height and width (`Transcript.merkle`, `verifier.py:435`): its
+position, eight little-endian bytes, then its leaf's words and its siblings. -/
 def readOpening (height width : ℕ) (b : Bytes) : Option (Opening × Bytes) := do
+  let (position, b) ← readMany 8 natOfBytes 1 b
   let (leaf, b) ← readMany 8 kOfBytes width b
   let (path, b) ← readMany 32 digestOfBytes height b
-  return (⟨leaf, path⟩, b)
+  return (⟨position.headD 0, leaf, path⟩, b)
 
 /-- Read one opening per shape `(height, width)`, in order. -/
 def readOpenings : List (ℕ × ℕ) → Bytes → Option (List Opening × Bytes)
@@ -129,33 +135,42 @@ def readOpenings : List (ℕ × ℕ) → Bytes → Option (List Opening × Bytes
     let (os, b) ← readOpenings shapes b
     return (o :: os, b)
 
-/-- Cut the openings file into openings of the given shapes, consuming it. -/
-def splitOpenings (shapes : List (ℕ × ℕ)) (b : Bytes) : Option (List Opening) :=
-  match readOpenings shapes b with
-  | some (os, []) => some os
+/-- Read the phases of openings, one list of shapes per phase, in order. -/
+def readOpeningPhases : List (List (ℕ × ℕ)) → Bytes → Option (List (List Opening) × Bytes)
+  | [], b => some ([], b)
+  | shapes :: phases, b => do
+    let (os, b) ← readOpenings shapes b
+    let (oss, b) ← readOpeningPhases phases b
+    return (os :: oss, b)
+
+/-- Cut the openings file into phases of openings of the given shapes, consuming it. -/
+def splitOpenings (phases : List (List (ℕ × ℕ))) (b : Bytes) : Option (List (List Opening)) :=
+  match readOpeningPhases phases b with
+  | some (oss, []) => some oss
   | _ => none
 
 /-! ### The shapes the verifier opens -/
 
 /-- The openings of WHIR's levels after the first, the message log before each level's folds
-given: `queries` positions of the next commitment's shape (`levelShape`). -/
-def laterOpeningShapes : ℕ → List Whir.Level → List (ℕ × ℕ)
+given: one phase each, `queries` positions of the next commitment's shape (`levelShape`). -/
+def laterOpeningShapes : ℕ → List Whir.Level → List (List (ℕ × ℕ))
   | _, [] => []
   | messageLog, level :: rest =>
-    List.replicate level.queries (levelShape messageLog level (3 * 2 ^ level.fold)) ++
+    List.replicate level.queries (levelShape messageLog level (3 * 2 ^ level.fold)) ::
       laterOpeningShapes (messageLog - level.fold) rest
 
 /-- The openings of a WHIR run on a `logN`-variable stack, level by level: level `0` opens the
 stack at `commitStack`'s shape, level `ℓ + 1` the commitment read at level `ℓ`
-(`verify_whir`, `verifier.py:1125-1203`). -/
-def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
+(`verify_whir`, `verifier.py:1125-1203`), one phase per level. -/
+def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (List (ℕ × ℕ))
   | [] => []
   | level :: rest =>
-    List.replicate level.queries (levelShape logN level (2 ^ level.fold)) ++
+    List.replicate level.queries (levelShape logN level (2 ^ level.fold)) ::
       laterOpeningShapes (logN - level.fold) rest
 
-/-- The shape of every opening `verify` makes on a proof with this stream, in order. -/
-def openingShapes (bytecode : List K) (stream : List E) : Option (List (ℕ × ℕ)) := do
+/-- The shape of every opening `verify` makes on a proof with this stream, phase by phase, in
+order. -/
+def openingShapes (bytecode : List K) (stream : List E) : Option (List (List (ℕ × ℕ))) := do
   let (layout, logInverseRate) ← announcedLayoutAndRate bytecode stream
   let config ← Whir.ladder layout.stackLog logInverseRate
   return whirOpeningShapes layout.stackLog config
