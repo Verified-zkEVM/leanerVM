@@ -248,7 +248,7 @@ theorems, that nothing is lost through it: an honest proof decodes from its enco
 verifier and the honest prover on bytes (\lean{LeanVM.Wire.knowledgeSoundnessOnBytes_of}, at
 $(Q+2^{17})\cdot 2^{-128} + 5\,(Q+2^{17})^2\cdot 2^{-256}$ with the extractor reading the decoding's
 queries after the adversary's; completeness at $2^{-256}$,
-\lean{LeanVM.Wire.completenessOnBytes_holds}, not yet merged on this branch). That the transcription is the Rust's
+\lean{LeanVM.Wire.completenessOnBytes_holds}). That the transcription is the Rust's
 \texttt{from\_bytes} and \texttt{to\_bytes} is test evidence (the wire differential: honest wire
 proofs, their mutations and the Rust test's vector).
 
