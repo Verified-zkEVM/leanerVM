@@ -13,7 +13,7 @@ public import LeanVM.Guest.Data.Source
 /-!
 # `check_opening_terminal`, as a template
 
-The guest unrolls the selectors' loop (G:3294-3297) and the claims' loop (G:3301-3335) at compile
+The guest unrolls the selectors' loop (G:3288-3291) and the claims' loop (G:3295-3329) at compile
 time on its tables `COL_KAPPA_SRC`, `COL_KAPPA_ADJ` (`Tables.colKappaSrc`, `Tables.colKappaAdj`),
 `CLAIM_POINT_BUF`, `CLAIM_COMMITTED_COL`, `CLAIM_KAPPA_SRC`, `CLAIM_KAPPA_ADJ` and
 `CLAIM_QKECCAK_SLOT_BITS`; here they are `termKind`, `termCol`, `claimKappaSrc`, `claimKappaAdj` and
@@ -30,7 +30,7 @@ the slot `termSlot j`:
 * claims `162 .. 164`, the public input's, on the chain of `(rm, 0, …, 0)` (kind `3`).
 
 Every claim's source and adjustment are its column's, so the guest emits no length check
-(G:3329-3333); a low length `kb[s]·g^a` is `kb[s]` itself at `a = 0` (`kapT`). The running power
+(G:3323-3327); a low length `kb[s]·g^a` is `kb[s]` itself at `a = 0` (`kapT`). The running power
 of `λ` starts at `lam_cl` itself and is multiplied by it after each kept claim.
 
 `termT` is the body (`termFound`, by kernel evaluation in `Terminal/Body`); `claimKappa_source`
@@ -68,7 +68,7 @@ theorem claimKappa_source :
 /-- The selectors' specializations, `column_selector__L{κ}`, `κ < 29`. -/
 def colSelNames : List String := (List.range 29).map (Tables.lName "column_selector")
 
-/-- The value holding `kappa_base[i]`, read in the head (G:3288-3290). -/
+/-- The value holding `kappa_base[i]`, read in the head (G:3282-3284). -/
 abbrev kbV (i : ℕ) : ℕ := 33 + i
 
 /-- `kb[src]·g^adj` from value `r`: the statements, the value holding it and the next value; at
@@ -88,7 +88,7 @@ def selKap (c : ℕ) : List Stmt × ℕ × ℕ :=
 /-- The value of committed column `c`'s selector. -/
 def selV (c : ℕ) : ℕ := (selKap c).2.2 + 2
 
-/-- The head (G:3273-3292): the chains at `zeta` (`18`) and `chi` (`20`), the slot points (`22`,
+/-- The head (G:3267-3286): the chains at `zeta` (`18`) and `chi` (`20`), the slot points (`22`,
 `23`), the public input's chain (`24`, its loop `__loop14`) and its value (`32`), the base
 `kappa_base` (`33 .. 40`), the selector tables (`41`). -/
 def termHeadT : List Stmt :=
@@ -110,7 +110,7 @@ def termHeadT : List Stmt :=
     .atom (.load (.n 39) (.n 8) 6), .atom (.load (.n 40) (.n 8) 7),
     .call "selector_tables" [.n 13, .n 14] [.n 41]]
 
-/-- Committed column `c`'s selector (G:3294-3297): its offset, its `g^κ`, `sel_g = g_squares·g^34`
+/-- Committed column `c`'s selector (G:3288-3291): its offset, its `g^κ`, `sel_g = g_squares·g^34`
 and the dispatch on `κ`. -/
 def selBlockT (c : ℕ) : List Stmt :=
   [.atom (.load (.n (selStart c)) (.n 10) c)] ++ (selKap c).1 ++
@@ -186,7 +186,7 @@ def claimsT : List ℕ → ℕ → ℕ → ℕ → List Stmt × ℕ × ℕ × �
       let rest := claimsT js b.2.1 b.2.2.1 b.2.2.2
       (b.1 ++ rest.1, rest.2)
 
-/-- The tail (G:3342-3352) from value `b`, the claims' sum at `acc`, `lam_out` at `lo`: the
+/-- The tail (G:3336-3346) from value `b`, the claims' sum at `acc`, `lam_out` at `lo`: the
 outputs' chain, the ring switch's weight, the terminal check. -/
 def termTailT (b acc lo : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n b) 41)), .atom (.const (.n (b + 1)) (word 1 0 0)),

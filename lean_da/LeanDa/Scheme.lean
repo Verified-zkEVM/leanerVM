@@ -9,7 +9,7 @@ public import LeanDa.WithHash
 # LeanDA
 
 The erasure code commitment of `crates/lean_da` at leanVM
-`834e6614b1fe856646de252360e7373447f13654`, specified in `doc/leanvm/body/10-ethereum.tex`
+`d1c4c8f70dd3245bc610a187702158989bc8275a`, specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -40,7 +40,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   sponge over Keccak-f[1600] seeded with the label's hash and the root, squeezed once; the
   security game models it as one random oracle on the root.
 * **The deployed algorithms** (`commit.rs:48-121`, `membership.rs:22-54`,
-  `verifier/src/da.rs:14-17`, `verifier/src/transcript.rs:41-89`). The crate's computations,
+  `verifier/src/da.rs:14-17`, `verifier/src/transcript.rs:26-74`). The crate's computations,
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
   (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenge's sponge (`Sponge`,

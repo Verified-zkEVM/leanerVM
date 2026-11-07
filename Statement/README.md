@@ -39,7 +39,7 @@ honest (each step at least `1` and at least the words it writes; a carry-less pr
 operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
 transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation/proof.rs:194-211`) checks of a root more than any end
+verifier** (`EthereumProof::verify`, `aggregation/proof.rs:195-212`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
 `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
 end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one

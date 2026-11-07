@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop29
 
 /-!
-# A layer of two levels (`__loop6`, G:1872-1961)
+# A layer of two levels (`__loop6`, G:1866-1955)
 
 The template of `__loop6`'s body, from the layer slot at `layers·x_layer^17`: the combiner's
 permutation over the slot's capacity and waiting cells, the first round record, the rounds
@@ -174,7 +174,7 @@ def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrStat
     LoadHolds rd layers (17 * L + 10) pos ∧ LoadHolds rd layers (17 * L + 11) half ∧
     LoadHolds rd layers (17 * L + 12) parity
 
-/-- The table `k_mod_next` (G:1836-1839): at `g^r`, `r < 4`, the next layer index's `g^((r + 1) % 4)`,
+/-- The table `k_mod_next` (G:1830-1833): at `g^r`, `r < 4`, the next layer index's `g^((r + 1) % 4)`,
 and at `g^(4 + r)` its carry into `half`, `g^((r + 1) / 4)`. -/
 def KModNext (rd : Reader) (kmn : E) : Prop :=
   ∀ r < 4, LoadHolds rd kmn (4 + r) (gen ^ ((r + 1) / 4)) ∧ LoadHolds rd kmn r (gen ^ ((r + 1) % 4))

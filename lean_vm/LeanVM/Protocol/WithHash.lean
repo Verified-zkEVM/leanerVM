@@ -36,7 +36,7 @@ section Run
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
-whether `node` is the left child (`verifier.py:439-442`). -/
+whether `node` is the left child (`verifier.py:440-442`). -/
 def climbWithHash : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
@@ -45,7 +45,7 @@ def climbWithHash : Digest → ℕ → List Digest → m Digest
     climbWithHash parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `q`
-(`verifier.py:436-443`). -/
+(`verifier.py:438-443`). -/
 def openOneWithHash (root : Digest) (height width q : ℕ) (o : Opening) : m Bool :=
   if o.leaf.length = width ∧ o.path.length = height then do
     let leafDigest ← H (o.leaf.flatMap K.toBytes)

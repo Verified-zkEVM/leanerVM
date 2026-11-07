@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSound
 
 `decWitVX sigOf σ rd V piOf` is `SoundV`'s `decWitV` with the leanXMSS signature of raw iteration
 `j` read by `sigOf` off `__loop2`'s frame at its arguments (`V "__loop2" args []`: the leanXMSS
-check is inline in `__loop2` at 834e6614). `main_sound_VX`: given the segment's statement for
+check is inline in `__loop2` at d1c4c8f7). `main_sound_VX`: given the segment's statement for
 `sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`) and `verify_sub`'s (`SubSoundW`), a run of
 `main`'s body gives the statement of the public input's digest, held by `decWitVX sigOf σ rd V
 piOf`. `SoundV` instantiates it with the xmss family's reader and proof.

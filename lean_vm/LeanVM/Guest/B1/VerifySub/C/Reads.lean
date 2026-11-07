@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Reads
 
-  `verify_sub`'s announced words (G:3378-3390), honestly: the eight words read from the stream and
+  `verify_sub`'s announced words (G:3372-3384), honestly: the eight words read from the stream and
   packed, the six row counts stored in `table_rows`, the first four absorbed.
 -/
 

@@ -15,7 +15,7 @@ public import LeanVM.Guest.AcceptableChild
 # The function's own words, as layouts
 
 `oqChainVals`: the chain buffer's `N + 1` words `oqChain … i`, the function's only own words
-(its queries' path children are hinted into their `walk_path` frames, 834e6614). `qdOk_of_mem`: a memory
+(its queries' path children are hinted into their `walk_path` frames, d1c4c8f7). `qdOk_of_mem`: a memory
 holding a query's windows, weights, cap leaf and flag gives the honest query `QD.Ok`.
 -/
 

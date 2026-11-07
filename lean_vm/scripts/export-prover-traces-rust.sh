@@ -13,7 +13,10 @@
 #   memory.bin            the execution's memory, 24 bytes per cell (three limbs, little-endian);
 #   trace.txt             `<log2 cells> <instructions executed> <rate>`;
 #   rust.txt              the Rust prover's wall time in seconds;
-#   stream.bin, merkle_openings.bin   the Rust prover's proof (the fixtures' format).
+#   stream.bin, merkle_openings.bin, merkle_phases.bin, proof.wire
+#                         the Rust prover's proof, in the fixtures' formats
+#                         (`export-verifier-fixtures-rust.sh`: the Python verifier's flat openings,
+#                         the structured phases, and `Proof::to_bytes`).
 #
 # Usage: scripts/export-prover-traces-rust.sh <output dir> [--corpus]
 set -euo pipefail
@@ -43,6 +46,7 @@ leanvm_core = { path = "$checkout/crates/leanvm_core" }
 lean_compiler = { path = "$checkout/crates/lean_compiler" }
 primitives = { path = "$checkout/crates/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
+fiat_shamir = { path = "$checkout/crates/fiat_shamir" }
 
 [profile.release]
 lto = "thin"
@@ -51,7 +55,7 @@ EOF
 
 cat > "$work/src/main.rs" <<'EOF'
 use lean_compiler::{compile, parse, parse_const, parse_with_replacements};
-use leanvm_core::cpu::{Program, prove, public_input_bytes, verify};
+use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
 use primitives::field::{F192, g_pow};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -225,7 +229,10 @@ fn main() {
             Err(_) => { println!("{name}: the Rust prover refuses it, skipped"); continue; }
         };
         let seconds = start.elapsed().as_secs_f64();
-        let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
+        verify(&program, &public_input, &proof).expect("honest proof verifies");
+        let wire = proof.to_bytes();
+        assert!(fiat_shamir::transcript::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
+        let scalar = scalar_proof(&proof);
         let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(&program.prog)
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
@@ -252,12 +259,28 @@ fn main() {
             .flat_map(u64::to_le_bytes)
             .collect();
         let mut openings = Vec::new();
-        for path in &summary.merkle_paths {
+        for path in scalar.merkle_openings.iter().flatten() {
+            openings.extend(path.leaf_index.to_le_bytes());
             openings.extend(path.leaf.iter().flat_map(|word| word.to_bytes()));
             openings.extend(path.siblings.iter().flatten());
         }
+        let u32_bytes = |n: usize| u32::try_from(n).expect("a count fits in u32").to_le_bytes();
+        let mut phases = Vec::new();
+        phases.extend(u32_bytes(scalar.merkle_openings.len()));
+        for phase in &scalar.merkle_openings {
+            phases.extend(u32_bytes(phase.len()));
+            for path in phase {
+                phases.extend(path.leaf_index.to_le_bytes());
+                phases.extend(u32_bytes(path.leaf.len()));
+                phases.extend(path.leaf.iter().flat_map(|word| word.to_bytes()));
+                phases.extend(u32_bytes(path.siblings.len()));
+                phases.extend(path.siblings.iter().flatten());
+            }
+        }
         std::fs::write(directory.join("stream.bin"), stream).expect("write scalar stream");
         std::fs::write(directory.join("merkle_openings.bin"), openings).expect("write Merkle openings");
+        std::fs::write(directory.join("merkle_phases.bin"), phases).expect("write Merkle phases");
+        std::fs::write(directory.join("proof.wire"), &wire).expect("write the wire proof");
         println!(
             "{name}: {} instructions, 2^{log_mem} cells, {} cycles, Rust prover {seconds:.3} s",
             program.prog.len(),

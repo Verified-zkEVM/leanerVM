@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LocalRounds
 
-  The eleven rounds over the bit position in `keccak_layer` (G:2853-2864): a uniform template, and
+  The eleven rounds over the bit position in `keccak_layer` (G:2847-2858): a uniform template, and
   that it computes `localRunF` on the carried sponge.
 -/
 

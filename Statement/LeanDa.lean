@@ -106,7 +106,7 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 ## LeanDA
 
 The erasure code commitment of `crates/lean_da` at leanVM
-`834e6614b1fe856646de252360e7373447f13654`, specified in `doc/leanvm/body/10-ethereum.tex`
+`d1c4c8f70dd3245bc610a187702158989bc8275a`, specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -134,7 +134,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   `da_verify`; the crate's test `check_membership`, `membership.rs:56-66`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:14-17`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs:47-61`, `Field.lean`'s `Sponge`), squeezed once; the end
+  input (`verifier/src/transcript.rs:32-46`, `Field.lean`'s `Sponge`), squeezed once; the end
   statements draw it by this duplex over the permutation (`membershipChallengeWith`).
 
 The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:40-45`);
@@ -318,7 +318,7 @@ def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128
 /-! ### The membership challenge (`verifier/src/da.rs:14-17`)
 
 Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`,
-`seedInput`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs:47-89`). -/
+`seedInput`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs:32-74`). -/
 
 /-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:14-17`): the
 transcript's sponge seeded with the label's hash as its IV and the root as its public input

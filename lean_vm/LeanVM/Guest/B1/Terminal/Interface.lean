@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Interface
 
 `check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g,
 kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail,
-sumcheck_target)` (G:3268-3352) evaluates the stacked opening's transparent weight at the WHIR
+sumcheck_target)` (G:3262-3346) evaluates the stacked opening's transparent weight at the WHIR
 terminal point and checks the terminal (`whirLevels`' last `require`, V:1195-1198):
 `(inner + basis(point)) · residual = target`, `basis` the weight `verifyStackedOpening` hands WHIR
 (V:1453-1459) for the claims `verifyExecution` opens (V:1514-1517): the ring switch's, then every
@@ -25,7 +25,7 @@ column claim but the `KECCAK` output lanes' (which the Keccak reduction consumed
 V:1505-1509), then the reduction's claim on its committed outputs, batched by the powers of one
 challenge `λ` (`lam_cl`, the guest multiplying its running power by it after each claim).
 
-Every low dimension is a `kappa_base` entry times a baked power of `g` (G:3286-3296, 3304): a
+Every low dimension is a `kappa_base` entry times a baked power of `g` (G:3280-3290, 3298): a
 committed column's `κ` at `COL_KAPPA_SRC`, `COL_KAPPA_ADJ` (`Tables.colKappaSrc`, `Tables.colKappaAdj`), a
 claim's low point's length at `CLAIM_KAPPA_SRC`, `CLAIM_KAPPA_ADJ` (`claimKappaSrc`,
 `claimKappaAdj`), over `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]`.
@@ -81,7 +81,7 @@ def poolRank (j : ℕ) : ℕ :=
 /-- The terminal point, zero-padded to `40` words. -/
 def padPoint (x : List E) : List E := x ++ List.replicate (termPointCap - x.length) 0
 
-/-- `CLAIM_KAPPA_SRC[j]` (G:3304): the `kappa_base` entry of claim `j`'s low point's length (`0`
+/-- `CLAIM_KAPPA_SRC[j]` (G:3298): the `kappa_base` entry of claim `j`'s low point's length (`0`
 the constant, `1` the memory, `2 + t` table `t`): the bus's on the memory, but the bytecode's on
 the constant; each table's claims on the table; `q_keccak`'s lanes, `KECCAK`'s output lanes and
 read counts on `KECCAK`; the public input's on the memory. -/
@@ -89,10 +89,10 @@ def claimKappaSrc (j : ℕ) : ℕ :=
   if j < 4 then 1 else if j = 4 then 0 else if j < 20 then 2 else if j < 35 then 3
   else if j < 43 then 4 else if j < 58 then 5 else if j < 72 then 6 else if j < 162 then 7 else 1
 
-/-- `CLAIM_KAPPA_ADJ[j]` (G:3304): the bytecode's log size `19` on the bus's bytecode claim. -/
+/-- `CLAIM_KAPPA_ADJ[j]` (G:3298): the bytecode's log size `19` on the bus's bytecode claim. -/
 def claimKappaAdj (j : ℕ) : ℕ := if j = 4 then 19 else 0
 
-/-- Claim `j`'s low point's length, as the guest reads it (`cplen_g`, G:3304): source
+/-- Claim `j`'s low point's length, as the guest reads it (`cplen_g`, G:3298): source
 `claimKappaSrc j` of `[0, log_mem, τ_0, …, τ_5]` plus `claimKappaAdj j`. -/
 def claimLow (layout : Layout) (j : ℕ) : ℕ :=
   ([0, layout.logMemory] ++ layout.tableLogHeights).getD (claimKappaSrc j) 0 + claimKappaAdj j
@@ -155,7 +155,7 @@ def MeaningTerminal (rd : Reader) (args rets : List E) : Prop :=
       (args.getD 15 0 + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) *
         args.getD 16 0 = args.getD 17 0
 
-/-- **`check_opening_terminal` is sound** (G:3268-3352; TRIAGE #70). -/
+/-- **`check_opening_terminal` is sound** (G:3262-3346; TRIAGE #70). -/
 def check_opening_terminal_Spec (rd : Reader) : Prop :=
   ∀ args rets, coreProgram.Rel rd "check_opening_terminal" args rets → MeaningTerminal rd args rets
 

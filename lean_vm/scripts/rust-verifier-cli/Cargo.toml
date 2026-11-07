@@ -1,5 +1,6 @@
-# The deployed Rust verifier (leanVM `crates/verifier`) on the Python verifier's four files.
-# The verifier is that of the leanVM commit in `../leanvm-rev`, checked out by `../leanvm-tree.sh`.
+# The deployed Rust verifier (leanVM `crates/verifier`) on a proof's structured files or its wire
+# encoding (`crates/fiat_shamir/src/wire.rs`, `Proof::from_bytes`). The crates are those of the
+# leanVM commit in `../leanvm-rev`, checked out by `../leanvm-tree.sh`.
 [package]
 name = "leanvm-rust-verify"
 version = "0.0.0"
@@ -11,6 +12,7 @@ publish = false
 
 [dependencies]
 verifier = { path = "../../../.leanvm/crates/verifier" }
+fiat_shamir = { path = "../../../.leanvm/crates/fiat_shamir" }
 
 [profile.release]
 codegen-units = 1

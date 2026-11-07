@@ -4,7 +4,7 @@ import os, sys
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from genforms import *
 from mk import write
-# G:2541 `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
+# G:2535 `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
 # (the kappa_base frame variable 30 + t): `g_zc_n = x·τ` (2500), cprod at 2592, peq at 2613.
 GZN, CPROD, PEQ, CLAIM = 2500, 2592, 2613, 2610
 out=[]

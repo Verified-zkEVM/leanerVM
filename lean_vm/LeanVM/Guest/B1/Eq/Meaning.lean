@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Common.Basic
 /-!
 # Multilinear primitives: meanings (TRIAGE G #25-29)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `834e6614`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `d1c4c8f7`, G below) its meaning
 on its argument and return words, and `…_Spec`, the statement that its core IR relation is that
 meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtree_frame`
-(G:951-1009) have no core function of their own; their expansions are templates of
+(G:945-1003) have no core function of their own; their expansions are templates of
 `B1/Eq/Templates.lean`.
 
 | function | G | meaning |
@@ -23,8 +23,8 @@ meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtr
 | `eq_prefix_run__L{n}` | 870-876 | `chain[j] = seed · Π_{k<j} (a_k + b1_k)`, `j ≤ n` |
 | `eq_prefix_chain` | 860-867 | `count = g^n`, `n < 41`, and `eq_prefix_run__L{n}` |
 | `plus_one_run__L{n}` | 879-882 | `out[k] = 1 + src[k]`, `k < n` |
-| `rs_eq_rows__L{n}` | 1037-1056 (834e6614) | one row of `ringWeight`'s products over `n ≤ 8` coordinates |
-| `rs_eq_run` | 1059-1085 (834e6614) | the rows of `ringWeight`'s products (V:2171), eight coordinates a row |
+| `rs_eq_rows__L{n}` | 1031-1050 (d1c4c8f7) | one row of `ringWeight`'s products over `n ≤ 8` coordinates |
+| `rs_eq_run` | 1053-1079 (d1c4c8f7) | the rows of `ringWeight`'s products (V:2171), eight coordinates a row |
 | `fold_final_msg__L{n}` | 942-960 | `multilinearEval` (V:653) |
 
 With `b1_k = 1 + b_k`, `a_k + b1_k` is the factor `1 + a_k + b_k` of `eqEval` (V:669).
@@ -120,7 +120,7 @@ def plus_one_run_Spec : Prop :=
 def ringRow (c : E) (zs ps : List E) (k : ℕ) : E :=
   (List.zipWith (fun z p ↦ z ^ 2 ^ k + p) zs ps).foldl (· * ·) c
 
-/-- **`rs_eq_rows(row, zs, ps, n)`** (lean_ethereum.py:1037-1056 at `834e6614`): at `n = 0` it
+/-- **`rs_eq_rows(row, zs, ps, n)`** (lean_ethereum.py:1031-1050 at `d1c4c8f7`): at `n = 0` it
 returns `row`; otherwise the `n` words `zs`, `ps` at `zs`, `ps` and the 64 words `c` at `row`; the
 next row, from `row·g^64`, holds `ringRow c[k] zs ps k` at `k < 64`, and it returns `row·g^64`. -/
 def MeaningRsEqRows (n : ℕ) (rd : Reader) : List E → List E → Prop
@@ -141,7 +141,7 @@ def rs_eq_rows_Spec : Prop :=
   ∀ n ≤ 8, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (rsEqRowsNames.getD n "") args rets ↔ MeaningRsEqRows n rd args rets
 
-/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (lean_ethereum.py:1059-1085 at `834e6614`):
+/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (lean_ethereum.py:1053-1079 at `d1c4c8f7`):
 `count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; row
 `h` of `chain` (64 words from `chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is row `0` times the
 products over the first `min(8h, count)` coordinates (`RS_CHUNK = 8` coordinates a row, the

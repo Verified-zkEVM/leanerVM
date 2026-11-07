@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.GkBody
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# `__loop36`, completely (G:1903-1922)
+# `__loop36`, completely (G:1897-1916)
 
 An iteration of `__loop36` is B1-a's `gkBody 8` (the eight rounds between records) without its
 returned `0`, renamed seven values on (`l29Body_eq`, by kernel evaluation), after the record's and

@@ -56,7 +56,7 @@ def minLogMem : ℕ := 16
 `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
-/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:490`;
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:489`;
 `verifier.py:976`). -/
 def maxLogBytecode : ℕ := 32
 

@@ -120,7 +120,7 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:380-400`; its key's
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:394-414`; its key's
 `SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not evaluate it as
 a closed term at start-up. -/
 def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=

@@ -15,7 +15,7 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The stacked WHIR opening's helpers: meanings (TRIAGE G #35-38)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `834e6614`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `d1c4c8f7`, G below) its meaning
 on its argument and return words, the sponge as the guest carries it (`Fs`), and `…_Spec`, the
 statement that its core IR relation is that meaning (proved as `…_holds`). The Spec steps they
 are (`foldRounds`, `tailRounds`, V:1750, 1702; `sampleN`; `readN` and `grindP`) are the `…_run`
@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `opening_fold` (G:1250-1263, TRIAGE #35) -/
+/-! ## `opening_fold` (G:1244-1257, TRIAGE #35) -/
 
 /-- **`opening_fold(fs0..fs4, w0, w1, cursor, c0, c1, c2)`**: from the carried capacity
 (canonical cells) with the scalars `w0`, `w1` waiting (`dsObserve`), the challenge `r` is
@@ -56,7 +56,7 @@ def opening_fold_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "opening_fold" args rets ↔ MeaningOpeningFold rd args rets
 
-/-! ## `opening_ood_point` (G:1266-1277, TRIAGE #36) -/
+/-! ## `opening_ood_point` (G:1260-1271, TRIAGE #36) -/
 
 /-- **`opening_ood_point(fs0..fs4, r0..r7, point, n)`** (`n ≥ 1`): the rate cells `r0..r7` and the
 capacity are canonical; the first coordinate is the challenge of their permutation, the other
@@ -88,7 +88,7 @@ def opening_ood_point_Spec : Prop :=
   ∀ p ∈ oodPointNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningOodPoint p.2 rd args rets
 
-/-! ## `opening_final_message` (G:1280-1299, TRIAGE #37) -/
+/-! ## `opening_final_message` (G:1274-1293, TRIAGE #37) -/
 
 /-- **`opening_final_message(fs0..fs4, w0, w1, cursor, out, n)`**: from the carried capacity
 (canonical cells) with `w0`, `w1` waiting, the `n` stream words at the cursor (the final message,
@@ -114,7 +114,7 @@ def opening_final_message_Spec : Prop :=
   ∀ p ∈ finalMessageNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningFinalMessage p.2 rd args rets
 
-/-! ## `opening_row_weights` (G:1302-1323, TRIAGE #38) -/
+/-! ## `opening_row_weights` (G:1296-1317, TRIAGE #38) -/
 
 /-- Slot `i` of a run of `2^m`, reversed when `rev = 1`. -/
 def rwSlot (m rev i : ℕ) : ℕ := if rev = 1 then 2 ^ m - 1 - i else i
@@ -146,7 +146,7 @@ def opening_row_weights_Spec : Prop :=
     coreProgram.Rel rd "opening_row_weights__L4_L0" args rets ↔
       MeaningOpeningRowWeights 4 0 rd args rets
 
-/-! ## `opening_query`, `opening_queries` (G:1381-1451, TRIAGE #39, #40) -/
+/-! ## `opening_query`, `opening_queries` (G:1375-1445, TRIAGE #39, #40) -/
 
 /-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
@@ -161,7 +161,7 @@ def rowWord (base : ℕ) (row : List K) (j : ℕ) : E :=
 /-- The low factor's length of a row of `I` words: `min I 8`. -/
 def rowLo (I : ℕ) : ℕ := if I / 8 = 0 then I else 8
 
-/-- **A row's dot product with its tensor weights** (`opening_query`, G:1402-1419): run `h` of
+/-- **A row's dot product with its tensor weights** (`opening_query`, G:1396-1413): run `h` of
 `lo` words, weighted by `w (lo + h)`, of the sums of its words weighted by `w l`, in the guest's
 order. -/
 def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
@@ -173,7 +173,7 @@ def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
 def climbNode (leaf : Digest) (q : ℕ) (sibs : List Digest) (l : ℕ) : Digest :=
   climbD leaf q (sibs.take l)
 
-/-- Cell `k` of a path's frame run (`walk_path`'s `path`, G:1345-1346): level `k / 4`'s
+/-- Cell `k` of a path's frame run (`walk_path`'s `path`, G:1339-1340): level `k / 4`'s
 children, two cells each, the node reached so far on the side of the position's bit at the level,
 the sibling on the other. -/
 def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
@@ -181,7 +181,7 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
     else sibs.getD (k / 4) (Vector.replicate 4 0)
   if k % 2 = 0 then (digestHalves d).1 else (digestHalves d).2
 
-/-- **One query** (`opening_query`, lean_ethereum.py:1381-1424 at 834e6614, with `walk_path`,
+/-- **One query** (`opening_query`, lean_ethereum.py:1375-1418 at d1c4c8f7, with `walk_path`,
 :1295-1331; TRIAGE #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words
 of `K`, hashed (`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels
 by hinted siblings (`climb`, V:492, the position's low bits: `climbD`); the node reached is
@@ -219,7 +219,7 @@ def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
     ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
 /-- **`opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_iters_g, odd,
-base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1427-1451 at 834e6614; TRIAGE #40):
+base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1421-1445 at d1c4c8f7; TRIAGE #40):
 `n_iters_g = g^N`, `λ ≠ 0`; query `k < Q` (`oqCount`) reads its window pointer and the windows
 `g^(qwVal …)` of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the

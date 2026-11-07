@@ -41,7 +41,7 @@ theorem rc_lt28 {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage 
     ⟨y, t1, t2, h1, by rw [show 28 - 1 = 27 from rfl, ← word_pow_eq (by omega)]; exact hk, h2⟩
   exact ⟨e, he, by rw [hx, gen_pow_eq_ofK]⟩
 
-/-- **The stack** (G:3521-3536): the placement certified, the stack's log `μ ∈ [22, 28]`, the
+/-- **The stack** (G:3515-3530): the placement certified, the stack's log `μ ∈ [22, 28]`, the
 candidate `g^((μ - 22) + 7·(r - 1))` dispatched on, and the committed columns' logs below `29`. -/
 theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) (hcpS : Tables.certify_placement_Spec L.read)
