@@ -647,7 +647,7 @@ theorem ok20 : ShareOk 20 := ⟨st20, fun i hi ↦ by
 ⟩
 
 theorem ok21 : ShareOk 21 := ⟨st21, fun i hi ↦ by
-  have h : (snapsOf 21).length = 52 := by decide +kernel
+  have h : (snapsOf 21).length = 44 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -695,14 +695,6 @@ theorem ok21 : ShareOk 21 := ⟨st21, fun i hi ↦ by
   · exact w21_42
   · exact w21_43
   · exact w21_44
-  · exact w21_45
-  · exact w21_46
-  · exact w21_47
-  · exact w21_48
-  · exact w21_49
-  · exact w21_50
-  · exact w21_51
-  · exact w21_52
 ⟩
 
 theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by

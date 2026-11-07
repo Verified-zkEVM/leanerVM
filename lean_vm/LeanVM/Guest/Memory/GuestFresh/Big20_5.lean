@@ -49,7 +49,7 @@ theorem fresh20_4950 : RangeFresh ((Data.core20.body.drop 4950).take 150) ts20_4
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `5100` to `5249`. -/
-def ts20_5100 : List ℕ := []
+def ts20_5100 : List ℕ := [8462, 8463, 8468, 8469, 8477, 8478, 8486, 8487]
 
 set_option maxRecDepth 100000 in
 theorem fresh20_5100 : RangeFresh ((Data.core20.body.drop 5100).take 150) ts20_5100 temps20 := by
@@ -57,7 +57,7 @@ theorem fresh20_5100 : RangeFresh ((Data.core20.body.drop 5100).take 150) ts20_5
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `5250` to `5399`. -/
-def ts20_5250 : List ℕ := [8642, 8643, 8648, 8649, 8657, 8658]
+def ts20_5250 : List ℕ := [8728, 8729, 8734, 8735, 8743, 8744, 8752, 8753]
 
 set_option maxRecDepth 100000 in
 theorem fresh20_5250 : RangeFresh ((Data.core20.body.drop 5250).take 150) ts20_5250 temps20 := by

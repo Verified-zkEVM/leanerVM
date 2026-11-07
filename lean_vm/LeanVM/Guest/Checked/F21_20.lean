@@ -35,11 +35,15 @@ theorem w21_24 : WinOk 21 24 := winOk_of_C (by decide +kernel)
 /-- `verify_sig_lean_sphincs`, window 25. -/
 theorem w21_25 : WinOk 21 25 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 26. -/
-theorem w21_26 : WinOk 21 26 := winOk_of_C (by decide +kernel)
+/-- `statement_digest`, window 0. -/
+theorem w22_0 : WinOk 22 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 27. -/
-theorem w21_27 : WinOk 21 27 := winOk_of_C (by decide +kernel)
+/-- `list_split`, window 0. -/
+theorem w23_0 : WinOk 23 0 := winOk_of_C (by decide +kernel)
+
+theorem ok22 : CheckOk 22 := checkOk_one (by decide +kernel) w22_0
+
+theorem ok23 : CheckOk 23 := checkOk_one (by decide +kernel) w23_0
 
 end
 end LeanVM.Guest.Checked

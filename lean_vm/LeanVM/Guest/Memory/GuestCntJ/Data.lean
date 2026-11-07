@@ -24,7 +24,7 @@ set_option linter.all false
 def kwjcertTlll : NTree (Cert) := (.node 2 (.stat [] ⟨1, []⟩ []) .leaf .leaf)
 
 /-- A subtree. -/
-def kwjcertTllr : NTree (Cert) := (.node 20 (.stat [] ⟨140, []⟩ [(.n 9180, 25)]) .leaf .leaf)
+def kwjcertTllr : NTree (Cert) := (.node 20 (.stat [] ⟨140, []⟩ [(.n 8984, 25)]) .leaf .leaf)
 
 /-- A subtree. -/
 def kwjcertTlrl : NTree (Cert) := (.node 33 (.stat [(0, 0)] ⟨80, [(0, 54), (0, 2), (0, 2)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) .leaf .leaf)

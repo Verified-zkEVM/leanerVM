@@ -31,14 +31,14 @@ theorem cw21_22_0 : cplWin 21 22 0 = true := by decide +kernel
 /-- `verify_sig_lean_sphincs`, window 23, part 0. -/
 theorem cw21_23_0 : cplWin 21 23 0 = true := by decide +kernel
 
+/-- `verify_sig_lean_sphincs`, window 23, part 1. -/
+theorem cw21_23_1 : cplWin 21 23 1 = true := by decide +kernel
+
 /-- `verify_sig_lean_sphincs`, window 24, part 0. -/
 theorem cw21_24_0 : cplWin 21 24 0 = true := by decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 25, part 0. -/
 theorem cw21_25_0 : cplWin 21 25 0 = true := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`, window 26, part 0. -/
-theorem cw21_26_0 : cplWin 21 26 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

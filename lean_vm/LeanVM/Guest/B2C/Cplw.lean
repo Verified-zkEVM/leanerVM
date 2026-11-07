@@ -30,9 +30,9 @@ public import LeanVM.Guest.B2C.Cplw.C20_16_0
 public import LeanVM.Guest.B2C.Cplw.C21_3_0
 public import LeanVM.Guest.B2C.Cplw.C21_11_0
 public import LeanVM.Guest.B2C.Cplw.C21_19_0
-public import LeanVM.Guest.B2C.Cplw.C21_27_0
-public import LeanVM.Guest.B2C.Cplw.C25_0_0
-public import LeanVM.Guest.B2C.Cplw.C32_0_0
+public import LeanVM.Guest.B2C.Cplw.C22_0_0
+public import LeanVM.Guest.B2C.Cplw.C30_0_0
+public import LeanVM.Guest.B2C.Cplw.C37_0_0
 public import LeanVM.Guest.B2C.Cplw.C37_1_0
 public import LeanVM.Guest.B2C.Cplw.C37_2_0
 public import LeanVM.Guest.B2C.Cplw.C37_3_0
@@ -500,7 +500,7 @@ theorem ok20 : CplOk 20 := by
 
 theorem ok21 : CplOk 21 := by
   intro i hi k hk
-  have hc : (certOf 21).cuts.length = 30 := by decide +kernel
+  have hc : (certOf 21).cuts.length = 25 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 21 0 = 1 := by decide +kernel
@@ -595,10 +595,11 @@ theorem ok21 : CplOk 21 := by
     rw [hn] at hk
     interval_cases k
     · exact cw21_22_0
-  · have hn : nParts 21 23 = 1 := by decide +kernel
+  · have hn : nParts 21 23 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw21_23_0
+    · exact cw21_23_1
   · have hn : nParts 21 24 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -607,27 +608,6 @@ theorem ok21 : CplOk 21 := by
     rw [hn] at hk
     interval_cases k
     · exact cw21_25_0
-  · have hn : nParts 21 26 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw21_26_0
-  · have hn : nParts 21 27 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw21_27_0
-  · have hn : nParts 21 28 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw21_28_0
-    · exact cw21_28_1
-  · have hn : nParts 21 29 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw21_29_0
-  · have hn : nParts 21 30 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw21_30_0
 
 theorem ok37 : CplOk 37 := by
   intro i hi k hk

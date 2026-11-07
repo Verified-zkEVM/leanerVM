@@ -19,9 +19,8 @@ public import LeanVM.Guest.Checked.F20_17
 public import LeanVM.Guest.Checked.F21_4
 public import LeanVM.Guest.Checked.F21_12
 public import LeanVM.Guest.Checked.F21_20
-public import LeanVM.Guest.Checked.F21_28
-public import LeanVM.Guest.Checked.F27_0
-public import LeanVM.Guest.Checked.F34_0
+public import LeanVM.Guest.Checked.F24_0
+public import LeanVM.Guest.Checked.F31_1
 public import LeanVM.Guest.Checked.F37_1
 public import LeanVM.Guest.Checked.F37_2
 public import LeanVM.Guest.Checked.F37_3
