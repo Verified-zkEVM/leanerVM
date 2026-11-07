@@ -16,7 +16,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-theorem sDigestBlock_length : sDigestBlock.length = 1332 := by decide +kernel
+theorem sDigestBlock_length : sDigestBlock.length = 1358 := by decide +kernel
 
 open scoped Dec in
 theorem sDigestBlock_slice_0 : (Data.core20.body.drop 0).take 500 = (sDigestBlock.drop 0).take 500 := by
@@ -29,16 +29,16 @@ theorem sDigestBlock_slice_500 :
 
 open scoped Dec in
 theorem sDigestBlock_slice_1000 :
-    (Data.core20.body.drop 1000).take 332 = (sDigestBlock.drop 1000).take 332 := by
+    (Data.core20.body.drop 1000).take 358 = (sDigestBlock.drop 1000).take 358 := by
   decide +kernel
 
 /-- **`verify_sig_lean_sphincs`'s body starts with the digest block**, checked by the kernel in
 slices of 500 statements. -/
-theorem sDigestBlock_prefix : Data.core20.body.take 1332 = sDigestBlock := by
-  have hs : ∀ l : List Stmt, l.take 1332 = (l.drop 0).take 500 ++ ((l.drop 500).take 500 ++
-      (l.drop 1000).take 332) := by
+theorem sDigestBlock_prefix : Data.core20.body.take 1358 = sDigestBlock := by
+  have hs : ∀ l : List Stmt, l.take 1358 = (l.drop 0).take 500 ++ ((l.drop 500).take 500 ++
+      (l.drop 1000).take 358) := by
     intro l
-    rw [show 1332 = 500 + (500 + 332) from rfl, List.take_add, List.take_add]
+    rw [show 1358 = 500 + (500 + 358) from rfl, List.take_add, List.take_add]
     simp only [List.drop_drop, List.drop_zero]
   rw [hs, sDigestBlock_slice_0, sDigestBlock_slice_500, sDigestBlock_slice_1000,
     ← hs, List.take_of_length_le (le_of_eq sDigestBlock_length)]

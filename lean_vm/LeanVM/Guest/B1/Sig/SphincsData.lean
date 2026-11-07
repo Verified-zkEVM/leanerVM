@@ -22,9 +22,8 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- After the digest block (`sDigestBlock_prefix`), `verify_sig_lean_sphincs`'s body is
 `sAfterDigest`, checked by the kernel in slices of 500 statements. -/
-theorem sAfterDigest_eq : Data.core20.body.drop 1332 = sAfterDigest := by
-  have h4500 := sAfterDigest_drop_4500
-  have h4000 := drop_eq_of_take sAfterDigest_slice_4000 h4500
+theorem sAfterDigest_eq : Data.core20.body.drop 1358 = sAfterDigest := by
+  have h4000 := sAfterDigest_drop_4000
   have h3500 := drop_eq_of_take sAfterDigest_slice_3500 h4000
   have h3000 := drop_eq_of_take sAfterDigest_slice_3000 h3500
   have h2500 := drop_eq_of_take sAfterDigest_slice_2500 h3000
@@ -37,7 +36,7 @@ theorem sAfterDigest_eq : Data.core20.body.drop 1332 = sAfterDigest := by
 
 /-- **`verify_sig_lean_sphincs`'s body is the template.** -/
 theorem sBody_eq : Data.core20.body = sBody := by
-  rw [← List.take_append_drop 1332 Data.core20.body, sDigestBlock_prefix, sAfterDigest_eq]
+  rw [← List.take_append_drop 1358 Data.core20.body, sDigestBlock_prefix, sAfterDigest_eq]
   rfl
 
 end

@@ -45,36 +45,50 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 /-! ## Addresses -/
 
-/-- `sp_be16(vals, pos, n)`: the `n`-bit value `val pos` as the index of an `A1` from base `x`, its
-low byte (`val pos` XOR `val (pos + 8) · 2^8`) at bit `120`, its high bits at bit `112`. The
-statements, the next base and the value. -/
+/-- The multiplier of `sp_be16`'s shift by eight, `g^8 · SP_WORD3_MUL_0 + SP_WORD3_MUL_1` folded:
+`2^128 + 2^112`, the `y` limb's `g^64` reduced to `27` (`G:3846`). -/
+def be16HiW : E := word 0 (2 ^ 48 + 27) 0
+
+/-- `sp_be16(vals, pos, n)`: the `n`-bit value `val pos` as the index of an `A1` from base `x`,
+`val pos · 2^120 + val (pos + 8) · (g^8 · 2^120 + 2^112)`: its low byte at bit `120`, its high bits
+at bit `112` (the high bits' part at bit `128` cancels). The statements, the next base and the
+value. -/
 def sBe16 (val : Nat → V) (pos n x : Nat) : List Stmt × Nat × V :=
   if (n + 7) / 8 = 2 then
-    ([cst x (word 256 0 0), mulS (.n (x + 1)) (val (pos + 8)) (.n x),
-      addS (.n (x + 2)) (val pos) (.n (x + 1)), cst (x + 3) (lit (2 ^ 120)),
-      mulS (.n (x + 4)) (.n (x + 2)) (.n (x + 3)), cst (x + 5) (lit (2 ^ 112)),
-      mulS (.n (x + 6)) (val (pos + 8)) (.n (x + 5)), addS (.n (x + 7)) (.n (x + 4)) (.n (x + 6))],
-      x + 8, .n (x + 7))
+    ([cst x (lit (2 ^ 120)), mulS (.n (x + 1)) (val pos) (.n x), cst (x + 2) be16HiW,
+      mulS (.n (x + 3)) (val (pos + 8)) (.n (x + 2)), addS (.n (x + 4)) (.n (x + 1)) (.n (x + 3))],
+      x + 5, .n (x + 4))
   else ([cst x (lit (2 ^ 120)), mulS (.n (x + 1)) (val pos) (.n x)], x + 2, .n (x + 1))
 
-/-- The constant of `sp_fors_at`: the height `z`, and tree `c` shifted past a node's index in its
-tree, across the index's two bytes. -/
-def forsAtConst (c z : Nat) : Nat :=
-  2 ^ 88 * z + 2 ^ 120 * (c * 2 ^ (10 - z) % 256) + 2 ^ 112 * (c * 2 ^ (10 - z) / 256)
+/-- The carry-less product of `a < 2^8` and `b` (a product of polynomials over `GF(2)`). -/
+def clmul8 (a b : Nat) : Nat :=
+  (List.range 8).foldl (fun acc i => if a.testBit i then acc ^^^ (b <<< i) else acc) 0
 
-/-- `a1 + const(…)` of `sp_fors_at` from base `x`: none if the constant is zero. -/
-def sForsAtK (a1 : V) (c z x : Nat) : List Stmt × Nat × V :=
-  if forsAtConst c z = 0 then ([], x, a1)
-  else ([cst x (lit (forsAtConst c z)), addS (.n (x + 1)) a1 (.n x)], x + 2, .n (x + 1))
+/-- `const(k) · (g^8 · SP_WORD3_MUL_0 + SP_WORD3_MUL_1)` folded, `k < 2^8`: `k · be16HiW`. -/
+def forsHiW (k : Nat) : E := word 0 (clmul8 k (2 ^ 48 + 27)) 0
 
-/-- `sp_fors_at(a1, vals, c, z)` from base `x`: the constant added (`sForsAtK`), then below the
-root the index `val (10 c + z)` (`sBe16`). The statements, the next base and the value. -/
+/-- `a + const(w)` from base `x`, `w` the constant's word and `k` a number zero exactly when it is:
+none for `k = 0`. -/
+def sAddK (a : V) (k : Nat) (w : E) (x : Nat) : List Stmt × Nat × V :=
+  if k = 0 then ([], x, a) else ([cst x w, addS (.n (x + 1)) a (.n x)], x + 2, .n (x + 1))
+
+/-- `sp_fors_at(a1, vals, c, z)` from base `x` (`G:3853-3867`): `a1` plus the height `z`
+(`z · SP_WORD2_MUL`), then the node's tree index across the trees in the word's last two bytes:
+at the root `c` (`c · SP_WORD3_MUL_0`); below `2` the index `val (10 c + z)` (`sBe16`, two bytes);
+else its high byte, `c / 2^(z - 2)`, a constant, then its low byte (`sBe16`, one byte). The
+statements, the next base and the value. -/
 def sForsAt (a1 : V) (val : Nat → V) (c z x : Nat) : List Stmt × Nat × V :=
-  let s1 := sForsAtK a1 c z x
-  if z = 10 then s1
-  else
-    let be := sBe16 val (10 * c + z) (10 - z) s1.2.1
+  let s1 := sAddK a1 z (lit (2 ^ 88 * z)) x
+  if z = 10 then
+    let s2 := sAddK s1.2.2 c (lit (2 ^ 120 * c)) s1.2.1
+    (s1.1 ++ s2.1, s2.2.1, s2.2.2)
+  else if z / 2 = 0 then
+    let be := sBe16 val (10 * c + z) 16 s1.2.1
     (s1.1 ++ be.1 ++ [addS (.n be.2.1) s1.2.2 be.2.2], be.2.1 + 1, .n be.2.1)
+  else
+    let s2 := sAddK s1.2.2 (c / 2 ^ (z - 2)) (forsHiW (c / 2 ^ (z - 2))) s1.2.1
+    let be := sBe16 val (10 * c + z) 8 s2.2.1
+    (s1.1 ++ s2.1 ++ be.1 ++ [addS (.n be.2.1) s2.2.2 be.2.2], be.2.1 + 1, .n be.2.1)
 
 /-- `is_child(node, kids, k, bit)` with the children at `k0`, `k1`, the check's cells at `b`,
 `b + 1`. -/
@@ -86,10 +100,15 @@ one the bit names: the left child when the bit is `1`. -/
 def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
   if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
 
-/-- A node from its two children (`keccak([pp, a0], [adr, kids[0]], out, tail=[kids[1], 0, 0, 0],
-len=80)`), from base `y`: the statements, the next base and the output run's base. -/
+/-- A node from its two children (`keccak([pp, a0], [adr, kids[0]], out, tail=kids[1:5], len=80,
+pad_tail=1)`), from base `y`: the three cells after `kids[1]` set to the padding (`0x01`, `0`,
+`0`) and the message read in place, its last byte's constant at `y + 3`. The statements, the next
+base and the output run's base. -/
 def kNode (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : List Stmt × Nat × Nat :=
-  kMsg pad [.cell pp, .cell a0, .cell adr, .cell k0, .cell k1] 80 false none y
+  ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
+    cst (y + 3) (word (2 ^ 63) 0 0),
+    kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1), .n (pad + 2),
+      .n (pad + 3), .n (pad + 4)] (runV (y + 4) 13) false false], y + 17, y + 4)
 
 /-! ## FORS -/
 
