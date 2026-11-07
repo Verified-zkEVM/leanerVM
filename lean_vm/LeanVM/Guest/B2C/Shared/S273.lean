@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop379`, once. -/
-theorem st869 : shareStatic 869 = true := by decide +kernel
+/-- `__loop375`, window 3. -/
+theorem w861_3 : shareWin 861 (snapsOf 861) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop379`, window 0. -/
-theorem w869_0 : shareWin 869 (snapsOf 869) 0 = true := by decide +kernel
+/-- `decode_query_windows__L18_L6`, once. -/
+theorem st862 : shareStatic 862 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop379`, window 1. -/
-theorem w869_1 : shareWin 869 (snapsOf 869) 1 = true := by decide +kernel
+/-- `decode_query_windows__L18_L6`, window 0. -/
+theorem w862_0 : shareWin 862 (snapsOf 862) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop379`, window 2. -/
-theorem w869_2 : shareWin 869 (snapsOf 869) 2 = true := by decide +kernel
+/-- `decode_query_windows__L18_L6`, window 1. -/
+theorem w862_1 : shareWin 862 (snapsOf 862) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, once. -/
-theorem st870 : shareStatic 870 = true := by decide +kernel
+/-- `__loop376`, once. -/
+theorem st863 : shareStatic 863 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, window 0. -/
-theorem w870_0 : shareWin 870 (snapsOf 870) 0 = true := by decide +kernel
+/-- `__loop376`, window 0. -/
+theorem w863_0 : shareWin 863 (snapsOf 863) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, window 1. -/
-theorem w870_1 : shareWin 870 (snapsOf 870) 1 = true := by decide +kernel
+/-- `__loop376`, window 1. -/
+theorem w863_1 : shareWin 863 (snapsOf 863) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, once. -/
-theorem st871 : shareStatic 871 = true := by decide +kernel
+/-- `__loop376`, window 2. -/
+theorem w863_2 : shareWin 863 (snapsOf 863) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

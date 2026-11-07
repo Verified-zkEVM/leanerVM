@@ -11,6 +11,7 @@ import Common.PiOnly
 import Common.Duplex.Vec
 import Common.Linear
 import Common.SeedKey
+import Common.StaticSwap
 import Common.WithHashBridge
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
@@ -145,3 +146,8 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.SufCma.SeedKeyed.romBound
+
+/-- info: 'Common.SufCma.StaticSwap.romBound' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.SufCma.StaticSwap.romBound

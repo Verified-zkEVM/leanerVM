@@ -13,7 +13,7 @@ def blocks(path, names):
             body.append(l)
         out[n]='\n'.join(body).rstrip()+'\n'
     return out
-def gen(path, names, recursive, xmss):
+def gen(path, names, recursive, xmss, binders):
     b=blocks(path,names)
     res=[]
     for n in names:
@@ -24,7 +24,7 @@ def gen(path, names, recursive, xmss):
         if n in recursive:
             last='cases Codeword.decode result <;> simp [ih]' if xmss else 'cases result <;> simp [ih]'
             res.append(f'''@[csimp] theorem {n}_eq_fast : @{n} = @{n}Fast := by
-  funext m _ π parameter layer a b c d attempts start
+  funext m _ π {binders} attempts start
   induction attempts generalizing start with
   | zero => rfl
   | succ attempts ih =>
@@ -37,9 +37,12 @@ def gen(path, names, recursive, xmss):
             res.append(f'@[csimp] theorem {n}_eq_fast : @{n} = @{n}Fast := rfl\n')
     return '\n'.join(res)
 sph=gen(root+'/Statement/LeanSphincs.lean',
-  ['otsSecrets','oneTimePublicKey','otsSignFrom','otsSign','treeNode','treeNodeWithPath','forsOpen','publicKeyOf','keygenFromSeed','signLayer','signWithSchemeSeed','sign'],{'otsSignFrom'},False)
+  ['otsSecrets','otsPublicLeaf','otsSignFrom','otsSign','treeLevels','forsOpen','keygenInternal',
+   'keygenFromSeed','signLayer','signWithExpandedKey','sign'],{'otsSignFrom'},False,
+  'key layer tree leaf message')
 xm=gen(root+'/Statement/LeanXmss.lean',
-  ['otsSecrets','oneTimePublicKey','otsSignFrom','otsSign','treeNode','treePath','keygenFromSeed','signLayer','signWithSchemeSeed','sign'],{'otsSignFrom'},True)
+  ['otsSecrets','oneTimePublicKey','otsSignFrom','otsSign','treeNode','treePath','keygenFromSeed','signLayer','signWithSchemeSeed','sign'],{'otsSignFrom'},True,
+  'parameter layer a b c d')
 fast='''/-!
 # The signers, compiled fast
 

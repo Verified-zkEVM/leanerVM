@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsDigestT
 
   The message digest of `verify_sig_lean_sphincs` as a template: the statements from the claim's
-  loads to the digest's check (`lean_ethereum.py:3769-3819, 3972-4044` at leanVM 834e6614), with the
+  loads to the digest's check (`lean_ethereum.py:3769-3841, 3972-4046` at leanVM 834e6614), with the
   values numbered as the renumbered expansion numbers them.
 -/
 
@@ -13,27 +13,27 @@ public import LeanVM.Guest.B1.Sig.SpWotsT
 /-!
 # The message digest as a template
 
-`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3972-4087`; `G` is `lean_ethereum.py`): `signer` is
+`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3972-4074`; `G` is `lean_ethereum.py`): `signer` is
 the parameter `n0`, `byte_bits` `n1`; `PK.seed` is `n2` (`sPP`, `signer[1]`, offset `0`), `PK.root`
 `n3` (`sRoot`, offset `1`). Its first statements, up to the digest's check, are `sDigestBlock`:
 
-* `sMsg` (`G:4002-4019`): the message `M`'s 32 bytes hinted in the exponent (`n4 … n35`), each lane
+* `sMsg` (`G:3976-3998`): the message `M`'s 32 bytes hinted in the exponent (`n4 … n35`), each lane
   `j` rebuilt as its three low bytes (`sLo j`) and five high ones (`sHi j`) by `sp_from_bytes`
   (`sFromBytes`, `G:3769-3779`), the lanes checked to be the claim's two message cells (offsets `2`,
   `3`), and the cells `M'` puts `M` in after its 13 framing bytes (`sM0`, `sM1`, `sM2`);
-* `sDigests` (`G:4020-4023`): `R` hinted (`sRand`), `H_msg`'s two calls `H(R | PK.seed | PK.root | M' |
+* `sDigests` (`G:3999-4003`): `R` hinted (`sRand`), `H_msg`'s two calls `H(R | PK.seed | PK.root | M' |
   BE_32(i))`, 97 bytes, one block each, the first setting the padding run (`n353 …`, `sPad`); their
   outputs from `sHm0` (`n358`) and `sHm1` (`n379`);
-* `sBitsHint`, `sBooleans` (`G:4030-4040`): the first call's two cells' bits hinted (`n392 …`, `n520 …`)
+* `sBitsHint`, `sBooleans` (`G:4010-4020`): the first call's two cells' bits hinted (`n392 …`, `n520 …`)
   and the second's low sixteen (`n648 …`), each pinned Boolean;
-* `sForsFields` (`sp_fors_field`, `G:3793-3801`, through `sp_md_bit`, `G:3783-3790`): each FORS leaf
+* `sForsFields` (`sp_fors_field`, `G:3793-3800`, through `sp_md_bit`, `G:3783-3789`): each FORS leaf
   read most significant bit first from the digest's bytes and its right shifts, `vals[10 c + z]` at
   `sFVal c z`;
-* `sLeafShifts` (`sp_leaf_shifts`, `G:3835-3842`, through `sp_leaf_bit`, `G:3821-3832`): the three
+* `sLeafShifts` (`sp_leaf_shifts`, `G:3835-3841`, through `sp_leaf_bit`, `G:3821-3831`): the three
   layers' leaves and their right shifts, `lvals[i]` at `sLVal i`;
-* `sMdBytes` (`sp_md_byte`, `G:3804-3818`): the digest's first 30 bytes rebuilt where the first call's
+* `sMdBytes` (`sp_md_byte`, `G:3804-3817`): the digest's first 30 bytes rebuilt where the first call's
   cells hold them, `md0`, `md1`;
-* `sCheck` (`G:4048-4062`): the tree index's middle byte (`sTreeMid`), its high byte's six unused bits,
+* `sCheck` (`G:4036-4046`): the tree index's middle byte (`sTreeMid`), its high byte's six unused bits,
   the first call's cells asserted to be the rebuilt ones, the second call's unused bytes read
   (`sp_unused`) and its high lane checked into `K`.
 -/
@@ -202,7 +202,7 @@ def shiftsG (bit : Nat → V) (n outBase : Nat) : List Stmt :=
 /-- FORS tree `c`'s leaf and its shifts: `vals[10 c + z]`, the leaf shifted right by `z`. -/
 def sFVal (c z : Nat) : V := .n (664 + 28 * c + 3 * (9 - z))
 
-/-- `sp_fors_field` of every tree (`G:4041-4042`). -/
+/-- `sp_fors_field` of every tree (`G:4021-4023`). -/
 def sForsFields : List Stmt :=
   (List.range 24).flatMap fun c => shiftsG (fun r => sMdBit (10 * c + r)) 10 (664 + 28 * c)
 
@@ -217,7 +217,7 @@ def sLVal (i : Nat) : V :=
   if i < 8 then .n (1336 + 3 * (7 - i)) else if i < 16 then .n (1358 + 3 * (15 - i))
   else .n (1380 + 3 * (25 - i))
 
-/-- `sp_leaf_shifts` of the three layers (`G:4043-4046`). -/
+/-- `sp_leaf_shifts` of the three layers (`G:4024-4027`). -/
 def sLeafShifts : List Stmt :=
   (List.range 3).flatMap fun l =>
     shiftsG (fun r => sLeafBit (sLeafOff l + sLeafLen l - 1 - r)) (sLeafLen l) (sLeafBase l)
@@ -273,15 +273,15 @@ def sMd1 : List Stmt × Nat × V :=
   let r := sMdSum 13 17 x.2.2 x.2.1
   (x.1 ++ r.1, r.2.1, r.2.2)
 
-/-- The digest's first 30 bytes (`G:4047-4052`). -/
+/-- The digest's first 30 bytes (`G:4028-4035`). -/
 def sMdBytes : List Stmt := (sMdByte 0 1408).1 ++ sMd0.1 ++ sMd1.1
 
 /-! ## The check -/
 
-/-- The tree index's middle byte, the top leaf's low byte (`G:4055`). -/
+/-- The tree index's middle byte, the top leaf's low byte (`G:4036`). -/
 def sTreeMid : V := .n 1620
 
-/-- The six unused bits of the tree index's high byte, most significant first (`G:4056-4058`). -/
+/-- The six unused bits of the tree index's high byte, most significant first (`G:4037-4039`). -/
 def sPadBits : List Stmt :=
   (List.range 5).flatMap fun b => let x := 1621 + 3 * b;
     [cst x (word 2 0 0), mulS (.n (x + 1)) (.n (if b = 0 then 639 else x - 1)) (.n x),
@@ -290,7 +290,7 @@ def sPadBits : List Stmt :=
 /-- The second call's unused bytes, `sp_unused`, read from `n1650`. -/
 def sUnused : List Stmt × Nat × V := sFromMarks 1644 6 1650
 
-/-- The check (`G:4053-4065`): the tree's middle byte, the high byte's unused bits, `d0[0] = md0`,
+/-- The check (`G:4036-4046`): the tree's middle byte, the high byte's unused bits, `d0[0] = md0`,
 `d0[1] = md1 + (lvals[24] + pad · g^2) · 2^112 + tree_mid · 2^120`, the unused bytes, and
 `(d1[0] + lvals[8] + lvals[0] · g^8 + unused · g^16) · y⁻¹` in `K`. -/
 def sCheck : List Stmt :=

@@ -165,4 +165,7 @@ import FORS.Certificates.Closing
 import FORS.Certificates.H26
 import FORS.Lifetimes
 import FORS.Configurations
+import FORS.Crate
+import FORS.CrateStatic
+import FORS.CrateShort
 import FORS.Main

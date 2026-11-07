@@ -11,21 +11,25 @@ import Sphincs.Security
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Model.stronglyUnforgeable_of_model
 
-/-- info: 'Sphincs.Model.modelScheme_stronglyUnforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Model.crateScheme_stronglyUnforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Model.modelScheme_stronglyUnforgeable
+#print axioms Sphincs.Model.crateScheme_stronglyUnforgeable
+
+/-- info: 'Sphincs.Model.crateScheme_romBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Model.crateScheme_romBound
 
 /-- info: 'Sphincs.Model.simulateQ_verify' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Model.simulateQ_verify
 
-/-- info: 'Sphincs.Model.simulateQ_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Model.simulateQ_crateKeygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Model.simulateQ_keygen
+#print axioms Sphincs.Model.simulateQ_crateKeygen
 
-/-- info: 'Sphincs.Model.simulateQ_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Model.simulateQ_crateSign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Model.simulateQ_sign
+#print axioms Sphincs.Model.simulateQ_crateSign
 
 /-- info: 'Sphincs.Transport.forgeryGame_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
