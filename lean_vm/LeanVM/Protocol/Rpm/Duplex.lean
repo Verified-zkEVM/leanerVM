@@ -275,6 +275,13 @@ theorem hOnly_openAll (root : Digest) (height width : ℕ) :
     · exact (hOnly_openAll root height width qs os).bind fun _ ↦ trivial
     · trivial
 
+theorem hOnly_openPhase (root : Digest) (height width : ℕ) (ps : List ℕ) (phase : List Opening) :
+    HOnly (openPhaseWithHash callKeccak256 root height width ps phase) := by
+  unfold openPhaseWithHash
+  split
+  · exact (hOnly_openAll root height width ps phase).bind fun _ ↦ by split <;> trivial
+  · trivial
+
 /-- **The compiled run keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_run {α : Type} (P : VerifierProgram α) :
     ∀ (s : VerifierProgramState) (h : List KeccakState), s.sponge.state ∈ h →
@@ -316,12 +323,12 @@ theorem duplexP_run {α : Type} (P : VerifierProgram α) :
     intro s h hs
     simp only [Compile.runWithHash]
     split
-    · trivial
-    · refine ((hOnly_openAll _ _ _ _ _).duplexP h).bind fun r h' hh ↦ ?_
+    · refine ((hOnly_openPhase _ _ _ _ _).duplexP h).bind fun r h' hh ↦ ?_
       subst hh
       split
       · exact ih _ _ _ hs
       · trivial
+    · trivial
 
 theorem duplexP_runProof (P : VerifierProgram Bool) {seed : KeccakState} {h : List KeccakState} (hs
     : seed ∈ h)
