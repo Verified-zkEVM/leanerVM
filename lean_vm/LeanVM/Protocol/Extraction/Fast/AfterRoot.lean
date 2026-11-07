@@ -77,11 +77,11 @@ theorem runDefault_bind {α β : Type} (p : VerifierProgram α) (f : α → Veri
   | query i ps k ih =>
     simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
-    · rfl
     · simp only [bind]
       split
       · exact ih _ _
       · rfl
+    · rfl
 
 /-- **`runPure` of a sequence**: the first program's run, then the continuation's. -/
 theorem runPure_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (s :
@@ -257,7 +257,7 @@ theorem afterRootDirect_eq_afterRoot : afterRootDirect = afterRoot := by
 /-! ## The announced shape -/
 
 /-- `readPure` reads only the sponge and the stream: the openings and the roots are carried. -/
-theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : List Opening)
+theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : List (List Opening))
     (rs rs' : List (Digest × ℕ × ℕ)) :
     readPure n ⟨sp, st, os', rs'⟩ =
       (readPure n ⟨sp, st, os, rs⟩).map fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by
@@ -274,7 +274,7 @@ theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : L
 
 /-- `readSizesPure` reads only the sponge and the stream. -/
 theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List E)
-    (os os' : List Opening) (rs rs' : List (Digest × ℕ × ℕ)) :
+    (os os' : List (List Opening)) (rs rs' : List (Digest × ℕ × ℕ)) :
     readSizesPure bytecode ⟨sp, st, os', rs'⟩ =
       (readSizesPure bytecode ⟨sp, st, os, rs⟩).map
         fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by

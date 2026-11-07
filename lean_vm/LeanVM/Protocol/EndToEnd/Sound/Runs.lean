@@ -105,7 +105,6 @@ theorem xrun_after {α : Type} :
   | .query i ps k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · split at hr
       · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
         refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
@@ -113,6 +112,7 @@ theorem xrun_after {α : Type} :
         simp only [List.mem_cons, reduceCtorEq, false_or] at hm
         exact hw _ _ _ hm
       · simp at hr
+    · simp at hr
 
 /-- **An accepted proof's extracted history is an accepting history of the program**, whose
 commitments hold well-shaped words. -/

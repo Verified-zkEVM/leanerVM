@@ -112,10 +112,10 @@ theorem xrun_bind {α β : Type} (f : α → VerifierProgram β) :
   | .query i ps k, s, h => by
     simp only [VerifierProgram.bind, xrun]
     split
-    · rfl
     · split
       · exact xrun_bind f _ _ _
       · rfl
+    · rfl
 
 /-- The events of a history are reads and commitments. -/
 def ReadsCommits (l : List Ev) : Prop :=
@@ -196,14 +196,15 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState
   | .query i ps k, s, h, l, _, _, hr, hrc, _ => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
-    · split at hr
-      · rename_i rows rest _
+    · next root ht w phase rest hroot hphase =>
+      split at hr
+      · next rows ho =>
         obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
         have hl : l = Ev.query rows :: l' := by simpa using hl'.symm
         subst hl
         rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
       · simp at hr
+    · simp at hr
 
 /-- **The roots of an extracted run are its history's commitments**, the words extracted under
 the roots. -/
@@ -252,11 +253,12 @@ theorem xrun_rootsInv {α : Type} :
   | .query i ps k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
-    · split at hr
-      · rename_i rows rest _
+    · next root ht w phase rest hroot hphase =>
+      split at hr
+      · next rows ho =>
         exact xrun_rootsInv _ _ _ (rootsInv_append_query hR rows rest) hr
       · simp at hr
+    · simp at hr
 
 end XRun
 
