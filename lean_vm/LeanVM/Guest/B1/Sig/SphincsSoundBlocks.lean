@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundBlocks
 
-  The body of `verify_sig_lean_sphincs` (`lean_ethereum.py:3970-4074` at leanVM 834e6614) as four
+  The body of `verify_sig_lean_sphincs` (`lean_ethereum.py:3965-4053` at leanVM d1c4c8f7) as four
   blocks of atoms around its three calls of `sp_wots`.
 -/
 

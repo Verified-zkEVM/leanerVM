@@ -12,7 +12,7 @@ import LeanVM.Guest.B1.Da.DualMath
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
 
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
-(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 3`): a real
+(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 4`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
 through the test-only `FORGE` hook, `aggregation/hints.rs:50`) and its public input. For each
 case it checks
@@ -121,7 +121,7 @@ def childR : R Child := do
   let fresh : BytecodeClaim := ⟨← many eR, ← eR⟩
   expect "proof"
   let stream ← many eR
-  let openings ← many do return (⟨← many kR, ← many digestR⟩ : Opening)
+  let openings ← many do many do return (⟨← nat, ← many kR, ← many digestR⟩ : Opening)
   return ⟨statement, fresh, ⟨stream, openings⟩⟩
 
 def fn128 {n : Nat} (xs : List (BitVec 128)) : Fin n → BitVec 128 := fun i => xs.getD i 0
@@ -178,7 +178,7 @@ structure Case where
   streams : Streams
 
 def caseR : R Case := do
-  expect "leanvm-guest-diff"; expect "3"
+  expect "leanvm-guest-diff"; expect "4"
   expect "case"; let name ← tok
   expect "seed"; let seed ← digestR
   expect "log_memory"; let logMemory ← nat

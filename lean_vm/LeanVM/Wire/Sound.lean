@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.LeanVm
+public import LeanVM.Wire.Statements
 public import Common.Prob
 public import LeanVM.Wire.Spec
 public import LeanVM.Wire.Cost
@@ -16,7 +16,7 @@ public import LeanVM.Wire.Cost
 /-!
 # Knowledge soundness on the wire
 
-`LeanVM.KnowledgeSoundnessOnBytes E` (`Statement/LeanVm.lean`) follows from
+`LeanVM.KnowledgeSoundnessOnBytes E` (`LeanVM.Wire.Statements`) follows from
 `LeanVM.KnowledgeSoundness E`, for every straight-line extractor `E`, by the reduction "the
 adversary decodes its own bytes" (`knowledgeSoundnessOnBytes_of`, from
 `knowledgeSoundnessOnBytes_of_decodeCost` at the decoding's `73728` permutation calls):

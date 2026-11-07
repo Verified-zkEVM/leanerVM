@@ -45,17 +45,6 @@ structure Theorems
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
-  /-- leanVM is knowledge sound on the wire, for the same extractor program: an adversary that
-  outputs bytes, which the verifier decodes (`Proof.fromBytes`) and then verifies, breaks it with
-  probability at most `(Q + 2^17) · 2^-128 + 5 (Q + 2^17)² · 2^-256` for `Q ≤ 2^128` queries, the
-  extractor reading the transcript of the adversary followed by the decoding of its bytes
-  (`LeanVm.lean`). -/
-  leanVmKnowledgeSoundnessOnBytes : LeanVM.KnowledgeSoundnessOnBytes
-      (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
-  /-- leanVM is complete on the wire: the honest prover's proof as its one encoding
-  (`Proof.toBytes`) is rejected by the verifier on bytes with probability at most `2^-256`, under
-  `leanVmCompleteness`'s hypotheses (`LeanVm.lean`). -/
-  leanVmCompletenessOnBytes : LeanVM.CompletenessOnBytes
 
   /-- Every valid execution of the leanISA guest program proves the node statement its public input
   commits to: the decoder program outputs, within its size bound and budget, the encoding of a

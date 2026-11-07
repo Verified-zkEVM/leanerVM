@@ -22,20 +22,53 @@ theorem cw21_27_0 : cplWin 21 27 0 = true := by decide +kernel
 /-- `verify_sig_lean_sphincs`, window 28, part 0. -/
 theorem cw21_28_0 : cplWin 21 28 0 = true := by decide +kernel
 
+/-- `verify_sig_lean_sphincs`, window 28, part 1. -/
+theorem cw21_28_1 : cplWin 21 28 1 = true := by decide +kernel
+
 /-- `verify_sig_lean_sphincs`, window 29, part 0. -/
 theorem cw21_29_0 : cplWin 21 29 0 = true := by decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 30, part 0. -/
 theorem cw21_30_0 : cplWin 21 30 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 30, part 1. -/
-theorem cw21_30_1 : cplWin 21 30 1 = true := by decide +kernel
+/-- `statement_digest`, window 0, part 0. -/
+theorem cw22_0_0 : cplWin 22 0 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 31, part 0. -/
-theorem cw21_31_0 : cplWin 21 31 0 = true := by decide +kernel
+/-- `list_split`, window 0, part 0. -/
+theorem cw23_0_0 : cplWin 23 0 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 32, part 0. -/
-theorem cw21_32_0 : cplWin 21 32 0 = true := by decide +kernel
+/-- `claim_list_digest`, window 0, part 0. -/
+theorem cw24_0_0 : cplWin 24 0 0 = true := by decide +kernel
+
+theorem ok22 : CplOk 22 := by
+  intro i hi k hk
+  have hc : (certOf 22).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 22 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw22_0_0
+
+theorem ok23 : CplOk 23 := by
+  intro i hi k hk
+  have hc : (certOf 23).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 23 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw23_0_0
+
+theorem ok24 : CplOk 24 := by
+  intro i hi k hk
+  have hc : (certOf 24).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 24 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw24_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

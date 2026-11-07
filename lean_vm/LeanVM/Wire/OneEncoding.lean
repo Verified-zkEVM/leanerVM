@@ -66,7 +66,7 @@ theorem oneEncoding_of
 theorem oneEncoding : OneEncodingStatement :=
   oneEncoding_of fun h _ hr ↦ hr.phaseSiblingBytes_unprunePhase h
 
-/-- **One encoding of the statement's decoding**, Keccak-256 over a permutation `π` in `Id`:
+/-- **One encoding of the transcribed decoding**, Keccak-256 over a permutation `π` in `Id`:
 bytes that decode to a proof are its encoding. -/
 theorem toBytes_of_fromBytes (π : KeccakState → Id KeccakState) {bytes : Bytes} {proof : Proof}
     (hdecode : Proof.fromBytes π bytes = some proof) : proof.toBytes = bytes := by

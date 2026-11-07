@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundWots
 
-  `sp_wots` (`lean_ethereum.py:3902-3933` at leanVM 834e6614) against the statement: whenever its
+  `sp_wots` (`lean_ethereum.py:3897-3928` at leanVM d1c4c8f7) against the statement: whenever its
   body holds, at a one-time key's address cells, the encoding digest's `base_2b` digits reach the
   target sum and its leaf is the statement's leaf of the chain values its frame hints.
 -/
