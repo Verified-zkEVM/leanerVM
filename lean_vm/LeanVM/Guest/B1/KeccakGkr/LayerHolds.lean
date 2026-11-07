@@ -31,7 +31,7 @@ theorem keccak_layer_holds_of (hW0 : WeightOk 0) : keccak_layer_Spec := by
   · exact layer_sound (first := 1) (by decide) weightOk_one find_layer264 layer_body264 rfl rd args
       rets h
 
-/-- **`keccak_layer`** (G:2728-2909; TRIAGE #60): its two specializations compute their
+/-- **`keccak_layer`** (G:2722-2903; TRIAGE #60): its two specializations compute their
 meanings. -/
 theorem keccak_layer_holds : keccak_layer_Spec := keccak_layer_holds_of weightOk_zero
 

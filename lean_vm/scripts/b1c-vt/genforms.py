@@ -12,7 +12,7 @@ EV = [(p, b, k) for k, (p, b) in enumerate(ast.literal_eval(' '.join(_ed.split()
 evvar={}   # copy var -> k
 for (p,b,k) in EV: evvar[b+10]=k
 BASE=[0,15,30,38,53,67]; WIDTH=[15,15,8,15,14,90]
-# The forms' window, the ξ powers multiplying the push/pull/count forms (G:2538), W's and β's variables.
+# The forms' window, the ξ powers multiplying the push/pull/count forms (G:2532), W's and β's variables.
 WLO, WHI = 2672, 6250
 XI = (2575, 2576, 2577)
 WV, BV = 13, 14
@@ -224,7 +224,7 @@ def gen_table(t,sides=(0,1,2),blocks=None,with_side=True):
 
 import gendiff
 def pull_side(t,with_side=True,blocks=None):
-    """Table t's pull form: `F1 = F0 + Σ_b sel_b · Σ_i W_i · diff_i` (G:2476-2505, 2531-2532)."""
+    """Table t's pull form: `F1 = F0 + Σ_b sel_b · Σ_i W_i · diff_i` (G:2470-2499, 2525-2526)."""
     F0,F1=FV[str(t)][0],FV[str(t)][1]
     p1,op,a=D[F1]; assert op=='add' and a[0]==F0,(t,F1,op,a)
     Fd=a[1]; ch,_=chain(Fd,D); dt=gendiff.DT[t]

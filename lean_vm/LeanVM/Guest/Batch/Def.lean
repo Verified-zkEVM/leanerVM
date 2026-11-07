@@ -33,7 +33,7 @@ def sample : Chain E := do
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
-`lean_ethereum.py:1154-1171`; `absorb_round`, `aggregation/deferred.rs:221-237`). The challenges and the
+`lean_ethereum.py:1148-1165`; `absorb_round`, `aggregation/deferred.rs:221-237`). The challenges and the
 final claim. -/
 def batchRounds : E → List (E × E) → Chain (List E × E)
   | claim, [] => return ([], claim)

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Sizes
 
-  `verify_sub`'s sizes (G:3398-3417), honestly.
+  `verify_sub`'s sizes (G:3392-3411), honestly.
 -/
 
 module

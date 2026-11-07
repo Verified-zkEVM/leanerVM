@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.CountTotal
 public import LeanVM.Guest.B1.Gkr.Odd
 
 /-!
-# The bus's stream words (G:2303-2337, 2402)
+# The bus's stream words (G:2297-2331, 2396)
 
 The framework decomposition reads, in block order, the memory block's three values (push side),
 the final memory count and the final bytecode count (pull side), each `fs_next` into the rate

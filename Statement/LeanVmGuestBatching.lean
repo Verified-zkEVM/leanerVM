@@ -31,13 +31,13 @@ abbrev DeferredClaim : Type := BytecodeClaim
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
 exported as: the point, then the value (`DeferredClaim::cells`, `aggregation/deferred.rs:84-88`; the
-guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3542-3547`). -/
+guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3536-3541`). -/
 def DeferredClaim.cells (claim : DeferredClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-! ## The batching program
 
-The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4692-4796`;
+The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4671-4775`;
 `aggregate_deferred_claims`, `aggregation/deferred.rs:244-352`), as a program of the verifier's
 language (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the
 count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then one
@@ -89,7 +89,7 @@ def _root_.LeanVM.Node.padToRate (words : List E) : List E :=
   words ++ List.replicate (zerosToWholeRate words.length) 0
 
 /-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh
-claim and its carried one (`lean_ethereum.py:4754-4768`, `aggregation/deferred.rs:275-279`). -/
+claim and its carried one (`lean_ethereum.py:4733-4747`, `aggregation/deferred.rs:275-279`). -/
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 

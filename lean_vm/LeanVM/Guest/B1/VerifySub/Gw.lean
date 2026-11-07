@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Basic
 # `g^105`
 
 `word_g105`: the word `59373627899904` is `g^105`, the offset of the output lanes' values in
-`col_eval_words` (claims `110 .. 134`, the buffer starting at claim `5`; G:3469).
+`col_eval_words` (claims `110 .. 134`, the buffer starting at claim `5`; G:3463).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

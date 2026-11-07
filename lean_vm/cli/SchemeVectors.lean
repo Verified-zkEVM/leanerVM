@@ -11,7 +11,7 @@ import Statement.Fast.Keccak
 vendors them at the pin (`crates/signatures/tests/signatures/ethlib/xmss` of `../.leanvm`, the
 checkout `../leanvm-tree.sh` makes; the first argument overrides the directory) and on
 leanSPHINCS's known answer (`crates/signatures/src/lean_sphincs/known_answer.hex`, three
-directories above it; leanVM `834e6614` has no EthLib leanSPHINCS vectors):
+directories above it; leanVM `d1c4c8f7` has no EthLib leanSPHINCS vectors):
 
 * by default, leanXMSS's verification (`verify`) and its signature's leaf index
   (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept, and
@@ -120,7 +120,7 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:380-400`; its key's
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:394-414`; its key's
 `SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not evaluate it as
 a closed term at start-up. -/
 def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=
