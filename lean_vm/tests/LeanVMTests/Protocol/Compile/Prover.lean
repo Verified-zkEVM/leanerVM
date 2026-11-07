@@ -69,7 +69,6 @@ def accepts (bits : ℕ) : Option Proof → Bool
 #guard accepts 3 proof?
 #guard proof?.map (·.stream.length) = some 4
 #guard proof?.map (·.openings.length) = some 1
-#guard proof?.map (·.openings.map List.length) = some [1]
 
 /-- Completeness at Keccak: every proof the prover produces is accepted. -/
 theorem proof_accepted {π : Proof} (h : proof? = some π) :
@@ -97,6 +96,18 @@ def smallestNonce (π : Proof) : Bool :=
 def mapOpening (f : Opening → Opening) (π : Proof) : Proof :=
   { π with openings := π.openings.modifyHead (·.modifyHead f) }
 
+/- One phase, of one opening. -/
+#guard proof?.map (·.openings.map List.length) = some [1]
+
+/- A wrong position, the leaf and path left as they are (the position check). -/
+#guard !accepts 3 (proof?.map (mapOpening fun o ↦ { o with leafIndex := o.leafIndex + 2 }))
+
+/- An empty phase in place of the query's. -/
+#guard !accepts 3 (proof?.map fun π ↦ { π with openings := [[]] })
+
+/- An extra phase. -/
+#guard !accepts 3 (proof?.map fun π ↦ { π with openings := π.openings ++ [[]] })
+
 /- A tampered leaf word. -/
 #guard !accepts 3 (proof?.map (mapOpening fun o ↦ { o with leaf := o.leaf.modifyHead (· + 1) }))
 
@@ -121,18 +132,8 @@ def badStrat : Strategy where
 /- A tampered root scalar. -/
 #guard !accepts 3 (proof?.map fun π ↦ { π with stream := π.stream.modify 1 (· + 1) })
 
-/- Another position: the path still climbs to the root at the query's position, and the phase's
-positions are not the queries. -/
-#guard !accepts 3 (proof?.map (mapOpening fun o ↦ { o with leafIndex := o.leafIndex + 1 }))
-
-/- A phase missing. -/
+/- An opening missing. -/
 #guard !accepts 3 (proof?.map fun π ↦ { π with openings := [] })
-
-/- An opening missing from the phase. -/
-#guard !accepts 3 (proof?.map fun π ↦ { π with openings := π.openings.map fun _ ↦ [] })
-
-/- An extra, empty phase. -/
-#guard !accepts 3 (proof?.map fun π ↦ { π with openings := π.openings ++ [[]] })
 
 /- An extra scalar at the end. -/
 #guard !accepts 3 (proof?.map fun π ↦ { π with stream := π.stream ++ [0] })
