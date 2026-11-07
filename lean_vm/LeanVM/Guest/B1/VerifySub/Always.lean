@@ -87,7 +87,7 @@ theorem Always.run {α : Type} {P : α → Prop} (p : VerifierProgram α) :
     · exact ih _ (h _) hr
   | sample k ih =>
     intro st st' a h hr
-    exact ih _ (h _) hr'
+    exact ih _ (h _) hr
   | grind b k ih =>
     intro st st' a h hr
     simp only [runId, Compile.runWithHash] at hr
