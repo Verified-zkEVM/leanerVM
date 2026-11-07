@@ -22,7 +22,8 @@ namespace HashSig
 
 /-! ## The sizes and types both schemes share -/
 
-/-- `n`: a digest's bits (`128`, `16` bytes). -/
+/-- `n`: a digest's bits (`128`, `16` bytes: `N`, `crates/signatures/src/lib.rs:14`, both schemes'
+`N`). -/
 def digestBits : Nat := 128
 /-- `w`: the bits of a Winternitz digit (`2`). -/
 def winternitzBits : Nat := 2

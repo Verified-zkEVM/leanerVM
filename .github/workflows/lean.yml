@@ -405,6 +405,14 @@ jobs:
           lake build leanvm-verify
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
+      # The statement's wire encoding (`Proof.fromBytes`, `Proof.toBytes`) and the pinned Rust's
+      # (`Proof::from_bytes`, `Proof::to_bytes`) must agree on every fixture's wire proof, the Rust
+      # test's vector and mutations of them: the same verdicts and decoded proofs, and the round trip.
+      - name: The wire encoding, Rust-vs-Lean (wire-diff)
+        run: |
+          lake build wire-diff
+          cargo build --release --manifest-path scripts/wire-diff/Cargo.toml
+          python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 4
       # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
       # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
       # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and

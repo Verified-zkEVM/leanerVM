@@ -44,7 +44,7 @@ def SecondOrderInput (input : HashInput) : Prop :=
   ∃ index κ leaf payload, input = fleafInput parameter index κ leaf payload
 
 /-- First-order targets, away from the message-digest inputs (which parse as addresses only with a
-49-byte payload, and no first-order hit has one). -/
+36-byte payload, and no first-order hit has one). -/
 noncomputable def targetsA (tab : TargetAssignment.Table) (input : HashInput) : Finset Digest :=
   if SecondOrderInput parameter results input then ∅
   else if ForsSigner.IsMsgInput input then ∅ else TargetAssignment.targets parameter tab input
@@ -75,7 +75,7 @@ def TwoEdgeAt (key : OtsKey) (chain : ChainIndex) : Prop :=
 
 /-- A cached encoding answer of the key, at a 16-byte message as every verifier encodes, decodes to
 a unit neighbour lowering the chain. The length keeps the input away from the message-digest inputs,
-which only a 49-byte payload (a 45-byte message) could spell. -/
+which only a 36-byte payload (a 32-byte message) could spell. -/
 def MarkerAt (key : OtsKey) (chain : ChainIndex) : Prop :=
   ∃ (message : HashInput) (counter : Counter) (answer : HashOutput) (candidate : Encoding),
     message.length = 16 ∧

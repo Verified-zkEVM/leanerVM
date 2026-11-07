@@ -140,3 +140,11 @@ srcDir = "cli"
 name = "guest-memory"
 root = "GuestMemory"
 srcDir = "cli"
+
+# The statement's proof wire encoding (`Proof.fromBytes`, `Proof.toBytes`), compiled, on byte files
+# (cli/WireDiff.lean); not a default target. scripts/wire-diff.py runs it against the Rust's
+# `Proof::from_bytes` and `Proof::to_bytes` (scripts/wire-diff).
+[[lean_exe]]
+name = "wire-diff"
+root = "WireDiff"
+srcDir = "cli"
