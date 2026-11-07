@@ -328,10 +328,10 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `1126600`) limits any program; it is the
-compiled decoder's size at leanVM `9d8bce81`, `1126129` (proved at most that and measured exactly),
-and a slack of `471`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
+**The size bound** (`guestWitnessDecoderSizeBound`, `1130500`) limits any program; it is the
+compiled decoder's size at leanVM `834e6614`, `1130039` (proved at most that and measured exactly),
+and a slack of `461`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+(the bound was `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
 more frame cells, and `380000` at `ed7d2b9c`, whose had far fewer), so
 no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
 many statements) fits there. That size counts the guest program's per-function tables, literals of

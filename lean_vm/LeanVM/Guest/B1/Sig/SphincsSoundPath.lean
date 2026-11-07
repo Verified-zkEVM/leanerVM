@@ -67,6 +67,14 @@ theorem nIter_congr {node node' : Nat → E → E} : ∀ (m l : Nat) (v : E),
       rw [nIter, nIter, h l le_rfl]
       exact nIter_congr m (l + 1) _ fun j hj => h j (by omega)
 
+/-- `nIter` from level `l`, `m` levels, reads the levels `l ..< l + m` only. -/
+theorem nIter_congr_lt {node node' : Nat → E → E} : ∀ (m l : Nat) (v : E),
+    (∀ j, l ≤ j → j < l + m → node j = node' j) → nIter node l m v = nIter node' l m v
+  | 0, _, _, _ => rfl
+  | m + 1, l, v, h => by
+      rw [nIter, nIter, h l le_rfl (by omega)]
+      exact nIter_congr_lt m (l + 1) _ fun j hj1 hj2 => h j (by omega) (by omega)
+
 /-! ## Address words -/
 
 /-- Limb `1` of an address cell `A1` (`G:493-503`): the height (or chain index) `h` at bit `24`,
