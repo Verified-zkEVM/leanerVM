@@ -28,10 +28,10 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation/` (leanVM `834e6614`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation/hints.rs:59-64`): the node's streams
+`crates/rec_aggregation/src/aggregation/` (leanVM `834e6614`; `aggregation/hints.rs` at `d1c4c8f7`) push
+for push (`honestPushes`, grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
 (`aggregate_with_stats`, `aggregation/node.rs:58-341`), a raw signature's (`lean_xmss_hints`,
-`aggregation/hints.rs:97-132`; `lean_sphincs_hints`, `aggregation/hints.rs:144-180`), a child's
+`aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
 (`gen_verify`, `aggregation/child.rs:64-256`), the batching's (`aggregate_deferred_claims`,
 `aggregation/deferred.rs:244-352`) and LeanDA's.
 
@@ -142,7 +142,7 @@ def listPushes (item : String) (entries : List Entry) : List (String × Entry) :
 
 /-- A codeword's digits as the guest dispatches on them: `size` at a time, then the rest, each
 group's index little endian in base 4, in the exponent (`digit_hints`,
-`aggregation/hints.rs:83-91`). -/
+`aggregation/hints.rs:86-94`). -/
 def digitHints (size : ℕ) (digits : List ℕ) : List Entry :=
   (List.range ((digits.length + size - 1) / size)).map fun i ↦
     [count (((digits.drop (size * i)).take size).foldr (· + 4 * ·) 0)]
@@ -201,19 +201,14 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
-/-- The message's 32 bytes, each in the exponent, one entry (`exponent_bytes(message)`,
-`aggregation/hints.rs:151`): the guest rebuilds the message's cells from them and shifts them into
-`M'`. -/
-def sphincsMessageEntry (message : HashSig.Message) : Entry :=
-  exponentBytes (HashSig.littleEndianBytes 32 message)
-
 /-- The bytes of `H_msg`'s two calls past its `34` (the second call's bytes `2` to `7`), each in the
-exponent, one entry (`exponent_bytes(&digest[DIGEST_BYTES..40])`, `aggregation/hints.rs:156`). -/
+exponent, one entry (`exponent_bytes(&digest[DIGEST_BYTES..SP_LANE_END])`, `SP_LANE_END = 40`,
+`aggregation/hints.rs:40, 156-159`). -/
 def sphincsUnusedEntry (outputs : Sphincs.DigestCall → HashSig.HashOutput) : Entry :=
   (List.range 6).map fun k ↦ count (Sphincs.digestValue outputs / 2 ^ (8 * (34 + k)) % 256)
 
 /-- A counter's four bytes, most significant first, each in the exponent, one entry
-(`exponent_bytes(&counter.to_be_bytes())`, `aggregation/hints.rs:170`). -/
+(`exponent_bytes(&counter.to_be_bytes())`, `aggregation/hints.rs:173`). -/
 def sphincsCounterEntry (counter : Sphincs.EncodingCounter) : Entry :=
   exponentBytes (Sphincs.bigEndianBytes 4 counter)
 
@@ -256,8 +251,8 @@ def sphincsLayer (publicSeed : HashSig.PublicParameter) (index : Sphincs.Index)
   ([("sp_counter", sphincsCounterEntry part.counter)] ++ digitGroups digits ++ starts ++ siblings,
     fold (Sphincs.layerHeight layer))
 
-/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation/hints.rs:144-180`): the
-message's bytes, the randomizer, `H_msg`'s bytes past its `34`, every FORS tree's secret, every
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation/hints.rs:147-183`): the
+randomizer, `H_msg`'s bytes past its `34`, every FORS tree's secret, every
 tree's climb, then each layer's, bottom first, the bottom one-time key signing the FORS key and
 each above the root below. -/
 def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
@@ -277,8 +272,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
   let (bottom, rootB) := sphincsLayer publicSeed index σ 0 forsKey
   let (middle, rootM) := sphincsLayer publicSeed index σ 1 rootB
   let (top, _) := sphincsLayer publicSeed index σ 2 rootM
-  [("sp_msg", sphincsMessageEntry message), ("sp_rand", [cell128 σ.randomizer]),
-    ("sp_unused", sphincsUnusedEntry outputs)] ++ secrets ++ climbs ++ bottom ++ middle ++ top
+  [("sp_rand", [cell128 σ.randomizer]), ("sp_unused", sphincsUnusedEntry outputs)] ++ secrets ++ climbs ++ bottom ++ middle ++ top
 
 /-! ## LeanDA -/
 

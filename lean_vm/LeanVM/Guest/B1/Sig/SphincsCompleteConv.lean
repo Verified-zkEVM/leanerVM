@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteConv
 
   FORS's roots and key in the forms `SphincsSoundFors` computes them (`fRootE` at `key + FORS_TREE`)
-  are the statement-shaped cells of `SphincsBridgeCells` (`forsRootCell`), at leanVM 834e6614.
+  are the statement-shaped cells of `SphincsBridgeCells` (`forsRootCell`), at leanVM d1c4c8f7.
 -/
 
 module
@@ -78,29 +78,29 @@ theorem forsKey_eq (pp a0 : E) (kp : Nat) (s : Nat → Nat) (hs : ∀ c < 24, s 
     exact fRootE_eq pp a0 c.isLt (hs c c.isLt) _ _
   rw [e4, e3, hl]
 
-theorem sForsBit_nb : ∀ k < 240, nbB 1720 (sForsBit k) = true := by decide +kernel
-theorem sVals_nb : ∀ k < 240, nbB 1720 (sVals k) = true := by decide +kernel
+theorem sForsBit_nb : ∀ k < 240, nbB 1379 (sForsBit k) = true := by decide +kernel
+theorem sVals_nb : ∀ k < 240, nbB 1379 (sVals k) = true := by decide +kernel
 /-- **FORS completes** (`ForsBlockCompletes`), from `sForsBlock_complete`. -/
 theorem forsBlockCompletes : ForsBlockCompletes := by
   intro C rd σ tree kp s secret sib hp hpp ha0 hkey hs hbit hval hsec hsib
   have h := sForsBlock_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := sA0B)
-    (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1720) hs hsec hsib σ hp
-    (by unfold sPad; omega) ⟨2, by omega, rfl⟩ ⟨1717, by omega, rfl⟩ ⟨1719, by omega, rfl⟩
+    (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1379) hs hsec hsib σ hp
+    (by unfold sPad; omega) ⟨2, by omega, rfl⟩ ⟨1376, by omega, rfl⟩ ⟨1378, by omega, rfl⟩
     (fun k hk => nbB_ok (sForsBit_nb k hk)) (fun k hk => nbB_ok (sVals_nb k hk)) hpp
     (by rw [ha0]; exact isCanonical128_cellOf128 _) (by rw [hkey]; exact isCanonical128_cellOf128 _)
     hbit hval
-  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (1720 + 1)) sForsBit sVals 1720 24 0
-  have e0 : forsTreeBase 1720 0 = 1720 + 2 := by simp [forsTreeBase]
-  have e24 : forsTreeBase 1720 (0 + 24) = 1720 + 7176 := by simp [forsTreeBase]
+  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (1379 + 1)) sForsBit sVals 1379 24 0
+  have e0 : forsTreeBase 1379 0 = 1379 + 2 := by simp [forsTreeBase]
+  have e24 : forsTreeBase 1379 (0 + 24) = 1379 + 7176 := by simp [forsTreeBase]
   rw [e0, e24] at t1
   rw [e0] at t2
-  show Completes C rd 1720 8977 (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1720).1 σ _
+  show Completes C rd 1379 8636 (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1379).1 σ _
   rw [sForsBlock_eq]
-  generalize sForsTrees sPad sPP sA0B (.n (1720 + 1)) sForsBit sVals 24 0 (1720 + 2) = tr at h t1 t2 ⊢
+  generalize sForsTrees sPad sPP sA0B (.n (1379 + 1)) sForsBit sVals 24 0 (1379 + 2) = tr at h t1 t2 ⊢
   rw [t1, t2] at h ⊢
   obtain ⟨σ', he, ⟨-, hk⟩, hh⟩ := h
   rw [hkey, ha0, forsKey_eq _ _ kp s hs secret sib] at hk
-  have key : ∀ (n : Nat) (R : E), n = 8964 → σ' (.n n) = R → σ' sForsPk = R := by
+  have key : ∀ (n : Nat) (R : E), n = 8623 → σ' (.n n) = R → σ' sForsPk = R := by
     rintro n R rfl hn; exact hn
   refine ⟨σ', he.mono le_rfl (by decide +kernel), key _ _ ?_ hk, hh⟩
   decide +kernel
