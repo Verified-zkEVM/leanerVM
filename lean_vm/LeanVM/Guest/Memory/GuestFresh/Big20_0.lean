@@ -17,7 +17,7 @@ open Core Memory
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `0` to `149`. -/
-def ts20_0 : List ℕ := (38 :: 39 :: 44 :: 45 :: 53 :: 54 :: 63 :: 64 :: 69 :: 70 :: 78 :: 79 :: 87 :: 88 :: 96 :: 97 :: 106 :: 107 :: 112 :: 113 :: 121 :: 122 :: 131 :: 132 :: 137 :: 138 :: 146 :: 147 :: 155 :: 156 :: 164 :: 165 :: 174 :: 175 :: 180 :: 181 :: 189 :: 190 :: 199 :: 200 :: 205 :: 206 :: 214 :: 215 :: 223 :: 224 :: [])
+def ts20_0 : List ℕ := []
 
 set_option maxRecDepth 100000 in
 theorem fresh20_0 : RangeFresh ((Data.core20.body.drop 0).take 150) ts20_0 temps20 := by
@@ -25,7 +25,7 @@ theorem fresh20_0 : RangeFresh ((Data.core20.body.drop 0).take 150) ts20_0 temps
 
 set_option maxRecDepth 100000 in
 /-- The temporaries of statements `150` to `299`. -/
-def ts20_150 : List ℕ := [232, 233, 242, 243, 248, 249, 257, 258, 267, 268, 273, 274, 282, 283, 291, 292, 300, 301]
+def ts20_150 : List ℕ := []
 
 set_option maxRecDepth 100000 in
 theorem fresh20_150 : RangeFresh ((Data.core20.body.drop 150).take 150) ts20_150 temps20 := by
