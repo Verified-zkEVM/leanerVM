@@ -36,10 +36,11 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- **A `KECCAK` atom in the even layouts**: it reads thirteen canonical cells and writes, as
 output `k`, cell `k` of their permutation. -/
-theorem keccak_outs {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ) :
+theorem keccak_outs {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     ins.length = 13 ∧ outs.length = 13 ∧ AllCanonical (ins.map σ) ∧
       ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩ := by
-  obtain ⟨hi, ho, hc, hout⟩ := keccakA_perm h
+  obtain ⟨hi, -, hc, hout⟩ := keccakA_perm h ho
   refine ⟨hi, ho, hc, fun k hk => ?_⟩
   have := congrFun hout ⟨k, hk⟩
   simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
@@ -130,9 +131,10 @@ scalars and the capacity, then `challenge_from_state` on its outputs `0`, `1` fr
 the challenge is `s.squeeze`'s, and the outputs `8..12` its capacity. -/
 theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     (hk : (Atom.keccak ins outs false false).Holds rd σ) (hin : ins.map σ = rateOf s.pend ++ s.cap)
-    (hch : ChallengeOk σ (outs.getD 0 default) (outs.getD 1 default) b) :
+    (hch : ChallengeOk σ (outs.getD 0 default) (outs.getD 1 default) b)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     σ (.n (b + 6)) = s.squeeze.1 ∧ (outs.drop 8).map σ = s.squeeze.2.cap := by
-  obtain ⟨-, ho, -, hout⟩ := keccak_outs hk
+  obtain ⟨-, -, -, hout⟩ := keccak_outs hk ho
   rw [hin] at hout
   refine ⟨challengeT_value hch (hout 0 (by omega)) (hout 1 (by omega)), ?_⟩
   apply List.ext_getElem

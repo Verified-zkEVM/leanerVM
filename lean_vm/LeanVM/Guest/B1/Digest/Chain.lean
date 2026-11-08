@@ -269,7 +269,8 @@ structure ChainSpec where
   final : Bool
   /-- The initial state: the zero state, or thirteen values (`state=`). -/
   init : Option (List V)
-  /-- Each block's thirteen input and thirteen output values. -/
+  /-- Each block's thirteen input values and its output values: thirteen, or the last block of a
+  padded chain two. -/
   blocks : List (List V × List V)
 
 namespace ChainSpec
@@ -292,9 +293,12 @@ def prevV (k c : ℕ) : Option V :=
 /-- The padding of message cell `i`. -/
 def pad (i : ℕ) : ℕ × ℕ := if s.final then padNat s.len i else (0, 0)
 
-/-- Block `k` is a `KECCAK` of the list in its layouts. -/
+/-- Block `k` is a `KECCAK` of the list in its layouts, writing the thirteen cells of the state,
+or, the last block of a padded chain, the digest's two (`keccak_out`'s `out_cells`). -/
 def blockOk (atoms : List Atom) (k : ℕ) : Bool :=
-  (s.blocks.getD k ([], [])).1.length == 13 && (s.blocks.getD k ([], [])).2.length == 13 &&
+  (s.blocks.getD k ([], [])).1.length == 13 &&
+    ((s.blocks.getD k ([], [])).2.length == 13 ||
+      (s.final && k + 1 == s.nb && (s.blocks.getD k ([], [])).2.length == 2)) &&
     atoms.any (isKeccakAt (s.blocks.getD k ([], [])).1 (s.blocks.getD k ([], [])).2 (inLayout k)
       (outLayout s.nb k))
 
@@ -383,8 +387,12 @@ variable {s : ChainSpec} {atoms : List Atom}
 /-- The inputs and outputs of the chain, as `keccak_chain` reads them. -/
 def I (s : ChainSpec) (σ : Val) (k : ℕ) (c : Fin 13) : E := σ (s.inV k c)
 
+/-- The state before block `k`: the initial state's cells, then block `k - 1`'s Keccak-f, whose
+first cells its written values are (`out_of_check`). -/
 def O (s : ChainSpec) (σ : Val) (k : ℕ) (c : Fin 13) : E :=
-  if k = 0 then s.initCell σ c else σ (s.outV (k - 1) c)
+  if k = 0 then s.initCell σ c
+  else cellsOfState (keccakF1600 (stateOfCells (s.I σ (k - 1)) (inLayout (k - 1))))
+    (outLayout s.nb (k - 1)) c
 
 theorem check_parts (h : s.check atoms = true) :
     s.shapeOk = true ∧ ∀ k < s.nb, s.blockOk atoms k = true ∧
@@ -394,27 +402,70 @@ theorem check_parts (h : s.check atoms = true) :
 
 theorem keccak_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
     {k : ℕ} (hk : k < s.nb) :
-    KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) := by
+    KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) .all := by
   obtain ⟨-, hb⟩ := check_parts h
   obtain ⟨hbk, -, -⟩ := hb k hk
   simp only [blockOk, Bool.and_eq_true, beq_iff_eq] at hbk
-  obtain ⟨⟨h1, h2⟩, hk'⟩ := hbk
-  obtain ⟨-, -, hK⟩ := keccak_sound hk' hat
+  obtain ⟨⟨h1, -⟩, hk'⟩ := hbk
+  obtain ⟨-, -, O', hK, -⟩ := keccak_holds_full (keccak_sound hk' hat)
   have e1 : cells13 ((s.blocks.getD k ([], [])).1.map σ) = s.I σ k := funext (cells13_map σ _ h1)
-  have e2 : cells13 ((s.blocks.getD k ([], [])).2.map σ) = s.O σ (k + 1) := by
-    funext c
-    rw [cells13_map σ _ h2]
-    simp [O, outV]
-  rwa [e1, e2] at hK
+  rw [e1] at hK
+  exact ⟨hK.1, fun c _ => by simp [O]⟩
 
-theorem prevV_val (σ : Val) (k c : ℕ) (_hst : ∀ st, s.init = some st → st.length = 13) (hc : c < 13) :
+/-- Block `k`'s written values are the first cells of the state after it. -/
+theorem out_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
+    {k : ℕ} (hk : k < s.nb) (c : Fin 13) (hc : c.val < (s.blocks.getD k ([], [])).2.length) :
+    σ (s.outV k c) = s.O σ (k + 1) c := by
+  obtain ⟨-, hb⟩ := check_parts h
+  obtain ⟨hbk, -, -⟩ := hb k hk
+  simp only [blockOk, Bool.and_eq_true, beq_iff_eq] at hbk
+  obtain ⟨⟨h1, -⟩, hk'⟩ := hbk
+  obtain ⟨-, -, O', hK, hw⟩ := keccak_holds_full (keccak_sound hk' hat)
+  have e1 : cells13 ((s.blocks.getD k ([], [])).1.map σ) = s.I σ k := funext (cells13_map σ _ h1)
+  rw [e1] at hK
+  rw [outV, List.getD_eq_getElem _ _ hc, hw c hc, hK.2 c c.isLt]
+  simp [O]
+
+/-- A block before the last writes the thirteen cells of the state. -/
+theorem outs_13 (h : s.check atoms = true) {k : ℕ} (hk : k + 1 < s.nb) :
+    (s.blocks.getD k ([], [])).2.length = 13 := by
+  obtain ⟨-, hb⟩ := check_parts h
+  obtain ⟨hbk, -, -⟩ := hb k (by omega)
+  simp only [blockOk, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hbk
+  rcases hbk.1.2 with h13 | ⟨⟨-, hl⟩, -⟩
+  · exact h13
+  · omega
+
+/-- The last block writes at least the digest's two cells. -/
+theorem outs_last_two (h : s.check atoms = true) (hnb : 0 < s.nb) :
+    2 ≤ (s.blocks.getD (s.nb - 1) ([], [])).2.length := by
+  obtain ⟨-, hb⟩ := check_parts h
+  obtain ⟨hbk, -, -⟩ := hb (s.nb - 1) (by omega)
+  simp only [blockOk, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hbk
+  rcases hbk.1.2 with h13 | ⟨-, hl⟩ <;> omega
+
+/-- Every block of a chain without padding writes the thirteen cells of the state. -/
+theorem outs_whole (h : s.check atoms = true) (hfin : s.final = false) {k : ℕ} (hk : k < s.nb) :
+    (s.blocks.getD k ([], [])).2.length = 13 := by
+  obtain ⟨-, hb⟩ := check_parts h
+  obtain ⟨hbk, -, -⟩ := hb k hk
+  simp only [blockOk, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, hfin] at hbk
+  rcases hbk.1.2 with h13 | ⟨⟨h', -⟩, -⟩
+  · exact h13
+  · exact absurd h' (by decide)
+
+theorem prevV_val (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) {k : ℕ}
+    (hk : k < s.nb) (c : ℕ) (hc : c < 13) :
     srcVal σ (s.prevV k c) = s.O σ k ⟨c, hc⟩ := by
-  unfold prevV O initCell
-  by_cases hk : k = 0
-  · rw [ite_pos' hk, ite_pos' hk]
+  by_cases hk0 : k = 0
+  · unfold prevV O initCell
+    rw [ite_pos' hk0, ite_pos' hk0]
     cases s.init <;> rfl
-  · rw [ite_neg' hk, ite_neg' hk]
-    rfl
+  · unfold prevV
+    rw [ite_neg' hk0, srcVal]
+    have := out_of_check h hat (k := k - 1) (by omega) ⟨c, hc⟩
+      (by rw [outs_13 h (by omega)]; exact hc)
+    rwa [Nat.sub_add_cancel (by omega)] at this
 
 theorem shape_init (h : s.shapeOk = true) : ∀ st, s.init = some st → st.length = 13 := by
   intro st hst
@@ -429,7 +480,7 @@ theorem rate_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds
   obtain ⟨hs, hb⟩ := check_parts h
   obtain ⟨-, hr, -⟩ := hb k hk
   have := rateOk_sound (hr c hc) hat
-  rw [prevV_val σ k c (shape_init hs) c.isLt] at this
+  rw [prevV_val h hat hk c c.isLt] at this
   exact this
 
 theorem cap_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
@@ -438,7 +489,7 @@ theorem cap_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds 
   obtain ⟨-, -, hcap⟩ := hb k hk
   have hc' := hcap (c.val - 9) (by omega)
   rw [show 9 + (c.val - 9) = c.val by omega] at hc'
-  have hv := prevV_val σ k c (shape_init hs) c.isLt
+  have hv := prevV_val h hat hk c c.isLt
   unfold capAt at hc'
   unfold I
   rw [← hv]
@@ -486,7 +537,8 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
   have hcap : ∀ k < s.len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → s.I σ k c = s.O σ k c :=
     fun k hk c hc => cap_of_check h hat (by rw [hnb]; exact hk) c hc
   have hK : ∀ k < s.len / rate + 1,
-      KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout (s.len / rate + 1) k) :=
+      KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout (s.len / rate + 1) k)
+        .all :=
     fun k hk => by rw [← hnb]; exact keccak_of_check h hat (by rw [hnb]; exact hk)
   have hz : ∀ j, s.len ≤ j → (cellsBytes (s.vals σ)).getD j 0 = 0 := by
     intro j hj
@@ -503,9 +555,15 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
     funext c; simp only [O, ↓reduceIte]; exact h0 c
   have hlen : s.len ≤ 16 * (s.vals σ).length := by rw [hvl]; exact hle
   have hdig := keccak_final_digest hpre hlen hz hO0 hrate hcap hK
-  have hout : ∀ c : Fin 13, s.O σ (s.len / rate + 1) c = σ (s.outV (s.nb - 1) c) := fun c => by
-    simp [O, hnb]
-  rw [hout, hout] at hdig
+  have hout : ∀ c : Fin 13, c.val < 2 → s.O σ (s.len / rate + 1) c = σ (s.outV (s.nb - 1) c) :=
+    fun c hc => by
+      have hpos : 0 < s.nb := by rw [hnb]; exact Nat.succ_pos _
+      have hk1 : s.nb - 1 < s.nb := by omega
+      have h2 := outs_last_two h hpos
+      have := out_of_check h hat hk1 c (by omega)
+      rw [Nat.sub_add_cancel hpos] at this
+      rw [← hnb, this]
+  rw [hout 0 (by decide), hout 1 (by decide)] at hdig
   have hm : s.len = 16 * (s.len / 16) := by omega
   refine ⟨?_, ?_⟩
   · show (σ (s.outV (s.nb - 1) ((0 : Fin 13) : ℕ)), σ (s.outV (s.nb - 1) ((1 : Fin 13) : ℕ))) = _
@@ -529,7 +587,7 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
       by_cases hk0 : 2 * i / 17 = 0
       · rw [hk0, hO0]; exact isCanonical128_cellsOfState _ _ _
       · obtain ⟨k', hk'⟩ : ∃ k', 2 * i / 17 = k' + 1 := ⟨2 * i / 17 - 1, by omega⟩
-        rw [hk', (hK k' (by omega)).2 c]
+        rw [hk', (hK k' (by omega)).2 c c.isLt]
         exact isCanonical128_cellsOfState _ _ _
     have hP := isCanonical128_of_add (by rwa [add_comm] at hcanI) hcanO
     rw [hci, padCells_getD _ _ (by unfold padRead; omega)] at hP
@@ -562,7 +620,8 @@ theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
     rfl
   have hcap : ∀ k < s.nb, ∀ c : Fin 13, 9 ≤ c.val → s.I σ k c = s.O σ k c :=
     fun k hk c hc => cap_of_check h hat hk c hc
-  have hK : ∀ k < s.nb, KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k) :=
+  have hK : ∀ k < s.nb, KeccakCellsRelation (s.I σ k) (inLayout k) (s.O σ (k + 1)) (outLayout s.nb k)
+      .all :=
     fun k hk => keccak_of_check h hat hk
   have hO0 : s.O σ 0 = cellsOfState (absorbChunks n zeroState pre) false := by
     funext c; simp only [O, ↓reduceIte]; exact h0 c
@@ -570,7 +629,10 @@ theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
   obtain ⟨hw, hl⟩ := keccak_whole hpre hB' hO0 hrate hcap hK
   refine ⟨fun c => ?_, hl, ?_⟩
   · have : s.O σ s.nb c = σ (s.outV (s.nb - 1) c) := by
-      simp [O, show s.nb ≠ 0 by omega]
+      have := out_of_check h hat (k := s.nb - 1) (by omega) c
+        (by rw [outs_whole h hfin (by omega)]; exact c.isLt)
+      rw [Nat.sub_add_cancel (by omega)] at this
+      exact this.symm
     rw [← this, hw]
   · intro x hx
     obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hx
@@ -588,7 +650,7 @@ theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
       by_cases hk0 : 2 * i / 17 = 0
       · rw [hk0, hO0]; exact isCanonical128_cellsOfState _ _ _
       · obtain ⟨k', hk'⟩ : ∃ k', 2 * i / 17 = k' + 1 := ⟨2 * i / 17 - 1, by omega⟩
-        rw [hk', (hK k' (by omega)).2 c]
+        rw [hk', (hK k' (by omega)).2 c c.isLt]
         exact isCanonical128_cellsOfState _ _ _
     have hP := isCanonical128_of_add (by rwa [add_comm] at hcanI) hcanO
     rwa [hci, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hvl]; omega),
