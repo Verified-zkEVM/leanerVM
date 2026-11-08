@@ -49,7 +49,7 @@ noncomputable def mPost : List Stmt := ((Fn.body Data.core0).drop 663).take 11
 
 set_option maxRecDepth 100000 in
 theorem core0_shape : Fn.body Data.core0 =
-    mPre ++ [.ite (.n 389) mDa mDaZ] ++ mMid ++ [.ite (.n 451) mLeaf mAgg] ++ mPost ++ [.ret []] :=
+    mPre ++ [.ite (.n 389) mDa mDaZ] ++ mMid ++ [.ite (.n 440) mLeaf mAgg] ++ mPost ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-! ## The facts, by evaluation -/
@@ -118,44 +118,44 @@ noncomputable def daOk : Bool :=
 noncomputable def daZOk : Bool :=
   let A := atomsIn mDaZ
   mDaZ.all Stmt.flat &&
-  A.any (isConstAt (.n 413) 0 0) && isLoad A (.n 413) (.n 387) 0 &&
-  A.any (isConstAt (.n 414) 0 0) && isLoad A (.n 414) (.n 387) 1
+  A.any (isConstAt (.n 402) 0 0) && isLoad A (.n 402) (.n 387) 0 &&
+  A.any (isConstAt (.n 403) 0 0) && isLoad A (.n 403) (.n 387) 1
 
 noncomputable def midOk : Bool :=
   let M := mMid
   let A := atomsIn mMid
   M.all Stmt.flat &&
-  isMul A (.n 432) (.n 2) (.n 5) && isLoad A (.n 432) (.n 431) 0 &&
-  guardOk M (.n 434) "__loop4" (.n 435) (.n 6) [.n 431, .n 52, .n 66, .n 40, .n 55, .n 67,
-    .n 41, .n 428, .n 385, .n 47, .n 48, .n 416, .n 49, .n 422] &&
-  isMul A (.n 436) (.n 431) (.n 6) && isLoad A (.n 437) (.n 436) 0 &&
-  A.any (isAssertEqAt (.n 437) (.n 42)) &&
-  decide (rcOf A (.n 438) = some (.n 6)) &&
-  A.any (isAddAt (.n 442) (.n 438) (.n 6)) && A.any (isAddAt (.n 444) (.n 7) (.n 443)) &&
-  A.any (isConstAt (.n 443) 1 0) && isMul A (.n 445) (.n 442) (.n 444) &&
-  A.any (isConstAt (.n 446) 0 0) && A.any (isAssertEqAt (.n 445) (.n 446)) &&
-  isMul A (.n 447) (.n 438) (.n 438) && isMul A (.n 448) (.n 385) (.n 447) &&
-  A.any (isAddAt (.n 451) (.n 6) (.n 450)) && A.any (isConstAt (.n 450) 1 0)
+  isMul A (.n 421) (.n 2) (.n 5) && isLoad A (.n 421) (.n 420) 0 &&
+  guardOk M (.n 423) "__loop4" (.n 424) (.n 6) [.n 420, .n 52, .n 66, .n 40, .n 55, .n 67,
+    .n 41, .n 417, .n 385, .n 47, .n 48, .n 405, .n 49, .n 411] &&
+  isMul A (.n 425) (.n 420) (.n 6) && isLoad A (.n 426) (.n 425) 0 &&
+  A.any (isAssertEqAt (.n 426) (.n 42)) &&
+  decide (rcOf A (.n 427) = some (.n 6)) &&
+  A.any (isAddAt (.n 431) (.n 427) (.n 6)) && A.any (isAddAt (.n 433) (.n 7) (.n 432)) &&
+  A.any (isConstAt (.n 432) 1 0) && isMul A (.n 434) (.n 431) (.n 433) &&
+  A.any (isConstAt (.n 435) 0 0) && A.any (isAssertEqAt (.n 434) (.n 435)) &&
+  isMul A (.n 436) (.n 427) (.n 427) && isMul A (.n 437) (.n 385) (.n 436) &&
+  A.any (isAddAt (.n 440) (.n 6) (.n 439)) && A.any (isConstAt (.n 439) 1 0)
 
 noncomputable def leafOk : Bool :=
   mLeaf.all Stmt.flat &&
-  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (453 + k)) 0 0) &&
-    isLoad (atomsIn mLeaf) (.n (453 + k)) (.n 449) k) &&
-  isLoad (atomsIn mLeaf) (.n 452) (.n 449) 23 &&
+  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (442 + k)) 0 0) &&
+    isLoad (atomsIn mLeaf) (.n (442 + k)) (.n 438) k) &&
+  isLoad (atomsIn mLeaf) (.n 441) (.n 438) 23 &&
   mAgg.all Stmt.flat &&
-  hasCall mAgg "aggregate_claims" [.n 6, .n 416, .n 422, .n 428, .n 449] []
+  hasCall mAgg "aggregate_claims" [.n 6, .n 405, .n 411, .n 417, .n 438] []
 
 noncomputable def postOk : Bool :=
   let A := atomsIn mPost
   mPost.all Stmt.flat &&
-  isLoad A (.n 476) (.n 448) 0 && isLoad A (.n 477) (.n 448) 1 &&
-  hasCall mPost "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 476, .n 477, .n 449]
-    [.n 478, .n 479] &&
-  A.any (isConstAt (.n 480) 1 0) && isLoad A (.n 481) (.n 480) 0 &&
-  A.any (isAssertEqAt (.n 481) (.n 478)) &&
-  A.any (isConstAt (.n 482) 1 0) && A.any (isConstAt (.n 483) 2 0) &&
-  isMul A (.n 484) (.n 482) (.n 483) && isLoad A (.n 485) (.n 484) 0 &&
-  A.any (isAssertEqAt (.n 485) (.n 479))
+  isLoad A (.n 465) (.n 437) 0 && isLoad A (.n 466) (.n 437) 1 &&
+  hasCall mPost "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 465, .n 466, .n 438]
+    [.n 467, .n 468] &&
+  A.any (isConstAt (.n 469) 1 0) && isLoad A (.n 470) (.n 469) 0 &&
+  A.any (isAssertEqAt (.n 470) (.n 467)) &&
+  A.any (isConstAt (.n 471) 1 0) && A.any (isConstAt (.n 472) 2 0) &&
+  isMul A (.n 473) (.n 471) (.n 472) && isLoad A (.n 474) (.n 473) 0 &&
+  A.any (isAssertEqAt (.n 474) (.n 468))
 
 set_option maxRecDepth 100000 in
 theorem pre_ok : preOk = true := by decide +kernel

@@ -35,15 +35,15 @@ set_option maxRecDepth 100000 in
 theorem core24_shape : Fn.body Data.core24 =
     [.atom (.const (.n 5) (word 1 0 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
      .ite (.n 6) cc25Zero
-      [.call "list_split" [.n 4] [.n 26, .n 27, .n 28],
-       .atom (.hint (.witness "child_mono" (.stack [.n 29]))),
-       .atom (.const (.n 30) (word 2 0 0)), .atom (.add (.n 31) (.n 29) (.n 30)),
-       .ite (.n 31)
-        [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 26, .n 27, .n 28] [.n 32, .n 33],
-         .atom (.copy (.n 13) (.n 32)), .atom (.copy (.n 14) (.n 33))]
-        [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 26, .n 27, .n 28] [.n 34, .n 35],
-         .atom (.copy (.n 13) (.n 34)), .atom (.copy (.n 14) (.n 35))]],
-     .atom (.copy (.n 36) (.n 13)), .atom (.copy (.n 37) (.n 14)), .ret [.n 36, .n 37]] :=
+      [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
+       .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
+       .atom (.const (.n 19) (word 2 0 0)), .atom (.add (.n 20) (.n 18) (.n 19)),
+       .ite (.n 20)
+        [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 21, .n 22],
+         .atom (.copy (.n 13) (.n 21)), .atom (.copy (.n 14) (.n 22))]
+        [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 23, .n 24],
+         .atom (.copy (.n 13) (.n 23)), .atom (.copy (.n 14) (.n 24))]],
+     .atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) (.n 14)), .ret [.n 25, .n 26]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
@@ -120,7 +120,7 @@ theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
     obtain ⟨h26, h27, h28⟩ := habc
     simp only [maxKeys, claimGroup, bigGroups] at ha hb hc
     refine ⟨136 * a + 17 * b + c, by simp only [claimBig, maxKeys]; omega, by rw [hn], ?_⟩
-    by_cases h31 : σ (.n 31) = 0
+    by_cases h31 : σ (.n 20) = 0
     · -- the gap walk
       obtain ⟨hcall, c13, c14, c36, c37, hr⟩ := hmono h31
       obtain ⟨entries, region, base, limit, bigs, groups, rest, hargs, hw⟩ :=

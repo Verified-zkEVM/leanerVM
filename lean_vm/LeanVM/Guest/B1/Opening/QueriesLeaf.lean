@@ -166,14 +166,68 @@ theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}
   have hcl : cells.length = s.ncells := by simp [hcells]
   have hcg : ∀ m < s.ncells, cells.getD m 0 = σ (.n (oqPk b s.R m)) := fun m hm => by
     simp [hcells, List.getD_eq_getElem?_getD, hm]
+  -- each block's permutation: canonical reads, its written cells the first of its Keccak-f
+  have hblk : ∀ k < s.B, (∀ c, IsCanonical128 (oqLeafI s b pr kL σ k c)) ∧
+      ∀ c : Fin 13, c.val < oqOutN s k → σ (.n (oqOut s kL k c)) = cellsOfState
+        (keccakF1600 (stateOfCells (oqLeafI s b pr kL σ k) (Keccak.inLayout k)))
+        (Keccak.outLayout s.B k) c := by
+    intro k hk
+    rcases k with _ | k
+    · have h := hA _ (mem_oqLeafT hk (by simp [oqBlockT] : Stmt.atom (.keccak
+        (((List.range 9).map fun c ↦ V.n (oqPk b s.R c)) ++
+          [.n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)])
+        ((List.range (oqOutN s 0)).map fun c ↦ V.n (oqOut s kL 0 c)) (Keccak.inLayout 0)
+        (Keccak.outLayout s.B 0)) ∈ _))
+      obtain ⟨-, -, O, hK, hw⟩ := keccak_holds_full h
+      have eI : cells13 ((((List.range 9).map fun c ↦ V.n (oqPk b s.R c)) ++
+          [V.n (pr + 1), V.n (pr + 2), V.n (pr + 3), V.n (pr + 4)]).map σ) = oqLeafI s b pr kL σ 0 := by
+        funext c
+        fin_cases c <;> simp [cells13, List.range_succ, oqLeafI]
+      rw [eI] at hK
+      refine ⟨hK.1, fun c hc => ?_⟩
+      have := hw c (by simpa using hc)
+      simp only [List.getElem_map, List.getElem_range] at this
+      rw [this, hK.2 c c.isLt]
+    · have h := hA _ (mem_oqLeafT hk (by simp [oqBlockT] : Stmt.atom (.keccak
+        (((List.range 9).map fun c ↦ V.n (oqIn s kL (k + 1) c)) ++
+          ((List.range 4).map fun c ↦ V.n (oqOut s kL k (9 + c))))
+        ((List.range (oqOutN s (k + 1))).map fun c ↦ V.n (oqOut s kL (k + 1) c))
+        (Keccak.inLayout (k + 1)) (Keccak.outLayout s.B (k + 1))) ∈ _))
+      obtain ⟨-, -, O, hK, hw⟩ := keccak_holds_full h
+      have eI : cells13 ((((List.range 9).map fun c ↦ V.n (oqIn s kL (k + 1) c)) ++
+          ((List.range 4).map fun c ↦ V.n (oqOut s kL k (9 + c)))).map σ) =
+            oqLeafI s b pr kL σ (k + 1) := by
+        funext c; rw [cells13_block]
+        simp only [oqLeafI]
+        split
+        · rfl
+        · rename_i hc
+          rw [show 9 + (c.val - 9) = c.val by omega]
+      rw [eI] at hK
+      refine ⟨hK.1, fun c hc => ?_⟩
+      have := hw c (by simpa using hc)
+      simp only [List.getElem_map, List.getElem_range] at this
+      rw [this, hK.2 c c.isLt]
+  -- the true states: block `k - 1`'s Keccak-f; before the last block, its written cells
+  let O' : ℕ → Fin 13 → E := fun k c => if k = 0 then 0 else
+    cellsOfState (keccakF1600 (stateOfCells (oqLeafI s b pr kL σ (k - 1)) (Keccak.inLayout (k - 1))))
+      (Keccak.outLayout s.B (k - 1)) c
+  have hOO : ∀ k < s.B, O' k = oqLeafO s kL σ k := by
+    intro k hk
+    funext c
+    rcases k with _ | k
+    · rfl
+    · simp only [O', Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel, oqLeafO]
+      exact ((hblk k (by omega)).2 c (by simp [oqOutN, show k + 1 ≠ s.B by omega])).symm
   have hB : 16 * s.ncells / rate + 1 = s.B := rfl
   have key := keccak_final_digest (cells := cells) (len := 16 * s.ncells) (pre := []) (n := 0)
-    (I := oqLeafI s b pr kL σ) (O := oqLeafO s kL σ) (by rfl) (by rw [hcl])
+    (I := oqLeafI s b pr kL σ) (O := O') (by rfl) (by rw [hcl])
     (getD_cellsBytes_of_le (by rw [hcl]))
-    (by funext c; simp [oqLeafO, absorbChunks, cellsOfState_zero])
+    (by funext c; simp [O', absorbChunks, cellsOfState_zero])
     (by
       intro k hk c hc
       rw [hB] at hk
+      rw [hOO k hk]
       rw [getD_padCells_leaf hL cells hcl _ (by
         rcases k with _ | k
         · omega
@@ -216,6 +270,7 @@ theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}
             rw [e2, e1])
     (by
       intro k hk c hc
+      rw [hOO k (by rw [hB] at hk; exact hk)]
       rcases k with _ | k
       · simp only [oqLeafI, oqLeafO, show ¬ c.val < 9 by omega, ↓reduceIte]
         have := hz (c.val - 9) (by omega)
@@ -223,49 +278,20 @@ theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}
       · simp [oqLeafI, oqLeafO, show ¬ c.val < 9 by omega])
     (by
       intro k hk
-      rw [hB] at hk
-      rcases k with _ | k
-      · have h := hA _ (mem_oqLeafT hk (by simp [oqBlockT] : Stmt.atom (.keccak
-          (((List.range 9).map fun c ↦ V.n (oqPk b s.R c)) ++
-            [.n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)])
-          ((List.range 13).map fun c ↦ V.n (oqOut s kL 0 c)) (Keccak.inLayout 0)
-          (Keccak.outLayout s.B 0)) ∈ _))
-        obtain ⟨-, -, hK⟩ := h
-        have eI : cells13 ((((List.range 9).map fun c ↦ V.n (oqPk b s.R c)) ++
-            [V.n (pr + 1), V.n (pr + 2), V.n (pr + 3), V.n (pr + 4)]).map σ) = oqLeafI s b pr kL σ 0 := by
-          funext c
-          fin_cases c <;> simp [cells13, List.range_succ, oqLeafI]
-        have eO : cells13 (((List.range 13).map fun c ↦ V.n (oqOut s kL 0 c)).map σ) =
-            oqLeafO s kL σ 1 := by funext c; rw [cells13_outs]; rfl
-        rw [eI, eO] at hK
-        exact hK
-      · have h := hA _ (mem_oqLeafT hk (by simp [oqBlockT] : Stmt.atom (.keccak
-          (((List.range 9).map fun c ↦ V.n (oqIn s kL (k + 1) c)) ++
-            ((List.range 4).map fun c ↦ V.n (oqOut s kL k (9 + c))))
-          ((List.range 13).map fun c ↦ V.n (oqOut s kL (k + 1) c)) (Keccak.inLayout (k + 1))
-          (Keccak.outLayout s.B (k + 1))) ∈ _))
-        obtain ⟨-, -, hK⟩ := h
-        have eI : cells13 ((((List.range 9).map fun c ↦ V.n (oqIn s kL (k + 1) c)) ++
-            ((List.range 4).map fun c ↦ V.n (oqOut s kL k (9 + c)))).map σ) =
-              oqLeafI s b pr kL σ (k + 1) := by
-          funext c; rw [cells13_block]
-          simp only [oqLeafI]
-          split
-          · rfl
-          · rename_i hc
-            rw [show 9 + (c.val - 9) = c.val by omega]
-        have eO : cells13 (((List.range 13).map fun c ↦ V.n (oqOut s kL (k + 1) c)).map σ) =
-            oqLeafO s kL σ (k + 2) := by funext c; rw [cells13_outs]; rfl
-        rw [eI, eO] at hK
-        exact hK)
+      rw [hB] at hk ⊢
+      exact ⟨(hblk k hk).1, fun c _ => by simp [O']⟩)
   rw [hB, List.nil_append, List.take_of_length_le (by simp [hcl]), hcells] at key
   have hpk' : (List.range s.ncells).map (fun j ↦ σ (.n (oqPk b s.R j))) =
       (List.range s.ncells).map fun j ↦ E.ofLimbs (row.getD (2 * j) 0) (row.getD (2 * j + 1) 0) 0 :=
     List.map_congr_left fun j hj => hpk j (List.mem_range.mp hj)
   rw [hpk', cellsBytes_packed row s.ncells hrow] at key
+  have hlast : ∀ c : Fin 13, c.val < 2 → O' s.B c = σ (.n (oqOut s kL (s.B - 1) c)) := fun c hc => by
+    have := (hblk (s.B - 1) (by have := hL.B2; omega)).2 c
+      (by simp [oqOutN, show s.B - 1 + 1 = s.B by have := hL.B2; omega]; omega)
+    simp only [O', show s.B ≠ 0 by have := hL.B2; omega, ↓reduceIte]
+    exact this.symm
+  rw [hlast 0 (by decide), hlast 1 (by decide)] at key
   rw [merkleLeafDigest, ← key]
-  obtain ⟨B', hB'⟩ : ∃ B', s.B = B' + 1 := ⟨s.B - 1, by have := hL.B2; omega⟩
-  rw [hB', Nat.add_sub_cancel]
   rfl
 
 end

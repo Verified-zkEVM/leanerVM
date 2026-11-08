@@ -65,7 +65,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
     · simp only [length_memRun] at hj
       simp only [memRun, List.getElem_map, List.getElem_range]
       exact hloads j hj
-    · have hr : [σ (.n 1751), σ (.n 1752), σ (.n 1753)] = rets := hrets
+    · have hr : [σ (.n 1740), σ (.n 1741), σ (.n 1742)] = rets := hrets
       rw [← hr, copy_sound hcp hC, hsum]
       have hv : ((cellSpec (A.drop 1280)).vals σ).take ((cellSpec (A.drop 1280)).len / 16) =
           (List.range 128).map fun e => σ (.n (packV e)) := by
@@ -82,7 +82,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rw [hb] at hd
       have hl : ∀ a b c : E, [a, b, c] = [a, b] ++ [c] := fun _ _ _ => rfl
       rw [hl, ← hd]
-      refine congrArg (fun x => [σ (.n 1751), σ (.n 1752)] ++ [x]) ?_
+      refine congrArg (fun x => [σ (.n 1740), σ (.n 1741)] ++ [x]) ?_
       simp only [LeanDa.cellSymbols]
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj

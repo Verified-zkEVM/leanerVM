@@ -491,7 +491,7 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
     by_cases hk0 : k = 0
     · subst hk0
       simp only [↓reduceIte] at hwalk
-      have h38 : σ (.n 38) = σ (V.n 1) * gen ^ O := loadHolds_unique (load_sound hwalk hat) hc13
+      have h38 : σ (.n 27) = σ (V.n 1) * gen ^ O := loadHolds_unique (load_sound hwalk hat) hc13
       have hv : (mlSpec 0 atoms).vals σ = [] := by simp [ChainSpec.vals, mlSpec, monoMsg]
       rw [hv] at hdig
       exact ⟨[], [], O, rfl, monoWalk_nil O, monoAt_nil rd _ _ _, fun _ h => absurd h (by simp),
