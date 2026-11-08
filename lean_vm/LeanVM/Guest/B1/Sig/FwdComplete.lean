@@ -48,7 +48,8 @@ def aReads : Atom → List V
 /-- An atom evaluation defines. -/
 def DefOK : Atom → Prop
   | .const _ _ | .add _ _ _ | .mul _ _ _ | .copy _ _ => True
-  | .keccak ins outs _ _ => ins.length = 13 ∧ outs.length = 13 ∧ outs.Nodup
+  | .keccak ins outs _ _ =>
+      ins.length = 13 ∧ (outs.length = 1 ∨ outs.length = 2 ∨ outs.length = 13) ∧ outs.Nodup
   | .hint (.witness _ (.stack _)) => True
   | _ => False
 
@@ -151,13 +152,14 @@ theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a,
       rw [Function.update_of_ne h1]
   case keccak ins outs inOdd outOdd =>
       obtain ⟨hl, ho, hn⟩ := hd
+      obtain ⟨oc, ho⟩ := exists_cellCount ho
       have hins : ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
         List.map_congr_left fun v hv => updL_of_not_mem σ outs _ fun h => hr v h hv
-      refine ⟨hl, ho, ?_⟩
+      refine ⟨hl, oc, ho, ?_⟩
       show KeccakCellsRelation (cells13 (ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) inOdd
-        (cells13 (outs.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) outOdd
+        (cells13 (outs.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) outOdd oc
       rw [hins]
-      refine ⟨hc ins outs inOdd outOdd rfl, fun c => ?_⟩
+      refine ⟨hc ins outs inOdd outOdd rfl, fun c hco => ?_⟩
       simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
       rw [List.getElem?_eq_getElem (by omega), Option.map_some, Option.getD_some,
         updL_at σ outs _ hn c (by omega), kOut]

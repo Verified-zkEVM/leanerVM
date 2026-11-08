@@ -130,16 +130,16 @@ theorem logHeights_tableRows (s : Sizes) :
 order. -/
 def pyCol (c : Col) : ℕ := columns.idxOf c
 
-/-- The instance has `163` columns, as the Python. -/
-theorem length_columns : columns.length = 163 := by decide +kernel
+/-- The instance has `165` columns, as the Python. -/
+theorem length_columns : columns.length = 165 := by decide +kernel
 
 /-- Every column is in the global order. -/
 theorem mem_columns (c : Col) : c ∈ columns := by
   simp only [columns, List.mem_flatMap, List.mem_finRange, List.mem_map, true_and]
   exact ⟨c.1, c.2, rfl⟩
 
-/-- A global column number is below `163`. -/
-theorem pyCol_lt (c : Col) : pyCol c < 163 :=
+/-- A global column number is below `165`. -/
+theorem pyCol_lt (c : Col) : pyCol c < 165 :=
   length_columns ▸ List.idxOf_lt_length_of_mem (mem_columns c)
 
 /-- The column at a global number. -/
@@ -225,7 +225,7 @@ theorem buildLayout_eq (prog : LeanIsaProgram) (s : Sizes) :
 
 /-- The instance's widths, table by table. -/
 theorem width_vals : width 0 = 4 ∧ width 1 = 1 ∧ width 2 = 1 ∧ width 3 = 15 ∧ width 4 = 15 ∧
-    width 5 = 8 ∧ width 6 = 15 ∧ width 7 = 14 ∧ width 8 = 90 := by
+    width 5 = 8 ∧ width 6 = 15 ∧ width 7 = 14 ∧ width 8 = 92 := by
   decide +kernel
 
 /-- A function of the table, along the global order. -/
@@ -261,28 +261,27 @@ theorem getD_pyKappas (prog : LeanIsaProgram) (s : Sizes) (c : Col) :
     exact pyCol_lt c
   rw [pyKappas_eq, List.getD_eq_getElem _ _ h, List.getElem_map, getElem_columns_pyCol]
 
-/-- The Python has `163` columns. -/
-theorem length_pyKappas (prog : LeanIsaProgram) (s : Sizes) : (pyKappas prog s).length = 163 := by
+/-- The Python has `165` columns. -/
+theorem length_pyKappas (prog : LeanIsaProgram) (s : Sizes) : (pyKappas prog s).length = 165 := by
   rw [pyKappas_eq, List.length_map, length_columns]
 
-/-- The `q_keccak` slot of a global column below `163`: lane `l`'s for input lane `l` (global
-columns `86 … 110`), `50 + k` for the `KECCAK` table's column `k < 13` (global `73 … 85`), `63` for
-its `cnt_0` (global `136`), none otherwise. Checked in the kernel. -/
-theorem keccakSlot_lt : ∀ c : Fin 163,
-    keccakSlot c = if 86 ≤ c.val ∧ c.val < 111 then some (c.val - 86)
-      else if 73 ≤ c.val ∧ c.val < 86 then some (c.val - 23)
-      else if c.val = 136 then some 63 else none := by
+/-- The `q_keccak` slot of a global column below `165`: lane `l`'s for input lane `l` (global
+columns `88 … 112`), `50 + k` for the `KECCAK` table's column `k < 14` (global `73 … 86`), none
+otherwise. Checked in the kernel. -/
+theorem keccakSlot_lt : ∀ c : Fin 165,
+    keccakSlot c = if 88 ≤ c.val ∧ c.val < 113 then some (c.val - 88)
+      else if 73 ≤ c.val ∧ c.val < 87 then some (c.val - 23) else none := by
   decide +kernel
 
-/-- The output lanes are global columns `111 … 135`. -/
-theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (111 + ·) := by
+/-- The output lanes are global columns `113 … 137`. -/
+theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (113 + ·) := by
   decide +kernel
 
-/-- The instance's input lanes are global columns `86 … 110`, its output lanes `111 … 135`, its
-spare columns `73 … 85` and `136`. -/
-theorem pyCol_lanes : ∀ c : Col, (IsLane c ∧ ¬ IsOut c ↔ 86 ≤ pyCol c ∧ pyCol c < 111) ∧
-    (IsOut c ↔ 111 ≤ pyCol c ∧ pyCol c < 136) ∧
-    (IsSpare c ↔ (73 ≤ pyCol c ∧ pyCol c < 86) ∨ pyCol c = 136) ∧
+/-- The instance's input lanes are global columns `88 … 112`, its output lanes `113 … 137`, its
+spare columns `73 … 86`. -/
+theorem pyCol_lanes : ∀ c : Col, (IsLane c ∧ ¬ IsOut c ↔ 88 ≤ pyCol c ∧ pyCol c < 113) ∧
+    (IsOut c ↔ 113 ≤ pyCol c ∧ pyCol c < 138) ∧
+    (IsSpare c ↔ 73 ≤ pyCol c ∧ pyCol c < 87) ∧
     (IsVirtual c → pyCol c = 73 + c.2.val) := by
   decide +kernel
 
@@ -297,25 +296,21 @@ theorem keccakSlot_pyCol (c : Col) :
   by_cases h : IsVirtual c ∧ ¬ IsOut c
   · rw [ite_eq_left h]
     have hv := hval h.1
-    have hq : (qSlot c).val = if c.2.val < 13 then 50 + c.2.val else
-        if c.2.val < 63 then (c.2.val - 13) % 25 else 63 := rfl
+    have hq : (qSlot c).val = if c.2.val < 14 then 50 + c.2.val else
+        if c.2.val < 65 then (c.2.val - 15) % 25 else 0 := rfl
     rw [hq]
     rcases h.1.lane_or_spare with hl | hs
-    · have h86 := hin.mp ⟨hl, h.2⟩
+    · have h88 := hin.mp ⟨hl, h.2⟩
       have := hl.2.1
-      rw [ite_eq_left h86]
+      rw [ite_eq_left h88]
       congr 1
       split_ifs <;> omega
-    · rcases hsp.mp hs with h' | h'
-      · rw [ite_eq_right (by omega), ite_eq_left h']
-        congr 1
-        split_ifs <;> omega
-      · rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left h']
-        congr 1
-        split_ifs <;> omega
+    · have h' := hsp.mp hs
+      rw [ite_eq_right (by omega), ite_eq_left h']
+      congr 1
+      split_ifs <;> omega
   · rw [ite_eq_right h, ite_eq_right (fun h' ↦ h ⟨(hin.mpr h').1.isVirtual, (hin.mpr h').2⟩),
-      ite_eq_right (fun h' ↦ h ⟨(hsp.mpr (.inl h')).isVirtual, (hsp.mpr (.inl h')).not_isOut⟩),
-      ite_eq_right (fun h' ↦ h ⟨(hsp.mpr (.inr h')).isVirtual, (hsp.mpr (.inr h')).not_isOut⟩)]
+      ite_eq_right (fun h' ↦ h ⟨(hsp.mpr h').isVirtual, (hsp.mpr h').not_isOut⟩)]
 
 /-- A global column is an output lane exactly when its instance column is. -/
 theorem mem_keccakOutputColumns_pyCol (c : Col) :
@@ -324,11 +319,11 @@ theorem mem_keccakOutputColumns_pyCol (c : Col) :
   simp only [List.mem_map, List.mem_range]
   constructor
   · rintro ⟨l, hl, he⟩; omega
-  · intro h; exact ⟨pyCol c - 111, by omega, by omega⟩
+  · intro h; exact ⟨pyCol c - 113, by omega, by omega⟩
 
 /-- The Python's committed columns (`block_cols`) are the instance's, in global order. -/
 theorem blockCols_eq :
-    (List.range 163).filter (fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns) =
+    (List.range 165).filter (fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns) =
       committedColumns.map pyCol := by
   decide +kernel
 

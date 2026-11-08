@@ -30,7 +30,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
     (hk : k < 4 ^ n) (hB : B ≤ b + 6) (hpi : NBv B prodIn) (hei : NBv B encIn)
     (hpw : NBv B (W.power (digitSum k n))) (σ : Val) (hg : good σ)
     (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd (b + 6) (armB W first n fold prodIn encIn b (4 ^ n))
       (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
@@ -52,7 +52,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
     rw [armB_zero] at hs ⊢
     simp only [↓reduceIte] at hs ⊢
     obtain ⟨l1, l2, l3⟩ := arm0_lay W fold (n := n) hB
-    have hR : ∀ x, WalksR (slotsT W fold b) (W.size + 13) 0 n (if fold then b + 6 + 1 else b + 6) x →
+    have hR : ∀ x, WalksR (slotsT W fold b) (W.size + 1) 0 n (if fold then b + 6 + 1 else b + 6) x →
         x ≠ .n (groupStart fold b + chainStride W * n) ∧
         x ≠ .n (groupStart fold b + chainStride W * n + 1) ∧ (fold = true → x ≠ .n (b + 6)) ∧
         (0 ≠ 0 → x ≠ .n (walksT W (slotsT W fold b) first 0 W.size n 0 (if fold then b + 6 + 1 else b + 6)).2) := by
@@ -175,7 +175,7 @@ theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Na
       have hws : (if fold then b + 6 + 1 else b + 6) + walkSum W.size 0 0 n ≤
           groupStart fold b + chainStride W * n := by
         rw [walkSum_zero_digits, chainStride_eq, groupStart_eq]
-        have : n * (1 + 3 * W.size) ≤ (1 + 3 * (W.size + 13)) * n := by
+        have : n * (1 + 3 * W.size) ≤ (1 + 3 * (W.size + 1)) * n := by
           rw [mul_comm]; exact Nat.mul_le_mul_right _ (by omega)
         split <;> omega
       refine armT_vals hW' (by simpa using l1) (by simpa using l2) hP1 (fun x hx => ?_) ⟨?_, ?_, ?_,

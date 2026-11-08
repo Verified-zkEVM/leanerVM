@@ -113,7 +113,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
     (hg : ∀ σ', Ext (d + 1) (b + 5) σ σ' → AtomsHold rd σ' pre → good σ')
     (hb : σ (.n d) = ofK (addressOfIndex k))
     (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd d (groupD W first n fold prodIn encIn d pre b).2 (groupD W first n fold prodIn encIn d pre b).1 σ
       (fun σ' => σ' (.n d) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
@@ -170,7 +170,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       have hbase : b + 6 ≤ armB W first n fold prodIn encIn b k := by
         rw [← armB_zero W first n fold prodIn encIn b]
         exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
-      have hwb := walkBase_le (if k = 0 then W.size + 13 else W.size) k
+      have hwb := walkBase_le (if k = 0 then W.size + 1 else W.size) k
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
         (Nat.zero_le t)
       simp only [walkBase] at hwb
@@ -180,7 +180,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       have hsl := slot_bounds W fold b t 2 (by norm_num)
       have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
       obtain ⟨j, e, hj⟩ := start_ge (W := W) (fold := fold) (b := b) (k := k) (t := t) (lo := b + 6)
-        (base := walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+        (base := walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
           (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))
         (by omega) (by omega)
       rw [e] at this ⊢
@@ -201,7 +201,7 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
     (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (σ : Val) (hg : good σ)
     (hb : σ (.n b) = ofK (addressOfIndex k))
     (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
       (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧

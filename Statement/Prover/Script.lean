@@ -18,7 +18,7 @@ namespace LeanVM.Protocol.Compile
 open LeanVM.Parameters
 
 /-- A committed matrix: the row at each position; one of `2^height` rows is read at its first
-`2^height` positions (`merkle`, `verifier.py:433-446`). -/
+`2^height` positions (`merkle`, `verifier.py:428-441`). -/
 abbrev Word : Type := ℕ → List K
 
 end LeanVM.Protocol.Compile

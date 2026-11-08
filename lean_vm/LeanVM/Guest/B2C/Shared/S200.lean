@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L4`, window 0. -/
-theorem w546_0 : shareWin 546 (snapsOf 546) 0 = true := by decide +kernel
+/-- `verify_merkle_cap__L7`, window 0. -/
+theorem w554_0 : shareWin 554 (snapsOf 554) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L4`, window 1. -/
-theorem w546_1 : shareWin 546 (snapsOf 546) 1 = true := by decide +kernel
+/-- `verify_merkle_cap__L7`, window 1. -/
+theorem w554_1 : shareWin 554 (snapsOf 554) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop103`, once. -/
-theorem st547 : shareStatic 547 = true := by decide +kernel
+/-- `verify_merkle_cap__L7`, window 2. -/
+theorem w554_2 : shareWin 554 (snapsOf 554) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop103`, window 0. -/
-theorem w547_0 : shareWin 547 (snapsOf 547) 0 = true := by decide +kernel
+/-- `verify_merkle_cap__L7`, window 3. -/
+theorem w554_3 : shareWin 554 (snapsOf 554) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop103`, window 1. -/
-theorem w547_1 : shareWin 547 (snapsOf 547) 1 = true := by decide +kernel
+/-- `verify_merkle_cap__L7`, window 4. -/
+theorem w554_4 : shareWin 554 (snapsOf 554) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop103`, window 2. -/
-theorem w547_2 : shareWin 547 (snapsOf 547) 2 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L18_L7`, once. -/
+theorem st555 : shareStatic 555 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop104`, once. -/
-theorem st548 : shareStatic 548 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L18_L7`, window 0. -/
+theorem w555_0 : shareWin 555 (snapsOf 555) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop104`, window 0. -/
-theorem w548_0 : shareWin 548 (snapsOf 548) 0 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L18_L7`, window 1. -/
+theorem w555_1 : shareWin 555 (snapsOf 555) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

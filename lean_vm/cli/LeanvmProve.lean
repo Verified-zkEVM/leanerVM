@@ -53,6 +53,13 @@ def derefModeOf? (fpc ffp : K) : Option DerefMode :=
   else if fpc = 0 ∧ ffp = 1 then some .fp
   else none
 
+/-- The `KECCAK` output cells of its two flags `(out_two, out_all)`. -/
+def outCellsOf? (two all : K) : Option KeccakOutputCells :=
+  if two = 0 ∧ all = 0 then some .one
+  else if two = 1 ∧ all = 0 then some .two
+  else if two = 1 ∧ all = 1 then some .all
+  else none
+
 /-- The instruction of a bus entry (the inverse of `entry`, where it is one). -/
 def instrOf? (e : Array K) : Option LeanIsaInstruction := do
   let op ← opcodeOf? (e.getD 0 0)
@@ -68,7 +75,8 @@ def instrOf? (e : Array K) : Option LeanIsaInstruction := do
   | .keccak => do
     let inOdd ← flagOf? (x 9)
     let outOdd ← flagOf? (x 10)
-    some (.keccak ![x 1, x 2, x 3, x 4] (x 5) (x 6) (x 7) (x 8) inOdd outOdd)
+    let outCells ← outCellsOf? (x 11) (x 12)
+    some (.keccak ![x 1, x 2, x 3, x 4] (x 5) (x 6) (x 7) (x 8) inOdd outOdd outCells)
 
 /-- The program a bytecode table encodes: `16 · 2^logSize` words, word `i + 2^logSize · s` slot
 `s` of instruction `i`; checked to re-encode to the same words. -/
@@ -79,7 +87,7 @@ def decodeProgram (words : Array K) : Except String LeanIsaProgram := do
   if h : logSize ≤ maxLogBytecode then
     let mut code : Array LeanIsaInstruction := #[]
     for i in [0:n] do
-      let e := (Array.range 11).map fun j ↦ words.getD (i + n * (3 + j)) 0
+      let e := (Array.range 13).map fun j ↦ words.getD (i + n * (3 + j)) 0
       match instrOf? e with
       | some ins => code := code.push ins
       | none => throw s!"instruction {i} does not decode"

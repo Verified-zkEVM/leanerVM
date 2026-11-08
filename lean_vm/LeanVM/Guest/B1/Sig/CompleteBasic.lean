@@ -155,24 +155,27 @@ theorem updRun_below (σ : Val) (b n : Nat) (f : Nat → E) {v : V} (hv : ∃ j 
 def kOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
   if h : c < 13 then cellsOfState (keccakF1600 (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
 
-/-- **A `KECCAK` completes**: its outputs are `kOut` of its canonical inputs. -/
-theorem kecS_complete (σ : Val) {ins : List V} (o : Nat) (hl : ins.length = 13)
+/-- **A `KECCAK` completes**: its `n` outputs (one, two or thirteen, its `out_cells`) are `kOut`
+of its canonical inputs. -/
+theorem kecS_complete (σ : Val) {ins : List V} (o : Nat) {n : Nat}
+    (hn : ∃ oc : KeccakOutputCells, n = oc.cellCount) (hl : ins.length = 13)
     (hin : ∀ v ∈ ins, ∃ j < o, v = .n j) (hc : ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c))
     (inOdd outOdd : Bool) :
-    Completes C rd o (o + 13) [kecS ins (runV o 13) inOdd outOdd] σ
-      (fun σ' => ∀ c < 13, σ' (.n (o + c)) = kOut (ins.map σ) inOdd outOdd c) := by
-  have hins : ins.map (updRun σ o 13 (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
-    List.map_congr_left fun v hv => updRun_below σ o 13 _ (hin v hv)
-  refine completes_atoms rfl (updRun_ext σ o 13 _) (fun c hc => updRun_at σ o 13 _ hc)
+    Completes C rd o (o + n) [kecS ins (runV o n) inOdd outOdd] σ
+      (fun σ' => ∀ c < n, σ' (.n (o + c)) = kOut (ins.map σ) inOdd outOdd c) := by
+  obtain ⟨oc, rfl⟩ := hn
+  have hins : ins.map (updRun σ o oc.cellCount (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
+    List.map_congr_left fun v hv => updRun_below σ o _ _ (hin v hv)
+  refine completes_atoms rfl (updRun_ext σ o _ _) (fun c hc => updRun_at σ o _ _ hc)
     (fun a ha => ?_)
   simp only [kecS, List.mem_singleton, Stmt.atom.injEq] at ha
   subst ha
-  refine ⟨hl, by simp [runV], ?_⟩
+  refine ⟨hl, oc, by simp [runV], ?_⟩
   rw [hins]
-  refine ⟨hc, fun c => ?_⟩
+  refine ⟨hc, fun c hco => ?_⟩
   simp only [cells13, runV, List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map,
-    List.getElem?_range c.isLt, Option.map_some, Option.getD_some, Function.comp]
-  rw [updRun_at σ o 13 _ c.isLt, kOut]
+    List.getElem?_range hco, Option.map_some, Option.getD_some, Function.comp]
+  rw [updRun_at σ o _ _ hco, kOut]
   simp [c.isLt]
 
 end

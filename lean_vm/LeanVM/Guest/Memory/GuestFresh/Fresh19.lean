@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Memory.GuestFresh.Big19_0
 public import LeanVM.Guest.Memory.GuestFresh.Big19_1
-public import LeanVM.Guest.Memory.GuestFresh.Big19_2
 
 namespace LeanVM.Guest
 
@@ -21,41 +20,29 @@ set_option maxRecDepth 100000 in
 theorem from19_210 : RangeFresh (Data.core19.body.drop 210) [] temps19 :=
   rangeFresh_end (l := Data.core19.body) (by decide +kernel) temps19
 
-theorem from19_121 : RangeFresh (Data.core19.body.drop 121) (ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 121) (n := 89) (ts := ts19_121) (ts' := []) fresh19_121 from19_210
+theorem from19_111 : RangeFresh (Data.core19.body.drop 111) (ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 111) (n := 99) (ts := ts19_111) (ts' := []) fresh19_111 from19_210
 
-theorem from19_111 : RangeFresh (Data.core19.body.drop 111) (ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 111) (n := 10) (ts := ts19_111) (ts' := ts19_121 ++ []) fresh19_111 from19_121
+theorem from19_96 : RangeFresh (Data.core19.body.drop 96) (ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 96) (n := 15) (ts := ts19_96) (ts' := ts19_111 ++ []) fresh19_96 from19_111
 
-theorem from19_101 : RangeFresh (Data.core19.body.drop 101) (ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 101) (n := 10) (ts := ts19_101) (ts' := ts19_111 ++ ts19_121 ++ []) fresh19_101 from19_111
+theorem from19_81 : RangeFresh (Data.core19.body.drop 81) (ts19_81 ++ ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 81) (n := 15) (ts := ts19_81) (ts' := ts19_96 ++ ts19_111 ++ []) fresh19_81 from19_96
 
-theorem from19_91 : RangeFresh (Data.core19.body.drop 91) (ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 91) (n := 10) (ts := ts19_91) (ts' := ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_91 from19_101
+theorem from19_66 : RangeFresh (Data.core19.body.drop 66) (ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 66) (n := 15) (ts := ts19_66) (ts' := ts19_81 ++ ts19_96 ++ ts19_111 ++ []) fresh19_66 from19_81
 
-theorem from19_81 : RangeFresh (Data.core19.body.drop 81) (ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 81) (n := 10) (ts := ts19_81) (ts' := ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_81 from19_91
+theorem from19_51 : RangeFresh (Data.core19.body.drop 51) (ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 51) (n := 15) (ts := ts19_51) (ts' := ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) fresh19_51 from19_66
 
-theorem from19_71 : RangeFresh (Data.core19.body.drop 71) (ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 71) (n := 10) (ts := ts19_71) (ts' := ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_71 from19_81
+theorem from19_36 : RangeFresh (Data.core19.body.drop 36) (ts19_36 ++ ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 36) (n := 15) (ts := ts19_36) (ts' := ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) fresh19_36 from19_51
 
-theorem from19_61 : RangeFresh (Data.core19.body.drop 61) (ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 61) (n := 10) (ts := ts19_61) (ts' := ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_61 from19_71
-
-theorem from19_51 : RangeFresh (Data.core19.body.drop 51) (ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 51) (n := 10) (ts := ts19_51) (ts' := ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_51 from19_61
-
-theorem from19_41 : RangeFresh (Data.core19.body.drop 41) (ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 41) (n := 10) (ts := ts19_41) (ts' := ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_41 from19_51
-
-theorem from19_31 : RangeFresh (Data.core19.body.drop 31) (ts19_31 ++ ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 31) (n := 10) (ts := ts19_31) (ts' := ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_31 from19_41
-
-theorem from19_0 : RangeFresh (Data.core19.body.drop 0) (ts19_0 ++ ts19_31 ++ ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) temps19 :=
-  rangeFresh_drop (l := Data.core19.body) (a := 0) (n := 31) (ts := ts19_0) (ts' := ts19_31 ++ ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) fresh19_0 from19_31
+theorem from19_0 : RangeFresh (Data.core19.body.drop 0) (ts19_0 ++ ts19_36 ++ ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) temps19 :=
+  rangeFresh_drop (l := Data.core19.body) (a := 0) (n := 36) (ts := ts19_0) (ts' := ts19_36 ++ ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) fresh19_0 from19_36
 
 set_option maxRecDepth 100000 in
-theorem all19 : (ts19_0 ++ ts19_31 ++ ts19_41 ++ ts19_51 ++ ts19_61 ++ ts19_71 ++ ts19_81 ++ ts19_91 ++ ts19_101 ++ ts19_111 ++ ts19_121 ++ []) = temps19 := by decide +kernel
+theorem all19 : (ts19_0 ++ ts19_36 ++ ts19_51 ++ ts19_66 ++ ts19_81 ++ ts19_96 ++ ts19_111 ++ []) = temps19 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem nodup19 : temps19.Nodup :=

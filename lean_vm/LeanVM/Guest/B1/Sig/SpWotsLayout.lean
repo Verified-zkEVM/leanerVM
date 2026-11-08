@@ -168,7 +168,7 @@ def spStartAt (K : Nat → Nat) (i : Nat) : V :=
 first group's arm `4j`, two above the arm's base (its encoding's `0`, then the chain's hint)
 (`spZero_eq`). -/
 def spZero : List Nat :=
-  [29, 256, 353, 438, 507, 604, 689, 762, 819, 904, 977, 1038, 1083, 1152, 1209, 1254]
+  [29, 148, 245, 330, 399, 496, 581, 654, 711, 796, 869, 930, 975, 1044, 1101, 1146]
 
 theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n 0) (.n 0) (4 * j) + 2 := by
   decide +kernel

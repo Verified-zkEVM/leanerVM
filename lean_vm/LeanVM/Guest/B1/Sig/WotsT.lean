@@ -19,8 +19,8 @@ address from the index, the chain and the step and hashes `P`, it and the value,
 values before the outputs, `size = 3`).
 
 * `walkT`: chain `i` from digit `d`: the hinted start at the base, then steps `d, …, 2`, step `s`
-  writing slot `s` of the chain in `walks`; the step's constants `stride` apart (`size + 13` in the
-  arm that lays out the slots, `size` elsewhere); at `d = 3` the start is hinted into the tip;
+  writing slot `s` of the chain in `walks` (one cell, `walks[o:o + 1]`); the step's constants
+  `stride` apart (`size + 1` in the arm that lays out the slots, `size` elsewhere); at `d = 3` the start is hinted into the tip;
 * `armT`, `armsT`, `groupArmsT`, `groupD`, `groupT`: arm `k` of a group's dispatch (the walks at the
   base-4 digits of `k`, then the digit sum folded into the product, in the exponent, and the digits
   into the encoding), the `4^n` arms laid out from `b + 6`, and the group with its hint, its range
@@ -77,7 +77,7 @@ def walksT (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : Nat) :
 /-- Arm `k` of a group from base `b`: the walks, then the product and the encoding folded in. -/
 def armT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
-  let ws := walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b)
   let enc0 := if fold then V.n b else encIn
   let pre := if fold then [cst b (word 0 0 0)] else []
@@ -99,10 +99,10 @@ def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool
 /-- Where arm `0` of a group from base `b` starts its first walk. -/
 def groupStart (fold : Bool) (b : Nat) : Nat := b + 6 + (if fold then 1 else 0)
 /-- The fresh values of a chain in arm `0`. -/
-def chainStride (W : WotsT) : Nat := 1 + 3 * (W.size + 13)
+def chainStride (W : WotsT) : Nat := 1 + 3 * (W.size + 1)
 /-- The slot of chain `r`'s step `s` in a group from base `b`. -/
 def slotsT (W : WotsT) (fold : Bool) (b : Nat) (r s : Nat) : Nat :=
-  groupStart fold b + chainStride W * r + 1 + (W.size + 13) * s + W.size
+  groupStart fold b + chainStride W * r + 1 + (W.size + 1) * s + W.size
 def prodT (W : WotsT) (fold : Bool) (n b : Nat) : V := .n (groupStart fold b + chainStride W * n)
 def encT (W : WotsT) (fold : Bool) (n b : Nat) : V := .n (groupStart fold b + chainStride W * n + 1)
 
@@ -165,7 +165,7 @@ def merkleT (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V)
       let c := match nodeOf l with
         | none => b + 5
         | some _ => b + 6
-      let rest := merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)
+      let rest := merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
       ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
           addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
           cst (b + 4) (word (addrOf l) 0 0)] ++

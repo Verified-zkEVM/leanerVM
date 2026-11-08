@@ -345,8 +345,9 @@ def gpowMain (v : Nat) : Source.Program :=
 
 The guest expands to one core function per compiled function, in the compiler's order (after
 `__jump_tables`), with the compiled function's name; and its `KECCAK` atoms are the compiled
-function's `KECCAK` instructions, one for one and in order: the same layouts, and every value an
-atom reads or writes at one frame offset of the instructions (`keccakIns`, `keccakOuts`) throughout
+function's `KECCAK` instructions, one for one and in order: the same layouts, as many written
+cells as the instruction's `outCells`, and every value an atom reads or writes at one frame offset
+of the instructions (`keccakIns`, `keccakOuts`) throughout
 the function, each constant among them `SET` at its offset to its word. -/
 
 mutual
@@ -374,8 +375,8 @@ def keccakAtoms (f : Core.Fn) : List (List Core.V × List Core.V × Bool × Bool
 layouts. -/
 def keccakInstrs (c : CompiledFunction) : List (List Nat × List Nat × Bool × Bool) :=
   c.chunks.flatten.filterMap fun
-    | .keccak m0 m1 m2 m3 tail b8 cap out i o =>
-        some (keccakIns m0 m1 m2 m3 tail b8 cap, keccakOuts out, i, o)
+    | .keccak m0 m1 m2 m3 tail b8 cap out i o oC =>
+        some (keccakIns m0 m1 m2 m3 tail b8 cap, keccakOuts out oC.cellCount, i, o)
     | _ => none
 
 /-- Whether a core function's `KECCAK` atoms are a compiled function's `KECCAK` instructions. -/
@@ -385,7 +386,7 @@ def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
   if as.length != is.length then return false
   let mut off : Std.HashMap Core.V Nat := {}
   for ((ins, outs, i, o), (ci, co, i', o')) in as.zip is do
-    if i != i' || o != o' || ins.length != 13 || outs.length != 13 then return false
+    if i != i' || o != o' || ins.length != 13 || outs.length != co.length then return false
     for (v, k) in (ins ++ outs).zip (ci ++ co) do
       match off[v]? with
       | some k' => if k != k' then return false

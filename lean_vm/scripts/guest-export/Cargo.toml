@@ -39,8 +39,6 @@ signatures = { path = "../../../.leanvm/crates/signatures", features = ["mock"] 
 lean_da = { path = "../../../.leanvm/crates/lean_da" }
 verifier = { path = "../../../.leanvm/crates/verifier" }
 rand = "0.9"
-bincode = "1"
-serde = { version = "1", features = ["derive"] }
 tracing = "0.1.26"
 
 [features]
