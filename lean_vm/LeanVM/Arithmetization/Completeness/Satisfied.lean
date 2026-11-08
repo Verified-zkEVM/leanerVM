@@ -300,6 +300,14 @@ theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : ke
   List.perm_append_comm.trans
     ((chain_balance keys hnd mk L hL fun _ ↦ 0).trans List.perm_append_comm)
 
+/-- A permutation survives the same list inserted in the middle of both sides. -/
+theorem perm_append_mid {α : Type} {a b c x y : List α} (h : (a ++ x).Perm (b ++ y)) :
+    ((a ++ c) ++ x).Perm ((b ++ c) ++ y) := by
+  have hc : ∀ u v : List α, ((u ++ c) ++ v).Perm ((u ++ v) ++ c) := fun u v ↦ by
+    rw [List.append_assoc, List.append_assoc]
+    exact List.Perm.append_left _ List.perm_append_comm
+  exact (hc a x).trans ((h.append_right c).trans (hc b y).symm)
+
 /-- **The memory pair balances**: the rows' reads, numbered by the chain, against the block's seeds
 and finalizes. -/
 theorem mem_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemoryImage κ)
@@ -316,15 +324,18 @@ theorem mem_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ maxLogMem
     obtain ⟨i, rfl, -⟩ := (MemoryImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
   have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
-  have h1 : (skelRows img S).flatMap (fun r ↦ chanOf MemPush.name (r.sends img)) =
-      List.zipWith (fun a e ↦ memMsg img a (e + 1))
+  -- The rows' pulls and pushes: the chained reads, and the cancelled pairs `C`, alike on both
+  -- sides.
+  set C := (skelRows img S).flatMap (PRow.skipMsgs img) with hC
+  have h1 : ((skelRows img S).flatMap (fun r ↦ chanOf MemPush.name (r.sends img))).Perm
+      (List.zipWith (fun a e ↦ memMsg img a (e + 1))
         (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
-        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
+        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) ++ C) :=
     mkRows_memPushes img (fun _ ↦ 0) (fun _ ↦ 0) S
-  have h2 : (skelRows img S).flatMap (fun r ↦ chanOf MemPull.name (r.sends img)) =
-      List.zipWith (fun a e ↦ memMsg img a e)
+  have h2 : ((skelRows img S).flatMap (fun r ↦ chanOf MemPull.name (r.sends img))).Perm
+      (List.zipWith (fun a e ↦ memMsg img a e)
         (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
-        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
+        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) ++ C) :=
     mkRows_memPulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv1 : chanOf MemPush.name
       [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [] :=
@@ -342,9 +353,13 @@ theorem mem_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ maxLogMem
         BytecodePull]
   refine (chanOf_skelSends_perm prog img S _).trans
     (List.Perm.trans ?_ (chanOf_skelSends_perm prog img S _).symm)
-  rw [hv1, hv2, hc1, hc2, h1, h2, memBlock_push hκ64, memBlock_pull hκ64]
+  rw [hv1, hv2, hc1, hc2, memBlock_push hκ64, memBlock_pull hκ64]
   simp only [List.nil_append, List.append_nil]
-  simpa only [List.map_map, Function.comp_def, skelMemFin] using hb
+  have hb' := hb
+  simp only [List.map_map, Function.comp_def] at hb'
+  refine (h1.append_right _).trans (List.Perm.trans ?_ (h2.append_right _).symm)
+  -- The cancelled pairs ride along on both sides.
+  exact perm_append_mid hb'
 
 /-- **The bytecode pair balances**: the rows' fetches, numbered by the chain, against the block's
 seeds and finalizes. -/
@@ -512,7 +527,7 @@ theorem skelWitness_constraints (prog : LeanIsaProgram) (input : PublicInput) {�
 /-! ## The verifier's checks -/
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
-theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : Vector K 11}
+theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : Vector K 13}
     {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
@@ -531,10 +546,22 @@ theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : V
 theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemoryImage κ) (r : PRow) :
     ∀ y ∈ r.sends img,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
-  refine sendsOf_counts_ne_zero (pow_ne_zero _ g_ne_zero) fun x hx ↦ ?_
-  simp only [readsOf, List.mem_mapIdx] at hx
-  obtain ⟨j, -, rfl⟩ := hx
-  exact pow_ne_zero _ g_ne_zero
+  intro y hy hn
+  rcases List.mem_append.mp hy with hy | hy
+  · refine sendsOf_counts_ne_zero (pow_ne_zero _ g_ne_zero) (fun x hx ↦ ?_) y hy hn
+    simp only [readsOf, List.mem_mapIdx] at hx
+    obtain ⟨j, -, rfl⟩ := hx
+    exact pow_ne_zero _ g_ne_zero
+  · -- A cancelled pair's count is a count of the row, a power of `g`.
+    have hcnt : ∀ x ∈ skipsOf img r.sk.fp r.cnt r.sk.ins, x.2.1 ≠ 0 := by
+      intro x hx
+      cases hins : r.sk.ins <;> rw [hins] at hx <;> simp only [skipsOf, List.not_mem_nil] at hx
+      obtain ⟨c, -, rfl⟩ := List.mem_map.mp hx
+      exact pow_ne_zero _ g_ne_zero
+    simp only [skipSends, List.mem_flatMap, List.mem_cons, List.not_mem_nil, or_false] at hy
+    obtain ⟨x, hx, rfl | rfl⟩ := hy
+    · exact ⟨by simp [memMsgOf], by simpa [memMsgOf] using hcnt x hx⟩
+    · simp [MemPush, MemPull, BytecodePull] at hn
 
 /-- An interaction of a table is among the sends of its rows. -/
 theorem mem_interactions_sends (t : Air.Flat.Table K) {i : Interaction K}
@@ -581,10 +608,10 @@ theorem skelWitness_keccak_valid (prog : LeanIsaProgram) (input : PublicInput) {
   simp only [decide_eq_true_eq] at hr2
   obtain ⟨next, hn⟩ := hS _ (mem_mkRows_sk hr1)
   cases ins with
-  | keccak om otail ob8 ocap oout inOdd outOdd =>
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     simp only [PRow.raw, rowOf, rawRow]
     rw [keccakRowAt_toElements]
-    exact ((keccak_refines_iff _ _ _).mp (keccakRowOf_refines hn _ _)).2.1
+    exact keccakRowOf_relation ..
   | xor _ _ _ => simp [LeanIsaInstruction.opcode] at hr2
   | mulNative _ _ _ => simp [LeanIsaInstruction.opcode] at hr2
   | setConstant _ _ => simp [LeanIsaInstruction.opcode] at hr2

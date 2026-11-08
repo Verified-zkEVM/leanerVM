@@ -155,7 +155,7 @@ def MulSpec (r : MulRow K) (next : Registers K) (data : ProverData K) : Prop :=
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
 private theorem mulNative_entry (a b c : K) :
-    #v[Opcode.mulNative.busCode] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = busEntry (.mulNative a b
+    #v[Opcode.mulNative.busCode] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0, 0, 0] = busEntry (.mulNative a b
         c) := rfl
 
 /-! ## The table -/
@@ -169,7 +169,7 @@ def mulTable : GeneralFormalCircuit K MulRow Registers where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.mulNative.busCode)
-      #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]
+      #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
     -- `TOWER_LANES` (`tables.rs:45-49`), lane by lane, pair by pair.

@@ -206,8 +206,9 @@ theorem mem_word_complete {data : ProverData K} (i : Fin (2 ^ (imageOf data).1))
 /-! ## The bytecode block -/
 
 /-- A row of the bytecode block: the counter `g^i` (the index column), the finalize count
-`g^(A[i])` (`BFCNT`), and the `entry` at that slot, the opcode and the ten operand slots (the
-eleven public columns of `bytecode_columns`, `cpu/layout.rs:221-300`). -/
+`g^(A[i])` (`BFCNT`), and the `entry` at that slot, the opcode and the twelve operand slots (the
+thirteen public columns of `bytecode_columns`, `cpu/layout.rs:292-366` at leanVM PR #724 head
+`873ee6d8`). -/
 structure BytecodeRow (F : Type) where
   /-- The counter, `g^i` for row `i`. -/
   idx : F
@@ -215,8 +216,8 @@ structure BytecodeRow (F : Type) where
   cntFin : F
   /-- The opcode, coordinate 3 of the tuple. -/
   opcode : F
-  /-- The ten operand slots. -/
-  op : Vector F 10
+  /-- The twelve operand slots. -/
+  op : Vector F 12
   deriving ProvableStruct
 
 /-- The row's entry decodes to an instruction (`decode_eq_some_iff` reads it as the entry):
@@ -263,19 +264,21 @@ def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
 
 /-! ## Proof helpers -/
 
-/-- An eleven-coordinate entry is its opcode followed by its ten operand slots. -/
-private theorem cons_append_ops (e : Vector K 11) :
-    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10]] = e := by
+/-- A thirteen-coordinate entry is its opcode followed by its twelve operand slots. -/
+private theorem cons_append_ops (e : Vector K 13) :
+    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]] =
+      e := by
   obtain ⟨⟨l⟩, hl⟩ := e
   match l, hl with
-  | [_, _, _, _, _, _, _, _, _, _, _], _ => rfl
+  | [_, _, _, _, _, _, _, _, _, _, _, _, _], _ => rfl
 
 /-- The seed row of slot `i` of the program `prog`, with finalize count `cntFin`: the counter
-`g^i` and the slot's `entry` as the opcode and the ten operand slots. -/
+`g^i` and the slot's `entry` as the opcode and the twelve operand slots. -/
 def bytecodeRowOf (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     BytecodeRow K :=
   let e := busEntry (prog.instructions i)
-  ⟨addressOfIndex i, cntFin, e[0], #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10]]⟩
+  ⟨addressOfIndex i, cntFin, e[0],
+    #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]]⟩
 
 /-- `bytecodeRowOf` is bound to its program, with any finalize count. -/
 theorem bytecodeRowOf_bindings (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
@@ -287,7 +290,8 @@ theorem bytecodeRowOf_bindings (prog : LeanIsaProgram) (i : Fin (2 ^ prog.logSiz
       (busEntry (prog.instructions i))[5], (busEntry (prog.instructions i))[6], (busEntry
           (prog.instructions i))[7],
       (busEntry (prog.instructions i))[8], (busEntry (prog.instructions i))[9], (busEntry
-          (prog.instructions i))[10]]) = some _
+          (prog.instructions i))[10], (busEntry (prog.instructions i))[11],
+      (busEntry (prog.instructions i))[12]]) = some _
     rw [cons_append_ops]
     exact decode_entry _⟩
 
