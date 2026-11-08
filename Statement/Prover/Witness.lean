@@ -123,15 +123,16 @@ def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) 
   | none => #v[0, 0, 0]
 
 /-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
-computed). -/
+computed): a `KECCAK`'s thirteen cells read, then the output cells it writes, the first
+`outCells.cellCount` (a cell it does not write keeps its count, `execute.rs:976-986`). -/
 def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
     LeanIsaInstruction → List K
   | .xor oA oB oC | .mulNative oA oB oC | .jump oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
   | .deref o1 o2 o3 _ => [fp * o1, (limbsIn memIdx img (fp * o1))[0] * o2, fp * o3]
-  | .keccak om otail ob8 ocap oout _ _ _ =>
+  | .keccak om otail ob8 ocap oout _ _ outCells =>
       (List.finRange 13).map (fun c ↦ fp * keccakInputCellOffset om otail ob8 ocap c) ++
-        (List.range 13).map fun k ↦ fp * (g ^ k * oout)
+        (List.range outCells.cellCount).map fun k ↦ fp * (g ^ k * oout)
 
 /-- The counts of a sequence of reads: each read gets its cell's counter, which then steps by
 `g`, in place; the counts are pushed on `cs`. -/
@@ -170,12 +171,13 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (p
     #[pc, fp, oc, od, of, vc, (limbsIn memIdx img (fp * od))[0],
       (limbsIn memIdx img (fp * of))[0], c 0, c 1, c 2, rbc,
       if vc = 0 then 0 else vc⁻¹, if vc = 0 then 0 else 1]
-  | .keccak om otail ob8 ocap oout inOdd outOdd _ =>
+  | .keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     let input := keccakInputIn memIdx img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
     let out := keccakF1600 S
     #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, layoutFlagWord inOdd,
-        layoutFlagWord outOdd, if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
+        layoutFlagWord outOdd, (keccakOutputFlags outCells).1, (keccakOutputFlags outCells).2,
+        if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
       Array.ofFn (fun l : Fin 25 ↦ laneK S l) ++ Array.ofFn (fun l : Fin 25 ↦ laneK out l) ++
       Array.ofFn (fun j : Fin 26 ↦ c j) ++ #[rbc]
 
