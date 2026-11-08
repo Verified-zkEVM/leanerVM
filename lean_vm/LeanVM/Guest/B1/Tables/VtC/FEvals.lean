@@ -18,7 +18,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The evaluations' and permutations' statements lie in the window. -/
-theorem vtEval_inF : ∀ k < 157, vtFLo ≤ (vtEvalData.getD k (0, 0)).1 ∧
+theorem vtEval_inF : ∀ k < 159, vtFLo ≤ (vtEvalData.getD k (0, 0)).1 ∧
     (vtEvalData.getD k (0, 0)).1 + (vtEvalT (vtEvalData.getD k (0, 0)).2 k).length ≤ vtFHi := by
   decide +kernel
 
@@ -27,7 +27,7 @@ theorem vtPerm_inF : ∀ j < 39, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
   decide +kernel
 
 /-- **Evaluation `k`**, on the window. -/
-theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 157) :
+theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 159) :
     LoadHolds rd (σ (.n 2625)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
       σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) := by

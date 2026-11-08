@@ -59,7 +59,7 @@ theorem vtF_complete (hl : args.length = 20) (bc : List K) (hbc : bc.length = 2 
     (hpe : EqPrefix rd (vtσ rd w args (.n 2629)) 1 (vtσ rd w args (.n 16))
       (vtσ rd w args (.n 703)) n)
     (hchi : ∀ i < n, LoadHolds rd (vtσ rd w args (.n 16)) (n - 1 - i) (pts.getD i 0))
-    {evs : List E} (hevl : evs.length = 157)
+    {evs : List E} (hevl : evs.length = 159)
     (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs)
     (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2620 + i))))
     (hfin : (termsPure ((powers (vtσ rd w args (.n 2588)) 5).take 2)
@@ -102,7 +102,7 @@ theorem vtF_complete (hl : args.length = 20) (bc : List K) (hbc : bc.length = 2 
       exact CharTwo.add_self_eq_zero _
   · apply List.ext_getElem (by rw [vtEvs_length, hevl])
     intro k h1 _
-    have hk : k < 157 := by simpa [vtEvs] using h1
+    have hk : k < 159 := by simpa [vtEvs] using h1
     rw [← List.getD_eq_getElem _ 0 h1, vtEvs_getD _ hk,
       (vtF_evRead (w := w) hl hcur (by omega) hk).2, List.getD_eq_getElem _ _ (by omega)]
 
