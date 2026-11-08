@@ -137,13 +137,14 @@ theorem column_slot (q : Column (leanIsaμ prog s)) (c : Col) (h : IsVirtual c �
   · have e := column_spare prog s q _ hsp ⟨i, hi⟩
     rw [word_keccakColumn prog s q _ (qSlot _).isLt ⟨i, hi⟩] at e
     exact e
-  · have hb : 13 ≤ k.val ∧ k.val < 38 := by
-      have h1 : k.val < 64 := h.1.2
-      have h2 : ¬ (38 ≤ k.val ∧ k.val < 63) := fun hh ↦ h.2 ⟨rfl, hh⟩
-      have h3 : ¬ (k.val < 13 ∨ k.val = 63) := fun hh ↦ hsp ⟨rfl, hh⟩
+  · have hb : 15 ≤ k.val ∧ k.val < 40 := by
+      have h1 : k.val < 65 := h.1.2.1
+      have h1' : k.val ≠ 14 := h.1.2.2
+      have h2 : ¬ (40 ≤ k.val ∧ k.val < 65) := fun hh ↦ h.2 ⟨rfl, hh⟩
+      have h3 : ¬ (k.val < 14) := fun hh ↦ hsp ⟨rfl, hh⟩
       omega
     obtain ⟨l, rfl⟩ : ∃ l : Fin 25, k = (inCol l).2 :=
-      ⟨⟨k.val - 13, by omega⟩, Fin.ext (by simp only [inCol]; omega)⟩
+      ⟨⟨k.val - 15, by omega⟩, Fin.ext (by simp only [inCol]; omega)⟩
     have hq : (qSlot (⟨opIdx 5, (inCol l).2⟩ : Col)).val = l.val :=
       congrArg Fin.val (qSlot_inCol l)
     simp only [hq]
@@ -173,16 +174,16 @@ theorem column_at_placement (q : Column (leanIsaμ prog s)) (c : Col) (h : ¬ Is
 
 /-- The writes of the prover's stack: the placements of the instance's columns, with their
 arrays. -/
-theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 163) :
+theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 165) :
     ∀ a, a ∈ (verifierLayout prog s).placements.zip cols.toList ↔ ∃ c : Col,
       a = ((verifierLayout prog s).placements.getD (pyCol c) none, cols.getD (pyCol c) #[]) := by
-  have hlen : (verifierLayout prog s).placements.length = 163 := by
-    show (placementsOf (pyKappas prog s)).1.length = 163
+  have hlen : (verifierLayout prog s).placements.length = 165 := by
+    show (placementsOf (pyKappas prog s)).1.length = 165
     rw [placementsOf_pyKappas]
     simp [length_pyKappas]
-  have hz : ((verifierLayout prog s).placements.zip cols.toList).length = 163 := by
+  have hz : ((verifierLayout prog s).placements.zip cols.toList).length = 165 := by
     simp [hlen, hsize]
-  have hget : ∀ i (hi : i < 163),
+  have hget : ∀ i (hi : i < 165),
       ((verifierLayout prog s).placements.zip cols.toList)[i]'(hz ▸ hi) =
         ((verifierLayout prog s).placements.getD i none, cols.getD i #[]) := by
     intro i hi
@@ -203,7 +204,7 @@ theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 163) :
 /-- **The stack the prover writes is the stack its columns are read off**: given each column's
 array is the instance's column of `q`, and `q` is zero past the blocks. -/
 theorem stackArray_eq (q : Column (leanIsaμ prog s)) (cols : Array (Array K))
-    (hsize : cols.size = 163)
+    (hsize : cols.size = 165)
     (hcols : ∀ c : Col, cols.getD (pyCol c) #[] = ((inst prog s).column q c).values.toArray)
     (hzero : ∀ x (hx : x < 2 ^ leanIsaμ prog s), (blocks prog s).total ≤ x → q.values[x] = 0) :
     stackArray (verifierLayout prog s) cols = q.values.toArray := by
