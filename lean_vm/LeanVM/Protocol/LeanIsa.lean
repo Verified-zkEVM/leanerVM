@@ -25,9 +25,9 @@ and it is data: what the adaptor's theorems say of it is in `LeanIsa/Sound.lean`
 **Sizes.** `Sizes` is what the prover announces: the memory log-size and the six opcode tables'
 row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the program's. A table's
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
-(`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:970`; `KECCAK_MIN_STEPS_LOG`).
+(`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:983`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`verifier.py:973-1013`): the memory window `[16, 32]`, the row cap `2^32`, and the stacked size
+`verifier.py:986-1026`): the memory window `[16, 32]`, the row cap `2^32`, and the stacked size
 `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`; its floor `15` holds by
 construction). `validRate` is the WHIR rate check, read off the same announcement and used by
 the commitment, not by the instance.
@@ -97,7 +97,7 @@ With `d = 2` it meets the table sumcheck's degree bound by definition.
 
 The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
 `python-verifier/verifier.py` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines
-at `5e3ade21`); the instance's polynomials are Clean's, through `Component.toM3`.
+at `873ee6d8`); the instance's polynomials are Clean's, through `Component.toM3`.
 
 ## Wrong readings excluded
 
@@ -163,7 +163,7 @@ structure Sizes where
   rows : Fin 6 → ℕ
 
 /-- An opcode table's log-height: the least `τ` with `rows ≤ 2^τ` (`log2_ceil`), at least the
-table's floor (`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:970`): `9` for `KECCAK`, `0`
+table's floor (`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:983`): `9` for `KECCAK`, `0`
 otherwise. -/
 def Sizes.τ (s : Sizes) (j : Fin 6) : ℕ :=
   max (Nat.clog 2 (s.rows j)) (Verifier.tableLogFloors.getD j 0)
@@ -287,7 +287,7 @@ def inCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨15 + l, by rw [width_keccak]; ome
 def outCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨40 + l, by rw [width_keccak]; omega⟩⟩
 
 /-- The column is a `KECCAK` value lane, input or output: not committed in a block of its own
-(`KECCAK_IN … KECCAK_CNT`, `verifier.py:941`; `KeccakLane::Input`/`Output`,
+(`KECCAK_IN … KECCAK_CNT`, `verifier.py:954`; `KeccakLane::Input`/`Output`,
 `crates/leanvm_core/src/cpu/layout.rs`). -/
 def IsLane (c : Col) : Prop := c.1 = opIdx 5 ∧ 15 ≤ c.2.val ∧ c.2.val < 65
 
@@ -488,7 +488,7 @@ coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
-/-- The six boundary blocks (`layout.rs:420-463`): the state boundary, the memory seed and
+/-- The six boundary blocks (`layout.rs:425-468`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
@@ -513,7 +513,7 @@ def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 3 :=
     ⟨memCol 2, 0, 0, false, s.logMem_pos⟩]
 
 /-- The verifier's padding row of a table, in `K` (`Table.padding`,
-`python-verifier/verifier.py:798-804`): zero, but for the `KECCAK` output lanes, which hold
+`python-verifier/verifier.py:800-806`): zero, but for the `KECCAK` output lanes, which hold
 Keccak-f[1600] of the zero state. -/
 def padRowK (t : Verifier.Table) : List K :=
   (List.range t.width).map fun i ↦
@@ -612,7 +612,7 @@ namespace LeanIsa
 /-! ## Admissible sizes -/
 
 /-- The checks the verifier makes of the announced sizes (`build_layout`,
-`python-verifier/verifier.py:891`, and `:1392`): the memory window, the row cap, and the stacked
+`python-verifier/verifier.py:893`, and `:1405`): the memory window, the row cap, and the stacked
 size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor holds by construction
 (`leanIsaμ`). -/
 def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=

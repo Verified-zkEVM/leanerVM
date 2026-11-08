@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.Level
 public import LeanVM.Guest.B1.Whir.LevelSpec
 
 /-!
-# The levels (G:1516-1674)
+# The levels (G:1488-1646)
 
 `whirLevelsHead`: `whirLevelsOpen` without its tail (`whirLevelsOpen_eq`). `osLevels_sound`: the
 template's levels, the configuration's facts holding level by level (`LevelsOk`) and the callees

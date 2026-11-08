@@ -28,12 +28,12 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation/` (leanVM `5e3ade21`) push for push (`honestPushes`,
+`crates/rec_aggregation/src/aggregation/` (leanVM PR #724 head `873ee6d8`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
-(`aggregate_with_stats`, `aggregation/node.rs:58-342`), a raw signature's (`lean_xmss_hints`,
+(`aggregate_with_stats`, `aggregation/node.rs:61-345`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
 (`gen_verify`, `aggregation/child.rs:64-255`), the batching's (`aggregate_deferred_claims`,
-`aggregation/deferred.rs:244-352`) and LeanDA's.
+`aggregation/deferred.rs:245-351`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -48,7 +48,7 @@ Choices the witness does not fix, made as the Rust makes them:
 
 * **Coverage slots** (`plan`, `take_slot`, `aggregation/coverage.rs:49-116`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation/node.rs:105-112`), then every child's claims, child by
+  sorted and deduplicated, `aggregation/node.rs:106-113`), then every child's claims, child by
   child; a claim takes its declared slot if it is still free, else the next duplicate slot. The
   deployed lists are strictly sorted, where the first free match is the slot `binary_search`
   finds.
@@ -278,7 +278,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation/node.rs:288-313`). The Rust pushes the root's
+every row's cells, column by column (`aggregation/node.rs:289-314`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -374,7 +374,7 @@ def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
       if prev = some k then (next - 1) :: runGroups next prev ks
       else next :: runGroups (next + 1) (some k) ks
 
-/-- A bus block's kappa source, as a key (`block_kappa_sources`, `layout.rs:247-264`): the
+/-- A bus block's kappa source, as a key (`block_kappa_sources`, `layout.rs:255-272`): the
 framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's block its table. -/
 def blockKey (b : BusBlock) : ℕ := 3 + b.owner
 
@@ -397,7 +397,7 @@ def committedColumns (layout : Layout) : List ℕ :=
   (List.range layout.placements.length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
-/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:211-239`): the
+/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:219-247`): the
 memory's columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a table's
 columns their table. -/
 def colKey (c : ℕ) : ℕ :=
@@ -442,7 +442,7 @@ def slotGaps : ℕ → List ℕ → List ℕ
 
 /-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
 flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
-(`aggregation/node.rs:242-261`). -/
+(`aggregation/node.rs:243-262`). -/
 def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
   if offsets = [] then [] else
     ("signers_split", listSplit offsets.length) ::
@@ -456,7 +456,7 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation/node.rs:86-102`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation/node.rs:87-103`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length

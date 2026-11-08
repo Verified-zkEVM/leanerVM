@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.Glue
 public import LeanVM.Guest.B1.Whir.LevelSpec
 
 /-!
-# A level's queries and glue (G:1582-1674)
+# A level's queries and glue (G:1554-1646)
 
 `osLevelB` is the part of `osLevel` after the grinding check (`osLevel_split`).
 `osLevelB_sound`: from the sponge with nothing waiting after the proof of work, the positions

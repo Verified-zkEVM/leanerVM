@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.ZBase
 
 /-!
-# The table sumcheck's setup, completely (G:2397-2447)
+# The table sumcheck's setup, completely (G:2369-2419)
 
 Helpers for the honest valuation: a read of a word the memory holds (`z_read`), a product read
 as a quotient (`z_div`), a passing range check (`z_rc`, `z_rcd`), a `KECCAK` of canonical cells

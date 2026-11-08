@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Fw
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
 
 /-!
-# The bus sides (G:2257-2422)
+# The bus sides (G:2229-2394)
 
 `VtBIn`: the honest data: the bus point, the memory's log-size, the tables' row counts (heights
 `vtHt rows`), the bus challenges `alphas` (weights `eqKernel alphas` at `fp_w`), the five framework

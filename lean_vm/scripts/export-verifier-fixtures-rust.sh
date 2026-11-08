@@ -2,12 +2,12 @@
 # Prove small guest programs with the leanVM Rust prover and write each proof in the
 # formats the verifiers read (`python-verifier/verifier.py`, `Proof.load` and `main`;
 # `crates/leanvm_core/tests/verifiers/python_verifier.rs`, `spawn_python`; `crates/verifier`'s
-# `Proof`; `crates/fiat_shamir/src/wire.rs`, `Proof::to_bytes`; at leanVM 5e3ade21):
+# `Proof`; `crates/fiat_shamir/src/wire.rs`, `Proof::to_bytes`; at leanVM 873ee6d8):
 #
 #   bytecode.bin          the bytecode table, little-endian 64-bit words;
 #   public_input.bin      the public input's two halves, 16 bytes each (c0, c1 little-endian);
 #   stream.bin            the scalar stream, 24-byte little-endian E elements;
-#   merkle_openings.bin   the Python verifier's openings (verifier.py:433-445): every phase's
+#   merkle_openings.bin   the Python verifier's openings (verifier.py:428-440): every phase's
 #                         openings in order, each its position (8 bytes, little-endian), its
 #                         leaf words, then its sibling digests, no phase separators;
 #   merkle_phases.bin     the same openings in the `verifier` crate's structure

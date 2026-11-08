@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Roots
 
-  `verify_sub`'s root and bus challenges (G:3422-3446), honestly.
+  `verify_sub`'s root and bus challenges (G:3394-3418), honestly.
 -/
 
 module
