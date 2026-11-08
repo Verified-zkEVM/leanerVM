@@ -284,8 +284,8 @@ theorem outCol_getD (q : Column (verifierLayout prog s).stackLog) (l : Fin 25) {
     (by rw [Vector.size_toArray]; exact hx), Option.getD_some]
   exact h
 
-/-- The global column of output lane `l` is `111 + l`. -/
-theorem pyCol_outCol : ∀ l : Fin 25, pyCol (outCol l) = 111 + l.val := by
+/-- The global column of output lane `l` is `113 + l`. -/
+theorem pyCol_outCol : ∀ l : Fin 25, pyCol (outCol l) = 113 + l.val := by
   decide +kernel
 
 /-- **A lane's claim is the Keccak reduction's output claim**: the program's claim on output lane
@@ -294,14 +294,14 @@ when the extension over the steps of lane `l` of the second segment of the commi
 is the claimed value. -/
 theorem laneHolds_iff (q : Column (verifierLayout prog s).stackLog) (l : Fin 25) (inst : List E)
     (hi : inst.length = s.τ 5) (v : E) :
-    WireHolds prog s ⟨111 + l.val, inst, v⟩ q ↔
+    WireHolds prog s ⟨113 + l.val, inst, v⟩ q ↔
       KeccakGkr.stepMle (s.τ 5) inst (fun x ↦ KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
         (KeccakGkr.inState (s.τ 5) (qkOf (verifierLayout prog s) q) 1 x)) l) = v := by
   let z : Vector E (s.τ 5) := ⟨inst.toArray, by simpa using hi⟩
   have hz : z.toList = inst := by simp [z]
   have h := wireHolds_iff prog s (outCol l) z v q
   rw [pyCol_outCol] at h
-  refine (show WireHolds prog s ⟨111 + l.val, inst, v⟩ q ↔ _ from h).trans ?_
+  refine (show WireHolds prog s ⟨113 + l.val, inst, v⟩ q ↔ _ from h).trans ?_
   have hs : ∀ x ∈ range (2 ^ s.τ 5), KeccakGkr.eqAt inst x *
       ofK (((leanIsaInstance prog s).column (toI prog s q) (outCol l)).values.getD x 0) =
       KeccakGkr.eqAt inst x * ofK (KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
@@ -425,7 +425,7 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 /-- The program's claims hold claims on all 25 output lanes at the low `τ_KECCAK` coordinates of
 the point `pt`. -/
 def OutLanesAt (claims : List Verifier.ColumnClaim) (pt : List E) : Prop :=
-  ∀ l : Fin 25, ∃ v, (⟨111 + l.val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈ claims
+  ∀ l : Fin 25, ∃ v, (⟨113 + l.val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈ claims
 
 /-- The `KECCAK` table is a sumcheck table. -/
 theorem keccak_sumcheckTable : (leanIsaInstance prog s).SumcheckTable (opIdx 5) :=
@@ -437,7 +437,7 @@ theorem outLane_mem_tableOut (st : SumcheckRound.Stmt (Data (leanIsaInstance pro
       (leanIsaInstance prog s).τmax)
     (v : Vector E (leanIsaInstance prog s).tableColumns) (l : Fin 25) :
     ∃ c ∈ (tableOut (leanIsaInstance prog s) st v).2.columns.toList,
-      pyCol c.col = 111 + l.val ∧ c.point.toList = st.2.1.reverse.toList.take (s.τ 5) := by
+      pyCol c.col = 113 + l.val ∧ c.point.toList = st.2.1.reverse.toList.take (s.τ 5) := by
   let j : (leanIsaInstance prog s).SumcheckTables := ⟨opIdx 5, keccak_sumcheckTable prog s⟩
   let i : Fin ((leanIsaInstance prog s).width j.1) := (outCol l).2
   let k := TableSumcheck.columnPos (leanIsaInstance prog s) ⟨j, i⟩
@@ -527,7 +527,7 @@ theorem inst_eq {claims : List Verifier.ColumnClaim} {pt : List E} (hok : LanesO
     (hout : OutLanesAt s claims pt) :
     ((lanesOf claims).headD default).point = pt.take (s.τ 5) := by
   obtain ⟨v, hv⟩ := hout 0
-  have hmem : (⟨111 + (0 : Fin 25).val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈
+  have hmem : (⟨113 + (0 : Fin 25).val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈
       lanesOf claims := by
     rw [List.mem_filter]
     refine ⟨hv, ?_⟩
@@ -541,9 +541,9 @@ theorem length_lanesOf {claims : List Verifier.ColumnClaim} (hok : LanesOk claim
   rw [List.length_map, keccakOutputColumns_eq] at this
   simpa using this
 
-/-- The column of lane `i` is `111 + i`. -/
+/-- The column of lane `i` is `113 + i`. -/
 theorem column_lanesOf {claims : List Verifier.ColumnClaim} (hok : LanesOk claims) (i : ℕ)
-    (hi : i < (lanesOf claims).length) : ((lanesOf claims)[i]).column = 111 + i := by
+    (hi : i < (lanesOf claims).length) : ((lanesOf claims)[i]).column = 113 + i := by
   have h := congrArg (·[i]?) hok.1
   simp only [List.getElem?_map, List.getElem?_eq_getElem hi, keccakOutputColumns_eq,
     Option.map_some] at h
@@ -578,7 +578,7 @@ theorem gkrPre_of_keccakPre {claims : List Verifier.ColumnClaim} {h : List Ev}
       have hpt := hok.2 _ hcl
       have hval : ((lanesOf claims).map (·.value)).getD i 0 = ((lanesOf claims)[i]).value := by
         simp [hi]
-      have e : (lanesOf claims)[i] = ⟨111 + (⟨i, hi25⟩ : Fin 25).val,
+      have e : (lanesOf claims)[i] = ⟨113 + (⟨i, hi25⟩ : Fin 25).val,
           ((lanesOf claims).headD default).point, ((lanesOf claims)[i]).value⟩ := by
         rw [← hcol, ← hpt]
       rw [e, laneHolds_iff prog s q ⟨i, hi25⟩ _ hil]

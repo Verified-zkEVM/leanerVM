@@ -1,8 +1,8 @@
 /-
   LeanVM.Arithmetization.Bytecode
 
-  The sixteen-slot bytecode encoding of an instruction, its eleven-coordinate bus entry, and the
-  decoder for canonical eleven-coordinate entries.
+  The sixteen-slot bytecode encoding of an instruction, its thirteen-coordinate bus entry, and the
+  decoder for canonical thirteen-coordinate entries.
 -/
 
 module
@@ -12,27 +12,30 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines at `5e3ade21`), transcribed
+At leanVM PR #724 head `873ee6d8a57428e33908ecf1608a7bdd43bf832e`, transcribed
 from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs:292-362` (`bytecode_columns`): the eleven public program
-  columns, the opcode then ten operand slots, offsets as g-powers, a `SET` immediate as its three
-  limbs, the `DEREF` store-mode flags and `KECCAK`'s layout flags as `0` or `1`, unused slots
-  zero; `stack_columns` (`cpu/layout.rs:375-385`) stacks them at slots `3..14`
-  (`BYTECODE_PUBLIC_SLOT = 3`);
-* `crates/leanvm_core/src/cpu/isa.rs:58-75`: the `DEREF` store mode as the flag pair
-  `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`.
+* `crates/leanvm_core/src/cpu/layout.rs:292-366` (`bytecode_columns`): the thirteen public program
+  columns, the opcode then twelve operand slots (`BYTECODE_OPERANDS = 12`, `:287`), offsets as
+  g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
+  layout and output flags as `0` or `1`, unused slots zero; `stack_columns` stacks them at slots
+  `3..16` (`BYTECODE_PUBLIC_SLOT = 3`);
+* `crates/leanvm_core/src/cpu/isa.rs:85-93`: the `DEREF` store mode as the flag pair
+  `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`;
+* `crates/leanvm_core/src/cpu/isa.rs:59-82`: `KECCAK`'s output cells as the flag pair
+  `(out_two, out_all)`, `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`.
 
 `entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `instructionSlots i` is
-its sixteen-slot row, the entry at slots 3 to 13. Both are defined in `Statement.LeanIsa`, since
-the verifier receives a program through them; `decode`, here, consumes an eleven-coordinate
+its sixteen-slot row, the entry at slots 3 to 15. Both are defined in `Statement.LeanIsa`, since
+the verifier receives a program through them; `decode`, here, consumes a thirteen-coordinate
 entry. It is exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF`
 tuple with free flags it names the mode whose flags they are (`decode_deref_eq_some_iff`).
-Unknown opcodes, invalid `DEREF` flag pairs, `KECCAK` layout flags other than `0` and `1`, and
-nonzero spare entry coordinates decode to `none`. These results establish the canonical entry
+Unknown opcodes, invalid `DEREF` flag pairs, `KECCAK` layout flags other than `0` and `1`,
+`KECCAK` output flag pairs that are none of the three (`(0, 1)` among them), and nonzero spare
+entry coordinates decode to `none`. These results establish the canonical entry
 boundary.
 
 `Program` already contains typed `LeanIsaInstruction` values, and `LeanIsaProgram.fetch` looks them
@@ -43,12 +46,15 @@ loading/correspondence theorem. Those interfaces require separate coverage or re
 ## Wrong readings excluded
 
 * `SET_CONSTANT`'s `k₂` rides slot 7, coordinate 4 of the entry, the slot `DEREF` uses for
-  `f_pc`; `KECCAK`'s ten operands ride slots 4 to 13 (`decode_entry` on every constructor).
+  `f_pc`; `KECCAK`'s twelve operands ride slots 4 to 15 (`decode_entry` on every constructor).
 * The flag pair `(1, 1)` decodes to nothing, and so does every pair that is not one of the
-  three.
+  three. Likewise `KECCAK`'s output flag pair `(0, 1)`, which would write cells `2..13` and not
+  cell `1`, and is no `OutCells`'s.
+* An output flag of `KECCAK` is `0` or `1`: that is what makes its gated memory pair either a
+  read or a cancelled pair (`Tables.Keccak`), and `decode` is where it comes from.
 * A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
   literal zeros in its spare coordinates (`_flushes_*`, `verifier.py:806-922`), and `decode`
-  rejects a tuple that violates that opcode's canonical entry shape. This is an eleven-coordinate
+  rejects a tuple that violates that opcode's canonical entry shape. This is a thirteen-coordinate
   entry claim, not rejection by the typed program's address lookup.
 -/
 
@@ -85,16 +91,23 @@ def opcode? (a : K) : Option Opcode :=
   else if a = Opcode.keccak.busCode then some .keccak
   else none
 
-/-- The spare coordinates `5..10` of an entry are zero. -/
-def Spare5 (v : Vector K 11) : Prop :=
-  v[5] = 0 ∧ v[6] = 0 ∧ v[7] = 0 ∧ v[8] = 0 ∧ v[9] = 0 ∧ v[10] = 0
+/-- `KECCAK`'s output cells of a flag pair `(out_two, out_all)`, if it is one of the three. -/
+def outCells? (two all : K) : Option KeccakOutputCells :=
+  if two = 0 ∧ all = 0 then some .one
+  else if two = 1 ∧ all = 0 then some .two
+  else if two = 1 ∧ all = 1 then some .all
+  else none
 
-instance (v : Vector K 11) : Decidable (Spare5 v) := by unfold Spare5; infer_instance
+/-- The spare coordinates `5..12` of an entry are zero. -/
+def Spare5 (v : Vector K 13) : Prop :=
+  v[5] = 0 ∧ v[6] = 0 ∧ v[7] = 0 ∧ v[8] = 0 ∧ v[9] = 0 ∧ v[10] = 0 ∧ v[11] = 0 ∧ v[12] = 0
+
+instance (v : Vector K 13) : Decidable (Spare5 v) := by unfold Spare5; infer_instance
 
 /-- Read an entry back as an instruction: the exact inverse of `entry` (`decode_eq_some_iff`);
 `none` on an unknown opcode, on a flag pair that is no mode, on a layout flag that is neither `0`
-nor `1`, or on a nonzero spare slot. -/
-def decode (v : Vector K 11) : Option LeanIsaInstruction :=
+nor `1`, on an output flag pair that is none of the three, or on a nonzero spare slot. -/
+def decode (v : Vector K 13) : Option LeanIsaInstruction :=
   match opcode? v[0] with
   | some .xor => if v[4] = 0 ∧ Spare5 v then some (.xor v[1] v[2] v[3]) else none
   | some .mulNative => if v[4] = 0 ∧ Spare5 v then some (.mulNative v[1] v[2] v[3]) else none
@@ -103,15 +116,16 @@ def decode (v : Vector K 11) : Option LeanIsaInstruction :=
   | some .deref =>
       match derefMode? v[4] v[5] with
       | some mode =>
-        if v[6] = 0 ∧ v[7] = 0 ∧ v[8] = 0 ∧ v[9] = 0 ∧ v[10] = 0 then
+        if v[6] = 0 ∧ v[7] = 0 ∧ v[8] = 0 ∧ v[9] = 0 ∧ v[10] = 0 ∧ v[11] = 0 ∧ v[12] = 0 then
           some (.deref v[1] v[2] v[3] mode)
         else none
       | none => none
   | some .jump => if v[4] = 0 ∧ Spare5 v then some (.jump v[1] v[2] v[3]) else none
   | some .keccak =>
-      match flag? v[9], flag? v[10] with
-      | some inOdd, some outOdd => some (.keccak ![v[1], v[2], v[3], v[4]] v[5] v[6] v[7] v[8] inOdd outOdd)
-      | _, _ => none
+      match flag? v[9], flag? v[10], outCells? v[11] v[12] with
+      | some inOdd, some outOdd, some outCells =>
+          some (.keccak ![v[1], v[2], v[3], v[4]] v[5] v[6] v[7] v[8] inOdd outOdd outCells)
+      | _, _, _ => none
   | none => none
 
 /-! ## Proof helpers -/
@@ -174,17 +188,41 @@ theorem flag?_eq_some_iff {a : K} {b : Bool} : flag? a = some b ↔ a = layoutFl
   · rintro rfl
     exact flag?_flagK b
 
+/-- The output flags of an output-cell choice decode to it. -/
+theorem outCells?_flags (o : KeccakOutputCells) :
+    outCells? (keccakOutputFlags o).1 (keccakOutputFlags o).2 = some o := by
+  cases o <;> simp [outCells?, keccakOutputFlags, layoutFlagWord]
+
+/-- An output flag pair decodes to a choice exactly when it is that choice's flags. -/
+theorem outCells?_eq_some_iff {two all : K} {o : KeccakOutputCells} :
+    outCells? two all = some o ↔ (two, all) = keccakOutputFlags o := by
+  constructor
+  · intro h
+    unfold outCells? at h
+    split_ifs at h with h1 h2 h3 <;> cases h
+    · simp [keccakOutputFlags, layoutFlagWord, h1.1, h1.2]
+    · simp [keccakOutputFlags, layoutFlagWord, h2.1, h2.2]
+    · simp [keccakOutputFlags, layoutFlagWord, h3.1, h3.2]
+  · intro h
+    rw [← outCells?_flags o, ← h]
+
+/-- Each output flag of a choice is `0` or `1`. -/
+theorem keccakOutputFlags_bits (o : KeccakOutputCells) :
+    ((keccakOutputFlags o).1 = 0 ∨ (keccakOutputFlags o).1 = 1) ∧
+      ((keccakOutputFlags o).2 = 0 ∨ (keccakOutputFlags o).2 = 1) := by
+  cases o <;> simp [keccakOutputFlags, layoutFlagWord]
+
 /-- Every instruction's entry decodes to it. -/
 theorem decode_entry (i : LeanIsaInstruction) : decode (busEntry i) = some i := by
   cases i with
-  | keccak om otail ob8 ocap oout inOdd outOdd =>
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     have h := vecCons_apply om
-    simp [decode, busEntry, opcode?_code, h, flag?_flagK]
+    simp [decode, busEntry, opcode?_code, h, flag?_flagK, outCells?_flags]
   | _ => simp [decode, busEntry, opcode?_code, derefMode?_flags, ofLimbs_limb, Spare5]
 
 /-- `decode` is the exact inverse of `entry`: a vector decodes to an instruction only when it is
 that instruction's entry. -/
-theorem decode_eq_some_iff {v : Vector K 11} {i : LeanIsaInstruction} : decode v = some i ↔ v =
+theorem decode_eq_some_iff {v : Vector K 13} {i : LeanIsaInstruction} : decode v = some i ↔ v =
     busEntry i := by
   constructor
   · intro h
@@ -204,15 +242,17 @@ theorem decode_eq_some_iff {v : Vector K 11} {i : LeanIsaInstruction} : decode v
           rw [derefMode?_eq_some_iff, Prod.mk.injEq] at hm
           split_ifs at h with hz
           cases h
-          obtain ⟨z6, z7, z8, z9, z10⟩ := hz
+          obtain ⟨z6, z7, z8, z9, z10, z11, z12⟩ := hz
           refine Vector.ext fun j hj ↦ ?_
-          interval_cases j <;> simp [busEntry, hop, hm.1, hm.2, z6, z7, z8, z9, z10]
+          interval_cases j <;> simp [busEntry, hop, hm.1, hm.2, z6, z7, z8, z9, z10, z11, z12]
       case keccak =>
         rcases h9 : flag? v[9] with _ | inOdd <;> rcases h10 : flag? v[10] with _ | outOdd <;>
-          rw [h9, h10] at h <;> try cases h
+          rcases h11 : outCells? v[11] v[12] with _ | outCells <;>
+          rw [h9, h10, h11] at h <;> try cases h
         rw [flag?_eq_some_iff] at h9 h10
+        rw [outCells?_eq_some_iff, Prod.mk.injEq] at h11
         refine Vector.ext fun j hj ↦ ?_
-        interval_cases j <;> simp [busEntry, hop, h9, h10]
+        interval_cases j <;> simp [busEntry, hop, h9, h10, h11.1, h11.2]
       all_goals
         split_ifs at h with hz
         cases h
@@ -223,13 +263,13 @@ theorem decode_eq_some_iff {v : Vector K 11} {i : LeanIsaInstruction} : decode v
     exact decode_entry i
 
 /-- A vector decodes to nothing exactly when it is no instruction's entry. -/
-theorem decode_eq_none_iff {v : Vector K 11} : decode v = none ↔ ∀ i, v ≠ busEntry i := by
+theorem decode_eq_none_iff {v : Vector K 13} : decode v = none ↔ ∀ i, v ≠ busEntry i := by
   simp only [Option.eq_none_iff_forall_ne_some, ne_eq, decode_eq_some_iff]
 
 /-- A `DEREF` tuple with free flags decodes exactly to the `DEREF` with its operands and the store
 mode whose flags it carries; a pair that is no mode's decodes to nothing. -/
 theorem decode_deref_eq_some_iff {o1 o2 o3 fpc ffp : K} {i : LeanIsaInstruction} :
-    decode #v[Opcode.deref.busCode, o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0] = some i ↔
+    decode #v[Opcode.deref.busCode, o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0, 0, 0] = some i ↔
       ∃ mode, i = .deref o1 o2 o3 mode ∧ (fpc, ffp) = derefFlags mode := by
   simp only [decode, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
     List.getElem_cons_succ, opcode?_code, and_self, ite_true]
@@ -250,9 +290,9 @@ theorem entry_injective : Function.Injective busEntry := by
   rw [h, decode_entry] at hi
   exact (Option.some.inj hi).symm
 
-/-- The sixteen slots: the entry at slots 3 to 13, zero elsewhere (specification §8.1). -/
+/-- The sixteen slots: the entry at slots 3 to 15, zero elsewhere (specification §8.1). -/
 theorem encodeSlots_getElem (i : LeanIsaInstruction) (j : ℕ) (hj : j < 16) :
-    (instructionSlots i)[j] = if h : 3 ≤ j ∧ j < 14 then (busEntry i)[j - 3] else 0 := by
+    (instructionSlots i)[j] = if h : 3 ≤ j ∧ j < 16 then (busEntry i)[j - 3] else 0 := by
   interval_cases j <;> simp [instructionSlots]
 
 end

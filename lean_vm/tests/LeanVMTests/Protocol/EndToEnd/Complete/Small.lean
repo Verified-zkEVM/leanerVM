@@ -51,7 +51,7 @@ example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ :
 
 example (prog : LeanIsaProgram) (s : Sizes) : (LeanVM.Protocol.LeanIsa.blocks prog s).total =
     4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 26 * 2 ^ s.τ 5 :=
+      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 :=
   blocks_total_eq prog s
 
 /--
@@ -92,10 +92,10 @@ theorem keccakHeight_le {prog : LeanIsaProgram} {t : Execution prog} {rf : Regis
   · rw [max_eq_left hle]; omega
 
 /-- With at most `2^n` steps, the committed size is at most
-`4·2^κ + 2^logSize + 157·2^n + 46080`. -/
+`4·2^κ + 2^logSize + 159·2^n + 47104`. -/
 theorem committedSize_le {prog : LeanIsaProgram} {t : Execution prog} {rf : Registers K} {n : ℕ}
     (h : run prog t.memory t.stepCount Registers.initial = some rf) (hn : t.stepCount ≤ 2 ^ n) :
-    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 157 * 2 ^ n + 46080 := by
+    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 159 * 2 ^ n + 47104 := by
   have h0 := height_le h hn .xor
   have h1 := height_le h hn .mulNative
   have h2 := height_le h hn .setConstant

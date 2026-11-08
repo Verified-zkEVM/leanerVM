@@ -1007,8 +1007,8 @@ theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 3) :
 theorem bytecode_entries {alphas : List E} (ha : alphas.length = 4) (p : List E)
     (hp : prog.logSize ≤ p.length) :
     multilinearEval ((verifierLayout prog s).bytecode.map ofK) (p.take prog.logSize ++ alphas) =
-      ∑ k ∈ range 11, (eqKernel alphas).getD (3 + k) 0 *
-        ((List.finRange 11).map fun k ↦ Bus.coordValue (I := leanIsaWith prog s fl)
+      ∑ k ∈ range 13, (eqKernel alphas).getD (3 + k) 0 *
+        ((List.finRange 13).map fun k ↦ Bus.coordValue (I := leanIsaWith prog s fl)
           (vals := 0) (.known (entryColumn prog k)) (vecOf prog.logSize p)).getD k 0 := by
   have hz : p.take prog.logSize = (vecOf prog.logSize p).toList := (toList_vecOf_take p hp).symm
   have hw : alphas = (Vector.ofFn (toAlpha alphas)).toList := by
@@ -1020,7 +1020,7 @@ theorem bytecode_entries {alphas : List E} (ha : alphas.length = 4) (p : List E)
     show (verifierLayout prog s).bytecode = bytecodeWords prog from rfl,
     multilinearEval_bytecodeWords, ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun k _ ↦ ?_
-  rw [List.getD_eq_getElem ((List.finRange 11).map _) _ (by simp), List.getElem_map,
+  rw [List.getD_eq_getElem ((List.finRange 13).map _) _ (by simp), List.getElem_map,
     List.getElem_finRange]
   have h3 := fingerprintWeights_toAlpha ha ⟨k.val + 3, by omega⟩
   simp only at h3

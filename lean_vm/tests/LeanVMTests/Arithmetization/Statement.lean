@@ -140,6 +140,7 @@ def walkProg : LeanIsaProgram :=
     | 6 => .deref (addressOfIndex 6) 1 1 .cell
     | 7 => .jump g (addressOfIndex 3) (addressOfIndex 6)
     | 8 => .keccak ![1, g, 1, g] (addressOfIndex 2) (addressOfIndex 6) (addressOfIndex 7) (addressOfIndex 11) false true
+        .all
     | 9 => .jump (addressOfIndex 24) (addressOfIndex 25) (addressOfIndex 26)
     | _ => .xor 1 1 1⟩
 
@@ -247,10 +248,11 @@ def jumpRow7 : JumpRow K := ⟨addressOfIndex 7, addressOfIndex 5, g, addressOfI
 def kCnt : Vector K 26 :=
   #v[1, 1, g, g, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 /-- Slot `8`, the executor's `KECCAK` row in frame `g^14`, with output lanes `L` (`kLout` for the
-honest prover): even layout in (flag `0`), odd layout out (flag `1`), the free limb `0x5555`. -/
+honest prover): even layout in (flag `0`), odd layout out (flag `1`), all thirteen output cells
+written (flags `1, 1`), the free limb `0x5555`. -/
 def kRow (L : Vector K 25) : KeccakRow K :=
   ⟨addressOfIndex 8, addressOfIndex 14, #v[1, g, 1, g], addressOfIndex 2, addressOfIndex 6,
-      addressOfIndex 7, addressOfIndex 11, 0, 1, K.ofBits 0x5555, kLin,
+      addressOfIndex 7, addressOfIndex 11, 0, 1, 1, 1, K.ofBits 0x5555, kLin,
     L, kCnt, 1⟩
 /-- Slot `9`, the `JUMP` back to slot `8`. -/
 def jumpRow9 : JumpRow K :=

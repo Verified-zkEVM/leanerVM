@@ -33,7 +33,7 @@ opcode table holds the run's rows of its opcode, as many as the instructions of 
 execution executes (`Execution.count_eq_runRows`). The stacked size counts every committed column at
 its table's height (`blocks_total_eq`):
 
-  `4·2^logMem + 2^logSize + 2^(τ₅ + 6) + 15·2^τ₀ + 15·2^τ₁ + 8·2^τ₂ + 15·2^τ₃ + 14·2^τ₄ + 26·2^τ₅`
+  `4·2^logMem + 2^logSize + 2^(τ₅ + 6) + 15·2^τ₀ + 15·2^τ₁ + 8·2^τ₂ + 15·2^τ₃ + 14·2^τ₄ + 28·2^τ₅`
 
 (the four memory columns, `BFCNT`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
 columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, the last without its
@@ -62,17 +62,17 @@ open Air.Flat (EnsembleWitness)
 /-! ## The stacked size -/
 
 /-- The committed columns, by table: four of the memory, `BFCNT`, `QKECCAK`, then those of the
-six opcode tables (`15, 15, 8, 15, 14` and `26` for `KECCAK`, whose fifty value lanes are
-`q_keccak`'s or derived and whose columns `0 … 12` and `63` ride `q_keccak`'s spare slots). -/
+six opcode tables (`15, 15, 8, 15, 14` and `28` for `KECCAK`, whose fifty value lanes are
+`q_keccak`'s or derived and whose columns `0 … 13` ride `q_keccak`'s spare slots). -/
 theorem committedColumns_tables : committedColumns.map (fun c ↦ c.1) =
     List.replicate 4 0 ++ [1, 2] ++ List.replicate 15 3 ++ List.replicate 15 4 ++
-      List.replicate 8 5 ++ List.replicate 15 6 ++ List.replicate 14 7 ++ List.replicate 26 8 := by
+      List.replicate 8 5 ++ List.replicate 15 6 ++ List.replicate 14 7 ++ List.replicate 28 8 := by
   decide +kernel
 
 /-- **The stacked size**: every committed column at its table's height. -/
 theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks prog s).total =
     4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 26 * 2 ^ s.τ 5 := by
+      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 := by
   rw [Blocks.total_eq_sum]
   have h1 : ∑ b : Fin (LeanIsa.blocks prog s).n, 2 ^ (LeanIsa.blocks prog s).size b =
       ((LeanIsa.stackOrder prog s).map fun c ↦ 2 ^ kappa prog s c).sum :=

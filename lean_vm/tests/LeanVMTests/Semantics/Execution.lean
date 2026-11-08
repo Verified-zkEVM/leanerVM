@@ -440,10 +440,10 @@ def keccakImage (out0 : E) : MemoryImage 5 := fun i ↦
   | _ => 0
 
 /-- The executor's first `KECCAK` row: `m: [2, 3, 2, 3], tail: 4, b8: 8, cap: 9, out: 13`, even
-input layout, odd output layout. -/
+input layout, odd output layout, all thirteen output cells written. -/
 def keccakIns : LeanIsaInstruction := .keccak ![addressOfIndex 2, addressOfIndex 3, addressOfIndex
     2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9)
-  (addressOfIndex 13) false true
+  (addressOfIndex 13) false true .all
 
 /-- The cells the row reads. -/
 def kIn : Fin 13 → E := ![kA, kB, kA, kB, kPad, 0, 0, 0, kEnd, 0, 0, 0, 0]
@@ -464,19 +464,22 @@ theorem keccakOutOffset_eq : ∀ c : Fin 13, 1 * (g ^ c.val * addressOfIndex 13)
 /-- The row's reads, on the image with output cell `0` set to `out0`. -/
 theorem keccak_reads (out0 : E) :
     execute (keccakImage out0) ⟨1, 1⟩ keccakIns =
-      (do guard (KeccakCellsRelation kIn false (Function.update kOut 0 out0) true); pure ⟨g, 1⟩) := by
+      (do guard (KeccakCellsRelation kIn false (Function.update kOut 0 out0) true
+            KeccakOutputCells.all);
+          pure ⟨g, 1⟩) := by
   have hin : readCells (keccakImage out0).read 1 (keccakInputCellOffset ![addressOfIndex 2,
       addressOfIndex 3, addressOfIndex 2, addressOfIndex 3]
       (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9)) = some kIn := by
     refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
     rw [keccakInOffset_eq c]
     fin_cases c <;> exact (read_lit (keccakImage out0) _ (by decide) (by decide)).trans rfl
-  have hout : readCells (keccakImage out0).read 1 (fun c ↦ g ^ c.val * addressOfIndex 13) =
+  have hout : readFirstCells (keccakImage out0).read 1 (fun c ↦ g ^ c.val * addressOfIndex 13) 13 =
       some (Function.update kOut 0 out0) := by
-    refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
+    refine (readFirstCells_eq_some_iff _ _ _ _ _).mpr ⟨fun c _ ↦ ?_, fun c hc ↦ absurd c.isLt (by omega)⟩
     rw [keccakOutOffset_eq c]
     fin_cases c <;> exact (read_lit (keccakImage out0) _ (by decide) (by decide)).trans rfl
-  simp only [keccakIns, execute, executeWith, hin, hout, Option.bind_eq_bind, Option.bind_some]
+  simp only [keccakIns, execute, executeWith, KeccakOutputCells.cellCount, hin, hout,
+    Option.bind_eq_bind, Option.bind_some]
   rfl
 
 /-- The row steps: the cells are a Keccak-f[1600] permutation, even layout in, odd layout out. -/
@@ -492,6 +495,62 @@ example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = n
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (keccakImage _) ⟨1, 1⟩ keccakIns = _
   rw [keccak_reads]
+  decide +kernel
+
+/-- The same row writing only output cell `0` (`out_cells = One`, leanVM PR #724 head `873ee6d8`,
+`keccak_writes_only_requested_cells`, `cpu/mod.rs`): it reads cell `13` alone of the output. -/
+def keccakIns1 : LeanIsaInstruction := .keccak ![addressOfIndex 2, addressOfIndex 3, addressOfIndex
+    2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9)
+  (addressOfIndex 13) false true .one
+
+/-- The image of the one-cell row: output cell `0` at `13`, then anything at `14..25`, here `w`. -/
+def keccakImage1 (out0 w : E) : MemoryImage 5 := fun i ↦
+  match (i : ℕ) with
+  | 0 => ofK 7
+  | 1 => ofK 11
+  | 2 => kA
+  | 3 => kB
+  | 4 => kPad
+  | 8 => kEnd
+  | 13 => out0
+  | _ + 14 => w
+  | _ => 0
+
+/-- The one-cell row's reads: the input cells, and output cell `0` only. -/
+theorem keccak_reads_one (out0 w : E) :
+    execute (keccakImage1 out0 w) ⟨1, 1⟩ keccakIns1 =
+      (do guard (KeccakCellsRelation kIn false (fun c ↦ if c.val < 1 then out0 else 0) true
+            KeccakOutputCells.one);
+          pure ⟨g, 1⟩) := by
+  have hin : readCells (keccakImage1 out0 w).read 1 (keccakInputCellOffset ![addressOfIndex 2,
+      addressOfIndex 3, addressOfIndex 2, addressOfIndex 3]
+      (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9)) = some kIn := by
+    refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
+    rw [keccakInOffset_eq c]
+    fin_cases c <;> exact (read_lit (keccakImage1 out0 w) _ (by decide) (by decide)).trans rfl
+  have hout : readFirstCells (keccakImage1 out0 w).read 1 (fun c ↦ g ^ c.val * addressOfIndex 13)
+      1 = some (fun c ↦ if c.val < 1 then out0 else 0) := by
+    refine (readFirstCells_eq_some_iff _ _ _ _ _).mpr ⟨fun c hc ↦ ?_, fun c hc ↦ ?_⟩
+    · obtain rfl : c = 0 := Fin.ext (by omega)
+      rw [keccakOutOffset_eq 0]
+      exact (read_lit (keccakImage1 out0 w) _ (by decide) (by decide)).trans rfl
+    · split_ifs <;> first | omega | rfl
+  simp only [keccakIns1, execute, executeWith, KeccakOutputCells.cellCount, hin, hout,
+    Option.bind_eq_bind, Option.bind_some]
+  rfl
+
+/-- The one-cell row steps whatever the cells past output cell `0` hold: it does not write them. -/
+example (w : E) : step (oneStep keccakIns1) (keccakImage1 (kOut 0) w) ⟨1, 1⟩ = some ⟨g, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute (keccakImage1 (kOut 0) w) ⟨1, 1⟩ keccakIns1 = _
+  rw [keccak_reads_one]
+  decide +kernel
+
+/-- … but not with a wrong output cell `0`, the one it writes. -/
+example (w : E) : step (oneStep keccakIns1) (keccakImage1 (kOut 0 + ofK 1) w) ⟨1, 1⟩ = none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute (keccakImage1 _ w) ⟨1, 1⟩ keccakIns1 = _
+  rw [keccak_reads_one]
   decide +kernel
 
 /-! ## `halts_in_the_final_state` (`cpu/mod.rs:878-916`)

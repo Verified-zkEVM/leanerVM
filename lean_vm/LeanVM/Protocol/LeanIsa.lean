@@ -45,7 +45,7 @@ never visits them.
 leanISA's three remaining components: the verifier's state push `(1, 1)` and pull
 `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory block's seed push `(g^i, 1, m_i)` and finalize
 pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the bytecode block's seed push and finalize pull of
-the program's entries (`bytecodeTable`, with the program's eleven entry columns known to both
+the program's entries (`bytecodeTable`, with the program's thirteen entry columns known to both
 parties, `Coord.known`; `bytecode_columns`, `layout.rs:295`). The index column is the verifier's
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
@@ -485,14 +485,14 @@ def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ)
 
 /-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs:295`): the entry's
 coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
-def entryColumn (k : Fin 11) : Column prog.logSize :=
+def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
 /-- The six boundary blocks (`layout.rs:420-463`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
-    (List.finRange 11).map fun k ↦ .known (entryColumn prog k)
+    (List.finRange 13).map fun k ↦ .known (entryColumn prog k)
   [⟨0, .push, coords [.const (channelSep StatePush.toRaw), .const 1, .const 1]⟩,
     ⟨s.logMem, .push, coords [.const (channelSep MemPush.toRaw), .known (idxColumn s.logMem),
       .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl, .committed (memCol 2) rfl]⟩,
@@ -685,8 +685,8 @@ def publicInputOf : PublicIO K :=
 /-- The memory block has five columns. -/
 theorem width_memTable : (⟨memTable⟩ : Component K).width = 5 := by decide +kernel
 
-/-- The bytecode block has thirteen columns. -/
-theorem width_bytecodeTable : (⟨bytecodeTable⟩ : Component K).width = 13 := by decide +kernel
+/-- The bytecode block has fifteen columns. -/
+theorem width_bytecodeTable : (⟨bytecodeTable⟩ : Component K).width = 15 := by decide +kernel
 
 /-- A table of the witness: a component, its rows of its width, the data. -/
 def tableOf (c : Component K) (rows : List (Array K)) (data : ProverData K)
@@ -753,7 +753,8 @@ theorem qSlot_spare {c : Col} (h : IsSpare c) :
       if c.2.val < 65 then (c.2.val - 15) % 25 else 0) - 50) = c.2.val
   unfold spareColumn
   have h' := h.2
-  split_ifs <;> omega
+  split_ifs
+  omega
 
 /-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs:56-111`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
