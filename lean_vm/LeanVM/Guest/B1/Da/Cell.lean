@@ -140,11 +140,11 @@ def cellOk (fn : Fn) : Bool :=
   decide (fn.params = [.n 0]) &&
   match splitBody fn.body with
   | some (A, vs) =>
-    decide (vs = [.n 1751, .n 1752, .n 1753]) && decide (1280 ≤ A.length) &&
+    decide (vs = [.n 1740, .n 1741, .n 1742]) && decide (1280 ≤ A.length) &&
     atomsEqb ((A.drop 1).take 1279) tmplA &&
     (cellSpec (A.drop 1280)).check (A.drop 1280) &&
-    retOk (A.drop 1280) (cellSpec (A.drop 1280)) (.n 1751) (.n 1752) &&
-    (A.drop 1280).any (isCopyAt (.n 1753) (.n 1407))
+    retOk (A.drop 1280) (cellSpec (A.drop 1280)) (.n 1740) (.n 1741) &&
+    (A.drop 1280).any (isCopyAt (.n 1742) (.n 1407))
   | none => false
 
 /-! ## Bytes -/

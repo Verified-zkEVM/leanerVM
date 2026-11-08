@@ -114,7 +114,10 @@ theorem challenge_complete {s0 s1 : V} {b : ℕ}
 /-- **A `KECCAK` atom on an evaluated valuation** with canonical inputs holds. -/
 theorem keccakA_complete {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs false false))
     (hc : AllCanonical (ins.map σ)) : (Atom.keccak ins outs false false).Holds rd σ :=
-  keccakA_of hg.1 hg.2.1 hc (funext hg.2.2)
+  holds_of_good hg fun c => by
+    have hc' : c.val < (ins.map σ).length := by simp [hg.1]
+    simpa [cells13, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hc'] using
+      hc _ (List.getElem_mem hc')
 
 end
 end LeanVM.Guest.B1.VerifySub

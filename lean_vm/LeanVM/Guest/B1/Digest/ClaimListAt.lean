@@ -56,11 +56,11 @@ theorem cl23Else_split :
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem clPost_eq : clPost = [.atom (.copy (.n 10) (.n 85)), .atom (.copy (.n 11) (.n 86))] :=
+theorem clPost_eq : clPost = [.atom (.copy (.n 10) (.n 74)), .atom (.copy (.n 11) (.n 75))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem cl_body : Fn.body Data.core23 =
-    clHead ++ .ite (.n 3) cl23Zero cl23Else :: (clTail ++ [.ret [.n 87, .n 88]]) := by
+    clHead ++ .ite (.n 3) cl23Zero cl23Else :: (clTail ++ [.ret [.n 76, .n 77]]) := by
   rw [core22_shape]; rfl
 
 set_option maxRecDepth 100000 in
@@ -73,19 +73,19 @@ theorem clHead_straight : clHead.all Main.Stmt.straight = true := rfl
 theorem clTail_straight : clTail.all Main.Stmt.straight = true := rfl
 
 set_option maxRecDepth 100000 in
-theorem clP1_allocs : clP1.filterMap Main.Stmt.allocSz = [(.n 34, .inr (.n 33))] := by decide +kernel
+theorem clP1_allocs : clP1.filterMap Main.Stmt.allocSz = [(.n 23, .inr (.n 22))] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clP1_addrs : clP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clP1_calls : clP1.filterMap Main.Stmt.callS =
-    [(none, "list_split", [.n 1], [.n 23, .n 24, .n 25]),
-      (some (.n 49), "__loop15", [.n 50, .n 23, .n 34, .n 0], []),
-      (some (.n 69), "__loop16", [.n 70, .n 24, .n 56, .n 67], [])] := by decide +kernel
+    [(none, "list_split", [.n 1], [.n 12, .n 13, .n 14]),
+      (some (.n 38), "__loop15", [.n 39, .n 12, .n 23, .n 0], []),
+      (some (.n 58), "__loop16", [.n 59, .n 13, .n 45, .n 56], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clP1_loads : clP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n 34, c) := by
+theorem clP1_loads : clP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n 23, c) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -104,9 +104,9 @@ noncomputable def clzσ (rd : Reader) (entries : E) : Val :=
 
 /-- The oracle of the nonempty list's valuation (`n = 136a + 17b + c`). -/
 noncomputable def clw (a b c : ℕ) (chain : E) (D : Digest) (i : ℕ) : E :=
-  if i = 23 then gen ^ a else if i = 24 then gen ^ b else if i = 25 then gen ^ c
-  else if i = 34 then chain
-  else if i = 10 ∨ i = 85 then (digestHalves D).1 else if i = 11 ∨ i = 86 then (digestHalves D).2
+  if i = 12 then gen ^ a else if i = 13 then gen ^ b else if i = 14 then gen ^ c
+  else if i = 23 then chain
+  else if i = 10 ∨ i = 74 then (digestHalves D).1 else if i = 11 ∨ i = 75 then (digestHalves D).2
   else 0
 
 /-- The nonempty list's valuation. -/
@@ -121,7 +121,7 @@ theorem clz_core (entries : E) :
     (∀ a ∈ atomsIn clZEval, a.Holds rd (clzσ rd entries)) ∧ clzσ rd entries (.n 0) = entries ∧
       clzσ rd entries (.n 1) = gen ^ 0 ∧ clzσ rd entries (.n 3) = 0 ∧
       clzσ rd entries (.n 3) = gen ^ 0 + gen ^ 0 ∧
-      [clzσ rd entries (.n 87), clzσ rd entries (.n 88)] =
+      [clzσ rd entries (.n 76), clzσ rd entries (.n 77)] =
         digestCells (keccak256 (cellsBytes [])) := by
   have hz1 := cz_ok
   have hb1 := clbr_ok
@@ -131,8 +131,8 @@ theorem clz_core (entries : E) :
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, b12⟩, b13⟩, b14⟩, b15⟩, -⟩ := hb1
   have c2 : Stmt.atom (.const (.n 2) (word 1 0 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
-  have t87 : Stmt.atom (.copy (.n 87) (.n 10)) ∈ clTail := by simp [clTail]
-  have t88 : Stmt.atom (.copy (.n 88) (.n 11)) ∈ clTail := by simp [clTail]
+  have t87 : Stmt.atom (.copy (.n 76) (.n 10)) ∈ clTail := by simp [clTail]
+  have t88 : Stmt.atom (.copy (.n 77) (.n 11)) ∈ clTail := by simp [clTail]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, gen ^ 0]
   set σ := clzσ rd entries with hσ
@@ -158,8 +158,8 @@ theorem clz_core (entries : E) :
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
   have v2 : σ (.n 2) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c2))
   have v3 : σ (.n 3) = σ (.n 1) + σ (.n 2) := hat _ (cl_mem_atoms (mH _ a3))
-  have v87 : σ (.n 87) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
-  have v88 : σ (.n 88) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
+  have v87 : σ (.n 76) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
+  have v88 : σ (.n 77) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
   have h30 : σ (.n 3) = 0 := by
     rw [v3, v2, e1, word_one, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
   obtain ⟨hd, -⟩ := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
@@ -177,28 +177,28 @@ structure ClVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v3 : σ (.n 3) = gen ^ n + gen ^ 0
   v10 : σ (.n 10) = (digestHalves D).1
   v11 : σ (.n 11) = (digestHalves D).2
-  v23 : σ (.n 23) = gen ^ (n / 136)
-  v24 : σ (.n 24) = gen ^ (n % 136 / 17)
-  v25 : σ (.n 25) = gen ^ (n % 17)
-  v33 : σ (.n 33) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1))
-  v34 : σ (.n 34) = chain
-  v49 : σ (.n 49) = 1 + gen ^ (n / 136)
-  v50 : σ (.n 50) = 1
-  v56 : σ (.n 56) = chain * gen ^ (13 * (n / 136))
-  v67 : σ (.n 67) = entries * gen ^ (544 * (n / 136))
-  v69 : σ (.n 69) = 1 + gen ^ (n % 136 / 17)
-  v70 : σ (.n 70) = 1
-  v76 : σ (.n 76) = chain * gen ^ (13 * (n / 136 + n % 136 / 17))
-  v84 : σ (.n 84) = entries * gen ^ (544 * (n / 136) + 68 * (n % 136 / 17))
-  v85 : σ (.n 85) = (digestHalves D).1
-  v86 : σ (.n 86) = (digestHalves D).2
-  v87 : σ (.n 87) = (digestHalves D).1
-  v88 : σ (.n 88) = (digestHalves D).2
+  v23 : σ (.n 12) = gen ^ (n / 136)
+  v24 : σ (.n 13) = gen ^ (n % 136 / 17)
+  v25 : σ (.n 14) = gen ^ (n % 17)
+  v33 : σ (.n 22) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1))
+  v34 : σ (.n 23) = chain
+  v49 : σ (.n 38) = 1 + gen ^ (n / 136)
+  v50 : σ (.n 39) = 1
+  v56 : σ (.n 45) = chain * gen ^ (13 * (n / 136))
+  v67 : σ (.n 56) = entries * gen ^ (544 * (n / 136))
+  v69 : σ (.n 58) = 1 + gen ^ (n % 136 / 17)
+  v70 : σ (.n 59) = 1
+  v76 : σ (.n 65) = chain * gen ^ (13 * (n / 136 + n % 136 / 17))
+  v84 : σ (.n 73) = entries * gen ^ (544 * (n / 136) + 68 * (n % 136 / 17))
+  v85 : σ (.n 74) = (digestHalves D).1
+  v86 : σ (.n 75) = (digestHalves D).2
+  v87 : σ (.n 76) = (digestHalves D).1
+  v88 : σ (.n 77) = (digestHalves D).2
 
 set_option maxRecDepth 100000 in
-theorem cl_size_atoms : ∀ a ∈ [Atom.mul (.n 26) (.n 23) (.n 24), .const (.n 27) (word 2 0 0),
-    .mul (.n 28) (.n 26) (.n 27), .mul (.n 29) (.n 28) (.n 28), .mul (.n 30) (.n 29) (.n 28),
-    .mul (.n 31) (.n 30) (.n 30), .mul (.n 32) (.n 31) (.n 31), .mul (.n 33) (.n 32) (.n 28)],
+theorem cl_size_atoms : ∀ a ∈ [Atom.mul (.n 15) (.n 12) (.n 13), .const (.n 16) (word 2 0 0),
+    .mul (.n 17) (.n 15) (.n 16), .mul (.n 18) (.n 17) (.n 17), .mul (.n 19) (.n 18) (.n 17),
+    .mul (.n 20) (.n 19) (.n 19), .mul (.n 21) (.n 20) (.n 20), .mul (.n 22) (.n 21) (.n 17)],
     a ∈ atomsIn clEEval := by
   decide +kernel
 
@@ -217,20 +217,20 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   have hE := stmtsEqb_sound b1
   have c2 : Stmt.atom (.const (.n 2) (word 1 0 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
-  have t87 : Stmt.atom (.copy (.n 87) (.n 10)) ∈ clTail := by simp [clTail]
-  have t88 : Stmt.atom (.copy (.n 88) (.n 11)) ∈ clTail := by simp [clTail]
+  have t87 : Stmt.atom (.copy (.n 76) (.n 10)) ∈ clTail := by simp [clTail]
+  have t88 : Stmt.atom (.copy (.n 77) (.n 11)) ∈ clTail := by simp [clTail]
   set a := n / 136 with hadef
   set b := n % 136 / 17 with hbdef
   set c := n % 17 with hcdef
   set w := clw a b c chain D with hw
-  have w23 : w 23 = gen ^ a := by rw [hw]; simp [clw]
-  have w24 : w 24 = gen ^ b := by rw [hw]; simp [clw]
-  have w25 : w 25 = gen ^ c := by rw [hw]; simp [clw]
-  have w34 : w 34 = chain := by rw [hw]; simp [clw]
+  have w23 : w 12 = gen ^ a := by rw [hw]; simp [clw]
+  have w24 : w 13 = gen ^ b := by rw [hw]; simp [clw]
+  have w25 : w 14 = gen ^ c := by rw [hw]; simp [clw]
+  have w34 : w 23 = chain := by rw [hw]; simp [clw]
   have w10 : w 10 = (digestHalves D).1 := by rw [hw]; simp [clw]
-  have w85 : w 85 = (digestHalves D).1 := by rw [hw]; simp [clw]
+  have w85 : w 74 = (digestHalves D).1 := by rw [hw]; simp [clw]
   have w11 : w 11 = (digestHalves D).2 := by rw [hw]; simp [clw]
-  have w86 : w 86 = (digestHalves D).2 := by rw [hw]; simp [clw]
+  have w86 : w 75 = (digestHalves D).2 := by rw [hw]; simp [clw]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b2
   let args : List E := [entries, gen ^ n]
   set σ := clσ rd entries n chain D with hσ
@@ -250,7 +250,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
   have e1 : σ (.n 1) = gen ^ n := by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
-  have v34 : σ (.n 34) = chain := by
+  have v34 : σ (.n 23) = chain := by
     obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp b12
     have hga := hg a (cl_mem_atoms (mP _ (cl_atom_mem ha)))
     cases a with
@@ -259,18 +259,18 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
       | allocDyn d s =>
         simp only [decide_eq_true_eq] at hp
         subst hp
-        have hga' : σ (.n 34) = w 34 := hga
+        have hga' : σ (.n 23) = w 34 := hga
         rw [hga', w34]
       | _ => simp at hp
     | _ => simp at hp
-  have v35 : ∀ c < 13, σ (.n (35 + c)) = 0 := by
+  have v35 : ∀ c < 13, σ (.n (24 + c)) = 0 := by
     intro c hc'
     obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp (List.all_eq_true.mp b11 c (List.mem_range.mpr hc'))
     have hga := hg a (cl_mem_atoms (mP _ (cl_atom_mem ha)))
     cases a <;> simp only [isConstAt, Bool.false_eq_true, Bool.and_eq_true,
       decide_eq_true_eq] at hp
     obtain ⟨rfl, he⟩ := hp
-    have hga' : σ (.n (35 + c)) = _ := hga
+    have hga' : σ (.n (24 + c)) = _ := hga
     rw [hga', eEqb_sound he, word_zero]
   have hat : ∀ a ∈ atomsIn clEEval, a.Holds rd σ := by
     refine atoms_holds_stores (S := SE) (w := w) hidx b5 hg (A := []) (by simp)
@@ -283,7 +283,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     · obtain ⟨c, hc', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp b3 a haS)
       rw [atomEqb_sound he]
       have hc13 := List.mem_range.mp hc'
-      show LoadHolds rd (σ (.n 34)) c (σ (.n (35 + c)))
+      show LoadHolds rd (σ (.n 23)) c (σ (.n (24 + c)))
       rw [v34, v35 c hc13]
       have := hz0 ⟨c, hc13⟩
       rwa [Nat.zero_add, cellsOfState_zero] at this
@@ -291,13 +291,13 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp b10; rwa [stmtEqb_sound he] at hs
   have hcall : clSplitS ∈ clElsePre := by
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp b7; rwa [stmtEqb_sound he] at hs
-  have gd : ∀ v ∈ [V.n 85, V.n 86], σ v = w v.idx := hgs _ (mP _ hdisp)
-  have gc : ∀ v ∈ [V.n 23, V.n 24, V.n 25], σ v = w v.idx := hgs _ (mP _ hcall)
-  have v85 : σ (.n 85) = (digestHalves D).1 := (gd _ (by simp)).trans w85
-  have v86 : σ (.n 86) = (digestHalves D).2 := (gd _ (by simp)).trans w86
-  have v23 : σ (.n 23) = gen ^ a := (gc _ (by simp)).trans w23
-  have v24 : σ (.n 24) = gen ^ b := (gc _ (by simp)).trans w24
-  have v25 : σ (.n 25) = gen ^ c := (gc _ (by simp)).trans w25
+  have gd : ∀ v ∈ [V.n 74, V.n 75], σ v = w v.idx := hgs _ (mP _ hdisp)
+  have gc : ∀ v ∈ [V.n 12, V.n 13, V.n 14], σ v = w v.idx := hgs _ (mP _ hcall)
+  have v85 : σ (.n 74) = (digestHalves D).1 := (gd _ (by simp)).trans w85
+  have v86 : σ (.n 75) = (digestHalves D).2 := (gd _ (by simp)).trans w86
+  have v23 : σ (.n 12) = gen ^ a := (gc _ (by simp)).trans w23
+  have v24 : σ (.n 13) = gen ^ b := (gc _ (by simp)).trans w24
+  have v25 : σ (.n 14) = gen ^ c := (gc _ (by simp)).trans w25
   have v10 : σ (.n 10) = (digestHalves D).1 := by
     have : σ (.n 10) = w 10 := hgs _ (mF 6 (by omega))
     rw [this, w10]
@@ -312,38 +312,38 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     · exact hat a (cl_mem_atoms (mP _ hs))
     · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at hs
       rcases hs with rfl | rfl
-      · show σ (.n 10) = σ (.n 85); rw [v10, v85]
-      · show σ (.n 11) = σ (.n 86); rw [v11, v86]
-  have v50 : σ (.n 50) = 1 := by rw [const_sound h50 hatElse, word_one]
-  have v49 : σ (.n 49) = 1 + gen ^ a := by
+      · show σ (.n 10) = σ (.n 74); rw [v10, v85]
+      · show σ (.n 11) = σ (.n 75); rw [v11, v86]
+  have v50 : σ (.n 39) = 1 := by rw [const_sound h50 hatElse, word_one]
+  have v49 : σ (.n 38) = 1 + gen ^ a := by
     rw [add_sound h49 hatElse, const_sound h48 hatElse, word_one, v23]
-  have v70 : σ (.n 70) = 1 := by rw [const_sound h70 hatElse, word_one]
-  have v69 : σ (.n 69) = 1 + gen ^ b := by
+  have v70 : σ (.n 59) = 1 := by rw [const_sound h70 hatElse, word_one]
+  have v69 : σ (.n 58) = 1 + gen ^ b := by
     rw [add_sound h69 hatElse, const_sound h68 hatElse, word_one, v24]
-  have v56 : σ (.n 56) = chain * gen ^ (13 * a) := by
+  have v56 : σ (.n 45) = chain * gen ^ (13 * a) := by
     rw [monoIs_sound hm56 hatElse, v34, v23, gen_pow_pow]
-  have v67 : σ (.n 67) = entries * gen ^ (544 * a) := by
+  have v67 : σ (.n 56) = entries * gen ^ (544 * a) := by
     rw [monoIs_sound hm67 hatElse, e0, v23, gen_pow_pow]
-  have v76 : σ (.n 76) = chain * gen ^ (13 * (a + b)) := by
+  have v76 : σ (.n 65) = chain * gen ^ (13 * (a + b)) := by
     rw [mono2Is_sound hm76 hatElse, v34, v23, v24, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add,
       Nat.mul_add]
-  have v84 : σ (.n 84) = entries * gen ^ (544 * a + 68 * b) := by
+  have v84 : σ (.n 73) = entries * gen ^ (544 * a + 68 * b) := by
     rw [mono2Is_sound hm84 hatElse, e0, v23, v24, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add]
   have v2 : σ (.n 2) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c2))
   have v3 : σ (.n 3) = σ (.n 1) + σ (.n 2) := hat _ (cl_mem_atoms (mH _ a3))
-  have v87 : σ (.n 87) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
-  have v88 : σ (.n 88) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
+  have v87 : σ (.n 76) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
+  have v88 : σ (.n 77) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
   have hs := cl_size_atoms
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hs
   obtain ⟨s26, s27, s28, s29, s30, s31, s32, s33⟩ := hs
-  have q26 : σ (.n 26) = σ (.n 23) * σ (.n 24) := hat _ s26
-  have q27 : σ (.n 27) = word 2 0 0 := hat _ s27
-  have q28 : σ (.n 28) = σ (.n 26) * σ (.n 27) := hat _ s28
-  have q29 : σ (.n 29) = σ (.n 28) * σ (.n 28) := hat _ s29
-  have q30 : σ (.n 30) = σ (.n 29) * σ (.n 28) := hat _ s30
-  have q31 : σ (.n 31) = σ (.n 30) * σ (.n 30) := hat _ s31
-  have q32 : σ (.n 32) = σ (.n 31) * σ (.n 31) := hat _ s32
-  have q33 : σ (.n 33) = σ (.n 32) * σ (.n 28) := hat _ s33
+  have q26 : σ (.n 15) = σ (.n 12) * σ (.n 13) := hat _ s26
+  have q27 : σ (.n 16) = word 2 0 0 := hat _ s27
+  have q28 : σ (.n 17) = σ (.n 15) * σ (.n 16) := hat _ s28
+  have q29 : σ (.n 18) = σ (.n 17) * σ (.n 17) := hat _ s29
+  have q30 : σ (.n 19) = σ (.n 18) * σ (.n 17) := hat _ s30
+  have q31 : σ (.n 20) = σ (.n 19) * σ (.n 19) := hat _ s31
+  have q32 : σ (.n 21) = σ (.n 20) * σ (.n 20) := hat _ s32
+  have q33 : σ (.n 22) = σ (.n 21) * σ (.n 17) := hat _ s33
   refine ⟨hat, e0, e1, by rw [v3, v2, e1, word_one, pow_zero], v10, v11, v23, v24, v25, ?_, v34,
     v49, v50, v56, v67, v69, v70, v76, v84, v85, v86, by rw [v87, v10], by rw [v88, v11]⟩
   rw [q33, q32, q31, q30, q29, q28, q27, q26, v23, v24, word_gen, ← pow_add, ← pow_succ, pow_mul']
@@ -446,18 +446,18 @@ the count at `v1`; when `n ≠ 0`, `list_split`'s returns at `v23`, `v24`, `v25`
 `__loop15`, `__loop16`), the chain buffer's size `g^(13 (a + b + 1))` at `v33`, the loops' start
 `1` at `v50`, `v70`. -/
 def clQ (n : ℕ) (σ : Val) : Prop :=
-  σ (.n 1) = gen ^ n ∧ (n ≠ 0 → σ (.n 23) = gen ^ (n / 136) ∧ σ (.n 24) = gen ^ (n % 136 / 17) ∧
-    σ (.n 25) = gen ^ (n % 17) ∧ σ (.n 33) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧
-    σ (.n 50) = 1 ∧ σ (.n 70) = 1)
+  σ (.n 1) = gen ^ n ∧ (n ≠ 0 → σ (.n 12) = gen ^ (n / 136) ∧ σ (.n 13) = gen ^ (n % 136 / 17) ∧
+    σ (.n 14) = gen ^ (n % 17) ∧ σ (.n 22) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧
+    σ (.n 39) = 1 ∧ σ (.n 59) = 1)
 
 /-- `claim_list_digest`'s calls: none for the empty list; `list_split`, `__loop15` when
 `n / 136 ≠ 0`, `__loop16` when `n % 136 / 17 ≠ 0`, `claim_list_last__L{n % 17}`. -/
 def clCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
-    [⟨"list_split", [.n 1], [.n 23, .n 24, .n 25], true⟩,
-      ⟨"__loop15", [.n 50, .n 23, .n 34, .n 0], [], decide (n / 136 ≠ 0)⟩,
-      ⟨"__loop16", [.n 70, .n 24, .n 56, .n 67], [], decide (n % 136 / 17 ≠ 0)⟩,
-      ⟨clNames[n % 17]!, [.n 76, .n 84], [.n 85, .n 86], true⟩]
+    [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
+      ⟨"__loop15", [.n 39, .n 12, .n 23, .n 0], [], decide (n / 136 ≠ 0)⟩,
+      ⟨"__loop16", [.n 59, .n 13, .n 45, .n 56], [], decide (n % 136 / 17 ≠ 0)⟩,
+      ⟨clNames[n % 17]!, [.n 65, .n 73], [.n 74, .n 75], true⟩]
 
 /-- The claim list's `HeapBuf`: the chain buffer (none for the empty list). -/
 def clBufs (n : ℕ) (_ : Val) : List ℕ :=
@@ -492,7 +492,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     have hb : (if σ (.n 3) = 0 then walk σ cl23Zero else walk σ cl23Else) =
         .fall (cl23Zero.flatMap (Main.slEvs σ)) := by
       simp only [h30, ↓reduceIte]; exact walk_straight_fall σ _ cl23Zero_straight
-    have hw := walk_ite σ clTail clTail_straight (.n 3) cl23Zero cl23Else [.n 87, .n 88] _ hb
+    have hw := walk_ite σ clTail clTail_straight (.n 3) cl23Zero cl23Else [.n 76, .n 77] _ hb
       clHead clHead_straight
     rw [← cl_body] at hw
     set es := clHead.flatMap (Main.slEvs σ) ++ .inK (.n 3) ::
@@ -656,19 +656,19 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     -- the path
     have h3ne : σ (.n 3) ≠ 0 := by
       rw [hV.v3, Ne, e_add_eq_zero_iff, pow_zero, gen_pow_eq_one_iff (by omega)]; omega
-    have hx : σ (.n 25) = ofK (addressOfIndex r) := by rw [hV.v25, gen_pow_eq_ofK]
+    have hx : σ (.n 14) = ofK (addressOfIndex r) := by rw [hV.v25, gen_pow_eq_ofK]
     have hb : (if σ (.n 3) = 0 then walk σ cl23Zero else walk σ cl23Else) =
-        .fall (clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 76, .n 84] [.n 85, .n 86] ::
+        .fall (clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 65, .n 73] [.n 74, .n 75] ::
           clPost.flatMap (Main.slEvs σ)) := by
       simp only [h3ne, ↓reduceIte]
       rw [cl23Else_split]
-      exact walk_dispatch_fall σ clP1 clPost clP1_straight (by rw [clPost_eq]; rfl) (.n 25) clNames
-        [.n 76, .n 84] [.n 85, .n 86] (i := r) (by simp [clNames]; omega) (by simp [clNames]) hx
-    have hw := walk_ite σ clTail clTail_straight (.n 3) cl23Zero cl23Else [.n 87, .n 88] _ hb
+      exact walk_dispatch_fall σ clP1 clPost clP1_straight (by rw [clPost_eq]; rfl) (.n 14) clNames
+        [.n 65, .n 73] [.n 74, .n 75] (i := r) (by simp [clNames]; omega) (by simp [clNames]) hx
+    have hw := walk_ite σ clTail clTail_straight (.n 3) cl23Zero cl23Else [.n 76, .n 77] _ hb
       clHead clHead_straight
     rw [← cl_body] at hw
     set es := clHead.flatMap (Main.slEvs σ) ++ .inK (.n 3) ::
-      ((clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 76, .n 84] [.n 85, .n 86] ::
+      ((clP1.flatMap (Main.slEvs σ) ++ .call clNames[r]! [.n 65, .n 73] [.n 74, .n 75] ::
         clPost.flatMap (Main.slEvs σ)) ++ clTail.flatMap (Main.slEvs σ)) with hes
     have hmE : ∀ s ∈ clHead ++ clP1 ++ clTail, ∀ a, s = .atom a → a.Holds rd σ := by
       intro s hs a rfl
@@ -692,17 +692,17 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
           · exact slOk_atomS hk (hmE s (by simp [hs]))
           · rw [stmtEqb_sound hk]; trivial
           · rw [stmtEqb_sound hk]
-            show IsInK (σ (.n 49)); rw [hV.v49, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+            show IsInK (σ (.n 38)); rw [hV.v49, ← pow_zero gen]; exact gen_pow_add_isInK _ _
           · rw [stmtEqb_sound hk]
-            show IsInK (σ (.n 69)); rw [hV.v69, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+            show IsInK (σ (.n 58)); rw [hV.v69, ← pow_zero gen]; exact gen_pow_add_isInK _ _
         rcases List.mem_cons.mp he with rfl | he
         · trivial
         · refine slEvs_holds (fun s hs => ?_) e he
           rw [clPost_eq] at hs
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
           rcases hs with rfl | rfl
-          · show σ (.n 10) = σ (.n 85); rw [hV.v10, hV.v85]
-          · show σ (.n 11) = σ (.n 86); rw [hV.v11, hV.v86]
+          · show σ (.n 10) = σ (.n 74); rw [hV.v10, hV.v85]
+          · show σ (.n 11) = σ (.n 75); rw [hV.v11, hV.v86]
       · exact slEvs_holds (fun s hs => slOk_atomS (mTl s hs) (hmE s (by simp [hs]))) e he
     obtain ⟨hhd, hha, hhad, hhc⟩ := Main.straight_parts σ _ clHead_straight
     obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ clP1_straight
@@ -718,14 +718,14 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
         logG_gen_pow (show 13 * (n / 136 + n % 136 / 17 + 1) < 2 ^ 64 - 1 by omega), List.nil_append,
         List.append_nil]
       rfl
-    have h49 : decide (σ (.n 49) ≠ 0) = decide (a ≠ 0) := by
+    have h49 : decide (σ (.n 38) ≠ 0) = decide (a ≠ 0) := by
       rw [hV.v49]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-    have h69 : decide (σ (.n 69) ≠ 0) = decide (b ≠ 0) := by
+    have h69 : decide (σ (.n 58) ≠ 0) = decide (b ≠ 0) := by
       rw [hV.v69]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-    have hcalls : calls es = [⟨"list_split", [.n 1], [.n 23, .n 24, .n 25], true⟩,
-        ⟨"__loop15", [.n 50, .n 23, .n 34, .n 0], [], decide (a ≠ 0)⟩,
-        ⟨"__loop16", [.n 70, .n 24, .n 56, .n 67], [], decide (b ≠ 0)⟩,
-        ⟨clNames[r]!, [.n 76, .n 84], [.n 85, .n 86], true⟩] := by
+    have hcalls : calls es = [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
+        ⟨"__loop15", [.n 39, .n 12, .n 23, .n 0], [], decide (a ≠ 0)⟩,
+        ⟨"__loop16", [.n 59, .n 13, .n 45, .n 56], [], decide (b ≠ 0)⟩,
+        ⟨clNames[r]!, [.n 65, .n 73], [.n 74, .n 75], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h49, h69, clHead, clTail,
         List.filterMap_cons, List.filterMap_nil, Main.Stmt.callS, List.nil_append, List.cons_append,
@@ -738,7 +738,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
       (args := [gen ^ eP, gen ^ n]) (rets := digestCells D)
       (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4] i)
       coreProgram_wf find_claim_list_digest (Or.inl cl_loop) (by rw [cl_param, hV.v0, hV.v1]) hw
-      (by show [σ (.n 87), σ (.n 88)] = _; rw [hV.v87, hV.v88]; rfl) hev
+      (by show [σ (.n 76), σ (.n 77)] = _; rw [hV.v87, hV.v88]; rfl) hev
       (by
         rw [hal, hes, es5_allocDsts, hhd, hpd, hqd, htd, clP1_allocs, hpostA.1]
         simp only [List.map_cons, List.map_nil, clHead, clTail, List.filterMap_cons,
@@ -762,15 +762,15 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
       · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl,
           fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
         · show [σ (.n 1)] = _; rw [hV.v1]
-        · rw [(h1 rfl).1]; show [σ (.n 23), σ (.n 24), σ (.n 25)] = _; rw [hV.v23, hV.v24, hV.v25]
-        · show [σ (.n 50), σ (.n 23), σ (.n 34), σ (.n 0)] = _
+        · rw [(h1 rfl).1]; show [σ (.n 12), σ (.n 13), σ (.n 14)] = _; rw [hV.v23, hV.v24, hV.v25]
+        · show [σ (.n 39), σ (.n 12), σ (.n 23), σ (.n 0)] = _
           rw [hV.v50, hV.v23, hV.v34, hV.v0]
         · rename_i ht; rw [(h2 ht).1]; rfl
-        · show [σ (.n 70), σ (.n 24), σ (.n 56), σ (.n 67)] = _
+        · show [σ (.n 59), σ (.n 13), σ (.n 45), σ (.n 56)] = _
           rw [hV.v70, hV.v24, hV.v56, hV.v67]
         · rename_i ht; rw [(h3 ht).1]; rfl
-        · show [σ (.n 76), σ (.n 84)] = _; rw [hV.v76, hV.v84]
-        · rw [(h4 rfl).1]; show [σ (.n 85), σ (.n 86)] = _; rw [hV.v85, hV.v86]; rfl
+        · show [σ (.n 65), σ (.n 73)] = _; rw [hV.v76, hV.v84]
+        · rw [(h4 rfl).1]; show [σ (.n 74), σ (.n 75)] = _; rw [hV.v85, hV.v86]; rfl
       · intro q hq
         simp only [B1.Kid.lins, ks, List.flatMap_cons, List.flatMap_nil, List.append_nil,
           List.nil_append, List.mem_append, or_assoc] at hq

@@ -49,7 +49,6 @@ def PlacedP (c : OsCfg) : Prop :=
     2 ^ rwLo (lvAt c i).folds + 2 ^ ((lvAt c i).folds - rwLo (lvAt c i).folds) ≤ c.maxIl) ∧
   (∀ i < c.levels.length, (lvAt c i).capDepth ≤ (lvAt c i).depth) ∧
   (∀ i < c.levels.length, ∀ j < c.levels.length, c.sqLoop i ≠ c.resLoop j) ∧
-  (∀ i < c.levels.length, (lvAt c i).queries ≤ c.maxQ) ∧
   (∀ i < c.levels.length, (lvAt c i).squeezes ≤ c.maxSq) ∧
   (∀ i < c.levels.length, (lvAt c i).logCols ≤ ligColsCap) ∧
   c.yrLog ≤ yrLogCap ∧
@@ -78,10 +77,10 @@ theorem placedP_sound {c : OsCfg} (h : PlacedP c) :
         rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤ c.maxIl) ∧
       (∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG) ∧
       (∀ l < c.levels.length, resBatch ≤ (lvAt c l).queries) := by
-  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h11', h12, h13, h14, h15, h16, h17, h18,
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h11', h13, h14, h15, h16, h17, h18,
     h19, h20, h21, h22, h23, h24⟩ := h
   exact ⟨⟨h0⟩, ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h11'⟩,
-    ⟨h12, h13, h14, h15, h16, h17, h18⟩, h19, h20, h21, h22, h23, h24⟩
+    ⟨h13, h14, h15, h16, h17, h18⟩, h19, h20, h21, h22, h23, h24⟩
 
 /-- **A squeeze loop's body ends with its tail call**: it is a loop helper. -/
 theorem sqLoop_isLoop {name : String} {fn : Fn} {lv : OsLv} (hf : coreProgram.find? name = some fn)

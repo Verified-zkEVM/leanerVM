@@ -146,7 +146,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
     obtain ⟨hd, -⟩ := straight_digest hchain rfl rfl hret hC
     have hsum := acc_sum htmpl 127 (by norm_num)
     rw [show accV 127 = 1407 from rfl] at hsum
-    have hrets : [σ (.n 1751), σ (.n 1752), σ (.n 1753)] = cellRets syms ws := by
+    have hrets : [σ (.n 1740), σ (.n 1741), σ (.n 1742)] = cellRets syms ws := by
       rw [copy_sound hcp hC, hsum]
       have hv : ((cellSpec (A.drop 1280)).vals σ).take ((cellSpec (A.drop 1280)).len / 16) =
           (List.range 128).map fun e => σ (.n (packV e)) := by
@@ -166,7 +166,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       rw [hb] at hd
       have hl : ∀ a b c : E, [a, b, c] = [a, b] ++ [c] := fun _ _ _ => rfl
       rw [hl, cellRets, ← hd]
-      refine congrArg (fun x => [σ (.n 1751), σ (.n 1752)] ++ [x]) ?_
+      refine congrArg (fun x => [σ (.n 1740), σ (.n 1741)] ++ [x]) ?_
       simp only [LeanDa.cellSymbols]
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj

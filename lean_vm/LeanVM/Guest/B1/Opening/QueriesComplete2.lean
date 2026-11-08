@@ -102,8 +102,8 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hk := k1_eq d
   have hL := leafShape_of d.s hs
-  have hnums : (d.s.ncells = 32 ∧ d.s.B = 4 ∧ d.s.chainLen = 80 ∧ d.s.R = 64) ∨
-      (d.s.ncells = 24 ∧ d.s.B = 3 ∧ d.s.chainLen = 58 ∧ d.s.R = 48) := by
+  have hnums : (d.s.ncells = 32 ∧ d.s.B = 4 ∧ d.s.chainLen = 69 ∧ d.s.R = 64) ∨
+      (d.s.ncells = 24 ∧ d.s.B = 3 ∧ d.s.chainLen = 47 ∧ d.s.R = 48) := by
     rcases shape_nums hs with h | h
     · exact Or.inl ⟨h.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2, h.2.2.2.2.2.1⟩
     · exact Or.inr ⟨h.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2, h.2.2.2.2.2.1⟩
@@ -117,8 +117,9 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
     rw [spk m hm, P]; simp [hm]
   have sleaf : ∀ i < d.s.chainLen, σ (.n (d.kL + i)) = d.leafV i := fun i hi => by
     rw [hv _ (by omega) (by omega), val_leaf d hi]
-  have sout : ∀ k < d.s.B, ∀ c (hc : c < 13), σ (.n (oqOut d.s d.kL k c)) = d.leafO (k + 1) ⟨c, hc⟩ :=
-    fun k hk c hc => by
+  have sout : ∀ k < d.s.B, ∀ c (hc : c < 13), (k + 1 < d.s.B ∨ c < 2) →
+      σ (.n (oqOut d.s d.kL k c)) = d.leafO (k + 1) ⟨c, hc⟩ :=
+    fun k hk c hc hc2 => by
       rcases Nat.eq_zero_or_pos k with rfl | hpos
       · rw [show oqOut d.s d.kL 0 c = d.kL + c by simp [oqOut], sleaf c (by omega)]
         unfold leafV
@@ -162,6 +163,8 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
         leafV_block d hs hk1 hk (by simp only [hlast, ↓reduceIte]; omega)]
       simp only [hlast, hc, ↓reduceIte, fin13_ofNat (show c < 13 by omega)]
   have hz' : ∀ i < 4, σ (.n (d.prV + 1 + i)) = 0 := fun i hi => by rw [hz i hi, word_zero]
+  have hoN : ∀ k < d.s.B, ∀ c < oqOutN d.s k, k + 1 < d.s.B ∨ c < 2 := fun k hk c hc => by
+    unfold oqOutN at hc; split_ifs at hc <;> omega
   intro a ha
   simp only [oqLeafT, List.mem_flatten, List.mem_map, List.mem_range] at ha
   obtain ⟨_, ⟨k, hk, rfl⟩, ha⟩ := ha
@@ -181,10 +184,13 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
       by_cases hc : c.val < 9
       · simp only [hc, ↓reduceIte, leafI]; rw [sP _ (by omega)]
       · simp only [hc, ↓reduceIte, leafI]; rw [hz' _ (by omega)]
-    refine ⟨by simp, by simp, ?_, fun c => ?_⟩
+    refine keccak_holds_of (O := d.leafO 1) (oc := if 0 + 1 = d.s.B then .two else .all) (by simp)
+      ?_ ⟨?_, fun c _ => ?_⟩ fun c hc => ?_
+    · simp only [List.length_map, List.length_range, oqOutN]; split <;> rfl
     · rw [eI]; exact d.leafI_canonical 0
-    · rw [eI, cells13_outs, sout 0 (by omega) c.val c.isLt]
-      rfl
+    · rw [eI]; rfl
+    · simp only [List.getElem_map, List.getElem_range]
+      exact sout 0 (by omega) c.val c.isLt (hoN 0 (by omega) c.val (by simpa using hc))
   · rename_i hk0
     simp only [List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at ha
     rcases ha with ⟨_, ⟨c, hc, rfl⟩, ha⟩ | ha
@@ -198,7 +204,7 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
         subst ha
         show σ _ = σ _ + σ _
         have e : oqBs d.kL k + c = oqIn d.s d.kL k c := by simp [oqIn, show 17 * k / 2 + c ≤ d.s.ncells by omega]
-        rw [e, hsum, sout (k - 1) (by omega) c (by omega), sP _ hm, leafI]
+        rw [e, hsum, sout (k - 1) (by omega) c (by omega) (by omega), sP _ hm, leafI]
         simp [hk0, hc, show k - 1 + 1 = k by omega]
       · split at ha
         · rename_i hm hm'
@@ -206,7 +212,7 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
           subst ha
           show σ _ = σ _ + σ _
           have e : oqBs d.kL k + c = oqIn d.s d.kL k c := by simp [oqIn, show 17 * k / 2 + c ≤ d.s.ncells by omega]
-          rw [e, hsum, sout (k - 1) (by omega) c (by omega), hpad, leafI]
+          rw [e, hsum, sout (k - 1) (by omega) c (by omega) (by omega), hpad, leafI]
           simp [hk0, hc, show k - 1 + 1 = k by omega, P, hm']
         · rename_i hm hm'
           have hlast : k + 1 = d.s.B := by
@@ -225,7 +231,7 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
           · show σ _ = σ _ + σ _
             have e : oqBs d.kL k + 8 + 1 = oqIn d.s d.kL k 8 := by
               simp [oqIn, show ¬ 17 * k / 2 + 8 ≤ d.s.ncells by omega]
-            rw [e, hsum, sout (k - 1) (by omega) 8 (by omega), hw, leafI]
+            rw [e, hsum, sout (k - 1) (by omega) 8 (by omega) (by omega), hw, leafI]
             simp [hk0, show k - 1 + 1 = k by omega, P, hm, hm']
     · -- the permutation
       simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
@@ -237,13 +243,16 @@ theorem oqLeaf_complete (hs : d.s.RowShape)
         split
         · rename_i hc; exact sin k (by omega) hk c.val hc
         · rename_i hc
-          rw [sout (k - 1) (by omega) _ (by omega), show k - 1 + 1 = k by omega, leafI]
+          rw [sout (k - 1) (by omega) _ (by omega) (by omega), show k - 1 + 1 = k by omega, leafI]
           simp only [hk0, hc, ↓reduceIte]
           congr 1; ext; simp; omega
-      refine ⟨by simp, by simp, ?_, fun c => ?_⟩
+      refine keccak_holds_of (O := d.leafO (k + 1)) (oc := if k + 1 = d.s.B then .two else .all)
+        (by simp) ?_ ⟨?_, fun c _ => ?_⟩ fun c hc => ?_
+      · simp only [List.length_map, List.length_range, oqOutN]; split <;> rfl
       · rw [eI]; exact d.leafI_canonical k
-      · rw [eI, cells13_outs, sout k hk c.val c.isLt]
-        rfl
+      · rw [eI]; rfl
+      · simp only [List.getElem_map, List.getElem_range]
+        exact sout k hk c.val c.isLt (hoN k hk c.val (by simpa using hc))
 
 end QD
 

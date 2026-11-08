@@ -204,7 +204,7 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
         intro x hx
         simp only [St, gkSt, Fs.squeeze, capOf, List.mem_cons, List.not_mem_nil, or_false] at hx
         rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
-    refine ⟨fun t ht ↦ ⟨?_, fsPackOk_of_vals fun u hu ↦ ?_⟩, ⟨rfl, rfl, kcan _ ?_, fun c ↦ ?_⟩,
+    refine ⟨fun t ht ↦ ⟨?_, fsPackOk_of_vals fun u hu ↦ ?_⟩, keccak13_mk (rd := rd) rfl rfl (kcan _ ?_) fun c ↦ ?_,
       challengeOk_of_vals (by rw [b1]; exact cellsOfState_canonical _ _ _) fun u hu ↦ ?_, ?_⟩
     · rw [e7, vw q t hq ht]; exact hm q hq t ht
     · rw [vp q t u hq ht hu, vw q t hq ht]

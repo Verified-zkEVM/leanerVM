@@ -73,9 +73,7 @@ theorem canonGo_sound {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) :
         · obtain ⟨u, hu, rfl⟩ := List.mem_map.mp hj
           obtain ⟨-, hlo, hk⟩ := (hg _ List.mem_cons_self : Good rd S w σ (.keccak ins' outs' i' o'))
           obtain ⟨k, hk', rfl⟩ := List.getElem_of_mem hu
-          have := hk ⟨k, by omega⟩
-          simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-            List.getElem?_eq_getElem hk', Option.map_some, Option.getD_some] at this
+          have := hk ⟨k, by omega⟩ hk'
           rw [← hσ, this]
           exact canon_cellsOfState _ _ _
         · exact hK j hj

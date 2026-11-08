@@ -208,15 +208,26 @@ theorem challengeVals_six (S : KeccakState) :
 def keccakA (ins outs : List V) : Stmt := .atom (.keccak ins outs false false)
 
 /-- **A permutation** (`fs_perm`, `fs_perm4`, `fs_perm_pending`, G:628-671): a `KECCAK` atom in
-the even layouts reads canonical cells and writes the cells of `permOf` of them. -/
-theorem keccakA_perm {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ) :
+the even layouts writing the thirteen cells of the state (`out_cells` all) reads canonical cells
+and writes the cells of `permOf` of them. -/
+theorem keccakA_perm {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     ins.length = 13 ∧ outs.length = 13 ∧ AllCanonical (ins.map σ) ∧
       cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := by
-  obtain ⟨hi, ho, hK⟩ := h
-  refine ⟨hi, ho, fun c hc => ?_, funext hK.2⟩
+  obtain ⟨hi, -, hK⟩ := (keccak_holds_13 ho).mp h
+  refine ⟨hi, ho, fun c hc => ?_, funext fun c => hK.2 c c.isLt⟩
   obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hc
   have := hK.1 ⟨k, by simpa [hi] using hk⟩
   simpa [cells13, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk] using this
+
+/-- **A thirteen-cell `KECCAK` holds** of canonical read cells and written cells their
+Keccak-f[1600] (`KeccakCellsRelation … .all`, its parts). -/
+theorem keccak13_mk {ins outs : List V} {i o : Bool} (hi : ins.length = 13)
+    (ho : outs.length = 13) (hc : ∀ c, IsCanonical128 (cells13 (ins.map σ) c))
+    (hw : ∀ c, cells13 (outs.map σ) c =
+      cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o c) :
+    (Atom.keccak ins outs i o).Holds rd σ :=
+  (keccak_holds_13 ho).mpr ⟨hi, ho, hc, fun c _ => hw c⟩
 
 /-- **A permutation's honest outputs**: canonical inputs and the outputs `permOf` of them make the
 `KECCAK` atom hold. -/
@@ -224,7 +235,7 @@ theorem keccakA_of {ins outs : List V} (hi : ins.length = 13) (ho : outs.length 
     (hc : AllCanonical (ins.map σ))
     (hout : cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false) :
     (Atom.keccak ins outs false false).Holds rd σ := by
-  refine ⟨hi, ho, fun c => ?_, fun c => ?_⟩
+  refine (keccak_holds_13 ho).mpr ⟨hi, ho, fun c => ?_, fun c _ => ?_⟩
   · have hc' : c.val < (ins.map σ).length := by simp [hi]
     have := hc _ (List.getElem_mem hc')
     simpa [cells13, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hc'] using this

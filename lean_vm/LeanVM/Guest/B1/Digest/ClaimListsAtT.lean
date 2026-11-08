@@ -51,29 +51,29 @@ open LeanVM.Guest.Budget (NodeHonest)
 def ccdHead : List Stmt := [.atom (.const (.n 5) (word 1 0 0)), .atom (.add (.n 6) (.n 4) (.n 5))]
 
 /-- The final copies of `child_claim_list_digest`. -/
-def ccdTail : List Stmt := [.atom (.copy (.n 36) (.n 13)), .atom (.copy (.n 37) (.n 14))]
+def ccdTail : List Stmt := [.atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) (.n 14))]
 
 /-- The nonempty arm before its branch: `list_split`, the hint `child_mono`, `child_mono + g`. -/
 def ccE4 : List Stmt :=
-  [.call "list_split" [.n 4] [.n 26, .n 27, .n 28],
-    .atom (.hint (.witness "child_mono" (.stack [.n 29]))),
-    .atom (.const (.n 30) (word 2 0 0)), .atom (.add (.n 31) (.n 29) (.n 30))]
+  [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
+    .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
+    .atom (.const (.n 19) (word 2 0 0)), .atom (.add (.n 20) (.n 18) (.n 19))]
 
 /-- The gap walk's arm. -/
 def ccMonoArm : List Stmt :=
-  [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 26, .n 27, .n 28] [.n 32, .n 33],
-    .atom (.copy (.n 13) (.n 32)), .atom (.copy (.n 14) (.n 33))]
+  [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 21, .n 22],
+    .atom (.copy (.n 13) (.n 21)), .atom (.copy (.n 14) (.n 22))]
 
 /-- The walk by hinted indices' arm. -/
 def ccAnyArm : List Stmt :=
-  [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 26, .n 27, .n 28] [.n 34, .n 35],
-    .atom (.copy (.n 13) (.n 34)), .atom (.copy (.n 14) (.n 35))]
+  [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 23, .n 24],
+    .atom (.copy (.n 13) (.n 23)), .atom (.copy (.n 14) (.n 24))]
 
 /-- The nonempty arm. -/
-def ccElse : List Stmt := ccE4 ++ [.ite (.n 31) ccMonoArm ccAnyArm]
+def ccElse : List Stmt := ccE4 ++ [.ite (.n 20) ccMonoArm ccAnyArm]
 
 theorem ccd_body : Fn.body Data.core24 =
-    ccdHead ++ .ite (.n 6) cc25Zero ccElse :: (ccdTail ++ [.ret [.n 36, .n 37]]) := by
+    ccdHead ++ .ite (.n 6) cc25Zero ccElse :: (ccdTail ++ [.ret [.n 25, .n 26]]) := by
   rw [core24_shape]; rfl
 
 set_option maxRecDepth 100000 in
@@ -112,7 +112,7 @@ theorem walk_pre_ite (σ : Val) (z n : List Stmt) (hz : z.all Main.Stmt.straight
 /-! ## The empty list -/
 
 /-- The empty list's run, evaluated. -/
-noncomputable def ccZEval : List Stmt := ccdHead ++ cc25Zero ++ fillH 26 36 ++ ccdTail
+noncomputable def ccZEval : List Stmt := ccdHead ++ cc25Zero ++ fillH 15 25 ++ ccdTail
 
 /-- **The empty list's run, evaluated**: in order, no store, no side condition. -/
 noncomputable def cczOk : Bool :=
@@ -135,7 +135,7 @@ theorem ccz_core (entries region base limit : E) :
     (∀ a ∈ atomsIn ccZEval, a.Holds rd σ) ∧
       [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = [entries, region, base, limit, gen ^ 0] ∧
       σ (.n 6) = 0 ∧ σ (.n 6) = gen ^ 0 + gen ^ 0 ∧
-      [σ (.n 36), σ (.n 37)] = digestCells (keccak256 (cellsBytes [])) := by
+      [σ (.n 25), σ (.n 26)] = digestCells (keccak256 (cellsBytes [])) := by
   intro σ
   have hz1 := cc25z_ok
   have hb1 := ccz_ok
@@ -145,8 +145,8 @@ theorem ccz_core (entries region base limit : E) :
   obtain ⟨⟨⟨b12, b13⟩, b14⟩, b15⟩ := hb1
   have c5 : Stmt.atom (.const (.n 5) (word 1 0 0)) ∈ ccdHead := by simp [ccdHead]
   have a6 : Stmt.atom (.add (.n 6) (.n 4) (.n 5)) ∈ ccdHead := by simp [ccdHead]
-  have t36 : Stmt.atom (.copy (.n 36) (.n 13)) ∈ ccdTail := by simp [ccdTail]
-  have t37 : Stmt.atom (.copy (.n 37) (.n 14)) ∈ ccdTail := by simp [ccdTail]
+  have t36 : Stmt.atom (.copy (.n 25) (.n 13)) ∈ ccdTail := by simp [ccdTail]
+  have t37 : Stmt.atom (.copy (.n 26) (.n 14)) ∈ ccdTail := by simp [ccdTail]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, region, base, limit, gen ^ 0]
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
@@ -169,8 +169,8 @@ theorem ccz_core (entries region base limit : E) :
     ev_params rd _ (l := args) hchk (by simp [args]; omega)
   have v5 : σ (.n 5) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c5))
   have v6 : σ (.n 6) = σ (.n 4) + σ (.n 5) := hat _ (cl_mem_atoms (mH _ a6))
-  have v36 : σ (.n 36) = σ (.n 13) := hat _ (cl_mem_atoms (mT _ t36))
-  have v37 : σ (.n 37) = σ (.n 14) := hat _ (cl_mem_atoms (mT _ t37))
+  have v36 : σ (.n 25) = σ (.n 13) := hat _ (cl_mem_atoms (mT _ t36))
+  have v37 : σ (.n 26) = σ (.n 14) := hat _ (cl_mem_atoms (mT _ t37))
   have v6' : σ (.n 6) = gen ^ 0 + gen ^ 0 := by
     rw [v6, v5, par 4 (by omega), word_one, pow_zero]; rfl
   have h60 : σ (.n 6) = 0 := by rw [v6']; exact e_add_eq_zero_iff.mpr rfl
@@ -189,15 +189,15 @@ theorem ccz_core (entries region base limit : E) :
 at `v4`; when `n ≠ 0`, `list_split`'s returns `g^a`, `g^b`, `g^c` at `v26`, `v27`, `v28`, the hint
 `child_mono = 0` at `v29` (the walk by hinted indices). -/
 def ccQ (n : ℕ) (σ : Val) : Prop :=
-  σ (.n 4) = gen ^ n ∧ (n ≠ 0 → σ (.n 26) = gen ^ (n / 136) ∧ σ (.n 27) = gen ^ (n % 136 / 17) ∧
-    σ (.n 28) = gen ^ (n % 17) ∧ σ (.n 29) = 0)
+  σ (.n 4) = gen ^ n ∧ (n ≠ 0 → σ (.n 15) = gen ^ (n / 136) ∧ σ (.n 16) = gen ^ (n % 136 / 17) ∧
+    σ (.n 17) = gen ^ (n % 17) ∧ σ (.n 18) = 0)
 
 /-- `child_claim_list_digest`'s calls: none for the empty list; `list_split`,
 `child_claim_list_any`. -/
 def ccCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
-    [⟨"list_split", [.n 4], [.n 26, .n 27, .n 28], true⟩,
-      ⟨"child_claim_list_any", [.n 0, .n 1, .n 2, .n 3, .n 26, .n 27, .n 28], [.n 34, .n 35], true⟩]
+    [⟨"list_split", [.n 4], [.n 15, .n 16, .n 17], true⟩,
+      ⟨"child_claim_list_any", [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17], [.n 23, .n 24], true⟩]
 
 /-- No `HeapBuf` of its own: `child_claim_list_any` places the chain buffer. -/
 def ccBufs (_ : ℕ) (_ : Val) : List ℕ := []
@@ -291,18 +291,18 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   have h6ne : σ (.n 6) ≠ 0 := by
     show gen ^ n + word 1 0 0 ≠ 0
     rw [word_one, Ne, e_add_eq_zero_iff]; exact hgn
-  have h31ne : σ (.n 31) ≠ 0 := by
+  have h31ne : σ (.n 20) ≠ 0 := by
     show 0 + word 2 0 0 ≠ 0
     rw [zero_add, word_gen]; exact gen_ne_zero
   have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
-      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 31) :: ccAnyArm.flatMap (Main.slEvs σ)) := by
+      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: ccAnyArm.flatMap (Main.slEvs σ)) := by
     simp only [h6ne, ↓reduceIte]
-    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n 31) ccE4 rfl]
+    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n 20) ccE4 rfl]
     simp only [h31ne, ↓reduceIte]
-  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 36, .n 37] _ hb ccdHead rfl
+  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 25, .n 26] _ hb ccdHead rfl
   rw [← ccd_body] at hw
   set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n 6) ::
-    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 31) :: ccAnyArm.flatMap (Main.slEvs σ)) ++
+    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: ccAnyArm.flatMap (Main.slEvs σ)) ++
       ccdTail.flatMap (Main.slEvs σ)) with hes
   have hev : ∀ e ∈ es, e.Holds rd σ := by
     intro e he
@@ -316,15 +316,15 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
       rw [word_one, ← pow_zero gen]; exact gen_pow_add_isInK _ _
     · trivial
     · trivial
-    · show σ (.n 30) = word 2 0 0; rfl
-    · show σ (.n 31) = σ (.n 29) + σ (.n 30); rfl
+    · show σ (.n 19) = word 2 0 0; rfl
+    · show σ (.n 20) = σ (.n 18) + σ (.n 19); rfl
     · show IsInK (0 + word 2 0 0)
       rw [zero_add, word_gen, ← pow_one gen]; exact gen_pow_isInK 1
     · trivial
-    · show σ (.n 13) = σ (.n 34); rfl
-    · show σ (.n 14) = σ (.n 35); rfl
-    · show σ (.n 36) = σ (.n 13); rfl
-    · show σ (.n 37) = σ (.n 14); rfl
+    · show σ (.n 13) = σ (.n 23); rfl
+    · show σ (.n 14) = σ (.n 24); rfl
+    · show σ (.n 25) = σ (.n 13); rfl
+    · show σ (.n 26) = σ (.n 14); rfl
   have hal : allocs σ es = [] := rfl
   have hcalls : calls es = ccCalls n σ := by
     simp only [ccCalls, hn0, ↓reduceIte]; rfl
@@ -374,7 +374,7 @@ theorem cc_empty (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main
   have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
       .fall (cc25Zero.flatMap (Main.slEvs σ)) := by
     simp only [h60, ↓reduceIte]; exact walk_straight_fall σ _ cc25Zero_straight
-  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 36, .n 37] _ hb ccdHead rfl
+  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 25, .n 26] _ hb ccdHead rfl
   rw [← ccd_body] at hw
   set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n 6) ::
     (cc25Zero.flatMap (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ)) with hes

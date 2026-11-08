@@ -663,7 +663,7 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       have := congrArg List.length hins
       simp only [List.length_map, List.length_append, hl] at this
       simpa using this
-    refine ⟨hlen, rfl, kcan _ fun x hx ↦ ?_, fun c ↦ ?_⟩
+    refine keccak13_mk (rd := rd) hlen rfl (kcan _ fun x hx ↦ ?_) fun c ↦ ?_
     · rw [hins] at hx
       simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx
       rcases hx with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | h

@@ -125,33 +125,33 @@ theorem step_cells {l n0 n1 : ℕ} {ch : ℕ}
 
 /-- The step's permutation holds at the honest values. -/
 theorem step_keccak {l K : ℕ} {ins : List V} (hins : ins.map σ = w.levelIns l)
-    (hout : ∀ c < 13, σ (.n (K + 1 + c)) = w.stepV l (1 + c)) :
-    (Atom.keccak ins ((List.range 13).map fun c ↦ .n (K + 1 + c)) false false).Holds rd σ := by
+    (hout : ∀ c < 2, σ (.n (K + 1 + c)) = w.stepV l (1 + c)) :
+    (Atom.keccak ins [.n (K + 1), .n (K + 2)] false false).Holds rd σ := by
   have hl : ins.length = 13 := by
     have := congrArg List.length hins; simpa [levelIns] using this
-  refine ⟨hl, by simp, ?_, fun c => ?_⟩
+  refine keccak_holds_two.mpr ⟨hl, ?_, ?_, ?_⟩
   · rw [hins]
     intro c
     fin_cases c <;> simp [cells13, levelIns] <;> first | exact w.pc_canonical _ | exact canonical_word _ _
-  · rw [hins, cells13_outs, hout _ c.isLt, stepV]
-    simp only [show 1 + c.val ≠ 0 by omega, ↓reduceIte, show 1 + c.val - 1 = c.val by omega,
-      fin13_ofNat c.isLt]
+  · rw [hins, hout 0 (by omega), stepV]
+    rfl
+  · rw [hins, show K + 2 = K + 1 + 1 by omega, hout 1 (by omega), stepV]
     rfl
 
 /-- The honest valuation of the walk's frame. -/
 abbrev Hv (w : WD) (σ : Val) : Prop := ∀ i, σ (.n i) = w.val i
 
-theorem armOff_bound {ww v r o : ℕ} (hv : v < 2 ^ ww) (hr : r < ww) (ho : o < 14) :
-    armOff ww v + 14 * r + o < 4 + 14 * ww * 2 ^ ww ∧ 2 ≤ armOff ww v + 14 * r + o ∧
-      armOff ww v + 14 * r + o ≠ 2 + 14 * ww ∧ armOff ww v + 14 * r + o ≠ 3 + 14 * ww := by
+theorem armOff_bound {ww v r o : ℕ} (hv : v < 2 ^ ww) (hr : r < ww) (ho : o < 3) :
+    armOff ww v + 3 * r + o < 4 + 3 * ww * 2 ^ ww ∧ 2 ≤ armOff ww v + 3 * r + o ∧
+      armOff ww v + 3 * r + o ≠ 2 + 3 * ww ∧ armOff ww v + 3 * r + o ≠ 3 + 3 * ww := by
   unfold armOff
   have h1 : 1 ≤ 2 ^ ww := Nat.one_le_two_pow
   split
-  · have : 14 * ww ≤ 14 * ww * 2 ^ ww := Nat.le_mul_of_pos_right _ h1
+  · have : 3 * ww ≤ 3 * ww * 2 ^ ww := Nat.le_mul_of_pos_right _ h1
     omega
-  · have hm : 14 * ww * v + 14 * ww ≤ 14 * ww * 2 ^ ww := by
+  · have hm : 3 * ww * v + 3 * ww ≤ 3 * ww * 2 ^ ww := by
       rw [← Nat.mul_succ]; exact Nat.mul_le_mul_left _ hv
-    have hm2 : 14 * ww ≤ 14 * ww * v := Nat.le_mul_of_pos_right _ (by omega)
+    have hm2 : 3 * ww ≤ 3 * ww * v := Nat.le_mul_of_pos_right _ (by omega)
     omega
 
 theorem oqArmK_eq (s : Oq) (ch i a : ℕ) :
@@ -167,20 +167,20 @@ theorem winA_val (hv : w.Hv σ) {i o : ℕ} (hi : i < oqNpw w.s) (h1 : 1 ≤ o)
     Nat.add_sub_cancel_left]
 
 /-- The honest values of window `i`'s taken arm: its steps. -/
-theorem arm_val (hv : w.Hv σ) {i r o : ℕ} (hi : i < oqNpw w.s) (hr : r < oqWw w.s i) (ho : o < 14) :
-    σ (.n (oqArmK w.s wpCh i (w.wv i) + 14 * r + o)) = w.stepV (6 * i + r) o := by
+theorem arm_val (hv : w.Hv σ) {i r o : ℕ} (hi : i < oqNpw w.s) (hr : r < oqWw w.s i) (ho : o < 3) :
+    σ (.n (oqArmK w.s wpCh i (w.wv i) + 3 * r + o)) = w.stepV (6 * i + r) o := by
   have hvl : w.wv i < 2 ^ oqWw w.s i := (qwVal_path hi w.q).1
   obtain ⟨b1, b2, b3, b4⟩ := armOff_bound (o := o) hvl hr ho
-  rw [oqArmK_eq, show oqWk w.s wpCh i + (oqWo i + armOff (oqWw w.s i) (w.wv i)) + 14 * r + o =
-      oqWk w.s wpCh i + (oqWo i + (armOff (oqWw w.s i) (w.wv i) + 14 * r + o)) by omega,
+  rw [oqArmK_eq, show oqWk w.s wpCh i + (oqWo i + armOff (oqWw w.s i) (w.wv i)) + 3 * r + o =
+      oqWk w.s wpCh i + (oqWo i + (armOff (oqWw w.s i) (w.wv i) + 3 * r + o)) by omega,
     w.winA_val hv hi (by omega) (by unfold winSz; omega), winA]
-  simp only [show armOff (oqWw w.s i) (w.wv i) + 14 * r + o ≠ 1 by omega, b3, b4, ↓reduceIte,
-    show armOff (oqWw w.s i) (w.wv i) ≤ armOff (oqWw w.s i) (w.wv i) + 14 * r + o by omega,
-    show armOff (oqWw w.s i) (w.wv i) + 14 * r + o < armOff (oqWw w.s i) (w.wv i) + 14 * oqWw w.s i
+  simp only [show armOff (oqWw w.s i) (w.wv i) + 3 * r + o ≠ 1 by omega, b3, b4, ↓reduceIte,
+    show armOff (oqWw w.s i) (w.wv i) ≤ armOff (oqWw w.s i) (w.wv i) + 3 * r + o by omega,
+    show armOff (oqWw w.s i) (w.wv i) + 3 * r + o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i
       by omega, and_self]
-  rw [show (armOff (oqWw w.s i) (w.wv i) + 14 * r + o - armOff (oqWw w.s i) (w.wv i)) / 14 = r by
+  rw [show (armOff (oqWw w.s i) (w.wv i) + 3 * r + o - armOff (oqWw w.s i) (w.wv i)) / 3 = r by
       omega,
-    show (armOff (oqWw w.s i) (w.wv i) + 14 * r + o - armOff (oqWw w.s i) (w.wv i)) % 14 = o by
+    show (armOff (oqWw w.s i) (w.wv i) + 3 * r + o - armOff (oqWw w.s i) (w.wv i)) % 3 = o by
       omega]
 
 /-- The window's targets hold the node after it. -/
@@ -189,9 +189,9 @@ theorem target_val (hv : w.Hv σ) {i c : ℕ} (hi : i < oqNpw w.s) (hc : c < 2) 
       if c = 0 then (digestHalves (w.node (6 * i + oqWw w.s i))).1
       else (digestHalves (w.node (6 * i + oqWw w.s i))).2 := by
   have h1 : 1 ≤ 2 ^ oqWw w.s i := Nat.one_le_two_pow
-  have hm : 14 * oqWw w.s i ≤ 14 * oqWw w.s i * 2 ^ oqWw w.s i := Nat.le_mul_of_pos_right _ h1
-  rw [oqWT, show oqWk w.s wpCh i + 2 + oqWo i + 14 * oqWw w.s i + c =
-      oqWk w.s wpCh i + (oqWo i + (2 + 14 * oqWw w.s i + c)) by omega,
+  have hm : 3 * oqWw w.s i ≤ 3 * oqWw w.s i * 2 ^ oqWw w.s i := Nat.le_mul_of_pos_right _ h1
+  rw [oqWT, show oqWk w.s wpCh i + 2 + oqWo i + 3 * oqWw w.s i + c =
+      oqWk w.s wpCh i + (oqWo i + (2 + 3 * oqWw w.s i + c)) by omega,
     w.winA_val hv hi (by omega) (by unfold winSz; omega), winA]
   rcases (show c = 0 ∨ c = 1 by omega) with rfl | rfl
   all_goals split_ifs <;> first | rfl | (exfalso; omega)
@@ -249,14 +249,14 @@ theorem arm_nodes (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv : w.Hv
     have hl : 6 * i + r < w.s.pd := by
       have hi' := hi; have hr' := hr
       unfold oqWw oqNpw at hr'; unfold oqNpw at hi'; split at hr' <;> omega
-    set K := oqArmK w.s wpCh i (w.wv i) + 14 * r with hK
+    set K := oqArmK w.s wpCh i (w.wv i) + 3 * r with hK
     have hk0 : σ (.n K) = word (2 ^ 63) 0 0 := by
-      rw [hK, show oqArmK w.s wpCh i (w.wv i) + 14 * r = oqArmK w.s wpCh i (w.wv i) + 14 * r + 0
+      rw [hK, show oqArmK w.s wpCh i (w.wv i) + 3 * r = oqArmK w.s wpCh i (w.wv i) + 3 * r + 0
         from rfl, w.arm_val hv hi (by omega) (by omega), stepV]; rfl
     have hc : ∀ j < 4, σ (.n (wpCh + 4 * (6 * i + r) + j)) = w.pc (4 * (6 * i + r) + j) :=
       fun j hj => by rw [Nat.add_assoc, hv, val_pc w (by omega)]
     have hcells := w.step_cells (l := 6 * i + r) hc hn
-    have hout : ∀ c < 13, σ (.n (K + 1 + c)) = w.stepV (6 * i + r) (1 + c) := fun c hc => by
+    have hout : ∀ c < 2, σ (.n (K + 1 + c)) = w.stepV (6 * i + r) (1 + c) := fun c hc => by
       rw [hK, Nat.add_assoc, w.arm_val hv hi (by omega) (by omega)]
     have hk := w.step_keccak (rd := fun _ => none) (l := 6 * i + r) (K := K)
       (ins := (if w.q.testBit (6 * i + r) then [V.n (wpCh + 4 * (6 * i + r)),
@@ -343,7 +343,7 @@ theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv :
     · simp only [oqStepT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
       rcases ha with rfl | rfl
       · show σ _ = _
-        rw [show oqArmK w.s wpCh i (w.wv i) + 14 * r = oqArmK w.s wpCh i (w.wv i) + 14 * r + 0
+        rw [show oqArmK w.s wpCh i (w.wv i) + 3 * r = oqArmK w.s wpCh i (w.wv i) + 3 * r + 0
           from rfl, w.arm_val hv hi hr (by omega), stepV]; rfl
       · have hn := hnodes r (by omega)
         have hl : 6 * i + r < w.s.pd := by
@@ -361,8 +361,8 @@ theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv :
           rw [show wpPr w.s + 1 + 1 = wpPr w.s + 2 by omega] at z2
           rw [show wpPr w.s + 1 + 2 = wpPr w.s + 3 by omega] at z3
           rw [show wpPr w.s + 1 + 3 = wpPr w.s + 4 by omega] at z4
-          have hk0 : σ (.n (oqArmK w.s wpCh i (w.wv i) + 14 * r)) = word (2 ^ 63) 0 0 := by
-            rw [show oqArmK w.s wpCh i (w.wv i) + 14 * r = oqArmK w.s wpCh i (w.wv i) + 14 * r + 0
+          have hk0 : σ (.n (oqArmK w.s wpCh i (w.wv i) + 3 * r)) = word (2 ^ 63) 0 0 := by
+            rw [show oqArmK w.s wpCh i (w.wv i) + 3 * r = oqArmK w.s wpCh i (w.wv i) + 3 * r + 0
               from rfl, w.arm_val hv hi hr (by omega), stepV]; rfl
           simp [hpad, z1, z2, z3, z4, hk0, levelIns]) (fun c hc => by
             rw [Nat.add_assoc, w.arm_val hv hi hr (by omega)])

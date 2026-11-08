@@ -289,10 +289,11 @@ theorem check_facts (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds r
   · exact packIn_sound (hw _ (getD_mem (d := default) hw')) hat
 
 /-- A `KECCAK` atom's facts: its inputs canonical, its outputs the permutation's cells. -/
-theorem keccak_facts {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ) :
+theorem keccak_facts {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     AllCanonical (ins.map σ) ∧ ∀ c (hc : c < 13), σ (outs.getD c default) =
       cellsOfState (permOf (ins.map σ)) false ⟨c, hc⟩ := by
-  obtain ⟨-, ho, hcan, hc⟩ := keccakA_perm hk
+  obtain ⟨-, -, hcan, hc⟩ := keccakA_perm hk ho
   refine ⟨hcan, fun c hc13 => ?_⟩
   rw [List.getD_eq_getElem outs default (by omega : c < outs.length)]
   exact outs_eq hc ⟨c, hc13⟩ (by rw [ho]; exact hc13)
@@ -309,10 +310,10 @@ theorem step_ins (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd �
     rateOf ((s.blk σ k).map (·, dsObserve)) ++ capOf (permOf ((s.ins k).map σ)) =
       (s.ins (k + 1)).map σ := by
   obtain ⟨-, hwl, hK, hP, hL⟩ := check_facts h hat
-  obtain ⟨hl1, -, hk1⟩ := hK (k + 1) hk
-  obtain ⟨-, -, hk0⟩ := hK k (by omega)
-  obtain ⟨hcan, -⟩ := keccak_facts hk1
-  have hout := (keccak_facts hk0).2
+  obtain ⟨hl1, ho1, hk1⟩ := hK (k + 1) hk
+  obtain ⟨-, ho0, hk0⟩ := hK k (by omega)
+  obtain ⟨hcan, -⟩ := keccak_facts hk1 ho1
+  have hout := (keccak_facts hk0 ho0).2
   obtain ⟨hr, hc⟩ := hL k hk
   have hR : (rateOf ((s.blk σ k).map (·, dsObserve))).length = 8 := by simp [rateOf]
   refine list_eq_of_getD (n := 13) (by simp [hR, capOf]) (by simp [hl1]) fun c hc13 => ?_
@@ -371,7 +372,7 @@ theorem chain (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) 
       rfl
   obtain ⟨n, hn⟩ : ∃ n, s.nb = n + 1 := ⟨s.nb - 1, by omega⟩
   obtain ⟨ip, iperm⟩ := key n (by omega)
-  have hout := (keccak_facts (hK n (by omega)).2.2).2
+  have hout := (keccak_facts (hK n (by omega)).2.2 (hK n (by omega)).2.1).2
   have hcap : (List.range 5).map (fun i => σ ((s.outs n).getD (8 + i) default)) =
       capOf (permOf ((s.ins n).map σ)) := by
     rw [show (List.range 5).map (fun i => σ ((s.outs n).getD (8 + i) default)) =

@@ -36,30 +36,30 @@ noncomputable def mFlatE : List Stmt := mFlat
 the leaf's deferred claim. -/
 def mStoresL : List Atom :=
   (List.range 256).map (fun v => .load (.n (69 + v)) (.n 68) v) ++
-    [.load (.n 400) (.n 387) 0, .load (.n 401) (.n 387) 1, .load (.n 413) (.n 387) 0,
-      .load (.n 414) (.n 387) 1, .load (.n 432) (.n 431) 0] ++
-    (List.range 23).map (fun k => .load (.n (453 + k)) (.n 449) k) ++ [.load (.n 452) (.n 449) 23]
+    [.load (.n 400) (.n 387) 0, .load (.n 401) (.n 387) 1, .load (.n 402) (.n 387) 0,
+      .load (.n 403) (.n 387) 1, .load (.n 421) (.n 420) 0] ++
+    (List.range 23).map (fun k => .load (.n (442 + k)) (.n 438) k) ++ [.load (.n 441) (.n 438) 23]
 
 /-- `main`'s loads, by their words' numbers: the five reads, then the stores. -/
 def mLoadOk (d p o : ℕ) : Bool :=
-  decide ((d, p, o) ∈ [(437, 436, 0), (476, 448, 0), (477, 448, 1), (481, 480, 0),
-    (485, 484, 0)]) ||
+  decide ((d, p, o) ∈ [(426, 425, 0), (465, 437, 0), (466, 437, 1), (470, 469, 0),
+    (474, 473, 0)]) ||
   (decide (p = 68) && decide (d = 69 + o) && decide (o < 256)) ||
-  decide ((d, p, o) ∈ [(400, 387, 0), (401, 387, 1), (413, 387, 0), (414, 387, 1),
-    (432, 431, 0)]) ||
-  (decide (p = 449) && (decide (o < 23 ∧ d = 453 + o) || decide (o = 23 ∧ d = 452)))
+  decide ((d, p, o) ∈ [(400, 387, 0), (401, 387, 1), (402, 387, 0), (403, 387, 1),
+    (421, 420, 0)]) ||
+  (decide (p = 438) && (decide (o < 23 ∧ d = 442 + o) || decide (o = 23 ∧ d = 441)))
 
 /-- The range checks: the checked value and the bound's constant. -/
 def rcPairs : List (ℕ × ℕ) :=
-  [(0, 8), (1, 12), (2, 16), (3, 20), (4, 24), (5, 28), (6, 32), (7, 36), (42, 43), (438, 6)]
+  [(0, 8), (1, 12), (2, 16), (3, 20), (4, 24), (5, 28), (6, 32), (7, 36), (42, 43), (427, 6)]
 
 /-- The atoms of `main` whose side conditions its completeness discharges. -/
 def mSideOk : Atom → Bool
   | .rangeCheck x y _ _ k => decide ((x.idx, k.idx) ∈ rcPairs) && decide (x = .n x.idx) &&
       decide (k = .n k.idx) && decide (k.idx < y.idx)
   | .load d p o => decide (d = .n d.idx) && decide (p = .n p.idx) && mLoadOk d.idx p.idx o
-  | .assertEq x y => decide ((x, y) ∈ [(V.n 437, V.n 42), (.n 445, .n 446), (.n 481, .n 478),
-      (.n 485, .n 479)])
+  | .assertEq x y => decide ((x, y) ∈ [(V.n 426, V.n 42), (.n 434, .n 435), (.n 470, .n 467),
+      (.n 474, .n 468)])
   | _ => false
 
 /-- The stores of `main`'s body. -/
@@ -91,12 +91,12 @@ def mOrcStmts : List Stmt :=
     .atom (.hint (.allocDyn (.n 66) (.n 42))), .atom (.hint (.alloc (.n 68) 256)),
     .atom (.hint (.allocDyn (.n 385) (.n 384))),
     .call "da_verify" [.n 49] [.n 390, .n 391, .n 392, .n 393],
-    .atom (.hint (.allocDyn (.n 416) (.n 415))), .atom (.hint (.allocDyn (.n 422) (.n 421))),
-    .atom (.hint (.allocDyn (.n 428) (.n 427))), .atom (.hint (.allocDyn (.n 431) (.n 430))),
-    .atom (.hint (.witness "da_pick" (.stack [.n 438]))),
-    .atom (.hint (.alloc (.n 449) 24)), .atom (.hint (.witness "leaf_defer" (.stack [.n 452]))),
-    .call "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 476, .n 477, .n 449]
-      [.n 478, .n 479]]
+    .atom (.hint (.allocDyn (.n 405) (.n 404))), .atom (.hint (.allocDyn (.n 411) (.n 410))),
+    .atom (.hint (.allocDyn (.n 417) (.n 416))), .atom (.hint (.allocDyn (.n 420) (.n 419))),
+    .atom (.hint (.witness "da_pick" (.stack [.n 427]))),
+    .atom (.hint (.alloc (.n 438) 24)), .atom (.hint (.witness "leaf_defer" (.stack [.n 441]))),
+    .call "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 465, .n 466, .n 438]
+      [.n 467, .n 468]]
 
 /-- The atoms defining `main`'s words the proof reads. -/
 def mDefAtoms : List Atom :=
@@ -110,26 +110,26 @@ def mDefAtoms : List Atom :=
     .const (.n 382) (word 2 0 0), .mul (.n 383) (.n 6) (.n 382), .mul (.n 384) (.n 383) (.n 383),
     .mul (.n 386) (.n 6) (.n 6), .mul (.n 387) (.n 385) (.n 386),
     .const (.n 388) (word 2 0 0), .add (.n 389) (.n 7) (.n 388),
-    .mul (.n 415) (.n 6) (.n 6), .mul (.n 417) (.n 6) (.n 6), .mul (.n 418) (.n 417) (.n 6),
-    .mul (.n 419) (.n 418) (.n 418), .mul (.n 420) (.n 419) (.n 419),
-    .mul (.n 421) (.n 420) (.n 420), .mul (.n 423) (.n 6) (.n 6), .mul (.n 424) (.n 423) (.n 6),
-    .mul (.n 425) (.n 424) (.n 424), .mul (.n 426) (.n 425) (.n 425),
-    .mul (.n 427) (.n 426) (.n 426), .const (.n 429) (word 2 0 0), .mul (.n 430) (.n 6) (.n 429),
-    .mul (.n 432) (.n 2) (.n 5), .const (.n 433) (word 1 0 0), .add (.n 434) (.n 433) (.n 6),
-    .const (.n 435) (word 1 0 0), .mul (.n 436) (.n 431) (.n 6),
-    .add (.n 442) (.n 438) (.n 6), .const (.n 443) (word 1 0 0), .add (.n 444) (.n 7) (.n 443),
-    .mul (.n 445) (.n 442) (.n 444), .const (.n 446) (word 0 0 0),
-    .mul (.n 447) (.n 438) (.n 438), .mul (.n 448) (.n 385) (.n 447),
-    .const (.n 450) (word 1 0 0), .add (.n 451) (.n 6) (.n 450),
-    .const (.n 480) (word 1 0 0), .const (.n 482) (word 1 0 0), .const (.n 483) (word 2 0 0),
-    .mul (.n 484) (.n 482) (.n 483),
+    .mul (.n 404) (.n 6) (.n 6), .mul (.n 406) (.n 6) (.n 6), .mul (.n 407) (.n 406) (.n 6),
+    .mul (.n 408) (.n 407) (.n 407), .mul (.n 409) (.n 408) (.n 408),
+    .mul (.n 410) (.n 409) (.n 409), .mul (.n 412) (.n 6) (.n 6), .mul (.n 413) (.n 412) (.n 6),
+    .mul (.n 414) (.n 413) (.n 413), .mul (.n 415) (.n 414) (.n 414),
+    .mul (.n 416) (.n 415) (.n 415), .const (.n 418) (word 2 0 0), .mul (.n 419) (.n 6) (.n 418),
+    .mul (.n 421) (.n 2) (.n 5), .const (.n 422) (word 1 0 0), .add (.n 423) (.n 422) (.n 6),
+    .const (.n 424) (word 1 0 0), .mul (.n 425) (.n 420) (.n 6),
+    .add (.n 431) (.n 427) (.n 6), .const (.n 432) (word 1 0 0), .add (.n 433) (.n 7) (.n 432),
+    .mul (.n 434) (.n 431) (.n 433), .const (.n 435) (word 0 0 0),
+    .mul (.n 436) (.n 427) (.n 427), .mul (.n 437) (.n 385) (.n 436),
+    .const (.n 439) (word 1 0 0), .add (.n 440) (.n 6) (.n 439),
+    .const (.n 469) (word 1 0 0), .const (.n 471) (word 1 0 0), .const (.n 472) (word 2 0 0),
+    .mul (.n 473) (.n 471) (.n 472),
     .const (.n 8) (word 9272771591053052074 0 0), .const (.n 12) (word 9272771591053052074 0 0),
     .const (.n 16) (word 9272771591053052074 0 0), .const (.n 20) (word 9272771591053052074 0 0),
     .const (.n 24) (word 9272771591053052074 0 0), .const (.n 28) (word 9272771591053052074 0 0),
     .const (.n 32) (word 65536 0 0), .const (.n 36) (word 2 0 0),
     .const (.n 43) (word 9272771591053052074 0 0),
-    .load (.n 437) (.n 436) 0, .load (.n 476) (.n 448) 0, .load (.n 477) (.n 448) 1,
-    .load (.n 481) (.n 480) 0, .load (.n 485) (.n 484) 0] ++
+    .load (.n 426) (.n 425) 0, .load (.n 465) (.n 437) 0, .load (.n 466) (.n 437) 1,
+    .load (.n 470) (.n 469) 0, .load (.n 474) (.n 473) 0] ++
   (List.range 51).map fun j => .const (.n (325 + j)) (word (lxTagVals.getD j 0) 0 0)
 
 end

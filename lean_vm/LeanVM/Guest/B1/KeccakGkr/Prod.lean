@@ -259,10 +259,11 @@ capacity, its outputs are the cells of the sponge's next permutation. -/
 theorem spOk_perm {s : Fs} {st : List V × List (V × V)} (h : SpOk σ s st) {ins outs : List V}
     (hk : (Atom.keccak ins outs false false).Holds rd σ) {zs : List V}
     (hin : ins = pendCellsV st.2 ++ zs ++ st.1)
-    (hz : zs.map σ = List.replicate (8 - 2 * st.2.length) 0) (hl : st.2.length ≤ 4) :
+    (hz : zs.map σ = List.replicate (8 - 2 * st.2.length) 0) (hl : st.2.length ≤ 4)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     s.perm = permOf (ins.map σ) ∧
       ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState s.perm false ⟨k, hk⟩ := by
-  obtain ⟨-, -, hcan, hout⟩ := keccak_outs hk
+  obtain ⟨-, -, hcan, hout⟩ := keccak_outs hk ho
   have hlen := pendOk_length h.2
   have hc1 : AllCanonical ((pendCellsV st.2).map σ) := fun x hx ↦
     hcan x (by rw [hin]; simp only [List.map_append, List.mem_append]; exact Or.inl (Or.inl hx))
