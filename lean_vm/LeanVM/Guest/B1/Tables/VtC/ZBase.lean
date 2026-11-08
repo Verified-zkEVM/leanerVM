@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.ZBase
 
   The table sumcheck's honest rounds (from the transcript words, the capacity and the target), the
-  buffers they fill, and `verify_tables`' statements `2587 ..< 2688` and `6355 ..< 6398`.
+  buffers they fill, and `verify_tables`' statements `2587 ..< 2688` and `6353 ..< 6398`.
 -/
 
 module
@@ -140,9 +140,11 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 2630) (word 1 0 0)),
     .call "eq_prefix_chain" [.n 2629, .n 2630, .n 16, .n 703, .n 2516] []]
 
-/-- `verify_tables`' statements `6355 ..< 6398` (G:2550-2563). -/
+/-- `verify_tables`' statements `6353 ..< 6398` (G:2550-2563). -/
 noncomputable def zTail : List Stmt := [
-    .atom (.keccak [.n 5712, .n 5714, .n 2565, .n 2565, .n 2565, .n 2566, .n 2567, .n 2568, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] [.n 6924, .n 6925, .n 6926, .n 6927, .n 6928, .n 6929, .n 6930, .n 6931, .n 6932, .n 6933, .n 6934, .n 6935, .n 6936] false false),
+    .atom (.const (.n 6922) (word 0 0 0)),
+    .atom (.const (.n 6923) (word 0 0 0)),
+    .atom (.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] [.n 6924, .n 6925, .n 6926, .n 6927, .n 6928, .n 6929, .n 6930, .n 6931, .n 6932, .n 6933, .n 6934, .n 6935, .n 6936] false false),
     .atom (.hint (.limbs (.n 6925) [.n 6937])),
     .atom (.add (.n 6938) (.n 6925) (.n 6937)),
     .atom (.const (.n 6939) (word 1 0 1)),
@@ -166,19 +168,19 @@ noncomputable def zTail : List Stmt := [
     .atom (.add (.n 6954) (.n 6948) (.n 6953)),
     .atom (.mul (.n 6955) (.n 6943) (.n 6954)),
     .atom (.add (.n 6956) (.n 6948) (.n 6955)),
-    .atom (.load (.n 6956) (.n 15) 162),
+    .atom (.load (.n 6956) (.n 15) 164),
     .atom (.add (.n 6957) (.n 6947) (.n 6952)),
     .atom (.mul (.n 6958) (.n 6943) (.n 6957)),
     .atom (.add (.n 6959) (.n 6947) (.n 6958)),
-    .atom (.load (.n 6959) (.n 15) 163),
+    .atom (.load (.n 6959) (.n 15) 165),
     .atom (.const (.n 6960) (word 0 0 0)),
-    .atom (.load (.n 6960) (.n 15) 164),
+    .atom (.load (.n 6960) (.n 15) 166),
     .atom (.copy (.n 6961) (.n 6932)),
     .atom (.copy (.n 6962) (.n 6933)),
     .atom (.copy (.n 6963) (.n 6934)),
     .atom (.copy (.n 6964) (.n 6935)),
     .atom (.copy (.n 6965) (.n 6936)),
-    .atom (.const (.n 6966) (word 174483046400 0 0)),
+    .atom (.const (.n 6966) (word 697932185600 0 0)),
     .atom (.mul (.n 6967) (.n 2625) (.n 6966)),
     .atom (.copy (.n 6968) (.n 6967)),
     .atom (.copy (.n 6969) (.n 2516)),
@@ -189,7 +191,7 @@ noncomputable def zTail : List Stmt := [
 theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop 2587).take zBlk.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 6251).take zTail.length) = true := by
+theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 6353).take zTail.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 /-! ## The honest rounds -/
