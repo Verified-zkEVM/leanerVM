@@ -183,7 +183,7 @@ theorem keccak_chain {P : List E} {S0 : KeccakState} {B : ℕ} {I O : ℕ → Fi
     (h0 : O 0 = cellsOfState S0 false)
     (hrate : ∀ k < B, ∀ c : Fin 13, c.val < 9 → I k c = O k c + P.getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < B, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
-    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
+    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k) .all) :
     O B = cellsOfState (absorbChunks B S0 (cellsBytes P)) false := by
   have inv : ∀ j ≤ B, O j =
       cellsOfState (absorbChunks j S0 (cellsBytes P)) (if j < B then inLayout j else false) := by
@@ -504,7 +504,7 @@ theorem keccak_final {cells : List E} {len : ℕ} {pre : List UInt8} {n : ℕ}
       I k c = O k c + (padCells cells len).getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
     (hK : ∀ k < len / rate + 1,
-      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
+      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k) .all) :
     O (len / rate + 1) = cellsOfState (absorbChunks (n + (len / rate + 1)) zeroState
       (pre ++ padBytes ((cellsBytes cells).take len))) false := by
   rw [keccak_chain h0 hrate hcap hK, ← absorbChunks_take, padCells_bytes cells len hlen hz,
@@ -521,7 +521,7 @@ theorem keccak_final_digest {cells : List E} {len : ℕ} {pre : List UInt8} {n :
       I k c = O k c + (padCells cells len).getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < len / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
     (hK : ∀ k < len / rate + 1,
-      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k)) :
+      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (len / rate + 1) k) .all) :
     (O (len / rate + 1) 0, O (len / rate + 1) 1) =
       digestHalves (keccak256 (pre ++ (cellsBytes cells).take len)) := by
   have hdata : ((cellsBytes cells).take len).length = len := by simp; omega
@@ -536,7 +536,7 @@ theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     (hz : ∀ j, len ≤ j → (cellsBytes cells).getD j 0 = 0)
     (hrate : ∀ c : Fin 13, c.val < 9 → I c = (padCells cells len).getD c 0)
     (hcap : ∀ c : Fin 13, 9 ≤ c.val → I c = 0)
-    (hK : KeccakCellsRelation I false O false) :
+    (hK : KeccakCellsRelation I false O false .all) :
     O = cellsOfState (absorbChunks 1 zeroState (padBytes ((cellsBytes cells).take len))) false ∧
       (O 0, O 1) = digestHalves (keccak256 ((cellsBytes cells).take len)) := by
   have hB : len / rate + 1 = 1 := by rw [Nat.div_eq_of_lt hlt]
@@ -553,7 +553,7 @@ theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     obtain rfl : k = 0 := by omega
     simp [I', O', cellsOfState_zero, hcap c hc]
   have hK' : ∀ k < len / rate + 1,
-      KeccakCellsRelation (I' k) (inLayout k) (O' (k + 1)) (outLayout (len / rate + 1) k) := by
+      KeccakCellsRelation (I' k) (inLayout k) (O' (k + 1)) (outLayout (len / rate + 1) k) .all := by
     intro k hk
     obtain rfl : k = 0 := by omega
     rw [hB]
@@ -570,7 +570,7 @@ theorem keccak_whole {cells : List E} {pre : List UInt8} {n B : ℕ} {I O : ℕ 
     (h0 : O 0 = cellsOfState (absorbChunks n zeroState pre) false)
     (hrate : ∀ k < B, ∀ c : Fin 13, c.val < 9 → I k c = O k c + cells.getD (17 * k / 2 + c) 0)
     (hcap : ∀ k < B, ∀ c : Fin 13, 9 ≤ c.val → I k c = O k c)
-    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k)) :
+    (hK : ∀ k < B, KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout B k) .all) :
     O B = cellsOfState (absorbChunks (n + B) zeroState (pre ++ cellsBytes cells)) false ∧
       (pre ++ cellsBytes cells).length = rate * (n + B) := by
   refine ⟨?_, by rw [List.length_append, hpre, length_cellsBytes, hB, Nat.mul_add]⟩

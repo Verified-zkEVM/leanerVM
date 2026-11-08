@@ -517,7 +517,8 @@ theorem atomOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {
   | assertInK a b => exact inKOk_sound hB h
   | keccak ins outs inOdd outOdd =>
     obtain ⟨h1, h2, h3⟩ := keccakOk_sound hB h
-    refine ⟨by simpa [cellsOf] using h1, by simpa [cellsOf] using h2, ?_⟩
+    have h2' : outs.length = 13 := by simpa [cellsOf] using h2
+    refine (keccak_holds_13 h2').mpr ⟨by simpa [cellsOf] using h1, h2', ?_⟩
     simp only [cellsOf, List.map_map] at h3
     exact h3
   | frameAddr p run => exact addrOk_sound hF hB hψ h
