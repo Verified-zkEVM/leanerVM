@@ -220,7 +220,7 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
       hsq (.atom (.keccak (sqIns first) ((List.range 13).map fun k ↦ .n (858 + k)) false false))
         (by simp [sqT, keccakA])
     have c859 : IsCanonical128 (σ (.n 859)) := by
-      obtain ⟨-, -, hc⟩ := hkc
+      obtain ⟨-, -, hc⟩ := good_keccak13 hkc
       have := hc ⟨1, by norm_num⟩
       simp only [cells13, List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map,
         List.getElem?_range (by norm_num : 1 < 13), Option.map_some, Option.getD_some,
