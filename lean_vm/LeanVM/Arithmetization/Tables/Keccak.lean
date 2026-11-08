@@ -29,7 +29,8 @@ the output lanes the table's claims hand it.
 **The row** `KeccakRow` is the column list: `pc, fp`; the operands `o_m₀, …, o_m₃` (`om`),
 `o_tail, o_b8, o_cap, o_out`; the two layout flags `odd_in, odd_out`; the two output flags
 `out_two, out_all`; the read limb holding no lane (`free`); the 25 input lanes (`lin`) and the 25 output lanes (`lout`); one memory count per
-cell, the thirteen read then the thirteen written (`cnt`); the bytecode count `r_bc`. A cell's
+cell, the thirteen read then the thirteen written or cancelled (`cnt`); the bytecode count
+`r_bc`. A cell's
 limb holding lane `a` in the even layout and `b` in the odd one is `a + flag·a + flag·b` (the
 Python's `_layout_limb`): `a` at `flag = 0`, `b` at `flag = 1`; every cell's top limb is a literal
 zero.
@@ -80,7 +81,8 @@ structure KeccakRow (F : Type) where
   ob8 : F
   /-- The operand `o_cap`: the four capacity cells. -/
   ocap : F
-  /-- The operand `o_out`: the thirteen written cells. -/
+  /-- The operand `o_out`: the output cells, of which the first one, two or thirteen are
+  written. -/
   oout : F
   /-- The layout flag of the cells read. -/
   oddIn : F
@@ -96,7 +98,7 @@ structure KeccakRow (F : Type) where
   lin : Vector F 25
   /-- The output state's lanes. -/
   lout : Vector F 25
-  /-- The read counts: the thirteen cells read, then the thirteen written. -/
+  /-- The read counts: the thirteen cells read, then the thirteen output cells. -/
   cnt : Vector F 26
   /-- The read count of the bytecode entry at `pc`. -/
   rbc : F
