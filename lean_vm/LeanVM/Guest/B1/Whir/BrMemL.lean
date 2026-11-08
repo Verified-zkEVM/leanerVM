@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.BrFit
 /-!
 # A level's memory from the buffers' words
 
-`OsSizes`: the candidate's rows fit its buffers (the strides of `query_weights`, `ood_z`,
+`OsSizes`: the candidate's rows fit its buffers (the strides of `ood_z`,
 `basis_d`, the squeeze runs, the tail challenges, the levels' slots in `query_positions`,
 `merkle_caps` and `merkle_cap_active`). `fall_length`: all fold challenges, `nFolds` of them.
 `lvMemB_cont`: on a memory holding the fixed buffers' honest words at `P` and level `i`'s squeeze
@@ -28,7 +28,6 @@ open LeanVM.Protocol.Verifier
 
 /-- **The candidate's rows fit its buffers.** -/
 structure OsSizes (c : OsCfg) : Prop where
-  q : ∀ i < c.levels.length, (lvAt c i).queries ≤ c.maxQ
   sq : ∀ i < c.levels.length, (lvAt c i).squeezes ≤ c.maxSq
   cols : ∀ i < c.levels.length, (lvAt c i).logCols ≤ ligColsCap
   yr : c.yrLog ≤ yrLogCap
@@ -80,7 +79,6 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
     LvMemB rd P c i (lvAt c i) (tr.L i) sqz := by
   have hn := hF.n2
   have hst := hF.lv i hi
-  have hq := hs.q i hi
   obtain ⟨R, d, hOk⟩ := h.ok i hi
   have hfit := h.fit i hi
   have hnf : ∀ h' : i ≠ c.yrLevel, i + 1 < c.levels.length := fun h' ↦ by have := hF.yr; omega

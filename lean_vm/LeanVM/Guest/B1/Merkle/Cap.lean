@@ -380,7 +380,7 @@ theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 
         have hoc : 0 < mcOc L k := by unfold mcOc; split_ifs <;> omega
         have vc : σ (.n (mcBase L k + mcOc L k)) = w63 := by
           rw [enode k hk2 hkL _ (by omega)]; unfold nodeVal
-          rw [ite_neg' (by omega), ite_neg' (by omega), ite_pos' rfl]
+          rw [ite_neg' (by omega), ite_neg' (by omega)]
         exact ⟨vc, mc_keccak_of eP (eZ 1 (by omega) (by omega)) (eZ 2 (by omega) (by omega))
           (eZ 3 (by omega) (by omega)) (eZ 4 (by omega) (by omega)) vc
           (hhashσ k (by omega) hkL (Or.inr hne))⟩

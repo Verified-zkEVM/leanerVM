@@ -141,7 +141,7 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
       obtain ⟨p, hp, hf⟩ := List.mem_flatMap.mp hf
       exact hP p (List.mem_range.mp hp) a (List.mem_filter.mp hf).1
     -- the relation, and its returns
-    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 465), σ (.n 466)] := by
+    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 454), σ (.n 455)] := by
       refine (rel_iff_sem find_statement_digest _ _).mpr ⟨σ, ?_, ?_⟩
       · rw [core20_params]
         simp only [List.map_cons, List.map_nil]

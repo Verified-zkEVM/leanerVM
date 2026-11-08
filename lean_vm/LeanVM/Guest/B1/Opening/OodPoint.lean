@@ -290,7 +290,7 @@ theorem ood_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
   have hin0 : [σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12),
       σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18)] =
       [r0, r1, r2, r3, r4, r5, r6, r7, f0, f1, f2, f3, f4] := by simp [ev, oodVals, as]
-  refine ⟨σ, by simp [ev, oodVals, as], ?_, ?_, ?_, ?_, ?_, ⟨rfl, rfl, ?_, ?_⟩, ?_, ?_, ?_, ?_,
+  refine ⟨σ, by simp [ev, oodVals, as], ?_, ?_, ?_, ?_, ?_, keccak13_mk (rd := rd) rfl rfl ?_ ?_, ?_, ?_, ?_, ?_,
     ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   all_goals try (show σ _ = _; simp [ev, oodVals, as, word_zero, word_one]; done)
   · intro c
@@ -324,7 +324,7 @@ theorem ood_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
         pendCells [] ++ List.replicate (8 - 2 * ([] : List (E × ℕ)).length) 0 ++
           capOf (oodS S0 i) := by
       simp [e40, e41, e42, e43, capOf, pendCells, i8, i9, i10, i11, i12]
-    refine ⟨⟨rfl, rfl, ?_, ?_⟩, ?_, ?_⟩
+    refine ⟨keccak13_mk (rd := rd) rfl rfl ?_ ?_, ?_, ?_⟩
     · intro c
       rw [hin]
       fin_cases c <;> simp [cells13, capOf, pendCells, z, cellsOfState_canonical]

@@ -557,9 +557,11 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
   have hdig := keccak_final_digest hpre hlen hz hO0 hrate hcap hK
   have hout : ∀ c : Fin 13, c.val < 2 → s.O σ (s.len / rate + 1) c = σ (s.outV (s.nb - 1) c) :=
     fun c hc => by
-      have := out_of_check h hat (k := s.nb - 1) (by omega) c
-        (by have := outs_last_two h (by omega); omega)
-      rw [Nat.sub_add_cancel (by omega)] at this
+      have hpos : 0 < s.nb := by rw [hnb]; exact Nat.succ_pos _
+      have hk1 : s.nb - 1 < s.nb := by omega
+      have h2 := outs_last_two h hpos
+      have := out_of_check h hat hk1 c (by omega)
+      rw [Nat.sub_add_cancel hpos] at this
       rw [← hnb, this]
   rw [hout 0 (by decide), hout 1 (by decide)] at hdig
   have hm : s.len = 16 * (s.len / 16) := by omega

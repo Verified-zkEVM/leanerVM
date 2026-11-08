@@ -89,13 +89,13 @@ theorem opening_fold_holds : opening_fold_Spec := by
   simp only [holdsList_append, holds_fsPackT, holds_challengeT, keccakA,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
-  · rintro ⟨σ, hp, h11, h12, h13, h14, h15, hp0, hp1, h34, h35, h36, h37, h38, ⟨-, -, hK⟩, hch,
+  · rintro ⟨σ, hp, h11, h12, h13, h14, h15, hp0, hp1, h34, h35, h36, h37, h38, hKH, hch,
       h59, h60, h61, h62, hl0, hl1, h83, h84, h85, h86, h87, h88, h89, h91, h92,
       h93, h94, hret⟩
     subst hp
     have hKA : (Atom.keccak [.n 22, .n 24, .n 31, .n 33, .n 35, .n 36, .n 37, .n 38, .n 11, .n 12,
         .n 13, .n 14, .n 15] [.n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48,
-        .n 49, .n 50, .n 51] false false).Holds rd σ := ⟨rfl, rfl, hK⟩
+        .n 49, .n 50, .n 51] false false).Holds rd σ := hKH
     obtain ⟨-, -, hcan, hout⟩ := keccakA_perm hKA
     have c22 : (σ (.n 22), σ (.n 24)) = Keccak.scalarCells (σ (.n 5)) dsObserve :=
       fsPackT_cells hp0 (hcan (σ (.n 22)) (by simp))
@@ -160,7 +160,7 @@ theorem opening_fold_holds : opening_fold_Spec := by
     have hy : challengeVals (cellsOfState S false 0) (cellsOfState S false 1) 6 = challengeOf S :=
       challengeVals_six S
     refine ⟨σ, by simp [ev, foldVals, as], ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ⟨rfl, rfl, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      keccak13_mk (rd := rd) rfl rfl ?_ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
       ?_, ?_, ?_, ?_⟩
     all_goals try (simp [ev, foldVals, as, word_zero, word_one, hy]; done)
     · exact fsPackOk_of_vals fun i hi => by interval_cases i <;> simp [ev, foldVals, as]
@@ -173,6 +173,7 @@ theorem opening_fold_holds : opening_fold_Spec := by
       fin_cases c <;> simp [cells13, ev, foldVals, as, p0.1, p0.2, p1.1, p1.2, z] <;>
         exact hcan _ (by simp)
     · intro c
+      simp only [List.map_cons, List.map_nil]
       have hS' : keccakF1600 (stateOfCells (cells13 [σ (.n 22), σ (.n 24), σ (.n 31), σ (.n 33),
           σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38), σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14),
           σ (.n 15)]) false) = S := hS

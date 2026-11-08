@@ -680,7 +680,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
     split at h
     · rename_i hc
       cases h
-      simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
       obtain ⟨⟨⟨hl, ho⟩, hin⟩, hout⟩ := hc
       have hn : newA rd w l (.keccak ins outs i o) =
           (List.range outs.length).map (kecOut (ins.map σ₀) i o) := by
@@ -692,7 +692,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
         rcases hv with hv | hv
         · have := (oldB_spec (all_old hin v hv)).2; omega
         · have := (runB_mem hout hv).2.2; omega
-      · refine ⟨hl, by omega, fun c hc => ?_⟩
+      · refine ⟨hl, by rcases ho with (h | h) | h <;> simp [h], fun c hc => ?_⟩
         rw [hins, runB_spec hout c hc, ofArgs_new, hn]
         simp [kecOut, c.isLt, hc]
     · exact absurd h (by simp)
