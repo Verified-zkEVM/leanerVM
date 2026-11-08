@@ -7,8 +7,11 @@ Every expected value below was printed by `python-verifier/verifier.py` at leanV
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (CPython, the verifier imported as a module) on
 inputs drawn from the word generator `fw`, which the driver mirrors exactly, but the tag, the IV
 and the seed, printed at `990b935263dc7f793f280914f262ca7955ddc3e0` (the only functions checked
-here that changed between the two); the drivers live in the port's scratch, not in the
-repository. The line citations are to `990b935263dc7f793f280914f262ca7955ddc3e0`. Compiled checks (`#guard`): `E` multiplication does not
+here that changed between the two), and the tables, the `q_keccak` slots, the output columns and
+`build_layout`'s sample layout and bus blocks printed at leanVM PR #724 head
+`873ee6d8a57428e33908ecf1608a7bdd43bf832e` (the `KECCAK` table's output flags; the driver checked
+first to print the previous values at `5e3ade21`); the drivers live in the port's scratch, not in
+the repository. The line citations are to `990b935263dc7f793f280914f262ca7955ddc3e0`. Compiled checks (`#guard`): `E` multiplication does not
 reduce in the kernel from module files.
 
 Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tables), `eq_eval`,
@@ -359,24 +362,25 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
       "cnt_b", "cnt_c", "cnt_bc"],
      ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
-      "cnt_b", "cnt_c", "cnt_bc"], ["pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc"],
+      "cnt_b", "cnt_c", "cnt_bc"],
+     ["pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc"],
      ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2", "cnt_ptr",
       "cnt_target", "cnt_local", "cnt_bc"],
      ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f",
       "cnt_bc", "w", "b"],
      ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
-      "odd_out", "free", "in_0", "in_1", "in_2", "in_3", "in_4", "in_5", "in_6", "in_7", "in_8",
-      "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15", "in_16", "in_17", "in_18",
-      "in_19", "in_20", "in_21", "in_22", "in_23", "in_24", "out_0", "out_1", "out_2", "out_3",
-      "out_4", "out_5", "out_6", "out_7", "out_8", "out_9", "out_10", "out_11", "out_12", "out_13",
-      "out_14", "out_15", "out_16", "out_17", "out_18", "out_19", "out_20", "out_21", "out_22",
-      "out_23", "out_24", "cnt_0", "cnt_1", "cnt_2", "cnt_3", "cnt_4", "cnt_5", "cnt_6", "cnt_7",
-      "cnt_8", "cnt_9", "cnt_10", "cnt_11", "cnt_12", "cnt_13", "cnt_14", "cnt_15", "cnt_16",
-      "cnt_17", "cnt_18", "cnt_19", "cnt_20", "cnt_21", "cnt_22", "cnt_23", "cnt_24", "cnt_25",
-      "cnt_bc"]]
+      "odd_out", "out_two", "out_all", "free", "in_0", "in_1", "in_2", "in_3", "in_4", "in_5",
+      "in_6", "in_7", "in_8", "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15",
+      "in_16", "in_17", "in_18", "in_19", "in_20", "in_21", "in_22", "in_23", "in_24", "out_0",
+      "out_1", "out_2", "out_3", "out_4", "out_5", "out_6", "out_7", "out_8", "out_9", "out_10",
+      "out_11", "out_12", "out_13", "out_14", "out_15", "out_16", "out_17", "out_18", "out_19",
+      "out_20", "out_21", "out_22", "out_23", "out_24", "cnt_0", "cnt_1", "cnt_2", "cnt_3",
+      "cnt_4", "cnt_5", "cnt_6", "cnt_7", "cnt_8", "cnt_9", "cnt_10", "cnt_11", "cnt_12", "cnt_13",
+      "cnt_14", "cnt_15", "cnt_16", "cnt_17", "cnt_18", "cnt_19", "cnt_20", "cnt_21", "cnt_22",
+      "cnt_23", "cnt_24", "cnt_25", "cnt_bc"]]
 
 #guard (tableWidths) =
-    [15, 15, 8, 15, 14, 90]
+    [15, 15, 8, 15, 14, 92]
 
 #guard (globalColumnBases) =
     [6, 21, 36, 44, 59, 73]
@@ -388,16 +392,22 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [0, 0, 0, 0, 2, 0]
 
 #guard (tables.map Table.countColumns) =
-    [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
-     [63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85,
-      86, 87, 88, 89]]
+    [[11, 12, 13, 14],
+     [11, 12, 13, 14],
+     [6, 7],
+     [11, 12, 13, 14],
+     [8, 9, 10, 11],
+     [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+      88, 89, 90, 91]]
 
 #guard (tables.map fun t ↦ t.padding.map eToNat) =
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee,
       0xbd1547306f80494d, 0x8b284e056253d057, 0xff97a42d7f8e6fd4, 0x90fee5a0a44647c4,
       0x8c5bda0cd6192e76, 0xad30a6f71b19059c, 0x30935ab7d08ffc64, 0xeb5aa93f2317d635,
       0xa9a6e6260d712103, 0x81a57c16dbcf555f, 0x43b831cd0347c826, 0x1f22f1a11a5569f,
@@ -442,14 +452,14 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 /- `build_layout`'s `slots` (`KECCAK_SLOT_OF`) and `outputs`, and the output lanes' columns -/
 #guard ((List.range 168).filterMap fun c ↦ (keccakSlot c).map (c, ·)) =
     [(73, 50), (74, 51), (75, 52), (76, 53), (77, 54), (78, 55), (79, 56), (80, 57), (81, 58),
-     (82, 59), (83, 60), (84, 61), (85, 62), (86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5),
-     (92, 6), (93, 7), (94, 8), (95, 9), (96, 10), (97, 11), (98, 12), (99, 13), (100, 14),
-     (101, 15), (102, 16), (103, 17), (104, 18), (105, 19), (106, 20), (107, 21), (108, 22),
-     (109, 23), (110, 24), (136, 63)]
+     (82, 59), (83, 60), (84, 61), (85, 62), (86, 63), (88, 0), (89, 1), (90, 2), (91, 3), (92, 4),
+     (93, 5), (94, 6), (95, 7), (96, 8), (97, 9), (98, 10), (99, 11), (100, 12), (101, 13),
+     (102, 14), (103, 15), (104, 16), (105, 17), (106, 18), (107, 19), (108, 20), (109, 21),
+     (110, 22), (111, 23), (112, 24)]
 
 #guard (keccakOutputColumns) =
-    [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
-     130, 131, 132, 133, 134, 135]
+    [113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131,
+     132, 133, 134, 135, 136, 137]
 
 /-! ## `build_layout` on the sample (`verifier.py:547-552, 974-1014`) -/
 
@@ -463,42 +473,36 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     1
 
 #guard (sampleLayout.placements.map (·.map fun p ↦ (p.variableCount, p.index))) =
-    [some (16, 0), some (16, 65536), some (16, 131072), some (16, 196608),
-     some (1, 308400), some (15, 262144), some (2, 308224), some (2, 308228),
-     some (2, 308232), some (2, 308236), some (2, 308240), some (2, 308244),
-     some (2, 308248), some (2, 308252), some (2, 308256), some (2, 308260),
-     some (2, 308264), some (2, 308268), some (2, 308272), some (2, 308276),
-     some (2, 308280), some (1, 308402), some (1, 308404), some (1, 308406),
-     some (1, 308408), some (1, 308410), some (1, 308412), some (1, 308414),
-     some (1, 308416), some (1, 308418), some (1, 308420), some (1, 308422),
-     some (1, 308424), some (1, 308426), some (1, 308428), some (1, 308430),
-     some (1, 308432), some (1, 308434), some (1, 308436), some (1, 308438),
-     some (1, 308440), some (1, 308442), some (1, 308444), some (1, 308446),
-     some (2, 308284), some (2, 308288), some (2, 308292), some (2, 308296),
-     some (2, 308300), some (2, 308304), some (2, 308308), some (2, 308312),
-     some (2, 308316), some (2, 308320), some (2, 308324), some (2, 308328),
-     some (2, 308332), some (2, 308336), some (2, 308340), some (2, 308344),
-     some (2, 308348), some (2, 308352), some (2, 308356), some (2, 308360),
-     some (2, 308364), some (2, 308368), some (2, 308372), some (2, 308376),
-     some (2, 308380), some (2, 308384), some (2, 308388), some (2, 308392),
-     some (2, 308396), some (9, 287744), some (9, 288256), some (9, 288768),
-     some (9, 289280), some (9, 289792), some (9, 290304), some (9, 290816),
-     some (9, 291328), some (9, 291840), some (9, 292352), some (9, 292864),
-     some (9, 293376), some (9, 293888), some (9, 262144), some (9, 262656),
-     some (9, 263168), some (9, 263680), some (9, 264192), some (9, 264704),
-     some (9, 265216), some (9, 265728), some (9, 266240), some (9, 266752),
-     some (9, 267264), some (9, 267776), some (9, 268288), some (9, 268800),
-     some (9, 269312), some (9, 269824), some (9, 270336), some (9, 270848),
-     some (9, 271360), some (9, 271872), some (9, 272384), some (9, 272896),
-     some (9, 273408), some (9, 273920), some (9, 274432), none, none, none, none, none,
-     none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
-     none, none, none, none, some (9, 294400), some (9, 294912), some (9, 295424),
-     some (9, 295936), some (9, 296448), some (9, 296960), some (9, 297472),
-     some (9, 297984), some (9, 298496), some (9, 299008), some (9, 299520),
-     some (9, 300032), some (9, 300544), some (9, 301056), some (9, 301568),
-     some (9, 302080), some (9, 302592), some (9, 303104), some (9, 303616),
-     some (9, 304128), some (9, 304640), some (9, 305152), some (9, 305664),
-     some (9, 306176), some (9, 306688), some (9, 307200), some (9, 307712)]
+    [some (16, 0), some (16, 65536), some (16, 131072), some (16, 196608), some (1, 309424),
+     some (15, 262144), some (2, 309248), some (2, 309252), some (2, 309256), some (2, 309260),
+     some (2, 309264), some (2, 309268), some (2, 309272), some (2, 309276), some (2, 309280),
+     some (2, 309284), some (2, 309288), some (2, 309292), some (2, 309296), some (2, 309300),
+     some (2, 309304), some (1, 309426), some (1, 309428), some (1, 309430), some (1, 309432),
+     some (1, 309434), some (1, 309436), some (1, 309438), some (1, 309440), some (1, 309442),
+     some (1, 309444), some (1, 309446), some (1, 309448), some (1, 309450), some (1, 309452),
+     some (1, 309454), some (1, 309456), some (1, 309458), some (1, 309460), some (1, 309462),
+     some (1, 309464), some (1, 309466), some (1, 309468), some (1, 309470), some (2, 309308),
+     some (2, 309312), some (2, 309316), some (2, 309320), some (2, 309324), some (2, 309328),
+     some (2, 309332), some (2, 309336), some (2, 309340), some (2, 309344), some (2, 309348),
+     some (2, 309352), some (2, 309356), some (2, 309360), some (2, 309364), some (2, 309368),
+     some (2, 309372), some (2, 309376), some (2, 309380), some (2, 309384), some (2, 309388),
+     some (2, 309392), some (2, 309396), some (2, 309400), some (2, 309404), some (2, 309408),
+     some (2, 309412), some (2, 309416), some (2, 309420), some (9, 287744), some (9, 288256),
+     some (9, 288768), some (9, 289280), some (9, 289792), some (9, 290304), some (9, 290816),
+     some (9, 291328), some (9, 291840), some (9, 292352), some (9, 292864), some (9, 293376),
+     some (9, 293888), some (9, 294400), some (9, 294912), some (9, 262144), some (9, 262656),
+     some (9, 263168), some (9, 263680), some (9, 264192), some (9, 264704), some (9, 265216),
+     some (9, 265728), some (9, 266240), some (9, 266752), some (9, 267264), some (9, 267776),
+     some (9, 268288), some (9, 268800), some (9, 269312), some (9, 269824), some (9, 270336),
+     some (9, 270848), some (9, 271360), some (9, 271872), some (9, 272384), some (9, 272896),
+     some (9, 273408), some (9, 273920), some (9, 274432), none, none, none, none, none, none,
+     none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
+     none, none, none, none, some (9, 295424), some (9, 295936), some (9, 296448),
+     some (9, 296960), some (9, 297472), some (9, 297984), some (9, 298496), some (9, 299008),
+     some (9, 299520), some (9, 300032), some (9, 300544), some (9, 301056), some (9, 301568),
+     some (9, 302080), some (9, 302592), some (9, 303104), some (9, 303616), some (9, 304128),
+     some (9, 304640), some (9, 305152), some (9, 305664), some (9, 306176), some (9, 306688),
+     some (9, 307200), some (9, 307712), some (9, 308224), some (9, 308736)]
 
 #guard (blockProbe sampleLayout.push) =
     [(2, 0, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
@@ -525,33 +529,33 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
      (2, 4, 6, (e 0xaa491a07c444d14a 0x487ed1b20d9c060e 0x44f2c76fa9f7bf5a)),
      (2, 4, 6, (e 0x828ba7871753914 0x36c4c4d664bde020 0xceee367e0f161c65)),
      (9, 5, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (9, 5, 14, (e 0xfe5dacbc4ae74775 0x88e2a106ec39d59 0x8c6f74d1eaa39f34)),
-     (9, 5, 6, (e 0x3dcae7a3c3ab9caf 0x1d6b1b6feba9a50a 0xd56ac24ed194c098)),
-     (9, 5, 6, (e 0x131ddec541236501 0xacb9ce687d5dc97e 0xbddedfca9a032bf)),
-     (9, 5, 6, (e 0xe95b29ec13d27891 0x766cce704c8c6733 0xb3195d59180f91c7)),
-     (9, 5, 6, (e 0xbbc3ae9454f4a720 0x4c9eb1a789d7b2e5 0xe841bdb0c13e4747)),
-     (9, 5, 6, (e 0x4acb8d2adefa6fab 0x6a3b6d9ef474a0ce 0xae9d71c0689c0df0)),
-     (9, 5, 6, (e 0xe9136154428736a0 0xec97ec669d910dc9 0xb1d2bc8c0688e0b6)),
-     (9, 5, 6, (e 0x69feaa9f7a74dd15 0x3f08f8630eed9c9c 0xf4a251352dc4ccf9)),
-     (9, 5, 6, (e 0xa8ab577eb6e98fb9 0x8f2c655293b22219 0xe209ca2c150b8ab1)),
-     (9, 5, 6, (e 0xa51398936281bee6 0xaa6dd4cacadd5bcb 0x46c4d8b03449e55a)),
-     (9, 5, 6, (e 0x36a5d6d5d337b425 0xacda68bae33d7aa0 0x4a096b7d6e57b639)),
-     (9, 5, 6, (e 0xa2d97a7efe992040 0x669d87c1c5b4193e 0x196aada31143afdc)),
-     (9, 5, 6, (e 0x526e39ba49b9702e 0x68e77f03d8a60e87 0x38c95c40004060f1)),
-     (9, 5, 6, (e 0x7799d6ba0d725448 0xf923c8479864253f 0x52f5599320fbaff3)),
-     (9, 5, 6, (e 0x827b367cd13b203b 0x956a4719c07d7d8b 0x6c9da40140d677fd)),
-     (9, 5, 6, (e 0x46d7245f2c5fe5db 0x94e35ee8f76df0c9 0xf6680d32fb8a183)),
-     (9, 5, 6, (e 0x24db9f514787001c 0xed5df163af82064e 0x13eec2287dfb9fb4)),
-     (9, 5, 6, (e 0xd54c4dd025517c43 0xb4e8c394b080fd89 0x61465427eca61eee)),
-     (9, 5, 6, (e 0x8be2253626290ee8 0x869cf2b5c0e2d419 0xb42a5f35cdfd9545)),
-     (9, 5, 6, (e 0xfc1a38afb4981fab 0x251f7352f035bac3 0xa522f033eb9df346)),
-     (9, 5, 6, (e 0xa87f50b153f811a7 0xed218cdcdfe4826e 0x291a97c631ee2326)),
-     (9, 5, 6, (e 0x89b9932cdd1da3a2 0x7703de9ee78613c3 0x457c719ba8a298bf)),
-     (9, 5, 6, (e 0x38a1e3999279b9ff 0xc35c15191302f58d 0x16d15e4a0cdb5d15)),
-     (9, 5, 6, (e 0xe864132224e35b8f 0x297c2b206f3dd4cf 0xe987059ee08a7849)),
-     (9, 5, 6, (e 0x9d71a4565fdf0eae 0xbfb7c2168f785506 0x4bfe8e1ee4f8b15d)),
-     (9, 5, 6, (e 0x185a091952bae837 0x5623839d6d5eec39 0xbd5bdc0eb53cd818)),
-     (9, 5, 6, (e 0x41716e0b48fb7147 0xe20a4ab449f5cb18 0x3f2d11e201832660))]
+     (9, 5, 16, (e 0xe5f394bca1806783 0x60cc95d400bd2b7e 0xc09c9961d6f769c4)),
+     (9, 5, 6, (e 0xcf9fccff0a082b33 0xf56977ad0a4cf607 0x7513a2c91dfd0649)),
+     (9, 5, 6, (e 0x922c7bc0d7c591ac 0xa9877aa7f706c77e 0x31f108ade44012fb)),
+     (9, 5, 6, (e 0x2f177f5c4d457990 0x4f4d90b19ab8a3d6 0x79df62b17a37bbe9)),
+     (9, 5, 6, (e 0x2c618b6014272d08 0x76680dd7427bfbbd 0xd4698557ac4446d1)),
+     (9, 5, 6, (e 0x850e972fd3f29dbc 0x6c9d678493790829 0xe7e4c266e8b8487f)),
+     (9, 5, 6, (e 0xe92f9548b3346004 0xcb1faab0c0bb76ae 0x3410fdae1cb02386)),
+     (9, 5, 6, (e 0x80cd0ff16b0d80d7 0x3b635b2b6195bc89 0x2b0b467cc56a36f8)),
+     (9, 5, 6, (e 0x23dd18f3298bbdd5 0x54ce58d45c517aa4 0x859624456eb6a32a)),
+     (9, 5, 6, (e 0x778df542131fe406 0xd6d9ef4b22805c00 0x355aca466469e69c)),
+     (9, 5, 6, (e 0x6b07af9ca1271754 0xceacb7fd504f8239 0x2f90517d2dd4cb19)),
+     (9, 5, 6, (e 0xd8269dac5bd129f6 0x445c01af5167cb3d 0x2ac36bfc1a185954)),
+     (9, 5, 6, (e 0x5cad4a33b43cce63 0x4e43d993c8a1e892 0xe4c95e704ec9b18c)),
+     (9, 5, 6, (e 0x718f149b9d832049 0x9372253d1071fa45 0xbaa4db2370bcdbce)),
+     (9, 5, 6, (e 0x6faaf3fbf9205892 0xfc0a4896cf2cc959 0xc348e52c6ab1852c)),
+     (9, 5, 6, (e 0xf4f624ac201816e 0x475924781e968a0b 0x8770f6079080b423)),
+     (9, 5, 6, (e 0x645c37bf01c865b8 0x77cb04c6b07dc4e4 0xa337956bcfc13ace)),
+     (9, 5, 6, (e 0x490197447a37f81e 0x9e37d1bd40b9348c 0x48347ca738f4d1d1)),
+     (9, 5, 6, (e 0x7d2aa87c73c92986 0xe8ab150a2fc3800e 0x775484cec92ff6c2)),
+     (9, 5, 6, (e 0x3312bcf950b13d00 0x57698308116cffcd 0x8785a099fcc494a4)),
+     (9, 5, 6, (e 0x3900920c1bee4014 0xedce6fda19554f16 0xf14a54e45d220725)),
+     (9, 5, 6, (e 0x781179c586d7e139 0x3d8eaa6494fb4f13 0x2f6b69808858ea11)),
+     (9, 5, 6, (e 0x3a7ea10b0c2cd88 0x44c49fdc00794f23 0xe5154aaaa473a326)),
+     (9, 5, 6, (e 0xcf01cba40de7c930 0xd82d494db95c65d1 0xb1ffbd4296019ba1)),
+     (9, 5, 6, (e 0x4e72a1d7a2d08974 0x645f93574128bec3 0x29bb739244b014d5)),
+     (9, 5, 6, (e 0x5be151ae8026c49e 0x69fd4619a72a5e32 0xb95be21d16822f88)),
+     (9, 5, 6, (e 0x824b277e3751f27 0xea42e3682f184d5b 0x596c5a494fd94887))]
 
 #guard (blockProbe sampleLayout.pull) =
     [(2, 0, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
@@ -578,33 +582,33 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
      (2, 4, 6, (e 0x4d5dc026d34ab832 0xfac2e9644cd582c7 0xde9586075ba6b06a)),
      (2, 4, 6, (e 0x1affed3568958e29 0xbcd57d73d231ea37 0x6949862fdb9c5235)),
      (9, 5, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (9, 5, 14, (e 0x7a2598406cf6e871 0xae24609bbc0bbdc2 0x3d58f9387904884c)),
-     (9, 5, 6, (e 0xaba0176ea052dc05 0x60f8f97c592ebfc4 0x94b85e45581c7a67)),
-     (9, 5, 6, (e 0x1db5d404b8cc1530 0x949115b7743797c 0x8ca187143aceaae)),
-     (9, 5, 6, (e 0x7a671de7b9e5d32c 0x52d06659d859445f 0xb38be75f4f103ce4)),
-     (9, 5, 6, (e 0x17eef0c15c706949 0x92eca31dcd8e1fe7 0xe257a69d6fd0f4ae)),
-     (9, 5, 6, (e 0xade6e0ab3095e38b 0x9205909a491bcfbd 0xef6a9a5d85eb97bc)),
-     (9, 5, 6, (e 0xd38ccd5efac3b38c 0x7ecfdd1579e1126d 0xcd9b951fdb371d61)),
-     (9, 5, 6, (e 0xa69127b913852ac1 0x774161cc13c51444 0xd32fce8a56975cfe)),
-     (9, 5, 6, (e 0x78bb22b1e20c8336 0x7d45cad8466e1532 0xa8bc4023b81fa080)),
-     (9, 5, 6, (e 0xf6da283e249a8b2e 0xde15413ad7277c88 0xba55460bde1ee8fd)),
-     (9, 5, 6, (e 0x7546cc45f47f7f0f 0x982353731d356ff3 0xa71dd69b1086b2c6)),
-     (9, 5, 6, (e 0x33382e1743c21cc2 0xdf70548076feb409 0x9ee2b12b636166e7)),
-     (9, 5, 6, (e 0x32c59265c9a8a8ea 0xa3b7553f96f6a6c5 0x1fc2d4557b83dd30)),
-     (9, 5, 6, (e 0x60a80a320c686808 0x15bd813f5f2d0de2 0xf4f9d1bc1a3773e8)),
-     (9, 5, 6, (e 0x5a093aac8167e833 0x2f755223f7e231d0 0x93a3708c0fc733eb)),
-     (9, 5, 6, (e 0x27a228844056756f 0xfbe67e60ecfdadb4 0x223c15db6bc08d87)),
-     (9, 5, 6, (e 0xa84a7145e7e0341b 0x289315e2f745123c 0x9c7b738b9519c225)),
-     (9, 5, 6, (e 0xc2f60ead0f748d8 0x19f928cf887ec8ec 0x1414102ba87ee530)),
-     (9, 5, 6, (e 0x7bb81715af8d5d92 0x8142be12b16d0986 0x2456146552e3e3f0)),
-     (9, 5, 6, (e 0xfd2312a0ef8f2cd6 0x4193d54a0466cb00 0x5037c3f12d69863b)),
-     (9, 5, 6, (e 0x8097041bb2bfa5d1 0x3c91ca0928b48a6b 0xf9f11dd258d86b47)),
-     (9, 5, 6, (e 0x10e06674774761a0 0x20dbfafd1c315a0f 0xa6986274996012f5)),
-     (9, 5, 6, (e 0xc56059631e6c489b 0x6fc89d1c1b914c52 0x312323eefcf1a505)),
-     (9, 5, 6, (e 0x6b0f85763052055 0x10589436d95e8618 0x3a5efdc1dbedd420)),
-     (9, 5, 6, (e 0xd19f7416ba04e3b2 0xf702e3f9379d8a4b 0x142ccf3a7794db32)),
-     (9, 5, 6, (e 0x5f0effdc9324eeda 0xd203ecb5090ab204 0xae865254e36c93a)),
-     (9, 5, 6, (e 0xd6c99825590628ba 0x916be2dc1aba36f0 0x773144d735039b0d))]
+     (9, 5, 16, (e 0xc05ec97e5d23e579 0xbfb70d730f941c8e 0x5d649115571354d2)),
+     (9, 5, 6, (e 0x5ca3f8f4a03f808e 0xd1d5df849e99d56b 0x758118cf4ae2ab6a)),
+     (9, 5, 6, (e 0x3e012595df415fc5 0x77f5681db35f6a7c 0x3be713804aaea112)),
+     (9, 5, 6, (e 0xc83a12dda32af5b0 0xb7736db527d7cca5 0x3828892c974021a5)),
+     (9, 5, 6, (e 0x16fe276aac63a824 0xe4303ca4a60be419 0xa820acc471fbbb06)),
+     (9, 5, 6, (e 0x4a611a09ba036a68 0x24d4fe2b8e5180f1 0xc0695dd993ebd878)),
+     (9, 5, 6, (e 0x393fe087e7d16c8b 0x3976053a15674185 0x7ea577a1b1a409b7)),
+     (9, 5, 6, (e 0xd304bf5c2d16b51f 0x4f1bcedb7c6f9bca 0xd79ad8c72f3d3b5f)),
+     (9, 5, 6, (e 0x603e02630ec376ff 0x6037631da2596ff7 0x688299a31067a7d5)),
+     (9, 5, 6, (e 0xe66ca12bae44d884 0x6f343c0a91caf137 0xb2d2d6ce164b2fa7)),
+     (9, 5, 6, (e 0xbac04432136cf90 0x5fc9dc11e1f2a7b 0x89bd968561776d8)),
+     (9, 5, 6, (e 0xcf1741245acb15b6 0xa8c248d7962ee3e0 0x8ccfe3d320d4854f)),
+     (9, 5, 6, (e 0x84df46e3e460066b 0xf45ccca9ff3ea4c9 0x1bf78afd01d8f59a)),
+     (9, 5, 6, (e 0x10fa1840f18ab0fd 0xfc7705b50be1a738 0x97fe4e2b34c4f7ca)),
+     (9, 5, 6, (e 0xe33b1def59476c95 0x39c4ac1797ebdd2b 0x4cdd548f8253d8bd)),
+     (9, 5, 6, (e 0xfa54ff9bdc17327d 0xa62b19416b4f6cac 0xca7bf83e5407d031)),
+     (9, 5, 6, (e 0xd659f595ea6699a3 0xd259a64f376b5392 0x4875a4beab2c7e4b)),
+     (9, 5, 6, (e 0xae5a201e3cc39a3c 0x4473fd13dacebf0 0xf9865f560e642205)),
+     (9, 5, 6, (e 0x1015b91c3c009e9b 0x9aefc5a31a7310d4 0xb1736dc6606bec4e)),
+     (9, 5, 6, (e 0x4f498f500cb168e 0x2e668ac0ed3fac1b 0xecd618713ff3284e)),
+     (9, 5, 6, (e 0x1a8e5b948382b276 0x57bea397317ec799 0xed2ea25978c9c6e3)),
+     (9, 5, 6, (e 0xc7f3db8d61ff11a4 0x2a2f2452a98f1d3e 0x45279a24dd7367fc)),
+     (9, 5, 6, (e 0x8bb1b9176834b6de 0x4fc57bd34b788a2f 0x617921ec8a390482)),
+     (9, 5, 6, (e 0x98395262ee3e52a6 0xbe7833f8616c99b8 0xf1d4b79a58392300)),
+     (9, 5, 6, (e 0x8eca886b4cf60b5c 0x9ad0850d213f0af1 0x243c9f9ae450f0f6)),
+     (9, 5, 6, (e 0xe4b6c9b66bba241a 0x160aea72efbecea4 0xd74b4e0889de46ec)),
+     (9, 5, 6, (e 0x3fbc789e9a8a81a8 0x386310b1efc64478 0xbeeb1748405c64a1))]
 
 #guard (blockProbe sampleLayout.count) =
     [(2, 0, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
@@ -625,8 +629,6 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
      (2, 4, 1, (e 0x2cadbfc644cea953 0xfe6309f916619656 0xd018542be7f48359)),
      (2, 4, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b 0x6e4fcde5673eff6e)),
      (2, 4, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
-     (9, 5, 1, (e 0x8c616ce71e84d5c1 0x5e16b719f017c2c4 0x2fcc014cc1aaafc7)),
-     (9, 5, 1, (e 0x2a98e6a09dcf51d6 0xfc4e30d36f623ed9 0xce037b0640f52bdc)),
      (9, 5, 1, (e 0xc8d0605a1d19cdeb 0x9a85aa8ceeacbaee 0x6c3af4bfc03fa7f1)),
      (9, 5, 1, (e 0x6707da139c644a00 0x38bd24466df73703 0xa726e793f8a2406)),
      (9, 5, 1, (e 0x53f53cd1baec615 0xd6f49dffed41b318 0xa8a9e832bed4a01b)),
@@ -651,7 +653,10 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
      (9, 5, 1, (e 0xc35d5c918e35fba4 0x9512a6c45fc8e8a7 0x66c7f0f7315bd5aa)),
      (9, 5, 1, (e 0x6194d64b0d8077b9 0x334a207ddf1364bc 0x4ff6ab0b0a651bf)),
      (9, 5, 1, (e 0xffcc50048ccaf3ce 0xd1819a375e5de0d1 0xa336e46a2ff0cdd4)),
-     (9, 5, 1, (e 0x9e03c9be0c156fe3 0x6fb913f0dda85ce6 0x416e5e23af3b49e9))]
+     (9, 5, 1, (e 0x9e03c9be0c156fe3 0x6fb913f0dda85ce6 0x416e5e23af3b49e9)),
+     (9, 5, 1, (e 0x3c3b43778b5febf8 0xdf08daa5cf2d8fb 0xdfa5d7dd2e85c5fe)),
+     (9, 5, 1, (e 0xda72bd310aaa680d 0xac280763dc3d5510 0x7ddd5196add04213))]
+
 
 #guard (busProbe [0, 16, 1] sampleLayout.push) =
     (17,

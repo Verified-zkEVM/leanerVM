@@ -64,13 +64,13 @@ def components : List (Component K) :=
     ⟨bytecodeTable⟩]
 
 -- The widths are the Rust's committed column counts, and the blocks' row widths.
-example : components.map Component.width = [15, 15, 8, 15, 14, 90, 5, 13] := by decide +kernel
+example : components.map Component.width = [15, 15, 8, 15, 14, 92, 5, 15] := by decide +kernel
 
 -- The count columns are `count_columns()`, in its order; each block's finalize count is its
 -- column `1`.
 example : components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
     [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
-      (List.range 27).map (63 + ·), [1], [1]] := by
+      (List.range 27).map (65 + ·), [1], [1]] := by
   decide +kernel
 
 -- Only `JUMP` has constraints: two, of degree two. No component has a lookup.
@@ -94,9 +94,18 @@ example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
 example : components.all fun c ↦ decide (CountsAreVariables c counted) := by
   decide +kernel
 
--- Every multiplicity is `1` or `-1`, so the tables drop none. A pull's is the product
--- `-1 · 1`, which has a value; a variable has none.
-example : components.all fun c ↦ decide (UnitMultiplicities c) := by
+-- Every multiplicity of the components but `KECCAK`'s is `1` or `-1`, so the tables drop none. A
+-- pull's is the product `-1 · 1`, which has a value; a variable has none.
+example : ([⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨memTable⟩,
+    ⟨bytecodeTable⟩] : List (Component K)).all fun c ↦ decide (UnitMultiplicities c) := by
+  decide +kernel
+
+-- `KECCAK`'s are too, but for the twelve gated pulls of its output cells `1 … 12` (Clean's
+-- `pullIf`, multiplicity `-flag`): the M3 table flushes them unconditionally, as the Rust and the
+-- Python do (`memory_coords_if`, `memory_if`), the push's counter `count·(1 + flag·(g + 1))`
+-- cancelling the pair at `flag = 0`.
+example : ((⟨keccakTable⟩ : Component K).rowOperations.interactions.filter fun i ↦
+    !decide (∃ m, i.mult.constValue = some m ∧ (m = 1 ∨ m = -1))).length = 12 := by
   decide +kernel
 example : (Expression.mul (.const (-1)) (.const 1) : Expression K).constValue = some (-1) := by
   decide +kernel

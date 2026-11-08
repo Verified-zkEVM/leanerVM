@@ -61,12 +61,12 @@ def s₃ : Sizes := ⟨18, by decide, ![3, 200000, 17, 0, 65, 5]⟩
 
 /-- The placement the instance gives a column: none for an output lane; for an input lane or a
 column riding a spare slot, the column of `QKECCAK`'s block at its slot (input lane `l`: `l`;
-the `KECCAK` table's columns `0 … 12`: `50 … 62`; its `cnt_0`: `63`, written out here rather
-than read off `qSlot`); otherwise its block's offset. -/
+the `KECCAK` table's columns `0 … 13`: `50 … 63`, written out here rather than read off
+`qSlot`); otherwise its block's offset. -/
 def instancePlacement (prog : LeanIsaProgram) (s : Sizes) (c : Col) : Option Placement :=
   if IsOut c then none
   else if h : IsVirtual c then
-    let slot := if c.2.val < 13 then 50 + c.2.val else if c.2.val = 63 then 63 else c.2.val - 13
+    let slot := if c.2.val < 14 then 50 + c.2.val else c.2.val - 15
     some
       { variableCount := s.τ 5,
         index := (blocks prog s).offset (keccakBlock prog s) + slot * 2 ^ s.τ 5 }
