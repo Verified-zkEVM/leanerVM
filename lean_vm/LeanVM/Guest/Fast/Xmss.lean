@@ -17,7 +17,7 @@ an iteration's frame `σ`, at the cells the template gives:
 
 * the leaf index from the four windows' dispatches: window `w`'s word `σ (.n (71 + w)) = g^k`,
   `k < 256` its `8` bits (`lxIndex`);
-* per layer (bottom at base `88`, top at base `107749`): the randomizer `ρ`; chain `4p + r`'s
+* per layer (bottom at base `88`, top at base `62605`): the randomizer `ρ`; chain `4p + r`'s
   start in the arm `k` group `p`'s dispatch takes (its digit word `σ (.n (dg + p)) = g^k`), at the
   group's base (`lxGroupBase`) plus its offset off the literal tables (`lxFold`, `lxRest`,
   `lxTail`, `Fast/XmssTables.lean`); level `l`'s sibling in the arm window `2·layer + l / 8` takes
@@ -51,18 +51,18 @@ structure XmssTabs where
 /-- **leanXMSS's tables**, built from the literals. -/
 def xmssTabs : XmssTabs := ⟨gLanes, tabA lxFold, tabA lxRest, tabA lxTail⟩
 
-/-- Layer `layer`'s first value (`sLayer`'s base): `88`, then `107749`. -/
-def lxLayerBase (layer : ℕ) : ℕ := if layer = 0 then 88 else 107749
+/-- Layer `layer`'s first value (`sLayer`'s base): `88`, then `62605`. -/
+def lxLayerBase (layer : ℕ) : ℕ := if layer = 0 then 88 else 62605
 
 /-- Layer `layer`'s randomizer cell (`sRho`). -/
-def lxRhoCell (layer : ℕ) : ℕ := if layer = 0 then 88 else 107751
+def lxRhoCell (layer : ℕ) : ℕ := if layer = 0 then 88 else 62607
 
 /-- Layer `layer`'s first digit word (`sCw`'s `dg`). -/
-def lxDigitBase (layer : ℕ) : ℕ := if layer = 0 then 122 else 107774
+def lxDigitBase (layer : ℕ) : ℕ := if layer = 0 then 110 else 62618
 
-/-- Group `p`'s base, the groups' first at `vb0`: group `0` takes `2973` values, the others
-`2717`. -/
-def lxGroupBase (vb0 p : ℕ) : ℕ := if p = 0 then vb0 else vb0 + 2973 + 2717 * (p - 1)
+/-- Group `p`'s base, the groups' first at `vb0`: group `0` takes `2829` values, the others
+`2573`. -/
+def lxGroupBase (vb0 p : ℕ) : ℕ := if p = 0 then vb0 else vb0 + 2829 + 2573 * (p - 1)
 
 /-- Group `p`'s table of chain starts. -/
 def lxGroupTab (T : XmssTabs) (p : ℕ) : Array (Array ℕ) :=
@@ -78,20 +78,20 @@ def lxChainCell (T : XmssTabs) (ks : List ℕ) (vb0 i : ℕ) : ℕ :=
 
 /-- Window `w`'s base (`lxWindowT`'s). -/
 def lxWinBase (w : ℕ) : ℕ :=
-  if w = 0 then 40133 else if w = 1 then 73941 else if w = 2 then 147785 else 181593
+  if w = 0 then 38021 else if w = 1 then 50313 else if w = 2 then 100529 else 112821
 
-/-- Arm `k`'s base in window `w`: arm `0` from the window's base plus `5`, its size `143` (`128` in
-the top window), the others `132` (`115`). -/
+/-- Arm `k`'s base in window `w`: arm `0` from the window's base plus `5`, its size `47` (`32` in
+the top window), the others `48` (`31`). -/
 def lxArmBase (w k : ℕ) : ℕ :=
   lxWinBase w + 5 +
-    (if k = 0 then 0 else (if w = 3 then 128 else 143) + (if w = 3 then 115 else 132) * (k - 1))
+    (if k = 0 then 0 else (if w = 3 then 32 else 47) + (if w = 3 then 31 else 48) * (k - 1))
 
-/-- Level `r`'s hinted sibling in arm `k` of window `w`: levels `18` values apart (`16` in the
-top window), the sibling the level's third value (its first in the top window, the last level's
-second elsewhere). -/
+/-- Level `r`'s hinted sibling in arm `k` of window `w`: levels `6` values apart (`4` in the
+top window), the sibling the level's fourth value (its first in the top window, the last level's
+third elsewhere). -/
 def lxSibAt (w k r : ℕ) : ℕ :=
-  if w = 3 then lxArmBase w k + 16 * r
-  else if r = 7 then lxArmBase w k + 18 * r + 2 else lxArmBase w k + 18 * r + 3
+  if w = 3 then lxArmBase w k + 4 * r
+  else if r = 7 then lxArmBase w k + 6 * r + 2 else lxArmBase w k + 6 * r + 3
 
 /-- **A layer's signature, off the tables `T`**: the windows' arms `kw` given. -/
 def xPartA (T : XmssTabs) (kw : List ℕ) (layer : ℕ) (σ : Val) : LeanXmss.LayerSignature :=
@@ -180,7 +180,7 @@ theorem armsM_snd (W : WotsT) (slots : ℕ → ℕ → ℕ) (first n : ℕ) (fol
       simp only [armsM, armBaseM]
       exact armsM_snd W slots first n fold prodIn encIn prodOut encOut m (k + 1) _
 
-/-- **The groups' bases**: group `0` takes `2973` values, the others `2717`. -/
+/-- **The groups' bases**: group `0` takes `2829` values, the others `2573`. -/
 theorem sSt_vb {W : WotsT} (hW : W.size = 1) (vb0 : ℕ) :
     ∀ p ≤ 14, (sSt W vb0 p).2.2 = lxGroupBase vb0 p
   | 0, _ => by simp [sSt, lxGroupBase]

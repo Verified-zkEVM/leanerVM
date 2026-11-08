@@ -77,8 +77,8 @@ def ncells (s : Oq) : ℕ := s.R / 2
 def B (s : Oq) : ℕ := 16 * s.ncells / rate + 1
 
 /-- The values of the leaf hash (`B ≥ 2`): block `0` writes 13, a middle block XORs 9 and writes 13,
-the last XORs 9 with one padding constant. -/
-def chainLen (s : Oq) : ℕ := 13 + (s.B - 2) * 22 + 23
+the last XORs 9 with one padding constant and writes the digest's 2 (`out_cells` two). -/
+def chainLen (s : Oq) : ℕ := 13 + (s.B - 2) * 22 + 12
 
 end Oq
 
@@ -171,6 +171,9 @@ def oqBs (kL k : ℕ) : ℕ := if k = 0 then kL else kL + 13 + (k - 1) * 22
 def oqOut (s : Oq) (kL k c : ℕ) : ℕ :=
   if k = 0 then kL + c else if k + 1 = s.B then oqBs kL k + 10 + c else oqBs kL k + 9 + c
 
+/-- The cells block `k` writes: the state's thirteen, the last block the digest's two. -/
+def oqOutN (s : Oq) (k : ℕ) : ℕ := if k + 1 = s.B then 2 else 13
+
 /-- The `0x80` padding constant of the last block's cell `8` (`byteCell (136B - 1) 0x80`). -/
 def oqW80 (s : Oq) : E :=
   if (rate * s.B - 1) % 16 < 8 then word (2 ^ 63) 0 0 else word 0 (2 ^ 63) 0
@@ -194,12 +197,14 @@ def oqBlockT (s : Oq) (b pr kL k : ℕ) : List Stmt :=
   if k = 0 then
     [.atom (.keccak (((List.range 9).map fun c ↦ .n (oqPk b s.R c)) ++
         [.n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)])
-      ((List.range 13).map fun c ↦ .n (oqOut s kL 0 c)) (Keccak.inLayout 0) (Keccak.outLayout s.B 0))]
+      ((List.range (oqOutN s 0)).map fun c ↦ .n (oqOut s kL 0 c)) (Keccak.inLayout 0)
+        (Keccak.outLayout s.B 0))]
   else
     ((List.range 9).map (oqXorT s b pr kL k)).flatten ++
       [.atom (.keccak (((List.range 9).map fun c ↦ .n (oqIn s kL k c)) ++
           ((List.range 4).map fun c ↦ .n (oqOut s kL (k - 1) (9 + c))))
-        ((List.range 13).map fun c ↦ .n (oqOut s kL k c)) (Keccak.inLayout k) (Keccak.outLayout s.B k))]
+        ((List.range (oqOutN s k)).map fun c ↦ .n (oqOut s kL k c)) (Keccak.inLayout k)
+          (Keccak.outLayout s.B k))]
 
 /-- The leaf hash. -/
 def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
@@ -222,10 +227,10 @@ def oqWo (i : ℕ) : ℕ := if i = 0 then 5 else 0
 `0x80`, then the arms. The children hinted at `ch .. ch + 4pd - 1` come first. -/
 def oqWk (s : Oq) (ch : ℕ) : ℕ → ℕ
   | 0 => ch + 4 * s.pd
-  | i + 1 => oqWk s ch i + 4 + oqWo i + 14 * oqWw s i * 2 ^ oqWw s i
+  | i + 1 => oqWk s ch i + 4 + oqWo i + 3 * oqWw s i * 2 ^ oqWw s i
 
 /-- The match targets of window `i`: the node after its levels. -/
-def oqWT (s : Oq) (ch i : ℕ) : ℕ := oqWk s ch i + 2 + oqWo i + 14 * oqWw s i
+def oqWT (s : Oq) (ch i : ℕ) : ℕ := oqWk s ch i + 2 + oqWo i + 3 * oqWw s i
 
 /-- Cell `c` of the node window `i` starts from: the node the walk is given at `kL, kL + 1`, then
 the previous window's targets; window `oqNpw` is the cap leaf. -/
@@ -234,7 +239,7 @@ def oqNd (s : Oq) (kL ch i c : ℕ) : ℕ :=
 
 /-- Arm `a`'s first value in window `i` (the first arm's targets follow it). -/
 def oqArmK (s : Oq) (ch i a : ℕ) : ℕ :=
-  if a = 0 then oqWk s ch i + 2 + oqWo i else oqWk s ch i + 4 + oqWo i + 14 * oqWw s i * a
+  if a = 0 then oqWk s ch i + 2 + oqWo i else oqWk s ch i + 4 + oqWo i + 3 * oqWw s i * a
 
 /-- One level `l` of an arm from `K`: the running node `n0, n1` hashed with its sibling on the
 side the bit leaves (`keccak([n0, n1], path[4l+2:4l+4])` at bit `0`, `keccak(path[4l:4l+2],
@@ -244,16 +249,16 @@ def oqStepT (pr ch l K n0 n1 : ℕ) (bit : Bool) : List Stmt :=
     .atom (.keccak ((if bit then [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n n0, .n n1]
         else [.n n0, .n n1, .n (ch + 4 * l + 2), .n (ch + 4 * l + 3)]) ++
       [.n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n K, .n (pr + 1), .n (pr + 2), .n (pr + 3),
-        .n (pr + 4)]) ((List.range 13).map fun c ↦ .n (K + 1 + c)) false false)]
+        .n (pr + 4)]) [.n (K + 1), .n (K + 2)] false false)]
 
 /-- The node before level `r` of arm `a` of window `i`. -/
 def oqArmN (s : Oq) (kL ch i a r c : ℕ) : ℕ :=
-  if r = 0 then oqNd s kL ch i c else oqArmK s ch i a + 14 * (r - 1) + 1 + c
+  if r = 0 then oqNd s kL ch i c else oqArmK s ch i a + 3 * (r - 1) + 1 + c
 
 /-- Arm `a` of window `i` (`walk_window`): its levels, the order bits `a`'s, then the node copied
 into the match's targets. -/
 def oqArmT (s : Oq) (pr kL ch i a : ℕ) : List Stmt :=
-  ((List.range (oqWw s i)).map fun r ↦ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 14 * r)
+  ((List.range (oqWw s i)).map fun r ↦ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 3 * r)
       (oqArmN s kL ch i a r 0) (oqArmN s kL ch i a r 1) (a.testBit r)).flatten ++
     [.atom (.copy (.n (oqWT s ch i)) (.n (oqArmN s kL ch i a (oqWw s i) 0))),
       .atom (.copy (.n (oqWT s ch i + 1)) (.n (oqArmN s kL ch i a (oqWw s i) 1)))]

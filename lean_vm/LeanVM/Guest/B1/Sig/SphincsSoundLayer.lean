@@ -100,8 +100,7 @@ theorem sLayerEnc_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 key signed ctr : 
     (fun j hj => by rw [hm]; exact cellsBytes_counter_zero _ hN j (by simp; omega))
   rw [(kEnc_shape ..).2] at k
   rw [show b + 2 + 7 = b + 9 by omega] at k
-  have k1 := congrArg Prod.fst k
-  simp only at k1
+  have k1 := k
   rw [k1, hm]
   congr 3
   have h64 : (List.flatMap cellBytes [σ pp, σ a0, σ key + lit (7 * 2 ^ 24), σ signed]).length =

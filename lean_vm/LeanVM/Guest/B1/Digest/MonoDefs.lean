@@ -155,7 +155,7 @@ def mlSt (k : ℕ) : List V := anySt (if k = 0 then 4 else 10 * k + 10)
 
 /-- The walk's end pointer of `child_claim_list_mono_last__L{k}`: `rec[13]` (`k = 0`), else
 `cov · g^k`. -/
-def mlEnd (k : ℕ) : ℕ := if k = 0 then 38 else 10 * k + 7
+def mlEnd (k : ℕ) : ℕ := if k = 0 then 27 else 10 * k + 7
 
 /-- The chain of `child_claim_list_mono_last__L{k}`: the `k` claims' cells, padded. -/
 def mlSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
@@ -177,7 +177,7 @@ def mlOk (k : ℕ) (f : Fn) : Bool :=
   | some (atoms, [r0, r1]) =>
     (mlSpec k atoms).check atoms && retOk atoms (mlSpec k atoms) r0 r1 &&
       stLoadsOk atoms (V.n 0) (mlSt k) 0 &&
-      (if k = 0 then atoms.any (isLoadAt (.n 38) (.n 0) 13) else
+      (if k = 0 then atoms.any (isLoadAt (.n 27) (.n 0) 13) else
         atoms.any (isLoadAt (.n 4) (.n 0) 13) && atoms.any (isLoadAt (.n 5) (.n 0) 14) &&
         monoRecs atoms 2 6 4 5 (.n 2) k 0 k &&
         (match mulOf atoms (.n (mlEnd k)) with

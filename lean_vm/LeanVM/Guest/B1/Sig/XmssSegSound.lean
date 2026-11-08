@@ -170,14 +170,14 @@ theorem sDigest0_sound (h : AtomsHold rd σ (sDigest0 88)) :
   simp only [↓reduceIte, word_zero, one_ne_zero, OfNat.ofNat_ne_zero] at p0 p1 p2 p3 p4
   refine ⟨ld2, ld3, ⟨p0, p1, p2, p3, p4⟩, by rw [ad, c89], ?_⟩
   have hk : AtomsHold rd σ [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97,
-      .n 99, .n 100, .n 101, .n 102] (runV 103 13) false false] :=
+      .n 99, .n 100, .n 101, .n 102] (runV 103 1) false false] :=
     h.sub fun x hx => by
       simp only [List.mem_singleton] at hx
       subst hx
       simp [sDigest0]
   have := kec80_sound hk c94 c95 c96 c97 p1 p2 p3 p4
   rw [← cp]
-  exact congrArg Prod.fst this
+  exact this
 
 theorem sDigest1_atoms (b : Nat) (root : V) : atomsOnly (sDigest1 b root) = true := rfl
 
@@ -196,7 +196,7 @@ theorem sDigest1_sound {b : Nat} {root : V} (hpad : PadOK σ sLxPad) (h : AtomsH
     h.atom (a := .add (.n (b + 4)) (.n (b + 1)) (.n (b + 3))) (by simp [sDigest1, addS])
   have hk : AtomsHold rd σ (k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)) :=
     h.sub fun x hx => by simp only [sDigest1, List.mem_append]; exact Or.inr hx
-  exact ⟨by rw [a1, c0], by rw [a4, c3], congrArg Prod.fst (k64_sound hpad hk)⟩
+  exact ⟨by rw [a1, c0], by rw [a4, c3], k64_sound hpad hk⟩
 
 /-! ## A layer -/
 
@@ -204,7 +204,7 @@ theorem sStep_sound (hpad : PadOK σ sLxPad) (layer b : Nat) :
     StepSound rd σ (sW layer b)
       (fun i s y => (hcell [σ sLxPP, σ (.n (sA layer b + 2 * s + 1)), y, σ (sTag i)]).1) := by
   intro i s v c o h
-  exact congrArg Prod.fst (k64_sound hpad h)
+  exact k64_sound hpad h
 
 theorem sCodewordT_tips (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
     (sCodewordT W target d0 dg).2.2 = (List.range 58).map (sTip W (dg + 70)) := by
@@ -311,8 +311,7 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
       rw [hcells]
       exact cellsBytes_getD_past (by simp; omega))
   rw [hcells, List.take_of_length_le (by rw [length_cellsBytes]; simp)] at hleaf
-  have hlo := congrArg Prod.fst hleaf
-  simp only at hlo
+  have hlo := hleaf
   -- the Spec
   rw [layerRoot_id, otsLeaf_id]
   have hmd : @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ sLxPP))

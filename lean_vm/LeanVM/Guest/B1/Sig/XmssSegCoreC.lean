@@ -173,7 +173,7 @@ theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 
         ∀ l < 16, sSibAt σ'' layer b l = sibs l) := by
   have b1 := sCw_snd_ge layer b
   have b2 := sLeafK_ge hA
-  have hout : (sLeafK layer b).2.2 + 13 ≤ (sLeafK layer b).2.1 :=
+  have hout : (sLeafK layer b).2.2 + 1 ≤ (sLeafK layer b).2.1 :=
     kMsg_out sLxPad ((sLeafCells layer b).map KC.cell) 960 false ((sCw layer b).2.1 + 2)
   obtain ⟨hwe, hwnb, hwc⟩ := hW C rd layer hl (.n (sLeafK layer b).2.2) (sLeafK layer b).2.1 L hm hL
     ⟨_, by omega, rfl⟩ (by omega)

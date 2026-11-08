@@ -262,7 +262,7 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
     ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.daDigest = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
         c.statement.claims.daDigest = (decStmt σ rd).claims.daDigest) := by
-  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 438) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 427) := by
     unfold decStmt; simp only [gLog_lg]
   obtain ⟨-, hpl, hp1⟩ := MF.pick
   have h7 := MF.direct.2
@@ -304,12 +304,12 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
     have hdec : (decWit σ rd wX wS wD wV wA).daMatrix = none := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => (by rw [hdec] at h; cases h), fun _ => ?_⟩
-    rcases Nat.lt_or_ge (lg σ 438) (lg σ 6) with hlt | hge
+    rcases Nat.lt_or_ge (lg σ 427) (lg σ 6) with hlt | hge
     · show _ ∨ ∃ c ∈ (List.range (nKids σ)).map (decKid rd σ wV), _
-      refine Or.inr ⟨decKid rd σ wV (lg σ 438),
-        List.mem_map.mpr ⟨lg σ 438, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
+      refine Or.inr ⟨decKid rd σ wV (lg σ 427),
+        List.mem_map.mpr ⟨lg σ 427, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
       rw [eD]; rfl
-    · have hpe : lg σ 438 = lg σ 6 := by omega
+    · have hpe : lg σ 427 = lg σ 6 := by omega
       obtain ⟨z0, z1⟩ := MF.daz hd0
       rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at z0
       rw [hown, loadHolds_gen_pow_iff] at z1

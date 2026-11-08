@@ -25,7 +25,7 @@ def walkBaseN (stride k : ℕ) : ℕ → ℕ → ℕ → ℕ
 
 /-- The base after arm `k` from `a`, of a step of size `sz` (`armNext`). -/
 def armNextN (sz n : ℕ) (fold : Bool) (k a : ℕ) : ℕ :=
-  if k = 0 then walkBaseN (sz + 13) k 0 n (if fold then a + 1 else a) + 2
+  if k = 0 then walkBaseN (sz + 1) k 0 n (if fold then a + 1 else a) + 2
   else walkBaseN sz k 0 n (if fold then a + 1 else a) + 1
 
 /-- The base of arm `k + j` from arm `k` at `b` (`armBase`). -/
@@ -40,12 +40,12 @@ def selN (sz b : ℕ) : ℕ → ℕ
 
 /-- The slot of chain `r`'s step `s` in a group from `b` (`slotsT`). -/
 def slotsN (sz : ℕ) (fold : Bool) (b r s : ℕ) : ℕ :=
-  b + 6 + (if fold then 1 else 0) + (1 + 3 * (sz + 13)) * r + 1 + (sz + 13) * s + sz
+  b + 6 + (if fold then 1 else 0) + (1 + 3 * (sz + 1)) * r + 1 + (sz + 1) * s + sz
 
 /-- **Chain `r`'s start** in arm `k` of a group of `n` digits whose selector is `sel`. -/
 def startN (sz n : ℕ) (fold : Bool) (sel k r : ℕ) : ℕ :=
   if k / 4 ^ r % 4 = 3 then slotsN sz fold sel r 2
-  else walkBaseN (if k = 0 then sz + 13 else sz) k 0 r
+  else walkBaseN (if k = 0 then sz + 1 else sz) k 0 r
     (if fold then armBaseN sz n fold 0 k (sel + 6) + 1 else armBaseN sz n fold 0 k (sel + 6))
 
 /-! ## Tables -/
