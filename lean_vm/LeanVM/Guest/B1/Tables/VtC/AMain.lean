@@ -285,7 +285,7 @@ theorem logG_gen_pow {e : ℕ} (he : e < 2 ^ 64 - 1) : LeanVM.Guest.Memory.logG 
   rw [gen_pow_eq_ofK]; exact LeanVM.Guest.Memory.logG_spec he
 
 theorem vt_evsT_flat_length {H : VtHonest} (h : H.Ok) (hr : H.rows.length = 6) :
-    H.evsT.flatten.length = 157 := by
+    H.evsT.flatten.length = 159 := by
   obtain ⟨hevT6, hevTw⟩ := vt_evsT_shape h hr
   rw [List.length_flatten]
   match H.evsT, hevT6, hevTw with
@@ -301,11 +301,11 @@ theorem forall_slice_split {P : Stmt → Prop} (a l1 l2 : ℕ)
 theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take 769, P s)
     (h2 : ∀ s ∈ (vtPre.drop 769).take 1820, P s) (h3 : ∀ s ∈ (vtPre.drop 2589).take 99, P s)
     (h4 : ∀ s ∈ (vtPre.drop 2688).take (6353 - 2688), P s)
-    (h5 : ∀ s ∈ (vtPre.drop 6355).take 43, P s) : ∀ s ∈ vtPre, P s := by
+    (h5 : ∀ s ∈ (vtPre.drop 6353).take 45, P s) : ∀ s ∈ vtPre, P s := by
   have hlen : vtPre.length = 6398 := by decide +kernel
-  have h := forall_slice_split 0 769 (1812 + (99 + (3595 + 43))) h1
-    (forall_slice_split 769 1812 (99 + (3595 + 43)) h2
-      (forall_slice_split 2589 99 (3595 + 43) h3 (forall_slice_split 2688 3595 43 h4 h5)))
+  have h := forall_slice_split 0 769 (1820 + (99 + (3665 + 45))) h1
+    (forall_slice_split 769 1820 (99 + (3665 + 45)) h2
+      (forall_slice_split 2589 99 (3665 + 45) h3 (forall_slice_split 2688 3665 45 h4 h5)))
   intro s hs
   apply h
   rw [List.drop_zero, List.take_of_length_le (by omega)]
@@ -313,7 +313,7 @@ theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take 769
 
 set_option maxRecDepth 100000 in
 theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
-    [.inl 24, .inl 24, .inl 24, .inl 24, .inl 34, .inr (.n 9), .inl 1736, .inl 864, .inl 153,
+    [.inl 24, .inl 24, .inl 24, .inl 24, .inl 34, .inr (.n 9), .inl 1728, .inl 864, .inl 153,
       .inr (.n 789), .inr (.n 812), .inr (.n 882)] ++ List.replicate 96 (.inl 9) ++
       [.inr (.n 2604), .inr (.n 2607), .inr (.n 2628)] := by decide +kernel
 
@@ -354,7 +354,7 @@ noncomputable def VtHonest.bufs (H : VtHonest) (B : VtBases) : List (E × ℕ) :
 /-- The honest returns: the capacity, the cursor past the stream, `g^n`, the bytecode value, the
 public input's challenge and the evaluations' cursor (`col_eval_words`). -/
 noncomputable def VtHonest.retsH (H : VtHonest) (B : VtBases) : List E :=
-  H.s3.squeeze.2.cap ++ [ofK (addressOfIndex B.cur) * gen ^ 5 * gen ^ (3 * H.n) * gen ^ 157,
+  H.s3.squeeze.2.cap ++ [ofK (addressOfIndex B.cur) * gen ^ 5 * gen ^ (3 * H.n) * gen ^ 159,
     gen ^ H.n, H.bv, H.rm, ofK (addressOfIndex B.cur) * gen ^ 5 * gen ^ (3 * H.n)]
 
 /-- What the calls' placement reads of the valuation: `kappa_base` and the shared lengths. -/
@@ -538,7 +538,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   have hevs : vtEvs (vtσ rd w (H.args B)) = H.evsT.flatten := by
     apply List.ext_getElem (by rw [vtEvs_length, hev157])
     intro k h1 _
-    have hk : k < 157 := by simpa [vtEvs_length] using h1
+    have hk : k < 159 := by simpa [vtEvs_length] using h1
     have e := (vtF_evRead hl hevC (by omega) hk).2
     simp only [vtEvs, List.getElem_map, List.getElem_range]
     rw [e, List.getD_eq_getElem _ _ (by omega)]
@@ -606,12 +606,12 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     rw [p 6 (by norm_num)]; exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
   have hc7 : IsCanonical128 ((vtσ rd w (H.args B)) (.n 7)) := by
     rw [p 7 (by norm_num)]; exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
-  have hpc : ∀ i < 3, LoadHolds rd (ofK (addressOfIndex B.pool)) (162 + i) (H.pcW.getD i 0) := by
+  have hpc : ∀ i < 3, LoadHolds rd (ofK (addressOfIndex B.pool)) (164 + i) (H.pcW.getD i 0) := by
     intro i hi
-    have := tb_load_of mPool (k := 162 + i)
+    have := tb_load_of mPool (k := 164 + i)
       (by simp [VtHonest.poolW, VtHonest.pcW, hx5, hev157]; omega)
     rwa [VtHonest.poolW, List.getD_append_right _ _ _ _ (by simp [hx5, hev157]),
-      show 162 + i - (H.xs5 ++ H.evsT.flatten).length = i by simp [hx5, hev157]] at this
+      show 164 + i - (H.xs5 ++ H.evsT.flatten).length = i by simp [hx5, hev157]] at this
   obtain ⟨tV, tOut⟩ := vtZt_complete (rd := rd) (w := w) hl (S2 := H.s3) eR eC eCan hc6 hc7
     (by rw [p 15 (by norm_num), p 6 (by norm_num), p 7 (by norm_num)]; exact hpc 0 (by norm_num))
     (by rw [p 15 (by norm_num), p 6 (by norm_num), p 7 (by norm_num)]; exact hpc 1 (by norm_num))
@@ -681,8 +681,8 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
         ∀ s ∈ blk, ∀ d p' off, s = .atom (.load d p' off) → InBuf (vtσ rd w (H.args B)) (H.bufs B) p' off :=
       fun h s hs d p' off e ↦ h d p' off (e ▸ hs)
     have lens : H.dimsW.length = 7 ∧ (H.rows.map eOfNat).length = 6 ∧
-        expTableWords.length = 236 ∧ (eqKernel H.alphas).length = 16 ∧ H.poolW.length = 165 ∧
-        H.curW.length = 5 + 3 * H.n + 157 := by
+        expTableWords.length = 236 ∧ (eqKernel H.alphas).length = 16 ∧ H.poolW.length = 167 ∧
+        H.curW.length = 5 + 3 * H.n + 159 := by
       refine ⟨by simp [VtHonest.dimsW, vtTauList], by simp [hr],
         by simp [expTableWords, length_etWordsN], by rw [vt_length_eqKernel, hal]; rfl,
         by simp [VtHonest.poolW, VtHonest.pcW, hx5, hev157],

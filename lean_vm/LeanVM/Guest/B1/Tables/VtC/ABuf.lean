@@ -116,7 +116,7 @@ theorem shGBlk_length (point : List E) (τ : ℕ → ℕ) (i : ℕ) : (shGBlk po
     omega
   · simp
 
-theorem vtShEqW_length (point : List E) (τ : ℕ → ℕ) : (vtShEqW point τ).length = 1736 := by
+theorem vtShEqW_length (point : List E) (τ : ℕ → ℕ) : (vtShEqW point τ).length = 1728 := by
   rw [vtShEqW, List.length_flatMap]
   simp [padTo_length (shEqBlk_length _ _ _)]
 

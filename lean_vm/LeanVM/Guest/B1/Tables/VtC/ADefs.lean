@@ -135,7 +135,7 @@ noncomputable def linL : TLay :=
 
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
-  [24, 24, 24, 24, 34, H.μ, 1736, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
+  [24, 24, 24, 24, 34, H.μ, 1728, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
     [7 * (H.n + 1), H.n + 1, H.n + 1]
 
 /-- **The own buffers' honest words**, in allocation order. -/

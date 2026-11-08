@@ -343,7 +343,7 @@ theorem vt_sh_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
   refine shared_selector_tables_relIn (by omega) ?_ ?_ ?_ ?_ ?_ h
   · rw [ep, e705]
     exact ptr_own I.hw (j := 6) (by norm_num) rfl (by
-      show 288 * t + 32 * ((H.μ - H.τ t + 3) / 4) ≤ 1736; omega)
+      show 288 * t + 32 * ((H.μ - H.τ t + 3) / 4) ≤ 1728; omega)
   · rw [eg, e706]
     exact ptr_own I.hw (j := 7) (by norm_num) rfl (by
       show 144 * t + 16 * ((H.μ - H.τ t + 3) / 4) ≤ 864; omega)
@@ -512,7 +512,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
       hdig
   · rw [eqt]
     exact ptr_own I.hw (j := 6) (by norm_num) rfl (by
-      show 288 * t + 32 * btN (H.μ - H.τ t) ≤ 1736; simp only [btN]; omega)
+      show 288 * t + 32 * btN (H.μ - H.τ t) ≤ 1728; simp only [btN]; omega)
   · rw [egt]
     exact ptr_own I.hw (j := 7) (by norm_num) rfl (by
       show 144 * t + 16 * btN (H.μ - H.τ t) ≤ 864; simp only [btN]; omega)
