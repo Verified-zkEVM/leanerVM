@@ -34,7 +34,7 @@ def vtSelKC (i : ℕ) : ℕ :=
 /-- **The values the oracle answers.** -/
 def vtWKeys : List ℕ :=
   vtAllocVars ++ ((List.range 6).flatMap fun t ↦ [vtPadV t, vtPadV t + 1, vtPadV t + 2]) ++
-    [704, 581, 2500, 824, 894] ++
+    [704, 581, 2516, 824, 894] ++
     ((List.range 3).flatMap fun b ↦ [vtFwW b + 10, vtFwW b + 11]) ++
     ((List.range 51).flatMap fun i ↦ [vtSelKP i, vtSelKP i + 1]) ++
     ((List.range 45).flatMap fun i ↦ [vtSelKC i, vtSelKC i + 1])
@@ -117,7 +117,7 @@ theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 111 + 3 * t ∧
     vtWKeys.idxOf (vtPadV t + 2) = 111 + (3 * t + 2) := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_misc : vtWKeys.idxOf 704 = 129 ∧ vtWKeys.idxOf 581 = 130 ∧
-    vtWKeys.idxOf 2500 = 131 ∧ vtWKeys.idxOf 824 = 132 ∧ vtWKeys.idxOf 894 = 133 := by
+    vtWKeys.idxOf 2516 = 131 ∧ vtWKeys.idxOf 824 = 132 ∧ vtWKeys.idxOf 894 = 133 := by
   decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_fw : ∀ b < 3, vtWKeys.idxOf (vtFwW b + 10) = 134 + 2 * b ∧

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BMain
 
-  **`verify_tables`' bus sides complete** (statements `769 ..< 2573`).
+  **`verify_tables`' bus sides complete** (statements `769 ..< 2589`).
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.BAll
 /-!
 # The bus sides, complete
 
-`vtB_complete`: under `VtBHyp`, every statement of `769 ..< 2573` holds on the honest valuation,
+`vtB_complete`: under `VtBHyp`, every statement of `769 ..< 2589` holds on the honest valuation,
 every load reads inside `vtBufsB`, the framework words are the cursor's, the selectors are the
 blocks' `blockSel`, and the three bus totals are `vtAcc0/1/2`'s (as `vt_asm_totals`).
 -/
@@ -29,26 +29,26 @@ theorem vtB_flatP : tbStmtsEqb ((List.range 51).flatMap fun i ↦ vtSelT
     (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1
     (vtPushSel.getD i default).2.2.2.2.2.1 (vtPushSel.getD i default).2.2.2.2.2.2.1
     (vtPushSel.getD i default).2.2.2.2.2.2.2)
-    ((vtPre.drop 935).take 490) = true := by simp only [vtPre_drop]; decide +kernel
+    ((vtPre.drop 943).take 490) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_flatC : tbStmtsEqb ((List.range 45).flatMap fun i ↦ vtSelT
     (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
     (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2.1
     (vtCountSel.getD i default).2.2.2.2.2.1 (vtCountSel.getD i default).2.2.2.2.2.2.1
     (vtCountSel.getD i default).2.2.2.2.2.2.2)
-    ((vtPre.drop 2084).take 433) = true := by simp only [vtPre_drop]; decide +kernel
+    ((vtPre.drop 2100).take 433) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_fs_checks :
     tbStmtsEqb (fsNextT (.n 5) 0 830) ((vtPre.drop 817).take 9) = true ∧
     tbStmtsEqb (fsNextT (.n 5) 1 843) ((vtPre.drop 830).take 9) = true ∧
     tbStmtsEqb (fsNextT (.n 5) 2 856) ((vtPre.drop 843).take 9) = true ∧
-    tbStmtsEqb (fsNextT (.n 5) 3 1835) ((vtPre.drop 1873).take 9) = true ∧
-    tbStmtsEqb (fsNextT (.n 5) 4 1890) ((vtPre.drop 1916).take 9) = true := by
+    tbStmtsEqb (fsNextT (.n 5) 3 1843) ((vtPre.drop 1881).take 9) = true ∧
+    tbStmtsEqb (fsNextT (.n 5) 4 1898) ((vtPre.drop 1924).take 9) = true := by
       simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_fs_reads : Atom.load (.n 830) (.n 5) 0 ∉ vtSL ∧ Atom.load (.n 843) (.n 5) 1 ∉ vtSL ∧
-    Atom.load (.n 856) (.n 5) 2 ∉ vtSL ∧ Atom.load (.n 1835) (.n 5) 3 ∉ vtSL ∧
-    Atom.load (.n 1890) (.n 5) 4 ∉ vtSL := by decide +kernel
+    Atom.load (.n 856) (.n 5) 2 ∉ vtSL ∧ Atom.load (.n 1843) (.n 5) 3 ∉ vtSL ∧
+    Atom.load (.n 1898) (.n 5) 4 ∉ vtSL := by decide +kernel
 
 theorem vtB_index_stmts :
     tbStmtsEqb [.dispatch (.n 29) vtImNames [.n 8] [.n 824]] ((vtPre.drop 810).take 1) = true ∧
@@ -105,18 +105,18 @@ theorem vtB_indexArm (hl : args.length = 20) {x r : V} {point : List E} {κ : �
     ⟨point.take κ, by simp; omega, tbReadsAt_take hz κ, rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- **`verify_tables`' bus sides complete** (statements `769 ..< 2573`). -/
+/-- **`verify_tables`' bus sides complete** (statements `769 ..< 2589`). -/
 theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
-    (∀ s ∈ (vtPre.drop 769).take 1804, VSH (coreProgram.Rel rd) rd σv s) ∧
-      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop 769).take 1804) ∧
+    (∀ s ∈ (vtPre.drop 769).take 1820, VSH (coreProgram.Rel rd) rd σv s) ∧
+      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop 769).take 1820) ∧
       vtFreshWords σv = D.xs ∧
-      σv (.n 1812) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
+      σv (.n 1820) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
         [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 581)) (σv (.n 25))).2 ∧
-      σv (.n 2057) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
-        [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1835)) (σv (.n 1890)) (σv (.n 581))
+      σv (.n 2073) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
+        [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1843)) (σv (.n 1898)) (σv (.n 581))
         (σv (.n 25)) (σv (.n 26))).2 ∧
-      σv (.n 2499) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
-        [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1835)) (σv (.n 1890)) (σv (.n 581))
+      σv (.n 2515) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.alphas (σv (.n 14)) D.point
+        [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1843)) (σv (.n 1898)) (σv (.n 581))
         (σv (.n 25)) (σv (.n 26)) (σv (.n 27))).2 ∧
       σv (.n 794) = blockSel (vtSizesP D.lm (vtHt D.rows)) D.point.length 0 D.point ∧
       σv (.n 817) = blockSel (vtSizesP D.lm (vtHt D.rows)) D.point.length 1 D.point ∧
@@ -192,18 +192,18 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     fun i b hi he ↦ vsh_store (hpoolσ i hi) he
   -- the permutation
   have h1915 : VSH (coreProgram.Rel rd) rd σv (.atom (.keccak [.n 837, .n 839, .n 850, .n 852,
-      .n 863, .n 865, .n 1842, .n 1844, .n 20, .n 21, .n 22, .n 23, .n 24] [.n 1877, .n 1878,
-      .n 1879, .n 1880, .n 1881, .n 1882, .n 1883, .n 1884, .n 1885, .n 1886, .n 1887, .n 1888,
-      .n 1889] false false)) := by
-    have hg := vt_goodS (rd := rd) (w := wo) hl (vt_memAt 1915 (.atom (.keccak [.n 837, .n 839,
-      .n 850, .n 852, .n 863, .n 865, .n 1842, .n 1844, .n 20, .n 21, .n 22, .n 23, .n 24]
-      [.n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882, .n 1883, .n 1884, .n 1885, .n 1886,
-      .n 1887, .n 1888, .n 1889] false false)) (by decide +kernel))
+      .n 863, .n 865, .n 1850, .n 1852, .n 20, .n 21, .n 22, .n 23, .n 24] [.n 1885, .n 1886,
+      .n 1887, .n 1888, .n 1889, .n 1890, .n 1891, .n 1892, .n 1893, .n 1894, .n 1895, .n 1896,
+      .n 1897] false false)) := by
+    have hg := vt_goodS (rd := rd) (w := wo) hl (vt_memAt 1923 (.atom (.keccak [.n 837, .n 839,
+      .n 850, .n 852, .n 863, .n 865, .n 1850, .n 1852, .n 20, .n 21, .n 22, .n 23, .n 24]
+      [.n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890, .n 1891, .n 1892, .n 1893, .n 1894,
+      .n 1895, .n 1896, .n 1897] false false)) (by decide +kernel))
     rw [fixNe_atom] at hg
     refine holds_of_good (rd := rd) (σ := σv) (S := vtSL) (w := wo)
-      (a := .keccak [.n 837, .n 839, .n 850, .n 852, .n 863, .n 865, .n 1842, .n 1844, .n 20,
-        .n 21, .n 22, .n 23, .n 24] [.n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882,
-        .n 1883, .n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889] false false) hg ?_
+      (a := .keccak [.n 837, .n 839, .n 850, .n 852, .n 863, .n 865, .n 1850, .n 1852, .n 20,
+        .n 21, .n 22, .n 23, .n 24] [.n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890,
+        .n 1891, .n 1892, .n 1893, .n 1894, .n 1895, .n 1896, .n 1897] false false) hg ?_
     show ∀ c : Fin 13, _
     intro c
     have k0 := fsPackVals_canonical (D.xs.getD 0 0) dsObserve
@@ -219,8 +219,8 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     · rw [show 852 = 843 + 1 + 8 by rfl, v1 8 (by norm_num)]; exact k1'.2
     · rw [show 863 = 856 + 1 + 6 by rfl, v2 6 (by norm_num)]; exact k2'.1
     · rw [show 865 = 856 + 1 + 8 by rfl, v2 8 (by norm_num)]; exact k2'.2
-    · rw [show 1842 = 1835 + 1 + 6 by rfl, v3 6 (by norm_num)]; exact k3.1
-    · rw [show 1844 = 1835 + 1 + 8 by rfl, v3 8 (by norm_num)]; exact k3.2
+    · rw [show 1850 = 1843 + 1 + 6 by rfl, v3 6 (by norm_num)]; exact k3.1
+    · rw [show 1852 = 1843 + 1 + 8 by rfl, v3 8 (by norm_num)]; exact k3.2
     · exact hc 0 (by norm_num)
     · exact hc 1 (by norm_num)
     · exact hc 2 (by norm_num)
@@ -234,13 +234,13 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have g839 := vtB_glue_839 hl hw (hpS 1 843 (by norm_num) x1)
   have g852 := vtB_glue_852 hl hw (hpS 2 856 (by norm_num) x2)
   have g877 := vtB_glue_877 hl hw I2 h881
-  have g1425 := vtB_glue_1425 hl hw hidxσ
-  have g1882 := vtB_glue_1882 hl hw hpoolσ hidxσ (hpS 3 1835 (by norm_num) x3) h1915
-  have g1925 := vtB_glue_1925 hl hw (hpS 4 1890 (by norm_num) x4)
-  have g2517 := vtB_glue_2517 (rd := rd) (wo := wo) hl
+  have g1425 := vtB_glue_1433 hl hw hidxσ
+  have g1882 := vtB_glue_1890 hl hw hpoolσ hidxσ (hpS 3 1843 (by norm_num) x3) h1915
+  have g1925 := vtB_glue_1933 hl hw (hpS 4 1898 (by norm_num) x4)
+  have g2517 := vtB_glue_2533 (rd := rd) (wo := wo) hl
   -- every statement
-  have hall : ∀ s ∈ (vtPre.drop 769).take 1804, VSH (coreProgram.Rel rd) rd σv s := by
-    refine vtB_cover [3, 12, 10, 13, 10, 9, 4, 9, 4, 9, 12, 13, 58, 490, 448, 9, 34, 9, 159, 433,
+  have hall : ∀ s ∈ (vtPre.drop 769).take 1820, VSH (coreProgram.Rel rd) rd σv s := by
+    refine vtB_cover [3, 12, 10, 13, 10, 9, 4, 9, 4, 9, 12, 13, 66, 490, 448, 9, 34, 9, 167, 433,
       56] 769 fun i hi ↦ ?_
     simp only [List.length_cons, List.length_nil] at hi
     interval_cases i
@@ -258,7 +258,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     · exact vtB_tmplAt vtFw2_check vF2
     · exact g877
     · intro s hs
-      change s ∈ (vtPre.drop 935).take 490 at hs
+      change s ∈ (vtPre.drop 943).take 490 at hs
       rw [← tbStmtsEqb_sound vtB_flatP] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vP j (List.mem_range.mp hj) s hs
@@ -268,36 +268,36 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     · exact vtB_tmpl cF4 f4
     · exact g1925
     · intro s hs
-      change s ∈ (vtPre.drop 2084).take 433 at hs
+      change s ∈ (vtPre.drop 2100).take 433 at hs
       rw [← tbStmtsEqb_sound vtB_flatC] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vC j (List.mem_range.mp hj) s hs
     · exact g2517
   -- the totals
-  have i1' : σv (.n 1831) = σv (.n 824) := by
-    rw [(vt_readAt hl 1869 (d := .n 1831) (by decide +kernel) (by decide +kernel)
+  have i1' : σv (.n 1839) = σv (.n 824) := by
+    rw [(vt_readAt hl 1877 (d := .n 1839) (by decide +kernel) (by decide +kernel)
       (hidxσ 1 (by norm_num))).1, q1, i1]
-  have i2' : σv (.n 1873) = σv (.n 894) := by
-    rw [(vt_readAt hl 1911 (d := .n 1873) (by decide +kernel) (by decide +kernel)
+  have i2' : σv (.n 1881) = σv (.n 894) := by
+    rw [(vt_readAt hl 1919 (d := .n 1881) (by decide +kernel) (by decide +kernel)
       (hidxσ 2 (by norm_num))).1, q2, i2]
-  have m0 : σv (.n 1848) = σv (.n 830) := by
-    rw [(vt_readAt hl 1886 (d := .n 1848) (by decide +kernel) (by decide +kernel)
-      (hpoolσ 0 (by norm_num))).1, x0]
-  have m1 : σv (.n 1852) = σv (.n 843) := by
-    rw [(vt_readAt hl 1890 (d := .n 1852) (by decide +kernel) (by decide +kernel)
-      (hpoolσ 1 (by norm_num))).1, x1]
-  have m2 : σv (.n 1856) = σv (.n 856) := by
+  have m0 : σv (.n 1856) = σv (.n 830) := by
     rw [(vt_readAt hl 1894 (d := .n 1856) (by decide +kernel) (by decide +kernel)
+      (hpoolσ 0 (by norm_num))).1, x0]
+  have m1 : σv (.n 1860) = σv (.n 843) := by
+    rw [(vt_readAt hl 1898 (d := .n 1860) (by decide +kernel) (by decide +kernel)
+      (hpoolσ 1 (by norm_num))).1, x1]
+  have m2 : σv (.n 1864) = σv (.n 856) := by
+    rw [(vt_readAt hl 1902 (d := .n 1864) (by decide +kernel) (by decide +kernel)
       (hpoolσ 2 (by norm_num))).1, x2]
   have hb1 : σv (.n 783) = σv (.n 14) + 1 := by
     rw [vt_addAt hl 771 (d := .n 783) (x := .n 14) (y := .n 782) (by decide +kernel),
       vt_constAt hl 770 (d := .n 782) (e := word 1 0 0) (by decide +kernel), tb_word_one]
-  have hpv : σv (.n 1812) = σv (.n 947) + σv (.n 1807) + (1 + σv (.n 1385)) + σv (.n 25) := by
-    rw [vt_addAt hl 1850 (d := .n 1812) (x := .n 1811) (y := .n 25) (by decide +kernel),
-      vt_addAt hl 1849 (d := .n 1811) (x := .n 1808) (y := .n 1810) (by decide +kernel),
-      vt_addAt hl 1848 (d := .n 1810) (x := .n 1809) (y := .n 1385) (by decide +kernel),
-      vt_constAt hl 1847 (d := .n 1809) (e := word 1 0 0) (by decide +kernel),
-      vt_addAt hl 1846 (d := .n 1808) (x := .n 947) (y := .n 1807) (by decide +kernel),
+  have hpv : σv (.n 1820) = σv (.n 955) + σv (.n 1815) + (1 + σv (.n 1393)) + σv (.n 25) := by
+    rw [vt_addAt hl 1858 (d := .n 1820) (x := .n 1819) (y := .n 25) (by decide +kernel),
+      vt_addAt hl 1857 (d := .n 1819) (x := .n 1816) (y := .n 1818) (by decide +kernel),
+      vt_addAt hl 1856 (d := .n 1818) (x := .n 1817) (y := .n 1393) (by decide +kernel),
+      vt_constAt hl 1855 (d := .n 1817) (e := word 1 0 0) (by decide +kernel),
+      vt_addAt hl 1854 (d := .n 1816) (x := .n 955) (y := .n 1815) (by decide +kernel),
       tb_word_one]
   have hpw' : ∀ t < 6, paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t) =
       σv (.n (vtPadV t)) := fun t ht ↦ (hpw t ht).symm
@@ -305,17 +305,17 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     (σv (.n 581)) (σv (.n 25)) _ _ _ (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t)))
     s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
   have e1 := vt_total1 hbc D.alphas (σv (.n 14)) D.point [σv (.n 830), σv (.n 843), σv (.n 856)]
-    (σv (.n 1835)) (σv (.n 1890)) (σv (.n 581)) (σv (.n 25)) (σv (.n 26)) _ _ _
+    (σv (.n 1843)) (σv (.n 1898)) (σv (.n 581)) (σv (.n 25)) (σv (.n 26)) _ _ _
     (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi)
     hpw' hr
   have e2 := vt_total2 (bc := D.bc) (lm := D.lm) D.alphas (σv (.n 14)) D.point
-    [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1835)) (σv (.n 1890)) (σv (.n 581))
+    [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1843)) (σv (.n 1898)) (σv (.n 581))
     (σv (.n 25)) (σv (.n 26)) (σv (.n 27)) (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) W
     (fun i hi ↦ hSC i hi) hpw' hr
   have hpush := vtP_push_total hP hw
   have hfw := vtP_push_fw hP hw
   rw [hb1] at hpush
-  have hpad : σv (.n 1807) = vtPadSum (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) W
+  have hpad : σv (.n 1815) = vtPadSum (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) W
       (σv (.n 14) + 1) vtPushPadData := by
     have := hpv.symm.trans hpush
     linear_combination this
@@ -324,11 +324,11 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
         [W 0 + W 1 + W 2, W 0 * gen + W 1 * σv (.n 824) + W 2 + W 3 * σv (.n 830) +
           W 4 * σv (.n 843) + W 5 * σv (.n 856), W 0 * gen ^ 2 + W 1 * σv (.n 894) + W 2 +
           σv (.n 581)] ∧
-      vtFpPull L D.alphas D.point [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1835))
-          (σv (.n 1890)) (σv (.n 581)) =
-        [W 0 + W 1 * vtWFinalPc + W 2, W 0 * gen + W 1 * σv (.n 824) + W 2 * σv (.n 1835) +
+      vtFpPull L D.alphas D.point [σv (.n 830), σv (.n 843), σv (.n 856)] (σv (.n 1843))
+          (σv (.n 1898)) (σv (.n 581)) =
+        [W 0 + W 1 * vtWFinalPc + W 2, W 0 * gen + W 1 * σv (.n 824) + W 2 * σv (.n 1843) +
           W 3 * σv (.n 830) + W 4 * σv (.n 843) + W 5 * σv (.n 856),
-          W 0 * gen ^ 2 + W 1 * σv (.n 894) + W 2 * σv (.n 1890) + σv (.n 581)] := by
+          W 0 * gen ^ 2 + W 1 * σv (.n 894) + W 2 * σv (.n 1898) + σv (.n 581)] := by
     intro L hL1 hL2
     simp only [vtFpPush, vtFpPull, fingerprints, hL1, hL2, vt_take3 (eqKernel D.alphas) (by omega),
       vt_take6 (eqKernel D.alphas) (by omega), ← i1, ← i2, vtWFinalPc_eq, dot,
@@ -338,7 +338,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   obtain ⟨fP, fQ⟩ := hfp (layoutOf D.bc D.lm D.rows) (vt_layout_logMemory D.bc D.lm D.rows)
     (vt_layout_logBytecode D.bc D.lm D.rows hbc)
   have hfresh : vtFreshWords σv = D.xs := by
-    show [σv (.n 830), σv (.n 843), σv (.n 856), σv (.n 1835), σv (.n 1890)] = D.xs
+    show [σv (.n 830), σv (.n 843), σv (.n 856), σv (.n 1843), σv (.n 1898)] = D.xs
     rw [x0, x1, x2, x3, x4]
     exact vtB_list5 D.xs hxl
   refine ⟨hall, vtB_loadsInBuf _, hfresh, ?_, ?_, ?_, s0, s1, s2, c0, c1, c2, hS, hSC⟩
