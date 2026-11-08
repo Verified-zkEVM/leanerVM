@@ -184,13 +184,13 @@ theorem keys_read {a : LAtom} (ha : LHolds L fp a) {o : ℕ} (ho : o ∈ keysC a
     rcases ho with rfl | rfl
     exacts [⟨_, h1⟩, ⟨_, h2⟩]
   | keccak ins outs inOdd outOdd =>
-    obtain ⟨-, input, output, -, hout, -⟩ := ha
+    obtain ⟨oc, -, input, output, -, hout, -⟩ := ha
     cases outs with
     | nil => simp [keysC] at ho
     | cons o0 rest =>
       simp only [keysC, List.take_succ_cons, List.take_zero, List.mem_singleton] at ho
       subst ho
-      exact ⟨_, hout 0⟩
+      exact ⟨_, hout 0 (by cases oc <;> decide)⟩
   | addr p run =>
     obtain ⟨c0, rest, -, h⟩ := ha
     simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, h⟩
