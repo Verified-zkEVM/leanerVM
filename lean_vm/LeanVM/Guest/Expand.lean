@@ -41,8 +41,10 @@ same way, from the same readings:
   one), the padding XORed into the message cells as constants or one `XOR` with a constant cell
   (`xor_byte`), the lazily `SET` padding run `[0x01, 0, 0, 0, 0]` whose windows are the constant
   `tail` and `cap` runs (`keccak_pad_run`, reverting at a branch join with the bindings), message
-  cells XORed into the previous output (`sponge_xor`), and the copies into and out of a 13-cell
-  state run.
+  cells XORed into the previous output (`sponge_xor`), the copies into a run, and the last
+  block's output cells: the one, two or thirteen cells its destination holds (`keccak_out`; the
+  atom's `outs`, whose length is the instruction's `out_cells`), a heap destination's through a
+  stack run of its size, copied out afterwards.
 
 What the compiler shares (pure results, pooled constants, repeated loads) is not shared here: a
 second occurrence is a second atom with a fresh name, on the same relation. A value's name is its
@@ -725,11 +727,12 @@ def SpongeCell.isZero : SpongeCell → Bool
   | .zero => true
   | _ => false
 
-/-- Where a `keccak` writes (`KeccakOut`): the thirteen values its last `KECCAK` writes, and the
-run to copy them out to afterwards. -/
+/-- Where a `keccak` writes (`KeccakOut`): the values its last `KECCAK` writes, its first one, two
+or thirteen output cells (the atom's `outs`, whose length is the instruction's `out_cells`), and
+the heap run `(ptr, lo)` to copy them out to afterwards. -/
 structure KeccakOut where
   state : List V
-  copy : Option CellRun
+  heap : Option (V × Nat)
 
 /-- Whether values are one run of consecutive cells of the expansion. -/
 def isRun : List V → Bool
@@ -829,7 +832,8 @@ def xorByte (cells : List SpongeCell) (pos v : Nat) : M (List SpongeCell) := do
   return cells.set i c
 
 /-- The `KECCAK` atoms absorbing `cells` into `state` (the zero state if `none`), the last writing
-`out` (`emit_keccak_message`). With `finalLen` the message is the cells' first `finalLen` bytes,
+the cells `out` (its first one, two or thirteen output cells), each earlier one a whole 13-cell
+state the next one reads (`emit_keccak_message`). With `finalLen` the message is the cells' first `finalLen` bytes,
 padded, in `finalLen / rate + 1` blocks (`primitives::hash::permutations`); without, the cells
 zero-extended to whole blocks. `padded`: the cells past `finalLen` already hold the padding's
 first byte and zeros (`padTailInPlace`). -/
@@ -863,14 +867,11 @@ def emitKeccakMessage (cells : List SpongeCell) (finalLen : Option Nat) (state :
     emitAtom (.keccak (m ++ tail ++ [b8] ++ cap) c (k % 2 == 1) (!last && k % 2 == 0))
     state := some c
 
-/-- Copy what `keccakOut` promised out of the state written (`keccak_finish`). -/
+/-- Copy what `keccakOut` promised out of the cells written, to a heap destination
+(`keccak_finish`). -/
 def keccakFinish (out : KeccakOut) : M Unit := do
-  match out.copy with
-  | none => pure ()
-  | some (.stack cells) =>
-      for (s, d) in out.state.zip cells do copy s d
-  | some (.heap ptr lo len) =>
-      for (s, k) in (out.state.take len).zipIdx do emitAtom (.load s ptr (lo + k))
+  if let some (ptr, lo) := out.heap then
+    for (s, k) in out.state.zipIdx do emitAtom (.load s ptr (lo + k))
 
 /-- The keyword arguments after builtin `f`'s positional ones, checked against `allowed`
 (`keccak_kwargs`). -/
@@ -1630,9 +1631,9 @@ def tryCellRun : Nat → Expr → M (Option CellRun)
     | .var _ | .slice .. => return some (← cellRun n e)
     | _ => return none
 
-/-- Where a `keccak` writes (`keccak_out`): a run of at least thirteen cells, its first thirteen;
-else a fresh 13-value state, copied afterwards to the 13-cell heap run or the 2-cell digest
-run named. -/
+/-- Where a `keccak` writes (`keccak_out`): a stack run of one or two cells, in place, or of at
+least thirteen, its first thirteen; else fresh values for a heap run of one, two or thirteen cells,
+copied there afterwards. The `KECCAK` writes exactly the cells the destination holds. -/
 def keccakOut : Nat → Expr → M KeccakOut
   | 0, _ => fail "expansion fuel exhausted"
   | n + 1, e => do
@@ -1640,11 +1641,11 @@ def keccakOut : Nat → Expr → M KeccakOut
     match run with
     | .stack cells =>
         if stateCells ≤ cells.length then return ⟨cells.take stateCells, none⟩
-        if cells.length == 2 then return ⟨← freshRun stateCells, some run⟩
-    | .heap _ _ len =>
-        if len == stateCells || len == 2 then return ⟨← freshRun stateCells, some run⟩
-    fail s!"a keccak destination is a {stateCells}-cell run (the state) or a 2-cell run (the \
-      digest)"
+        if cells.length == 1 || cells.length == 2 then return ⟨cells, none⟩
+    | .heap ptr lo len =>
+        if len == stateCells || len == 1 || len == 2 then return ⟨← freshRun len, some (ptr, lo)⟩
+    fail s!"a keccak destination is a {stateCells}-cell run (the state), a 2-cell run (the \
+      digest) or a 1-cell run (its first cell)"
 
 /-- `pad_tail=1` (`pad_tail_in_place`): set the cells of the `tail` slice from `len` on to the
 padding (its first byte, then zeros), so the message is read in place instead of copied into a

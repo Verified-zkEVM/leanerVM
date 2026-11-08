@@ -4,10 +4,10 @@
 //! name, entry pc, length and code, in chunks of `CHUNK` instructions (`LeanVM.Guest.chunkSize`),
 //! one definition per chunk; operands are frame offsets and `SET` immediates limbs, so that Lean
 //! never evaluates a power of `g`. The format is the BLAKE2s-era `guest_bytecode_lean`'s, with
-//! `.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd` in place of `.blake2s`.
+//! `.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells` in place of `.blake2s`.
 
 use super::*;
-use leanvm_core::cpu::{DerefMode, Op};
+use leanvm_core::cpu::{DerefMode, Op, OutCells};
 use std::fmt::Write as _;
 
 /// Where the data modules go, relative to `lean_vm/`: the statement's generated data.
@@ -41,7 +41,15 @@ pub fn lean_op(op: &Op) -> String {
             out,
             in_odd,
             out_odd,
-        } => format!(".keccak {m0} {m1} {m2} {m3} {tail} {b8} {cap} {out} {in_odd} {out_odd}"),
+            out_cells,
+        } => {
+            let out_cells = match out_cells {
+                OutCells::One => "one",
+                OutCells::Two => "two",
+                OutCells::All => "all",
+            };
+            format!(".keccak {m0} {m1} {m2} {m3} {tail} {b8} {cap} {out} {in_odd} {out_odd} .{out_cells}")
+        }
     }
 }
 
