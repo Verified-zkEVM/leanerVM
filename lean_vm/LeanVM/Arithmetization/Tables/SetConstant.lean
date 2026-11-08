@@ -120,7 +120,7 @@ def SetSpec (r : SetRow K) (next : Registers K) (data : ProverData K) : Prop :=
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
 private theorem setConstant_entry (o k0 k1 k2 : K) :
-    #v[Opcode.setConstant.busCode] ++ #v[o, k0, k1, k2, 0, 0, 0, 0, 0, 0] = busEntry (.setConstant o (E.ofLimbs k0 k1 k2)) := rfl
+    #v[Opcode.setConstant.busCode] ++ #v[o, k0, k1, k2, 0, 0, 0, 0, 0, 0, 0, 0] = busEntry (.setConstant o (E.ofLimbs k0 k1 k2)) := rfl
 
 /-! ## The table -/
 
@@ -133,7 +133,7 @@ def setTable : GeneralFormalCircuit K SetRow Registers where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.setConstant.busCode)
-      #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]
+      #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.o) r.r r.k
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.

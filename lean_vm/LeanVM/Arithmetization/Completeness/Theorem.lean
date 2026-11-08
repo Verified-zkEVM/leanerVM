@@ -211,12 +211,14 @@ theorem skelWitness_rowSteps (prog : LeanIsaProgram) (input : PublicInput) {κ :
   · rw [rowMessagesOn_eq_rowSends]
     show ((rowSends (opComponent r.sk.ins.opcode)
       (Environment.fromArray (r.raw img) (imageData img))).filter _).map _ = _
-    rw [PRow.rowSends_raw (hR r hr) (imageData img)]
+    rw [PRow.rowSends_raw (hR r hr) (imageData img), Channel.toRaw_name,
+      PRow.sends_filter_of_ne img r (by simp [StatePull, MemPull]) (by simp [StatePull, MemPush])]
     exact sendsOf_statePull _ _ _ _ _ _
   · rw [rowMessagesOn_eq_rowSends]
     show ((rowSends (opComponent r.sk.ins.opcode)
       (Environment.fromArray (r.raw img) (imageData img))).filter _).map _ = _
-    rw [PRow.rowSends_raw (hR r hr) (imageData img)]
+    rw [PRow.rowSends_raw (hR r hr) (imageData img), Channel.toRaw_name,
+      PRow.sends_filter_of_ne img r (by simp [StatePush, MemPull]) (by simp [StatePush, MemPush])]
     exact sendsOf_statePush _ _ _ _ _ _
 
 /-- **The witness of a run represents its trace**: the image the data names is the
