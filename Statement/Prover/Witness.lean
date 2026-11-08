@@ -129,7 +129,7 @@ def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) 
   | .xor oA oB oC | .mulNative oA oB oC | .jump oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
   | .deref o1 o2 o3 _ => [fp * o1, (limbsIn memIdx img (fp * o1))[0] * o2, fp * o3]
-  | .keccak om otail ob8 ocap oout _ _ =>
+  | .keccak om otail ob8 ocap oout _ _ _ =>
       (List.finRange 13).map (fun c ↦ fp * keccakInputCellOffset om otail ob8 ocap c) ++
         (List.range 13).map fun k ↦ fp * (g ^ k * oout)
 
@@ -170,7 +170,7 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (p
     #[pc, fp, oc, od, of, vc, (limbsIn memIdx img (fp * od))[0],
       (limbsIn memIdx img (fp * of))[0], c 0, c 1, c 2, rbc,
       if vc = 0 then 0 else vc⁻¹, if vc = 0 then 0 else 1]
-  | .keccak om otail ob8 ocap oout inOdd outOdd =>
+  | .keccak om otail ob8 ocap oout inOdd outOdd _ =>
     let input := keccakInputIn memIdx img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
     let out := keccakF1600 S

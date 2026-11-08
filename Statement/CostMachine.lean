@@ -358,6 +358,9 @@ instance : MachineEncoding PublicInput := ⟨fun p ↦ .constructor 0 [encodeFin
 instance : MachineEncoding DerefMode where
   encodeValue | .cell => .constructor 0 [] | .pc => .constructor 1 [] | .fp => .constructor 2 []
 
+instance : MachineEncoding KeccakOutputCells where
+  encodeValue | .one => .constructor 0 [] | .two => .constructor 1 [] | .all => .constructor 2 []
+
 instance : MachineEncoding LeanIsaInstruction where
   encodeValue
     | .xor a b c => .constructor 0 [encodeValue a, encodeValue b, encodeValue c]
@@ -365,10 +368,9 @@ instance : MachineEncoding LeanIsaInstruction where
     | .setConstant o k => .constructor 2 [encodeValue o, encodeValue k]
     | .deref a b c m => .constructor 3 [encodeValue a, encodeValue b, encodeValue c, encodeValue m]
     | .jump c d f => .constructor 4 [encodeValue c, encodeValue d, encodeValue f]
-    | .keccak om t b c o i j =>
+    | .keccak om t b c o i j n =>
       .constructor 5 [encodeFiniteFunction om, encodeValue t, encodeValue b, encodeValue c,
-          encodeValue o,
-        encodeValue i, encodeValue j]
+        encodeValue o, encodeValue i, encodeValue j, encodeValue n]
 
 instance : MachineEncoding Semantics.LeanIsaProgram :=
   ⟨fun p ↦ .constructor 0 [encodeValue p.logSize, encodeFiniteFunction p.instructions]⟩
