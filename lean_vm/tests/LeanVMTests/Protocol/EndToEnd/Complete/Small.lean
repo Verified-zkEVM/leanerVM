@@ -241,7 +241,7 @@ kernel would evaluate its counts, a run of `2^20` steps, when comparing the sums
 theorem committedSize_le_of_jumps {prog : LeanIsaProgram} (t : Execution prog)
     (h0 : ∀ op, op ≠ .jump → t.opcodeCount op = 0) {a : ℕ} (hj : 2 ^ Nat.clog 2 (t.opcodeCount
         .jump) ≤ a) :
-    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 14 * a + 46133 := by
+    t.committedSize ≤ 4 * 2 ^ t.logMemorySize + 2 ^ prog.logSize + 14 * a + 47157 := by
   simp only [Execution.committedSize, h0 .xor (by decide), h0 .mulNative (by decide),
     h0 .setConstant (by decide), h0 .deref (by decide), h0 .keccak (by decide),
     Nat.clog_zero_right, pow_zero, show max 0 9 = 9 from rfl]

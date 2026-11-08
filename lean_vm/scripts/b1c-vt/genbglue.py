@@ -1,6 +1,6 @@
 # usage: python3 -I genbglue.py > ../../LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
-# verify_tables' bus sides between the selectors and the stream reads (statements 769 ..< 2573 at
-# 5e3ade21): one lemma per slice, the statements beyond evaluation by kind (fp_w, claim_pool and
+# verify_tables' bus sides between the selectors and the stream reads (statements 769 ..< 2589 at
+# PR #724 head 873ee6d8): one lemma per slice, the statements beyond evaluation by kind (fp_w, claim_pool and
 # block_index_mle reads), the others (stores, dispatches, the KECCAK) taken as hypotheses.
 import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -8,8 +8,8 @@ import vtflat
 top, flat, ctr, cend = vtflat.load()
 tctr = {}
 for (k, s), c in zip(flat, ctr): tctr.setdefault(k, c)
-SLICES = [(769, 772), (784, 794), (807, 817), (826, 830), (839, 843), (852, 864), (877, 935),
-          (1425, 1873), (1882, 1916), (1925, 2084), (2517, 2573)]
+SLICES = [(769, 772), (784, 794), (807, 817), (826, 830), (839, 843), (852, 864), (877, 943),
+          (1433, 1881), (1890, 1924), (1933, 2100), (2533, 2589)]
 READ = {13: ('hw', 16), 15: ('hpool', 5), 781: ('hidx', 3)}
 def auto(s):
     m = re.match(r'\.atom \(\.(\w+)', s)

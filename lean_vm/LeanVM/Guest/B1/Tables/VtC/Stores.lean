@@ -116,19 +116,19 @@ def vtSL : List Atom := [
   .load (.n 843) (.n 15) 1,
   .load (.n 856) (.n 15) 2,
   .load (.n 894) (.n 781) 2,
-  .load (.n 1835) (.n 15) 3,
-  .load (.n 1890) (.n 15) 4,
-  .load (.n 2561) (.n 2589) 0,
-  .load (.n 2562) (.n 2589) 1,
-  .load (.n 2563) (.n 2589) 2,
-  .load (.n 2564) (.n 2589) 3,
-  .load (.n 2565) (.n 2589) 4,
-  .load (.n 2594) (.n 2589) 5,
-  .load (.n 2582) (.n 2589) 6,
-  .load (.n 2595) (.n 2592) 0,
-  .load (.n 6850) (.n 15) 162,
-  .load (.n 6853) (.n 15) 163,
-  .load (.n 6854) (.n 15) 164]
+  .load (.n 1843) (.n 15) 3,
+  .load (.n 1898) (.n 15) 4,
+  .load (.n 2577) (.n 2605) 0,
+  .load (.n 2578) (.n 2605) 1,
+  .load (.n 2579) (.n 2605) 2,
+  .load (.n 2580) (.n 2605) 3,
+  .load (.n 2581) (.n 2605) 4,
+  .load (.n 2610) (.n 2605) 5,
+  .load (.n 2598) (.n 2605) 6,
+  .load (.n 2611) (.n 2608) 0,
+  .load (.n 6956) (.n 15) 164,
+  .load (.n 6959) (.n 15) 165,
+  .load (.n 6960) (.n 15) 166]
 
 set_option maxRecDepth 100000 in
 /-- The counter `storesOf` carries stays unevaluated over long runs without loads: the kernel's

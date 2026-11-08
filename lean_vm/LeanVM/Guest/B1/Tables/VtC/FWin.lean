@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FWin
 
-  The honest window `2672 ..< 6250`: on a memory holding the evaluations at the cursor, `fp_w`,
+  The honest window `2688 ..< 6352`: on a memory holding the evaluations at the cursor, `fp_w`,
   the challenges' products and the equality prefix, every statement of the window holds of the
   honest valuation.
 -/
@@ -86,14 +86,14 @@ theorem vtF_cellsCanon (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
 
 /-- The cursor's read. -/
 theorem vtF_evRead (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
     (hk : k < 157) :
-    LoadHolds rd (vtσ rd w args (.n 2609)) k (evs.getD k 0) ∧
+    LoadHolds rd (vtσ rd w args (.n 2625)) k (evs.getD k 0) ∧
       vtσ rd w args (.n (vtEvB k)) = evs.getD k 0 := by
   have heq := vtEval_check k hk
-  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2609) k) ∈ vtPre :=
+  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2625) k) ∈ vtPre :=
     vt_mem_slice (vtPre_drop _ ▸ heq) (by simp [vtEvalT, fsNextT, vtEvB])
-  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2609) (b := 157) hl vtF_loadsBelow (by simp) hcur hevl
+  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2625) (b := 157) hl vtF_loadsBelow (by simp) hcur hevl
     (vtEvL_mem hs (fun _ _ _ h ↦ by cases h))
   exact ⟨hm, hr (not_mem_vtSL vtF_noStore.2.1 _ _)⟩
 
@@ -101,7 +101,7 @@ theorem vtF_evRead (hl : args.length = 20) {evs : List E}
 
 /-- Table `t`'s weight block's statements evaluation does not settle. -/
 def vtAirRest (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 2500) (.n (vtAirX t)) (.n (vtTauV t))),
+  [.atom (.mul (.n 2516) (.n (vtAirX t)) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
@@ -109,16 +109,16 @@ theorem vtAirT_rest : ∀ t < 6,
     tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
-theorem vtAirX_gt : ∀ t < 6, 2613 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
+theorem vtAirX_gt : ∀ t < 6, 2629 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
 
 /-- Table `t`'s weight block's equations: `x = g^n/g^τ`, the pointers `cprod·x`, `peq·g^τ`. -/
 theorem vtF_airGood (hl : args.length = 20) {t : ℕ} (ht : t < 6) :
     vtσ rd w args (.n (vtAirX t)) =
-        vtσ rd w args (.n 2500) * (vtσ rd w args (.n (vtTauV t)))⁻¹ ∧
+        vtσ rd w args (.n 2516) * (vtσ rd w args (.n (vtTauV t)))⁻¹ ∧
       vtσ rd w args (.n (vtAirX t + 1)) =
-        vtσ rd w args (.n 2592) * vtσ rd w args (.n (vtAirX t)) ∧
+        vtσ rd w args (.n 2608) * vtσ rd w args (.n (vtAirX t)) ∧
       vtσ rd w args (.n (vtAirX t + 3)) =
-        vtσ rd w args (.n 2613) * vtσ rd w args (.n (vtTauV t)) := by
+        vtσ rd w args (.n 2629) * vtσ rd w args (.n (vtTauV t)) := by
   have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ vtAirT_check t ht)
   obtain ⟨hx, hτx⟩ := vtAirX_gt t ht
   set σ := vtσ rd w args with hσ
@@ -136,9 +136,9 @@ theorem vtF_airGood (hl : args.length = 20) {t : ℕ} (ht : t < 6) :
 /-- **Table `t`'s weight block**: `g^n = x·g^τ`, and `cprod`, `peq` read at `x`, `g^τ`. -/
 theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
     (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t) {n : ℕ}
-    (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
-    (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2592)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2613)) j (pe j)) {t : ℕ} (ht : t < 6) :
+    (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
+    (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2608)) j (cp j))
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2629)) j (pe j)) {t : ℕ} (ht : t < 6) :
     ∀ s ∈ (vtAirT t).filter (fun s ↦ !autoB s),
       VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
@@ -158,7 +158,7 @@ theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
   intro s hs'
   simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false] at hs'
   rcases hs' with rfl | rfl | rfl
-  · show σ (.n 2500) = σ (.n (vtAirX t)) * σ (.n (vtTauV t))
+  · show σ (.n 2516) = σ (.n (vtAirX t)) * σ (.n (vtTauV t))
     rw [gd, hτ, mul_assoc, inv_mul_cancel₀ hτ0, mul_one]
   · have hm := hs _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
     have hS := not_mem_vtSL (vtF_noStore.2.2 t ht).1 (.n (vtAirX t + 2)) 0
@@ -171,9 +171,9 @@ theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
 /-- Table `t`'s weight pointers: `cprod·g^(n-τ)` and `peq·g^τ`. -/
 theorem vtF_airVals (hl : args.length = 20) {τs : ℕ → ℕ}
     (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t) {n : ℕ}
-    (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
-    vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 2592) * gen ^ (n - τs t) ∧
-      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 2613) * gen ^ τs t := by
+    (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
+    vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 2608) * gen ^ (n - τs t) ∧
+      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 2629) * gen ^ τs t := by
   have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
   obtain ⟨gd, gp, gq⟩ := vtF_airGood (rd := rd) (w := w) hl ht
   refine ⟨?_, by rw [gq, hτ]⟩
@@ -183,7 +183,7 @@ theorem vtF_airVals (hl : args.length = 20) {τs : ℕ → ℕ}
 
 /-- **Evaluation `k`'s read and limb check hold.** -/
 theorem vtF_ev (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
     (hk : k < 157) :
     ∀ s ∈ vtEvRest k, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   obtain ⟨hm, hb⟩ := vtF_evRead (w := w) hl hcur hevl hk
@@ -214,7 +214,7 @@ theorem vtF_permOut (hl : args.length = 20) {j : ℕ} (hj : j < 39) {i : ℕ} (h
 
 /-- **Permutation `j` holds**, on canonical carried capacity. -/
 theorem vtF_perm (hl : args.length = 20)
-    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2604 + i)))) {j : ℕ} (hj : j < 39) :
+    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2620 + i)))) {j : ℕ} (hj : j < 39) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args) (vtPermT j) := by
   have g := vt_goodAt (rd := rd) (w := w) hl _ _ (vtPerm_check j hj)
   simp only [vtPermT, keccakA, fixNe, GoodS] at g
@@ -248,15 +248,15 @@ theorem vtF_perm (hl : args.length = 20)
 /-- **The honest window**: on a memory holding the evaluations `evs` at the cursor, `fp_w`'s first
 14 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, the
 challenges' products `cp` and the equality prefix `pe` up to `n`, and a canonical carried
-capacity, every statement of `2672 ..< 6250` holds. -/
+capacity, every statement of `2688 ..< 6352` holds. -/
 theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 157 ≤ evs.length)
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs)
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs)
     {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 14 ≤ W.length)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
-    {n : ℕ} (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2592)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2613)) j (pe j))
-    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2604 + i)))) :
+    {n : ℕ} (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2608)) j (cp j))
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2629)) j (pe j))
+    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2620 + i)))) :
     ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo),
       VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   intro s hs

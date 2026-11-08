@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FData
 
-  The statements of the window `2672 ..< 6250` that evaluation alone does not settle, by kind:
+  The statements of the window `2688 ..< 6352` that evaluation alone does not settle, by kind:
   each evaluation's read and limb check, the permutations, and each table's weight division and
   two weight reads; the kernel checks that they and the reads of `fp_w` cover the window.
 -/
@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- The tables' weight blocks: positions and first values. -/
 def vtAirD : List (ℕ × ℕ) :=
-  [(2986, 2980), (3328, 3385), (3513, 3602), (3853, 4005), (4201, 4403), (6242, 6810)]
+  [(3002, 2996), (3344, 3401), (3529, 3618), (3869, 4021), (4217, 4419), (6344, 6914)]
 
 /-- Table `t`'s `g^τ`: the `kappa_base` frame variable `30 + t`. -/
 def vtTauV (t : ℕ) : ℕ := 30 + t
@@ -41,10 +41,10 @@ def vtAirX (t : ℕ) : ℕ := (vtAirD.getD t (0, 0)).2
 
 /-- Table `t`'s weight block. -/
 def vtAirT (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 2500) (.n (vtAirX t)) (.n (vtTauV t))),
-    .atom (.mul (.n (vtAirX t + 1)) (.n 2592) (.n (vtAirX t))),
+  [.atom (.mul (.n 2516) (.n (vtAirX t)) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 1)) (.n 2608) (.n (vtAirX t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
-    .atom (.mul (.n (vtAirX t + 3)) (.n 2613) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 3)) (.n 2629) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_check : ∀ t < 6,
@@ -53,7 +53,7 @@ theorem vtAirT_check : ∀ t < 6,
 
 /-- Evaluation `k`'s statements evaluation alone does not settle. -/
 def vtEvRest (k : ℕ) : List Stmt :=
-  [.atom (.load (.n (vtEvB k)) (.n 2609) k),
+  [.atom (.load (.n (vtEvB k)) (.n 2625) k),
     .atom (.assertInK (.n (vtEvB k + 3)) (.n (vtEvB k + 4)))]
 
 /-- A read of `fp_w`. -/
@@ -90,13 +90,13 @@ def vtFTags : List (ℕ × ℕ) :=
     32), (0, 132), (0, 133), (0, 134), (0, 135), (1, 33), (0, 136), (0, 137), (0, 138), (0,
     139), (1, 34), (0, 140), (0, 141), (0, 142), (0, 143), (1, 35), (0, 144), (0, 145), (0,
     146), (0, 147), (1, 36), (0, 148), (0, 149), (0, 150), (0, 151), (1, 37), (0, 152), (0,
-    153), (0, 154), (0, 155), (1, 38), (0, 156), (3, 5)]
+    153), (0, 154), (0, 155), (1, 38), (0, 156), (0, 157), (0, 158), (3, 5)]
 
 theorem vtF_cover : tbStmtsEqb (((vtPre.drop vtFLo).take (vtFHi - vtFLo)).filter
     (fun s ↦ !(autoB s || rdFpw s))) (vtFTags.flatMap vtFTagT) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem vtFTags_spec : ∀ q ∈ vtFTags, (q.1 = 0 ∧ q.2 < 157) ∨ (q.1 = 1 ∧ q.2 < 39) ∨
+theorem vtFTags_spec : ∀ q ∈ vtFTags, (q.1 = 0 ∧ q.2 < 159) ∨ (q.1 = 1 ∧ q.2 < 39) ∨
     (q.1 = 3 ∧ q.2 < 6) := by
   decide +kernel
 

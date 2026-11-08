@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `769 ..< 2573` (the bus sides, G:2257-2422) hold on the honest
+  `verify_tables`' statements `769 ..< 2589` (the bus sides, G:2257-2422) hold on the honest
   valuation.
 -/
 
@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Selectors.IndexMleComplete
 words at the cursor. `VtBHyp`: what the range needs of the memory, the oracle and the earlier
 statements (`vtS_complete` gives the latter).
 
-`vtB_complete`: every statement of `769 ..< 2573` holds; the block selectors, the framework
+`vtB_complete`: every statement of `769 ..< 2589` holds; the block selectors, the framework
 words and the three bus totals are the honest ones (`vtAcc0/1/2`, as `vt_asm_totals`); every
 load reads inside the buffers `vtBufsB`.
 -/
@@ -130,12 +130,12 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   /-- The bytecode's size. -/
   hbc : D.bc.length = 2 ^ 23
 
-theorem vtB_loads_check : ((vtPre.drop 769).take 1804).all (fun s ↦ match s with
+theorem vtB_loads_check : ((vtPre.drop 769).take 1820).all (fun s ↦ match s with
     | .atom (.load _ p off) => vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
 /-- **Every load of the bus sides reads inside `vtBufsB`.** -/
-theorem vtB_loadsInBuf (σ : Val) : LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 769).take 1804) := by
+theorem vtB_loadsInBuf (σ : Val) : LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 769).take 1820) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
   simp only [List.any_eq_true, Bool.and_eq_true, decide_eq_true_eq] at this
