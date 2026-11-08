@@ -42,16 +42,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 /-! ## Positions -/
 
 /-- **The hinted pair of FORS tree `c`'s level `z`** (`z < 10`, the children of the node at
-height `z + 1`): after the tree's secret, its leaf's address and the leaf's hash (21 values), the
+height `z + 1`): after the tree's secret, its leaf's address and the leaf's hash (9 values), the
 levels below, level `j` taking `forsLevelW c j` values (its parent's address `forsAtW c (j + 1)`,
 which depends on the tree's place). -/
-def sForsKid (c z : Nat) : Nat := sForsBase c + 21 + ((List.range z).map (forsLevelW c)).sum
+def sForsKid (c z : Nat) : Nat := sForsBase c + 9 + ((List.range z).map (forsLevelW c)).sum
 
 /-- **The hinted pair of layer `l`'s path level `j`**, after the counter (37 values), `enc_at` (2),
-the encoding (20) and the leaf: a level takes 25 values, the top layer's level `0` 28 (its parent's
-index two bytes), the root's level 22. -/
+the encoding (8) and the leaf: a level takes 13 values, the top layer's level `0` 16 (its parent's
+index two bytes), the root's level 10. -/
 def sPathKid (l j : Nat) : Nat :=
-  sLayerBase l + 60 + 25 * j + (if l = 2 ∧ 0 < j then 3 else 0)
+  sLayerBase l + 48 + 13 * j + (if l = 2 ∧ 0 < j then 3 else 0)
 
 /-! ## Reading the values -/
 

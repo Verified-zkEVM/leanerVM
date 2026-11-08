@@ -125,13 +125,13 @@ theorem sForsSib_eq (bit : Nat → V) (c : Nat) :
 
 /-- The FORS siblings at `SphincsSig`'s positions. -/
 theorem sForsPos_kid : ∀ c < 24, ∀ z < 10,
-    sForsPos c 10 0 (forsTreeBase 1405 c + forsLeafWidth c) z = sForsKid c z := by decide +kernel
+    sForsPos c 10 0 (forsTreeBase 1382 c + forsLeafWidth c) z = sForsKid c z := by decide +kernel
 
 /-- The FORS secrets at `SphincsSig`'s positions. -/
-theorem forsTreeBase_eq : ∀ c < 24, forsTreeBase 1405 c = sForsBase c := by decide +kernel
+theorem forsTreeBase_eq : ∀ c < 24, forsTreeBase 1382 c = sForsBase c := by decide +kernel
 
 /-- The FORS key's output. -/
-theorem sForsB_out : sForsB.2.2 = 8443 := by decide +kernel
+theorem sForsB_out : sForsB.2.2 = 5248 := by decide +kernel
 
 /-! ## The FORS key -/
 
@@ -140,7 +140,7 @@ theorem sForsB_out : sForsB.2.2 = 8443 := by decide +kernel
 theorem forsKey_cells (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sForsB.1) :
     σ sForsPk = (hcell ([σ sPP, σ sA0B, σ sKeyB + lit (4 * 2 ^ 24)] ++ (List.range 24).map fun c =>
       fRootE (σ sPP) (σ sA0B) (σ sKeyB + lit (3 * 2 ^ 24)) c (forsLeafN T c)
-        (σ (.n (forsTreeBase 1405 c))) (forsSib σ sForsBit 1405 c))).1 := by
+        (σ (.n (forsTreeBase 1382 c))) (forsSib σ sForsBit 1382 c))).1 := by
   have hbit : ∀ c < 24, ∀ z < 10,
       σ (sForsBit (10 * c + z)) = if (forsLeafN T c).testBit z then 1 else 0 := by
     intro c hc z hz
@@ -155,12 +155,12 @@ theorem forsKey_cells (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) (h : A
       unfold sVals; congr 1 <;> omega
     rw [e]
     exact hD.2.2.1 c hc j hj
-  have hout : sForsPk = .n (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1405).2.2 := by
-    rw [show (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1405).2.2 = sForsB.2.2 from rfl, sForsB_out]
+  have hout : sForsPk = .n (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).2.2 := by
+    rw [show (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).2.2 = sForsB.2.2 from rfl, sForsB_out]
     rfl
   rw [hout]
   exact sForsBlock_sound (rd := rd) hp (pp := sPP) (a0 := sA0B) (key := sKeyB) (bit := sForsBit)
-    (val := sVals) (b0 := 1405) (s := fun c => forsLeafN T c) (fun c _ => forsLeafN_lt T c) hbit hval h
+    (val := sVals) (b0 := 1382) (s := fun c => forsLeafN T c) (fun c _ => forsLeafN_lt T c) hbit hval h
 
 /-- `fors_pkFromSig` in `Id`: `T_k` of the trees' roots. -/
 theorem forsRecover_id (P : PublicParameter) (idx : Index) (leaves : ForsTreeIndex → ForsLeafIndex)
@@ -195,12 +195,12 @@ theorem forsKey_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T)
       Id.run (forsTreeRecover (m := Id) keccakF1600 (cellVal (σ sPP)) (digestIndex (digestOf T)) c
           (digestForsLeaves (digestOf T) c) (sForsOpeningOf σ c.val)) =
         cellVal (fRootE (σ sPP) (σ sA0B) (σ sKeyB + lit (3 * 2 ^ 24)) c.val (forsLeafN T c.val)
-          (σ (.n (forsTreeBase 1405 c.val))) (forsSib σ sForsBit 1405 c.val)) := by
+          (σ (.n (forsTreeBase 1382 c.val))) (forsSib σ sForsBit 1382 c.val)) := by
     intro c
     have hc : c.val < 24 := c.isLt
-    rw [forsTreeRecover_cells (σ sPP) (σ sA0B) (σ (.n (forsTreeBase 1405 c.val)))
+    rw [forsTreeRecover_cells (σ sPP) (σ sA0B) (σ (.n (forsTreeBase 1382 c.val)))
       (digestIndex (digestOf T)) c (digestForsLeaves (digestOf T) c) (sForsOpeningOf σ c.val)
-      (forsSib σ sForsBit 1405 c.val) (by rw [hA0, h0])
+      (forsSib σ sForsBit 1382 c.val) (by rw [hA0, h0])
       (by rw [forsTreeBase_eq c.val hc]; rfl)
       (fun z => by
         have hz : z.val < 10 := z.isLt

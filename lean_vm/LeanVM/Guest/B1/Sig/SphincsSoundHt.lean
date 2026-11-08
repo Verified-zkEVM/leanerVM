@@ -225,7 +225,7 @@ theorem sPathSib_eq (bit : Nat → V) (off : Nat) :
 
 /-- The layers' siblings at `SphincsSig`'s positions. -/
 theorem sPathPos_layer : ∀ l < 3, ∀ j < sHeightOf l,
-    sPathPos (sHeightOf l) 0 (sLayerBase l + 60) j = sPathKid l j := by decide +kernel
+    sPathPos (sHeightOf l) 0 (sLayerBase l + 48) j = sPathKid l j := by decide +kernel
 
 /-- **A layer's path, sound**: the bits of the layer's leaf `layerLeafN T l` and its shifts as the
 digest block gives them, the root is `pFold` of `pNodeE` from the leaf `sp_wots` returns. -/
@@ -296,7 +296,7 @@ theorem layer_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {Vm : Fram
     refine htTreeFold_cells _ _ _ _ _ _ _ _ (by unfold sHeightOf; have := sLeafLen_le (l := l.val); omega)
       fun j hj => ?_
     rw [sPathSib_eq sLeafBit _ _ 0 _ j (by omega) (by omega), eK.2,
-      show sLayerBase l.val + 59 + 1 = sLayerBase l.val + 60 by omega,
+      show sLayerBase l.val + 47 + 1 = sLayerBase l.val + 48 by omega,
       sPathPos_layer l.val hl3 j hj]
     simp only [layerPath, show j < layerHeight l by rw [hh]; exact hj, ↓reduceDIte, sphincsSigOf,
       sLayerOf]

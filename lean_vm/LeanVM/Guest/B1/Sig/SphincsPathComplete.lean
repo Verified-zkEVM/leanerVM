@@ -85,10 +85,10 @@ theorem kNode_complete {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (σ : Val) (h
       (fun _ => True) := by
   have hs : SeqOK y [cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
       cst (y + 3) (word (2 ^ 63) 0 0)] (y + 4) := ⟨rfl, rfl, rfl, rfl, rfl⟩
-  show Completes C rd y (y + 17) ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0),
+  show Completes C rd y (y + 5) ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0),
     cst (y + 2) (word 0 0 0), cst (y + 3) (word (2 ^ 63) 0 0)] ++
     [kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
-      .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV (y + 4) 13) false false]) σ _
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV (y + 4) 1) false false]) σ _
   refine Completes.seqThen hs (by omega) (fun σ1 he1 hA1 => ?_)
   have hag : AgreeBelow y σ σ1 := he1.agree
   have hp1 : PadOK σ1 pad := hp.congr hpy hag
@@ -106,7 +106,7 @@ theorem kNode_complete {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (σ : Val) (h
   have e4 := hv k1 (by simp)
   have hk := kecS_complete (C := C) (rd := rd) σ1 (o := y + 4)
     (ins := [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
-      .n (pad + 2), .n (pad + 3), .n (pad + 4)]) rfl
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)]) (.inl rfl) rfl
     (by
       simp only [List.mem_cons, List.not_mem_nil, or_false]
       rintro v (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl)
@@ -136,7 +136,7 @@ theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x
     {bt : Bool} (hbv : σ bit = if bt then 1 else 0) {sib : E} (hsib : IsCanonical128 sib)
     (hcc : IsCanonical128 (σ cur)) (hppc : IsCanonical128 (σ pp)) (ha0c : IsCanonical128 (σ a0))
     (hac : ∀ σ', AgreeBelow x σ σ' → AtomsHold rd σ' addr → IsCanonical128 (σ' adr)) :
-    Completes C rd x (y + 17)
+    Completes C rd x (y + 5)
       ([hintW name [.n x, .n (x + 1)]] ++ isChildS cur (.n x) (.n (x + 1)) bit (x + 2) ++ addr ++
         (kNode pad pp a0 adr (.n x) (.n (x + 1)) y).1) σ
       (fun σ' => AgreeBelow x σ σ' ∧ σ' (.n x) = (mPair bt (σ cur) sib).1 ∧
@@ -214,10 +214,10 @@ theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x
 
 /-- The values of a Keccak message, below its next base. -/
 theorem kMsg_nb {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
-    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) :
-    NumBelow (kMsg pad cells len tailRun none b).2.1
-        (Stmt.valsList (kMsg pad cells len tailRun none b).1) ∧
-      b ≤ (kMsg pad cells len tailRun none b).2.1 := by
+    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) (n : Nat := 1) :
+    NumBelow (kMsg pad cells len tailRun none b n).2.1
+        (Stmt.valsList (kMsg pad cells len tailRun none b n).1) ∧
+      b ≤ (kMsg pad cells len tailRun none b n).2.1 := by
   rw [kMsg_eq]
   dsimp only
   set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero
@@ -233,17 +233,18 @@ theorem kMsg_nb {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : 
     (b := x1.2.2) a2
   set x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2 with hx2
   have hs := SeqOK.append a1 b1
-  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len)
-    (tailRun := tailRun) (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
+  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (n := n)
+    (tailRun := tailRun) (kBlocksOf len) 0 none x2.2.2 (by omega) (by omega) b2
+    (fun s hs => by simp at hs)
   exact ⟨by rw [valsList_append]; exact (hs.numBelow.mono n2).append n1, by omega⟩
 
 theorem kNode_numBelow {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (hpad : pad + 5 ≤ y)
     (h : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v) :
-    NumBelow (y + 17) (Stmt.valsList (kNode pad pp a0 adr k0 k1 y).1) := by
+    NumBelow (y + 5) (Stmt.valsList (kNode pad pp a0 adr k0 k1 y).1) := by
   intro v hv
   simp only [kNode, cst, kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals,
     List.append_nil, List.cons_append, List.nil_append, List.mem_cons] at hv
-  have hr : ∀ w ∈ runV (y + 4) 13, NBv (y + 17) w := runV_nb (by omega)
+  have hr : ∀ w ∈ runV (y + 4) 1, NBv (y + 5) w := runV_nb (by omega)
   have h0 := h pp (by simp)
   have h1 := h a0 (by simp)
   have h2 := h adr (by simp)
@@ -303,7 +304,7 @@ theorem sPath_le (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
       rw [sPath_succ]
       dsimp only
       refine le_trans ?_ (sPath_le pad pp a0 bit val off m (z + 1)
-        (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) ((sPathAddr val off z m (x + 4)).2.1 + 17))
+        (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) ((sPathAddr val off z m (x + 4)).2.1 + 5))
       rw [sPathAddr_next]
       unfold pathWidth
       split_ifs <;> omega
@@ -343,7 +344,7 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
             (by rw [show z + 1 + m = height by omega]; exact he)
             (fun j _ hj => by rw [hag.apply (hvn j (by omega))]; exact hval j (by omega)) hAt]
           exact canon_word _ _)
-      have hnb : NumBelow (A.2.1 + 17) (Stmt.valsList ([hintW "siblings" [.n x, .n (x + 1)]] ++
+      have hnb : NumBelow (A.2.1 + 5) (Stmt.valsList ([hintW "siblings" [.n x, .n (x + 1)]] ++
           isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2) ++ A.1 ++
           (kNode pad pp a0 A.2.2 (.n x) (.n (x + 1)) A.2.1).1)) := by
         have hle := hseqA.le
@@ -368,9 +369,9 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
           · exact ⟨x, by omega, rfl⟩
           · exact ⟨x + 1, by omega, rfl⟩
       have hle := hseqA.le
-      have hx18 : x + pathWidth m = A.2.1 + 17 := by
+      have hx18 : x + pathWidth m = A.2.1 + 5 := by
         rw [hnext]; unfold pathWidth; split_ifs <;> omega
-      refine Completes.append (m := A.2.1 + 17) (by omega)
+      refine Completes.append (m := A.2.1 + 5) (by omega)
         (sPath_le pad pp a0 bit val off m (z + 1) _ _) hnb (hlev.withAtoms (by
           simp only [atomsOnly_append, hseqA.atoms, kNode]; rfl)) (fun σ1 he1 h1 => ?_)
       obtain ⟨⟨hag1, hk0, hk1⟩, hA1⟩ := h1
@@ -381,7 +382,7 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
       have hlv := level_sound hp1 hib1
         (hA1.left.left.sub fun t ht => List.mem_append_right _ ht) hA1.right
       have hcan1 : IsCanonical128 (σ1 (.n (A.2.1 + 4))) := by rw [hlv]; exact canon_hcellFst _
-      have ih := sPath_complete hh he hsib m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 17)
+      have ih := sPath_complete hh he hsib m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 5)
         σ1 (by omega) (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega))
         (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
         ⟨A.2.1 + 4, by omega, rfl⟩ hp1 (by rw [t1 _ hpp]; exact hppc) (by rw [t1 _ ha0]; exact ha0c)

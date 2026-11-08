@@ -70,7 +70,7 @@ theorem sLayerAt_eq (l : Nat) (a0 a1 signed : V) :
 at `sCtrOf l`. -/
 theorem sLayerK_out (l : Nat) (a0 signed : V) :
     (sLayerK l a0 signed).2.2 = sLayerBase l + 46 ∧
-      (sLayerK l a0 signed).2.1 = sLayerBase l + 59 := by
+      (sLayerK l a0 signed).2.1 = sLayerBase l + 47 := by
   constructor <;> rfl
 
 theorem sLayerCtr_out (l : Nat) :

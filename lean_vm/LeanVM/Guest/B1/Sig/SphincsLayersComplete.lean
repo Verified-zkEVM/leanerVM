@@ -86,14 +86,14 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
   rw [(kEnc_shape ..).1] at hkn
   have hs1 : SeqOK b [cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] (b + 2) :=
     ⟨rfl, ⟨rfl, hkey.mono' (by omega), ⟨b, by omega, rfl⟩⟩, rfl⟩
-  have hpre_nb : NumBelow (b + 22) (Stmt.valsList (layerPre pad pp a0 key signed ctr b)) := by
+  have hpre_nb : NumBelow (b + 10) (Stmt.valsList (layerPre pad pp a0 key signed ctr b)) := by
     simp only [layerPre, valsList_append]
     exact (hs1.numBelow.mono (by omega)).append hkn
-  have hpath_le := sPath_le pad pp a0 bit val off height 0 (.n (b + 22)) (b + 23)
+  have hpath_le := sPath_le pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)
   -- the encoding
-  have hpre : Completes C rd b (b + 22) (layerPre pad pp a0 key signed ctr b) σ
+  have hpre : Completes C rd b (b + 10) (layerPre pad pp a0 key signed ctr b) σ
       (fun σ' => AgreeBelow b σ σ' ∧ σ' (.n (b + 9)) = encOf (σ pp) (σ a0) (σ key) (σ signed) N) := by
-    have h := Completes.seqThen (C := C) (rd := rd) (Q := fun _ => True) hs1 (hi := b + 22)
+    have h := Completes.seqThen (C := C) (rd := rd) (Q := fun _ => True) hs1 (hi := b + 10)
       (by omega) (fun σ1 he1 hA1 => by
         have hag1 : AgreeBelow b σ σ1 := he1.agree
         have a1 : σ1 (.n (b + 1)) = σ1 key + σ1 (.n b) :=
@@ -118,10 +118,10 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
     have t : ∀ v, NBv b v → σ' v = σ v := fun v hv => he'.agree.apply hv
     rw [sLayerEnc_sound (hp.congr hpb he'.agree) hN (by rw [t _ hct]; exact hctr) hA, t _ hpp,
       t _ ha0, t _ hkey, t _ hsg, encOf]
-  refine Completes.append (m := b + 22) (by omega) (by omega) hpre_nb hpre
+  refine Completes.append (m := b + 10) (by omega) (by omega) hpre_nb hpre
     (fun σ1 he1 ⟨hag1, henc⟩ => ?_)
   have t1 : ∀ v, NBv b v → σ1 v = σ v := fun v hv => hag1.apply hv
-  refine Completes.append (m := b + 23) (by omega) (by omega)
+  refine Completes.append (m := b + 11) (by omega) (by omega)
     (by simp only [valsList_cons, valsList_nil, Stmt.vals, List.append_nil]
         intro v hv
         simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hv
@@ -130,7 +130,7 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
         · exact ha0.mono' (by omega)
         · exact hkey.mono' (by omega)
         · exact ⟨b + 9, by omega, rfl⟩
-        · exact ⟨b + 22, by omega, rfl⟩)
+        · exact ⟨b + 10, by omega, rfl⟩)
     (call_complete σ1 leaf (by
         intro v hv
         simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
@@ -141,13 +141,13 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
         · exact ⟨b + 9, by omega, rfl⟩)
       (by simp only [List.map_cons, List.map_nil, t1 _ hpp, t1 _ ha0, t1 _ hkey, henc]; exact hcall))
     (fun σ2 he2 hl2 => ?_)
-  have hag2 : AgreeBelow (b + 22) σ1 σ2 := he2.agree
+  have hag2 : AgreeBelow (b + 10) σ1 σ2 := he2.agree
   have t2 : ∀ v, NBv b v → σ2 v = σ v := fun v hv =>
     (hag2.apply (hv.mono' (by omega))).trans (t1 v hv)
   have hpv := sPath_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (bit := bit)
-    (val := val) (off := off) hh he hsib (cur := .n (b + 22)) (x := b + 23) σ2 (by omega)
+    (val := val) (off := off) hh he hsib (cur := .n (b + 10)) (x := b + 11) σ2 (by omega)
     (hpp.mono' (by omega)) (ha0.mono' (by omega)) (fun j hj => (hbn j hj).mono' (by omega))
-    (fun j hj => (hvn j hj).mono' (by omega)) ⟨b + 22, by omega, rfl⟩
+    (fun j hj => (hvn j hj).mono' (by omega)) ⟨b + 10, by omega, rfl⟩
     (hp.congr hpb fun j hj => by rw [t2 (.n j) ⟨j, hj, rfl⟩])
     (by rw [t2 _ hpp]; exact hppc) (by rw [t2 _ ha0]; exact ha0c) (by rw [hl2]; exact hlc)
     (fun j hj => by rw [t2 _ (hbn j hj)]; exact hbit j hj)
