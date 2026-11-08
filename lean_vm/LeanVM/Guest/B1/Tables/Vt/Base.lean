@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 /-!
 # `verify_tables`' body (TRIAGE G #52)
 
-`verify_tables` (G:2137-2563) is one function of 6399 statements, stored as 17 chunks
+`verify_tables` (G:2109-2535) is one function of 6399 statements, stored as 17 chunks
 (`Data.core11.c0 .. c16`, the last ending in its `ret`). Its soundness reads each fact it needs off
 a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read against
 the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.AsmRun
 
 /-!
-# The column claims (G:2297-2331, 2444-2462, 2549-2563)
+# The column claims (G:2269-2303, 2416-2434, 2521-2535)
 
 `vtAllClaims`: the claims `tablesSeg` returns on the layout of the announced sizes, with the
 evaluations `vtEvsC σ` read table by table. `vt_tab_claims`: the tables' claims, through
@@ -161,7 +161,7 @@ theorem vt_claimColumns :
 theorem vt_tabOf_lt' (k : ℕ) : vtTabOf k < 6 := by
   unfold vtTabOf; split_ifs <;> omega
 
-/-- The tables' claims' kappa sources: claim `5 + k` is table `vtTabOf k`'s height (G:341-342). -/
+/-- The tables' claims' kappa sources: claim `5 + k` is table `vtTabOf k`'s height (G:340-341). -/
 theorem vt_claimKappa_tab : ∀ k < 159, claimKappaSrc.getD (5 + k) 0 = vtTabOf k + 2 ∧
     claimKappaAdj (5 + k) = 0 := by decide +kernel
 

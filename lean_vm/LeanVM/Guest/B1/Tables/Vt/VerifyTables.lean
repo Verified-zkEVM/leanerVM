@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmFinal
 public import LeanVM.Guest.B1.Tables.Vt.AsmClaims
 
 /-!
-# `verify_tables_holds` (G:2137-2563)
+# `verify_tables_holds` (G:2109-2535)
 
 For a bytecode of `2^23` words and a memory image of at most `2^32` words: the row counts are
 the ones `table_rows` holds, their heights the ones `dims_g` holds; from the carried capacity,

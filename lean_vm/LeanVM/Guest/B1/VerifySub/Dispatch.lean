@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Dispatch
 
-  `verify_sub`'s dispatch to `open_stacked` (G:3521-3527), with the opening's witness.
+  `verify_sub`'s dispatch to `open_stacked` (G:3493-3499), with the opening's witness.
 -/
 
 module
@@ -54,7 +54,7 @@ theorem candidate_lt {μ r : ℕ} (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r �
     B1.Whir.candidate μ r < 28 := by
   unfold B1.Whir.candidate; omega
 
-/-- **The dispatch** (G:3521-3527): the fused `match` on `g^candidate` calls the candidate's
+/-- **The dispatch** (G:3493-3499): the fused `match` on `g^candidate` calls the candidate's
 specialization of `open_stacked`, whose returns are `OpenOutW` at the witness. -/
 theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
     {osW : ℕ → List E → List E → List E × List (List Opening)} (hos : OsSoundW C rd osW) {μ r : ℕ}
