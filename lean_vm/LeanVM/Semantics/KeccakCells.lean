@@ -17,7 +17,8 @@ public import Statement.Fast.FieldWords
 # The cells of `KECCAK`
 
 `KECCAK` reads thirteen cells holding a Keccak state, two lanes to a cell, in one of two layouts
-(`cellLanes`), and writes thirteen (`Statement.LeanIsa`). This module names the cells holding given
+(`cellLanes`), and writes the first one, two or thirteen of the thirteen cells of the
+permutation (`Statement.LeanIsa`). This module names the cells holding given
 lanes in a layout (`laneCells`: a limb holding no lane reads `free`), and proves the three facts
 the arithmetization needs:
 
@@ -115,12 +116,19 @@ theorem laneCells_stateOfCells {cells : Fin 13 → E} (hc : ∀ c, IsCanonical12
 /-- **The deployed check implies the reduction-blind one**: the cells Keccak-f writes are
 canonical with their free limb zero. -/
 theorem canonicalKeccak_of_keccakCells {input output : Fin 13 → E} {inOdd outOdd : Bool}
-    (h : KeccakCellsRelation input inOdd output outOdd) : CanonicalKeccak input inOdd output outOdd := by
-  have ho : output = laneCells (stateLanes (keccakF1600 (stateOfCells input inOdd))) outOdd 0 := by
-    funext c; rw [h.2 c, cellsOfState_eq_laneCells]
-  refine ⟨h.1, fun c ↦ ?_, ?_⟩
-  · rw [ho]; show (E.ofLimbs _ _ 0).limb 2 = 0; rw [limb_ofLimbs]; rfl
-  · rw [ho]; cases outOdd <;> simp [FreeLimbZero, laneCells, cellLanes, laneLimb, limb_ofLimbs]
+    {outCells : KeccakOutputCells} (h : KeccakCellsRelation input inOdd output outOdd outCells) :
+    CanonicalKeccak input inOdd output outOdd outCells := by
+  have ho : ∀ c : Fin 13, c.val < outCells.cellCount →
+      output c = laneCells (stateLanes (keccakF1600 (stateOfCells input inOdd))) outOdd 0 c := by
+    intro c hc; rw [h.2 c hc, cellsOfState_eq_laneCells]
+  have h0 : 0 < outCells.cellCount := by cases outCells <;> decide
+  refine ⟨h.1, fun c hc ↦ ?_, ?_⟩
+  · rw [ho c hc]; show (E.ofLimbs _ _ 0).limb 2 = 0; rw [limb_ofLimbs]; rfl
+  · cases outOdd
+    · intro h8
+      rw [ho 8 h8]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
+    · show (output 0).limb 0 = 0
+      rw [ho 0 h0]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
 
 /-! ## Segments of the permutation -/
 
@@ -203,15 +211,110 @@ theorem readCells_eq_some_iff (read : K → Option E) (fp : K) (offset : Fin 13 
   rw [readCells_fold_eq_some_iff]
   simp [List.mem_finRange]
 
-/-- **`execute` of a `KECCAK`**: the thirteen cells read and the thirteen written exist, and the
-relation holds of them; the successor is the next instruction. -/
+/-- The fold of `readFirstCells` over a list of cells: it succeeds with `f` exactly when every
+cell of the list below `n` reads `f` of it, and `f` is zero at every other cell. -/
+theorem readFirstCells_fold_eq_some_iff (read : K → Option E) (fp : K) (offset : Fin 13 → K)
+    (n : ℕ) : ∀ (cs : List (Fin 13)) (f : Fin 13 → E),
+      cs.foldr (fun c (acc : Option (Fin 13 → E)) ↦ if c.val < n then (do
+          let v ← read (fp * offset c)
+          let rest ← acc
+          pure fun c' ↦ if c' = c then v else rest c' : Option (Fin 13 → E)) else acc)
+          (some fun _ ↦ 0) = some f ↔
+        (∀ c ∈ cs, c.val < n → read (fp * offset c) = some (f c)) ∧
+          ∀ c, (c ∈ cs → n ≤ c.val) → f c = 0
+  | [], f => by
+    simp only [List.foldr_nil, Option.some.injEq, List.not_mem_nil, implies_true, true_and,
+      IsEmpty.forall_iff, forall_const]
+    constructor
+    · rintro rfl c; rfl
+    · intro h; funext c; exact (h c).symm
+  | c :: cs, f => by
+    rw [List.foldr_cons]
+    by_cases hcn : c.val < n
+    · simp only [hcn, ↓reduceIte]
+      constructor
+      · intro h
+        simp only [Option.bind_eq_bind, Option.bind_eq_some_iff, Option.pure_def,
+          Option.some.injEq] at h
+        obtain ⟨v, hv, g, hg, rfl⟩ := h
+        obtain ⟨hg1, hg2⟩ := (readFirstCells_fold_eq_some_iff read fp offset n cs g).mp hg
+        refine ⟨?_, ?_⟩
+        · intro c' hc' hn'
+          by_cases hcc : c' = c
+          · subst hcc; simpa using hv
+          · simp only [hcc, ↓reduceIte]
+            exact hg1 c' ((List.mem_cons.mp hc').resolve_left hcc) hn'
+        · intro c' hc'
+          have hne : c' ≠ c := fun h ↦ absurd (hc' (h ▸ List.mem_cons_self)) (by omega)
+          simp only [hne, ↓reduceIte]
+          exact hg2 c' fun h ↦ hc' (List.mem_cons_of_mem _ h)
+      · rintro ⟨h1, h2⟩
+        have hv := h1 c List.mem_cons_self hcn
+        let g : Fin 13 → E := fun c' ↦ if c' ∈ cs ∧ c'.val < n then f c' else 0
+        have hg : cs.foldr (fun c (acc : Option (Fin 13 → E)) ↦ if c.val < n then (do
+            let v ← read (fp * offset c)
+            let rest ← acc
+            pure fun c' ↦ if c' = c then v else rest c' : Option (Fin 13 → E)) else acc)
+            (some fun _ ↦ 0) = some g := by
+          refine (readFirstCells_fold_eq_some_iff read fp offset n cs g).mpr ⟨?_, ?_⟩
+          · intro c' hc' hn'
+            simp only [g, hc', hn', and_self, ↓reduceIte]
+            exact h1 c' (List.mem_cons_of_mem _ hc') hn'
+          · intro c' hc'
+            simp only [g]
+            split_ifs with hm
+            · exact absurd (hc' hm.1) (by omega)
+            · rfl
+        simp only [Option.bind_eq_bind, Option.pure_def] at hg ⊢
+        rw [hv, Option.bind_some, hg, Option.bind_some, Option.some.injEq]
+        funext c'
+        by_cases hcc : c' = c
+        · subst hcc; simp
+        · simp only [hcc, ↓reduceIte, g]
+          split_ifs with hm
+          · rfl
+          · refine (h2 c' fun h ↦ ?_).symm
+            rcases List.mem_cons.mp h with h | h
+            · exact absurd h hcc
+            · by_contra hlt; exact hm ⟨h, by omega⟩
+    · simp only [hcn, ↓reduceIte]
+      rw [readFirstCells_fold_eq_some_iff read fp offset n cs f]
+      constructor
+      · rintro ⟨h1, h2⟩
+        refine ⟨fun c' hc' hn' ↦ ?_, fun c' hc' ↦ h2 c' fun h ↦ hc' (List.mem_cons_of_mem _ h)⟩
+        rcases List.mem_cons.mp hc' with rfl | h
+        · exact absurd hn' hcn
+        · exact h1 c' h hn'
+      · rintro ⟨h1, h2⟩
+        refine ⟨fun c' hc' hn' ↦ h1 c' (List.mem_cons_of_mem _ hc') hn', fun c' hc' ↦ h2 c' ?_⟩
+        intro h
+        rcases List.mem_cons.mp h with rfl | h
+        · omega
+        · exact hc' h
+
+/-- `readFirstCells` succeeds with `f` exactly when every cell below `n` reads `f` of it and `f` is
+zero at every cell from `n` on. -/
+theorem readFirstCells_eq_some_iff (read : K → Option E) (fp : K) (offset : Fin 13 → K) (n : ℕ)
+    (f : Fin 13 → E) :
+    readFirstCells read fp offset n = some f ↔
+      (∀ c : Fin 13, c.val < n → read (fp * offset c) = some (f c)) ∧
+        ∀ c : Fin 13, n ≤ c.val → f c = 0 := by
+  unfold readFirstCells
+  rw [readFirstCells_fold_eq_some_iff]
+  simp [List.mem_finRange]
+
+/-- **`execute` of a `KECCAK`**: the thirteen cells read and the first `outCells.cellCount` cells
+written exist, and the relation holds of them; the successor is the next instruction. A cell past
+them is not read. -/
 theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemoryImage κ) (r : Registers K) (om : Fin 4 → K)
-    (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (next : Registers K) :
-    execute mem r (.keccak om otail ob8 ocap oout inOdd outOdd) = some next ↔
+    (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)
+    (next : Registers K) :
+    execute mem r (.keccak om otail ob8 ocap oout inOdd outOdd outCells) = some next ↔
       ∃ input output : Fin 13 → E,
         (∀ c, mem.read (r.fp * keccakInputCellOffset om otail ob8 ocap c) = some (input c)) ∧
-        (∀ c : Fin 13, mem.read (r.fp * (g ^ c.val * oout)) = some (output c)) ∧
-        KeccakCellsRelation input inOdd output outOdd ∧ next = r.next := by
+        (∀ c : Fin 13, c.val < outCells.cellCount →
+          mem.read (r.fp * (g ^ c.val * oout)) = some (output c)) ∧
+        KeccakCellsRelation input inOdd output outOdd outCells ∧ next = r.next := by
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff]
   constructor
   · rintro ⟨input, hin, output, hout, u, hu, hn⟩
@@ -219,11 +322,16 @@ theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemoryImage κ) (r : Regist
     split_ifs at hu with hc
     simp only [Option.pure_def, Option.some.injEq] at hn
     exact ⟨input, output, (readCells_eq_some_iff _ _ _ _).mp hin,
-      (readCells_eq_some_iff _ _ _ _).mp hout, hc, hn.symm⟩
+      ((readFirstCells_eq_some_iff _ _ _ _ _).mp hout).1, hc, hn.symm⟩
   · rintro ⟨input, output, hin, hout, hc, rfl⟩
-    refine ⟨input, (readCells_eq_some_iff _ _ _ _).mpr hin, output,
-      (readCells_eq_some_iff _ _ _ _).mpr hout, (), ?_, rfl⟩
-    simp [guard, hc]
+    let output' : Fin 13 → E := fun c ↦ if c.val < outCells.cellCount then output c else 0
+    have hc' : KeccakCellsRelation input inOdd output' outOdd outCells :=
+      ⟨hc.1, fun c h ↦ by simp only [output', h, ↓reduceIte]; exact hc.2 c h⟩
+    refine ⟨input, (readCells_eq_some_iff _ _ _ _).mpr hin, output',
+      (readFirstCells_eq_some_iff _ _ _ _ _).mpr ⟨fun c h ↦ ?_, fun c h ↦ ?_⟩, (), ?_, rfl⟩
+    · simp only [output', h, ↓reduceIte]; exact hout c h
+    · simp only [output']; split_ifs <;> first | omega | rfl
+    · simp [guard, hc']
 
 end
 end LeanVM.Semantics
