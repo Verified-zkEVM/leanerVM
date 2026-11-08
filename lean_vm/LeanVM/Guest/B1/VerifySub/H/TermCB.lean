@@ -20,7 +20,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- The terminal's bound (`check_opening_terminal_completeAtB`'s). -/
 def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
   fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
-    (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
+    (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

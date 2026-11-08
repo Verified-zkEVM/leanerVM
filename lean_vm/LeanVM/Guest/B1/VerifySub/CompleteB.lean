@@ -27,7 +27,7 @@ public import LeanVM.Guest.B1.VerifySub.H.WhirLen
 `VsWords fs`: the words facts of `verify_sub`'s callees' pure callees, at the frame sizes `fs`
 (`TotalLe`, `TotalLeOn`), with their constants. `vsBs W Bvk`: the thirteen callees' bounds, in
 call order — the maxima over the honest children's depths (`vbgMax`, `vtMax`, `osMax`) where a
-callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8673 + (vsBs W Bvk).sum`: the
+callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8675 + (vsBs W Bvk).sum`: the
 frame, the own buffers (at most `8644 + 29` words) and the callees.
 
 `verify_sub_completeB`: on every honest child, `verify_sub` is `CompleteAtDTB … (fun _ ↦ True)
@@ -169,7 +169,7 @@ noncomputable def vsBsAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ)
 
 /-- **`verify_sub`'s bound**: its frame, its own buffers (`8644 + μ`, `μ ≤ 29`), its callees. -/
 noncomputable def vsBound {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : ℕ :=
-  fs "verify_sub" + 8673 + (vsBs W Bvk).sum
+  fs "verify_sub" + 8675 + (vsBs W Bvk).sum
 
 /-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAt` bounded). -/
 def VkCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=

@@ -64,7 +64,7 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- The output lanes' values. -/
-noncomputable def outs : List E := (S.H.poolW.drop 110).take 25
+noncomputable def outs : List E := (S.H.poolW.drop 112).take 25
 
 /-- `chi`'s words: the table sumcheck's challenges, last first. -/
 noncomputable def chis : List E := S.H.chiW

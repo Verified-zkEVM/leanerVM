@@ -210,7 +210,7 @@ def ccTs (n : ℕ) : List (Tree → Prop) := [fun _ => True, anyHonest n]
 /-- The nonempty list's valuation, written out (the hint `child_mono = 0`). -/
 noncomputable def ccEσ (eP rg L n : ℕ) (base : E) (D : Digest) : Val :=
   B1.Val.ofArgs [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n, word 1 0 0, gen ^ n + word 1 0 0,
-    0, 0, 0, 0, 0, 0, (digestHalves D).1, (digestHalves D).2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, (digestHalves D).1, (digestHalves D).2,
     gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17), 0, word 2 0 0, 0 + word 2 0 0, 0, 0,
     (digestHalves D).1, (digestHalves D).2, (digestHalves D).1, (digestHalves D).2]
 

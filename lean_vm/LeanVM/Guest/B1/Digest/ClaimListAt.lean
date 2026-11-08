@@ -242,7 +242,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   have mH : ∀ s ∈ clHead, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
   have mP : ∀ s ∈ clElsePre, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
   have mT : ∀ s ∈ clTail, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
-  have mF : ∀ i < 19, Stmt.atom (.hint (.alloc (.n (4 + i)) 0)) ∈ clEEval := fun i hi => by
+  have mF : ∀ i < 8, Stmt.atom (.hint (.alloc (.n (4 + i)) 0)) ∈ clEEval := fun i hi => by
     unfold clEEval
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (List.mem_map.mpr ⟨i, List.mem_range.mpr (by omega), rfl⟩)))
@@ -259,7 +259,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
       | allocDyn d s =>
         simp only [decide_eq_true_eq] at hp
         subst hp
-        have hga' : σ (.n 23) = w 34 := hga
+        have hga' : σ (.n 23) = w 23 := hga
         rw [hga', w34]
       | _ => simp at hp
     | _ => simp at hp
