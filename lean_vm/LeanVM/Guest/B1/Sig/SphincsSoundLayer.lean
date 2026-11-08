@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundFors
 # A layer, sound
 
 `sHtLayer … b` is `layerPre … b` (`enc_at` at `b + 1`, the encoding's `keccak`, its output at
-`b + 9`), the call of `sp_wots` (its leaf at `b + 22`), then the path from `b + 23`
+`b + 9`), the call of `sp_wots` (its leaf at `b + 10`), then the path from `b + 11`
 (`sHtLayer_split`):
 
 * `sLayerEnc_sound`: the encoding digest, the counter a word `N < 2^32` (its four low bytes);
@@ -39,7 +39,7 @@ def layerPre (pad : Nat) (pp a0 key signed ctr : V) (b : Nat) : List Stmt :=
 
 theorem kEnc_shape (pad : Nat) (pp a0 ea signed ctr : V) (y : Nat) :
     (kMsg pad [.cell pp, .cell a0, .cell ea, .cell signed, .cell ctr] 68 false none y).2.1 =
-        y + 20 ∧
+        y + 8 ∧
       (kMsg pad [.cell pp, .cell a0, .cell ea, .cell signed, .cell ctr] 68 false none y).2.2 =
         y + 7 := by
   constructor <;> rfl
@@ -49,10 +49,10 @@ theorem sHtLayer_split (pad : Nat) (pp a0 key signed ctr : V) (bit val : Nat →
     (off height b : Nat) :
     sHtLayer pad pp a0 key signed ctr bit val off height b =
       (layerPre pad pp a0 key signed ctr b ++
-          [.call "sp_wots" [pp, a0, key, .n (b + 9)] [.n (b + 22)]] ++
-          (sPath pad pp a0 bit val off height 0 (.n (b + 22)) (b + 23)).1,
-        (sPath pad pp a0 bit val off height 0 (.n (b + 22)) (b + 23)).2.1,
-        (sPath pad pp a0 bit val off height 0 (.n (b + 22)) (b + 23)).2.2) := by
+          [.call "sp_wots" [pp, a0, key, .n (b + 9)] [.n (b + 10)]] ++
+          (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).1,
+        (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).2.1,
+        (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).2.2) := by
   simp only [sHtLayer, layerPre, (kEnc_shape ..).1, (kEnc_shape ..).2, List.append_assoc]
 
 theorem layerPre_atoms (pad : Nat) (pp a0 key signed ctr : V) (b : Nat) :
@@ -111,16 +111,16 @@ theorem sLayerEnc_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 key signed ctr : 
   simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil]
   rw [cellBytes_eOfNat (by omega), ← leBytes_append N 4 12, List.take_left' (by simp)]
 
-/-- **A layer's root, sound**: after its call, the path from the leaf at `b + 22` reaches `pFold` of
+/-- **A layer's root, sound**: after its call, the path from the leaf at `b + 10` reaches `pFold` of
 `pNodeE`, its bits those of `e < 2^height` and its shifts `e`'s. -/
 theorem sHtLayer_root {pad : Nat} (hp : PadOK σ pad) {pp a0 key signed ctr : V}
     {bit val : Nat → V} {off e height b : Nat} (hh : height ≤ 16) (he : e < 2 ^ height)
     (hbit : ∀ z < height, σ (bit (off + z)) = if e.testBit z then 1 else 0)
     (hval : ∀ z, z < height → σ (val (off + z)) = eOfNat (e >>> z))
-    (h : AtomsHold rd σ (sPath pad pp a0 bit val off height 0 (.n (b + 22)) (b + 23)).1) :
+    (h : AtomsHold rd σ (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).1) :
     σ (sHtLayer pad pp a0 key signed ctr bit val off height b).2.2 =
-      pFold (pNodeE (σ pp) (σ a0) e (sPathSib σ bit off height 0 (b + 23))) height
-        (σ (.n (b + 22))) := by
+      pFold (pNodeE (σ pp) (σ a0) e (sPathSib σ bit off height 0 (b + 11))) height
+        (σ (.n (b + 10))) := by
   rw [sHtLayer_split, ← nIter_zero]
   exact sPath_sound hp hh he hbit hval height 0 _ _ (by omega) h
 

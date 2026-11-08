@@ -226,7 +226,7 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
       Nat.mod_eq_of_lt (by have := unusedOf_lt (σ sHm1); norm_num; omega)]
   have hC := sCheckC_sound hl5 hu5 (unusedOf_lt _) hh5
   have y5 : σ5 sHm1 = σ sHm1 := by
-    rw [show sHm1 = .n 38 from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
+    rw [show sHm1 = .n 27 from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
   refine Completes.checks (xs := [.atom (.assertInK (.n 1371) sUnused.2.2)]) rfl (fun a ha => by
       simp only [List.mem_singleton, Stmt.atom.injEq] at ha
       subst ha
@@ -317,14 +317,14 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
       have e2 : cellVal (cellOf128 pk.root) = pk.root := cellVal_cellOf128 _
       rw [e1, e2]
     have hR : R = cellVal (cellOf128 R) := (cellVal_cellOf128 R).symm
-    rw [← hpk, hR, hmsgDigest_cells, ← hMdef, ← d0, ← d1, digestOf_toNat (hmsgNat_lt _ _)]
+    rw [← hpk, hR, hmsgDigest_cells, ← hMdef, ← d0, d1, digestOf_toNat (hmsgNat_lt _ _)]
     rfl
   have h12 : σ2 (.n 1) = bb := by
     rw [he2.apply (Or.inl (by norm_num)), he1.apply (Or.inl (by norm_num))]; exact h1
   refine ((sFieldsCheck_complete hm hbb σ2 h12
       (by have e := congrArg Prod.fst d0; dsimp only at e; rw [e]; exact canon_dh1 _)
       (by have e := congrArg Prod.snd d0; dsimp only at e; rw [e]; exact canon_dh2 _)
-      (by have e := congrArg Prod.fst d1; dsimp only at e; rw [e]; exact canon_dh1 _)).keep
+      (by rw [d1]; exact canon_dh1 _)).keep
     (Q := fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧ σ' sRoot = cellOf128 pk.root ∧
       σ' sRand = cellOf128 R ∧ PadOK σ' sPad)
     (Q' := fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧ σ' sRoot = cellOf128 pk.root ∧
