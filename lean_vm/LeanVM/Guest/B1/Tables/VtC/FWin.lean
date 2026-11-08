@@ -245,12 +245,12 @@ theorem vtF_perm (hl : args.length = 20)
 /-! ## The window -/
 
 /-- **The honest window**: on a memory holding the evaluations `evs` at the cursor, `fp_w`'s first
-14 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, the
+16 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, the
 challenges' products `cp` and the equality prefix `pe` up to `n`, and a canonical carried
 capacity, every statement of `2688 ..< 6352` holds. -/
 theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 159 ≤ evs.length)
     (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs)
-    {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 14 ≤ W.length)
+    {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 16 ≤ W.length)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
     {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2608)) j (cp j))
@@ -282,7 +282,7 @@ theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 159 ≤ evs.le
         exact vtF_air hl hkbt hgn hτn hcp hpe ht s hsq
     · match s, hr with
       | .atom (.load d (.n 13) off), _ =>
-        obtain ⟨hm, hrd⟩ := vt_bufLoad (p := 13) (b := 14) hl vtF_loadsBelow (by simp) hW hWl
+        obtain ⟨hm, hrd⟩ := vt_bufLoad (p := 13) (b := 16) hl vtF_loadsBelow (by simp) hW hWl
           (vtEvL_mem (vtF_mem hs) (fun _ _ _ h ↦ by cases h))
         show LoadHolds rd _ _ _
         rw [hrd (not_mem_vtSL vtF_noStore.1 _ _)]
