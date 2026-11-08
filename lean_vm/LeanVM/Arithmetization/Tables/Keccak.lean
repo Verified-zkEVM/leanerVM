@@ -29,7 +29,8 @@ the output lanes the table's claims hand it.
 **The row** `KeccakRow` is the column list: `pc, fp`; the operands `o_m₀, …, o_m₃` (`om`),
 `o_tail, o_b8, o_cap, o_out`; the two layout flags `odd_in, odd_out`; the two output flags
 `out_two, out_all`; the read limb holding no lane (`free`); the 25 input lanes (`lin`) and the 25 output lanes (`lout`); one memory count per
-cell, the thirteen read then the thirteen written (`cnt`); the bytecode count `r_bc`. A cell's
+cell, the thirteen read then the thirteen written or cancelled (`cnt`); the bytecode count
+`r_bc`. A cell's
 limb holding lane `a` in the even layout and `b` in the odd one is `a + flag·a + flag·b` (the
 Python's `_layout_limb`): `a` at `flag = 0`, `b` at `flag = 1`; every cell's top limb is a literal
 zero.
@@ -80,7 +81,8 @@ structure KeccakRow (F : Type) where
   ob8 : F
   /-- The operand `o_cap`: the four capacity cells. -/
   ocap : F
-  /-- The operand `o_out`: the thirteen written cells. -/
+  /-- The operand `o_out`: the output cells, of which the first one, two or thirteen are
+  written. -/
   oout : F
   /-- The layout flag of the cells read. -/
   oddIn : F
@@ -96,7 +98,7 @@ structure KeccakRow (F : Type) where
   lin : Vector F 25
   /-- The output state's lanes. -/
   lout : Vector F 25
-  /-- The read counts: the thirteen cells read, then the thirteen written. -/
+  /-- The read counts: the thirteen cells read, then the thirteen output cells. -/
   cnt : Vector F 26
   /-- The read count of the bytecode entry at `pc`. -/
   rbc : F
@@ -156,6 +158,32 @@ theorem KeccakRefines.bindings {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow 
   obtain ⟨-, -, -, -, -, hnext⟩ :=
     (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
   exact ⟨⟨inOdd, outOdd, outCells, hf, hb⟩, hnext⟩
+
+/-- A row writing all thirteen output cells (`out_all = 1`) binds every output lane, so
+`KeccakRefines` gives the permutation on its lanes; a row writing one or two cells does not, and
+there the permutation is the Keccak reduction's alone. -/
+theorem KeccakRefines.relation_of_all {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K}
+    {next : Registers K} (h : KeccakRefines mem r next) (hall : r.outAll = 1) :
+    KeccakRelation r := by
+  obtain ⟨inOdd, outOdd, oc, ⟨-, -, -, ha⟩, hb, hexec⟩ := h
+  have hoc : oc = .all := by
+    cases oc
+    · exact absurd (ha.symm.trans hall) (by simp [keccakOutputFlags, layoutFlagWord])
+    · exact absurd (ha.symm.trans hall) (by simp [keccakOutputFlags, layoutFlagWord])
+    · rfl
+  subst hoc
+  obtain ⟨input, output, hin, hout, hcells, -⟩ :=
+    (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
+  have hinput : input = laneCells r.inLanes inOdd r.free := by
+    funext c; exact Option.some.inj ((hin c).symm.trans (hb.in_eq c))
+  have houtput : output = laneCells r.outLanes outOdd 0 := by
+    funext c; exact Option.some.inj ((hout c c.isLt).symm.trans (hb.out_eq c c.isLt))
+  have h2 := hcells.2
+  rw [hinput, houtput, stateOfCells_laneCells] at h2
+  have h3 : laneCells r.outLanes outOdd 0 =
+      laneCells (stateLanes (keccakF1600 (laneState r.inLanes))) outOdd 0 := by
+    funext c; rw [h2 c c.isLt, cellsOfState_eq_laneCells]
+  exact laneCells_eq_iff.mp h3
 
 /-- **A bound row whose lanes permute refines `KECCAK`**, to the successor `(g·pc, fp)`. -/
 theorem keccak_refines_of {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K}

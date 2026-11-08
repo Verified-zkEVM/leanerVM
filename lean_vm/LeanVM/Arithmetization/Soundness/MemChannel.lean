@@ -19,17 +19,25 @@ At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26
 Lemma 6.3, Theorem 6.4 and Corollary 6.5 (`doc/leanvm/body/06-bus-interactions.tex`, §6.2 to
 §6.3) for the memory pair, as `mem_channel_sound`: the guarantee of the memory pull
 (`MemPull.Guarantees`, `Arithmetization.Channels`) for every memory pull of a witness of the
-constraint statement `SatisfiedBy`. It serves `constraintSoundness`.
+constraint statement `SatisfiedBy` of multiplicity `-1`: every memory pull but the cancelled
+gated pulls of `KECCAK` output cells (leanVM PR #724 head `873ee6d8`, `memory_coords_if`). It
+serves `constraintSoundness`.
 
 **The argument.** A memory message `(addr, count, v)` is read as the triple of its address, count
-and limbs (`memMsgOf`, injective). The witness pulls the reads of the six tables and the memory
-block's finalizes, and pushes the reads bumped by `g` and the block's seeds `(g^i, 1, m_i)`, one
-per word of the image (`Soundness.Bus`); `SatisfiedBy.mem_balanced` makes the two lists
-permutations of each other. The counts of the reads are nonzero (`CountsNonzero`), there are
-fewer than `2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most nine reads per row, `2^32`
-rows per table, six tables), and each finalize has a seed's key. So `lookup_sound` makes every
-read's key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct read of word `i`
-(`MemoryImage.read_gpow`, as `κ ≤ 32`).
+and limbs (`memMsgOf`, injective). The witness pulls the reads of the six tables, their gated
+reads, and the memory block's finalizes, and pushes the reads bumped by `g`, the gated reads at
+the gated counter, and the block's seeds `(g^i, 1, m_i)`, one per word of the image
+(`Soundness.Bus`); `SatisfiedBy.mem_balanced` makes the two lists permutations of each other.
+Every gate is `0` or `1` (`opRecs_bits`): a row's bytecode coordinates are the program's entry
+(`opRecs_bc_sound`), whose output flags decode. So a gated read at flag `1` pulls `(a, c, v)` and
+pushes `(a, g·c, v)`, a read; at flag `0` it pulls and pushes the one tuple `(a, c, v)`, which
+`perm_cancel_mid` drops from both sides (`mem_triples_perm`). The counts of the reads are nonzero
+(`CountsNonzero`, which covers every memory pull of the six tables), there are fewer than
+`2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most twenty-six reads per row, `2^32` rows
+per table, six tables), and each finalize has a seed's key. So `lookup_sound` makes every read's
+key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct read of word `i`
+(`MemoryImage.read_gpow`, as `κ ≤ 32`). A pull of multiplicity `-1` is a read a row makes or a
+finalize (`mem_pull_of_mult`), hence a correct read (`mem_channel_sound`).
 
 ## Wrong readings excluded
 
@@ -37,6 +45,11 @@ read's key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct re
   and are not used: a finalize pull is a correct read by its key alone.
 * The guarantee is about the limbs, not the word: two limb triples naming the same word of `E`
   would be different keys, and the seed's limbs are the image's (`limbsOf`).
+* A cancelled gated pull is not claimed to be a read: its values are the row's output lanes,
+  which no memory cell need hold, and its guarantee is not assumed (multiplicity `0`).
+* The gates are not assumed bits: a gate other than `0` and `1` would push a counter that is
+  neither `g·count` nor `count`, and is excluded by the bytecode channel alone, never by the
+  memory pair.
 -/
 
 namespace LeanVM.Arithmetization
