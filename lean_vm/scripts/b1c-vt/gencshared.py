@@ -1,5 +1,5 @@
 # usage: python3 -I gencshared.py  — writes Tables/VtC/SShT.lean: each table's shared selector
-# tables' statements (G:2246-2256 at 5e3ade21) hold on the honest valuation (`vtc_sh{t}`), and the
+# tables' statements (G:2218-2228 at 873ee6d8) hold on the honest valuation (`vtc_sh{t}`), and the
 # tables' pointers (`vtc_shptr`), from vt_ir.txt (dump.py). The completeness twin of genshared.py.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -156,7 +156,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SShared
 
 /-!
-# The shared selector tables, honestly (G:2229-2239)
+# The shared selector tables, honestly (G:2201-2211)
 
 `vtc_shptr`: table `t`'s nibble tables' pointers, `shared_eq·g^(288 t)` and `shared_g·g^(144 t)`.
 `vtc_sh{t}`: with `kappa_base[2 + t] = g^τ`, `g_bus_mu = g^μ`, the bus point at `zeta`, `1 + ζ` at

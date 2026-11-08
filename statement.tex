@@ -409,7 +409,7 @@ $\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \em
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
-(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{verifier.py:684, 1464}), the hash of the
+(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{verifier.py:679, 1477}), the hash of the
 proof system's $9$-byte version tag and the bytecode's words as $8$-byte little-endian strings, is
 the Fiat--Shamir initial value prover and verifier derive from the bytecode; a test run by the gate
 (\texttt{lake exe node-vectors}) checks it against leanVM's \texttt{fs\_seed}.
@@ -495,7 +495,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:195-212})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below

@@ -173,7 +173,7 @@ def listBlobRootWithHash (row : List K) : DigestBytes :=
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap K.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs:66-74`). -/
+(`padding_root`, `commit.rs:70-78`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
@@ -186,7 +186,7 @@ def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
 end Pure
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
-`commit.rs:48-121`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
+`commit.rs:52-125`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
 fast. -/

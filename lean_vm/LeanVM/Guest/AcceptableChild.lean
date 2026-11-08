@@ -35,10 +35,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Coverage
 
-/-- `STREAM_CAP` (`aggregation/child.rs:269`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation/child.rs:268`): a child's proof stream is zero-padded to it. -/
 def childStreamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation/child.rs:260`): the least stack log the guest program has an opening arm
+/-- `MU_MIN` (`aggregation/child.rs:259`): the least stack log the guest program has an opening arm
 for. -/
 def minChildStackLog : ℕ := 22
 
@@ -111,7 +111,7 @@ def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
   2 * merkleHeapIndex depth leafPosition (level + 1) + (!leafPosition.testBit level).toNat
 
 /-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`Transcript.merkle`,
-`verifier.py:433-445`), the leaf an opening's climb starts from. -/
+`verifier.py:428-440`), the leaf an opening's climb starts from. -/
 def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
   keccak256 (words.flatMap K.toBytes)
 
@@ -140,14 +140,14 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
-  `[22, 28]` (G:3519-3521); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3366-3367);
+  `[22, 28]` (G:3491-3493); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3338-3339);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1428, 1737, 1742). -/
+  challenges and each level's batching challenge `λ`, G:1400, 1709, 1714). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
