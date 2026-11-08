@@ -338,6 +338,11 @@ A `KECCAK` atom writes one, two or all thirteen output cells (`Op::Keccak`'s `ou
 
 section Keccak
 
+/-- The written cells' count names the `out_cells`. -/
+theorem cellCount_injective {oc oc' : KeccakOutputCells} (h : oc.cellCount = oc'.cellCount) :
+    oc = oc' := by
+  cases oc <;> cases oc' <;> first | rfl | simp [KeccakOutputCells.cellCount] at h
+
 /-- **A `KECCAK` atom gives the full output**: Keccak-f's thirteen output cells `O`, in
 `KeccakCellsRelation` with the read cells, whose first cells the written values are. -/
 theorem keccak_holds_full {ins outs : List V} {i o : Bool}

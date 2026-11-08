@@ -91,7 +91,7 @@ def KeyHolds (rd : Reader) (out : E) (op : ℕ) (ins : List E) : Prop :=
   (op = 1 ∧ ∃ a b, ins = [a, b] ∧ out = a * b) ∨
   (56 ≤ op ∧ ∃ p, ins = [p] ∧ LoadHolds rd p (op - 56) out) ∨
   (∃ (k : Fin 13) (inOdd outOdd : Bool), op = keccakOp k inOdd outOdd ∧
-    ∃ output : Fin 13 → E, KeccakCellsRelation (cells13 ins) inOdd output outOdd ∧ output k = out)
+    ∃ output : Fin 13 → E, KeccakCellsRelation (cells13 ins) inOdd output outOdd .all ∧ output k = out)
 
 theorem keccakOp_lt (k : Fin 13) (inOdd outOdd : Bool) : 4 ≤ keccakOp k inOdd outOdd ∧
     keccakOp k inOdd outOdd < 56 := by
@@ -139,14 +139,16 @@ theorem keyHolds_load {rd : Reader} {out p : E} {off : ℕ} :
   · exact fun h ↦ .inr (.inr (.inl ⟨by omega, p, rfl, by rwa [Nat.add_sub_cancel]⟩))
 
 theorem keyHolds_keccak {rd : Reader} {out : E} {ins : List E} {k : Fin 13} {inOdd outOdd : Bool}
-    (output : Fin 13 → E) (h : KeccakCellsRelation (cells13 ins) inOdd output outOdd) (ho : output k = out) :
+    (output : Fin 13 → E) (h : KeccakCellsRelation (cells13 ins) inOdd output outOdd .all)
+    (ho : output k = out) :
     KeyHolds rd out (keccakOp k inOdd outOdd) ins :=
   .inr (.inr (.inr ⟨k, inOdd, outOdd, rfl, output, h, ho⟩))
 
 /-- `KECCAK`'s written cells are a function of the cells it reads. -/
 theorem keccakCells_output {input output output' : Fin 13 → E} {inOdd outOdd : Bool}
-    (h : KeccakCellsRelation input inOdd output outOdd) (h' : KeccakCellsRelation input inOdd output' outOdd) :
-    output = output' := funext fun c ↦ (h.2 c).trans (h'.2 c).symm
+    (h : KeccakCellsRelation input inOdd output outOdd .all)
+    (h' : KeccakCellsRelation input inOdd output' outOdd .all) :
+    output = output' := funext fun c ↦ (h.2 c c.isLt).trans (h'.2 c c.isLt).symm
 
 /-- **A key's output is a function of its inputs.** -/
 theorem KeyHolds.unique {rd : Reader} {x y : E} {op : ℕ} {ins : List E}
@@ -472,7 +474,7 @@ theorem keysOf_sound {a : Core.Atom} {v : ℕ} {k : ℕ × List ℕ} (ha : a.Hol
     simp only [keyHolds_mul, List.map_cons, List.map_nil]
     rw [← hd, ← hx, ← hy]; exact ha
   | keccak ins outs inOdd outOdd =>
-    obtain ⟨-, hlo, hk⟩ := ha
+    obtain ⟨-, ⟨oc, hlo⟩, O, hk, hw⟩ := keccak_holds_full ha
     simp only [keysOf, Bool.cond_eq_ite, nbeq_iff, List.mem_filterMap, Option.ite_none_right_eq_some,
       Option.some.injEq] at h
     obtain ⟨⟨o, j⟩, hq, he, rfl⟩ := h
@@ -480,14 +482,14 @@ theorem keysOf_sound {a : Core.Atom} {v : ℕ} {k : ℕ × List ℕ} (ha : a.Hol
     have ho' : o = outs[j]'hj := ho
     clear ho
     subst ho'
-    have hj13 : j < 13 := hlo ▸ hj
+    have hj13 : j < 13 := by
+      have := hlo ▸ hj; cases oc <;> simp [KeccakOutputCells.cellCount] at this <;> omega
     have hi : (ins.map V.idx).map (fun u ↦ σ (V.n u)) = ins.map σ := by
       rw [List.map_map]
       exact List.map_congr_left fun u hu ↦ by
         rw [Function.comp_apply, ← hvn u (by simp [Memory.atomUses, hu])]
-    have ho : σ (V.n v) = cells13 (outs.map σ) ⟨j, hj13⟩ := by
-      rw [cells13, List.getD_eq_getElem _ _ (by simpa using hj), List.getElem_map, ← he,
-        ← hvn _ (by simp [Memory.atomUses, List.getElem_mem])]
+    have ho : σ (V.n v) = O ⟨j, hj13⟩ := by
+      rw [← hw ⟨j, hj13⟩ hj, ← he, ← hvn _ (by simp [Memory.atomUses, List.getElem_mem])]
     rw [hi, ho]
     exact keyHolds_keccak (k := ⟨j, hj13⟩) _ hk rfl
   | load d p off =>
@@ -718,19 +720,19 @@ theorem cellKeys_sound {a : Core.Atom} (ha : a.Holds rd σ) {c op : ℕ} {ins : 
     exact ⟨d, by simp [Memory.atomUses], [x, y], by simp [Memory.atomUses], rfl, rfl,
       keyHolds_mul.mpr ha⟩
   | keccak ins outs inOdd outOdd =>
-    obtain ⟨-, hlo, hk⟩ := ha
+    obtain ⟨-, ⟨oc, hlo⟩, O, hk, hw⟩ := keccak_holds_full ha
     simp only [cellKeys, List.mem_map, Prod.mk.injEq] at h
     obtain ⟨⟨o, j⟩, hq, rfl, rfl, rfl⟩ := h
     obtain ⟨hj, ho⟩ := List.mem_zipIdx' hq
     have ho' : o = outs[j]'hj := ho
     clear ho
     subst ho'
-    have hj13 : j < 13 := hlo ▸ hj
+    have hj13 : j < 13 := by
+      have := hlo ▸ hj; cases oc <;> simp [KeccakOutputCells.cellCount] at this <;> omega
     refine ⟨outs[j], by simp [Memory.atomUses, List.getElem_mem], ins,
       fun u hu ↦ by simp [Memory.atomUses, hu], rfl,
       (keyCells_of_ge (by have := (keccakOp_lt ⟨j, hj13⟩ inOdd outOdd).1; exact Nat.le_trans (by decide) this) _).symm, ?_⟩
-    refine keyHolds_keccak (k := ⟨j, hj13⟩) _ hk ?_
-    rw [cells13, List.getD_eq_getElem _ _ (by simpa using hj), List.getElem_map]
+    exact keyHolds_keccak (k := ⟨j, hj13⟩) _ hk (hw ⟨j, hj13⟩ hj).symm
   | load d p off =>
     simp only [cellKeys, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at h
     obtain ⟨rfl, rfl, rfl⟩ := h

@@ -321,11 +321,10 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
     exact ⟨σ x, σ y, V x (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hx,
       V y (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hy⟩
   | keccak ins outs inOdd outOdd =>
-    obtain ⟨hli, hlo, hk⟩ := hh
-    have W : ∀ (l : List Core.V) (c : Fin 13), l.length = 13 → (∀ v ∈ l, v ∈ ins ++ outs) →
+    obtain ⟨hli, oc, hlo, hk⟩ := hh
+    have W : ∀ (l : List Core.V) (c : Fin 13), c.val < l.length → (∀ v ∈ l, v ∈ ins ++ outs) →
         rdc L fp ((l.map loc.cell).getD c 0) = some (cells13 (l.map σ) c) := by
-      intro l c hl hs
-      have hc : c.val < l.length := by rw [hl]; exact c.isLt
+      intro l c hc hs
       have hm : l[c.val] ∈ ins ++ outs := hs _ (List.getElem_mem hc)
       rw [List.getD_eq_getElem _ _ (by simpa using hc), cells13,
         List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_map]
@@ -334,8 +333,9 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
       rcases List.mem_append.mp hm with h | h
       · exact .inl ⟨_, h, rfl⟩
       · exact .inr ⟨_, h, rfl⟩
-    exact ⟨by simpa using hlo, _, _, fun c ↦ W ins c hli (fun v hv ↦ List.mem_append_left _ hv),
-      fun c ↦ W outs c hlo (fun v hv ↦ List.mem_append_right _ hv), hk⟩
+    exact ⟨oc, by simpa using hlo, _, _,
+      fun c ↦ W ins c (by rw [hli]; exact c.isLt) (fun v hv ↦ List.mem_append_left _ hv),
+      fun c hc ↦ W outs c (by rw [hlo]; exact hc) (fun v hv ↦ List.mem_append_right _ hv), hk⟩
   | frameAddr p run =>
     cases run with
     | nil => trivial
