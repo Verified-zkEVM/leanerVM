@@ -153,7 +153,7 @@ def keys : Exec.Atom → List ℕ
   | .instr _ (.set o _ _ _) => [o]
   | .instr _ (.deref _ _ o3 .cell) => [o3]
   | .instr _ (.deref o1 _ _ .fp) => [o1]
-  | .instr _ (.keccak _ _ _ _ _ _ _ out _ _) => [out]
+  | .instr _ (.keccak _ _ _ _ _ _ _ out _ _ _) => [out]
   | .jump _ od _ => [od]
   | .copy d s => [d, s]
   | .eq a b => [a, b]
@@ -280,14 +280,14 @@ noncomputable def inKOk (a b : ℕ) : Bool :=
 
 /-- A `KECCAK` reading the cells `ins` in the layout `inOdd` and writing the cells `outs` in the
 layout `outOdd`: found under its first written cell, its read cells `keccakIns` and its written
-cells `keccakOuts` of its offsets. -/
+cells `keccakOuts` of its offsets, as many as its `outCells` writes. -/
 noncomputable def keccakOk (ins outs : List ℕ) (inOdd outOdd : Bool) : Bool :=
   match outs with
   | [] => false
   | o :: _ => (look B o).any fun x ↦ match x with
-    | .instr _ (.keccak m0 m1 m2 m3 tail b8 cap out iO oO) =>
+    | .instr _ (.keccak m0 m1 m2 m3 tail b8 cap out iO oO oC) =>
         out == o && iO == inOdd && oO == outOdd && ins == keccakIns m0 m1 m2 m3 tail b8 cap &&
-          outs == keccakOuts out
+          outs == keccakOuts out oC.cellCount
     | _ => false
 
 /-- `fp[x]` holds the frame pointer through a hinted cell: `DEREF *(fp[h]) = fp` and

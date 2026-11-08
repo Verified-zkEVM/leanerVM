@@ -66,7 +66,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 @[expose] public section
 
 -- The statement derives no `Repr`; the guest's derived ones need these.
-deriving instance Repr for LeanVM.Semantics.DerefMode, LeanVM.Guest.OffsetInstruction
+deriving instance Repr for LeanVM.Semantics.DerefMode, LeanVM.Semantics.KeccakOutputCells,
+  LeanVM.Guest.OffsetInstruction
 
 /-! ## Evaluation order
 
