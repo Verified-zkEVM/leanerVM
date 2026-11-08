@@ -280,7 +280,7 @@ noncomputable def inKOk (a b : ℕ) : Bool :=
 
 /-- A `KECCAK` reading the cells `ins` in the layout `inOdd` and writing the cells `outs` in the
 layout `outOdd`: found under its first written cell, its read cells `keccakIns` and its written
-cells `keccakOuts` of its offsets, as many as its `outCells` writes. -/
+cells `keccakOuts` of its offsets, as many as its `out_cells`. -/
 noncomputable def keccakOk (ins outs : List ℕ) (inOdd outOdd : Bool) : Bool :=
   match outs with
   | [] => false

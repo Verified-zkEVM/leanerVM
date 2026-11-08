@@ -100,11 +100,11 @@ def forsAtW (c z : Nat) : Nat :=
   else if c / 2 ^ (z - 2) = 0 then 5 else 7
 
 /-- The values level `z` of tree `c` takes: the pair and `is_child`'s two, the parent's address, the
-padding's three cells, the last byte's constant and the parent's thirteen. -/
-def forsLevelW (c z : Nat) : Nat := 21 + forsAtW c (z + 1)
+padding's three cells, the last byte's constant and the parent (one cell). -/
+def forsLevelW (c z : Nat) : Nat := 9 + forsAtW c (z + 1)
 
-/-- The values tree `c` takes: its secret, its leaf's address and hash (twenty), its ten levels. -/
-def forsTreeW (c : Nat) : Nat := 21 + ((List.range 10).map (forsLevelW c)).sum
+/-- The values tree `c` takes: its secret, its leaf's address and hash (eight), its ten levels. -/
+def forsTreeW (c : Nat) : Nat := 9 + ((List.range 10).map (forsLevelW c)).sum
 
 /-- `is_child(node, kids, k, bit)` with the children at `k0`, `k1`, the check's cells at `b`,
 `b + 1`. -/
@@ -124,7 +124,7 @@ def kNode (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : List Stmt × Nat × Nat 
   ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
     cst (y + 3) (word (2 ^ 63) 0 0),
     kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1), .n (pad + 2),
-      .n (pad + 3), .n (pad + 4)] (runV (y + 4) 13) false false], y + 17, y + 4)
+      .n (pad + 3), .n (pad + 4)] (runV (y + 4) 1) false false], y + 5, y + 4)
 
 /-! ## FORS -/
 
@@ -152,7 +152,7 @@ def sForsLevels (c : Nat) : Nat → Nat → V → Nat → List Stmt × Nat × V
 height `0` (64 bytes), ten levels. The statements, the next base and the root. -/
 def sForsTree (c b : Nat) : List Stmt × Nat × V :=
   let a := sForsAt a1 val c 0 (b + 1)
-  let lv := sForsLevels pad pp a0 a1 bit val c 10 0 (.n (a.2.1 + 1)) (a.2.1 + 14)
+  let lv := sForsLevels pad pp a0 a1 bit val c 10 0 (.n (a.2.1 + 1)) (a.2.1 + 2)
   ([hintW "sp_fors_secrets" [.n b]] ++ a.1 ++ k64 pad pp a0 a.2.2 (.n b) a.2.1 (a.2.1 + 1) ++ lv.1,
     lv.2.1, lv.2.2)
 
@@ -173,7 +173,7 @@ output run's base. -/
 def sForsBlock (pad : Nat) (pp a0 key : V) (bit val : Nat → V) (b0 : Nat) : List Stmt × Nat × Nat :=
   let tr := sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)
   let B := tr.2.1
-  let k := kMsg pad (([pp, a0, .n (B + 1)] ++ tr.2.2).map KC.cell) 432 false none (B + 2)
+  let k := kMsg pad (([pp, a0, .n (B + 1)] ++ tr.2.2).map KC.cell) 432 true none (B + 2)
   ([cst b0 (lit (3 * 2 ^ 24)), addS (.n (b0 + 1)) key (.n b0)] ++ tr.1 ++
     [cst B (lit (4 * 2 ^ 24)), addS (.n (B + 1)) key (.n B)] ++ k.1, k.2.1, k.2.2)
 

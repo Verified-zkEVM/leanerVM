@@ -55,7 +55,7 @@ theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
     {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool} {prodIn encIn prodOut encOut : V}
     {k b : Nat} (h : AtomsHold rd σ (armM W slots first n fold prodIn encIn prodOut encOut k b).1) :
     ArmOKM W f σ slots first n fold prodIn encIn prodOut encOut k (armStart W slots fold k b) := by
-  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
       (if fold then b + 1 else b)).1 := by
     refine h.sub fun x hx => ?_
     unfold armM
@@ -102,10 +102,10 @@ theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
       have hl : lit (W.enc first n (k % 4 ^ n)) = 0 := by simp [hk, W.enc_zero, lit, word_zero]
       rw [e, hl, add_zero, henc0]
     · have he : AtomsHold rd σ
-          [cst (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+          [cst (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
               (if fold then b + 1 else b)).2 (lit (W.enc first n (k % 4 ^ n))),
             addS encOut (if fold then V.n b else encIn)
-              (.n (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+              (.n (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
                 (if fold then b + 1 else b)).2)] := by
         refine h.sub fun x hx => ?_
         unfold armM

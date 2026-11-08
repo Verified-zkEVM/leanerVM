@@ -133,7 +133,7 @@ structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Na
 /-- The start of chain `r` in arm `k` from base `b`. -/
 def armStart (W : WotsT) (slots : Nat → Nat → Nat) (fold : Bool) (k b r : Nat) : V :=
   walkStartV (slots r) (k / 4 ^ r % 4)
-    (walkBase (if k = 0 then W.size + 13 else W.size) k 0 r (if fold then b + 1 else b))
+    (walkBase (if k = 0 then W.size + 1 else W.size) k 0 r (if fold then b + 1 else b))
 
 /-- **An arm**: its walks reach their tips from their starts, the product and the encoding are
 folded. -/
@@ -141,7 +141,7 @@ theorem armT_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
     {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool} {prodIn encIn prodOut encOut : V}
     {k b : Nat} (h : AtomsHold rd σ (armT W slots first n fold prodIn encIn prodOut encOut k b).1) :
     ArmOK W f σ slots first n fold prodIn encIn prodOut encOut k (armStart W slots fold k b) := by
-  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
       (if fold then b + 1 else b)).1 := by
     refine h.sub fun x hx => ?_
     unfold armT

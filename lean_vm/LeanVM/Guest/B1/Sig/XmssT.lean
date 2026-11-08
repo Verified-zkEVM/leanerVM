@@ -43,7 +43,7 @@ def xPrologue : List Stmt :=
     (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0 0)) ++
     (List.range 58).map (fun i => cst (138 + i) (word i 0 0))
 
-/-- leanXMSS's chain step: `keccak([P, steps s], [v, i], walks[o:o + 13])` (`walk`,
+/-- leanXMSS's chain step: `keccak([P, steps s], [v, i], walks[o:o + 1])` (`walk`,
 `lean_ethereum.py:3593`), its constant at `c`. -/
 def xWots (steps : Nat → V) : WotsT where
   step i s v c o := k64 xPad (.n 1) (steps s) v (xTag i) c o
@@ -59,7 +59,7 @@ def xDigest0 (b : Nat) : List Stmt :=
     cst (b + 9) (word (2 ^ 63) 0 0)] ++
   (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0)) ++
   [kecS [.n 1, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
-    .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 13) false false]
+    .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def xDigest1 (b : Nat) (root : V) : List Stmt :=
@@ -74,7 +74,7 @@ def xStepAddrs (idx : V) (b : Nat) : List Stmt :=
 
 /-! ## A layer -/
 
-def xA (layer b : Nat) : Nat := if layer = 0 then b + 28 else b + 19
+def xA (layer b : Nat) : Nat := if layer = 0 then b + 16 else b + 7
 def xIdx (layer b : Nat) : V := if layer = 0 then xNode 0 else .n (b + 1)
 def xD0 (layer b : Nat) : V := if layer = 0 then .n (b + 15) else .n (b + 6)
 def xRho (layer b : Nat) : V := if layer = 0 then .n b else .n (b + 2)

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core23
+public import LeanVM.Guest.Data.Core17
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.XmssSegData1

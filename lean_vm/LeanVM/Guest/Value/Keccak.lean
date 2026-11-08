@@ -14,8 +14,9 @@ public import LeanVM.Guest.Batch.Def
 /-!
 # The Keccak library
 
-The core IR keeps one `Atom.keccak ins outs inOdd outOdd` per `KECCAK` instruction, its meaning
-`KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd`; the padding `XOR`s and
+The core IR keeps one `Atom.keccak ins outs inOdd outOdd` per `KECCAK` instruction, its meaning,
+with thirteen written cells, `KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ))
+outOdd .all` (`keccak_holds_13`; a one- or two-cell write is its first cells, `keccak_holds_full`); the padding `XOR`s and
 the zero/padding run are ordinary atoms. What a call of `keccak` or `keccak_cells` computes is
 recovered here, on the words `I = cells13 (ins.map σ)`, `O = cells13 (outs.map σ)` of the atoms,
 generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for the evaluator).
@@ -51,7 +52,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   (pre ++ padBytes ((cellsBytes cells).take len))) false`.
 * `keccak_one` (one `KECCAK` from the zero state, `len < 136`):
   `I c = (padCells cells len).getD c 0` for `c < 9`, `I c = 0` for `c ≥ 9`,
-  `KeccakCellsRelation I false O false` give
+  `KeccakCellsRelation I false O false .all` give
   `O = cellsOfState (absorbChunks 1 zeroState (padBytes msg)) false ∧
    (O 0, O 1) = digestScalars (keccak256 msg)`, `msg = (cellsBytes cells).take len`.
 * `keccak_whole` (`final=0` over whole blocks, `16 * cells.length = rate * B`): the state after
