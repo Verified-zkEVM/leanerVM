@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZTail
 
-  `verify_tables`' statements `6251 ..< 6294`, completely: the public input's binding and the
+  `verify_tables`' statements `6353 ..< 6398`, completely: the public input's binding and the
   return.
 -/
 
@@ -12,10 +12,11 @@ public import LeanVM.Guest.B1.Tables.VtC.ZSetup
 /-!
 # The public input's binding, completely (G:2550-2563)
 
-`vtZt_complete`: from the sponge `S2` after the table evaluations (its waiting word's cells and
-its capacity), on canonical public words `pi_0, pi_1` and a pool holding the three binding
-claims at `162 ..< 165`, the statements hold; `rm` is `S2`'s squeeze and the function returns the
-sponge after it, the cursor `157` words past the rounds', `g^n`, the bytecode value and `rm`.
+`vtZt_complete`: from the sponge `S2` after the table evaluations (its three waiting words'
+cells, evaluations `156 ..< 159`, and its capacity), on canonical public words `pi_0, pi_1` and a
+pool holding the three binding claims at `164 ..< 167`, the statements hold; `rm` is `S2`'s
+squeeze and the function returns the sponge after it, the cursor `159` words past the rounds',
+`g^n`, the bytecode value and `rm`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -28,124 +29,118 @@ open LeanVM.Guest.B1.Fwd
 
 /-- The tail's statements evaluation alone does not settle. -/
 noncomputable def zTRest : List Stmt := [
-    .atom (.keccak [.n 5696, .n 5698, .n 2549, .n 2549, .n 2549, .n 2550, .n 2551, .n 2552, .n 5684, .n 5685, .n 5686, .n 5687, .n 5688] [.n 6818, .n 6819, .n 6820, .n 6821, .n 6822, .n 6823, .n 6824, .n 6825, .n 6826, .n 6827, .n 6828, .n 6829, .n 6830] false false),
-    .atom (.assertInK (.n 6831) (.n 6834)),
-    .atom (.assertInK (.n 6838) (.n 6841)),
-    .atom (.assertInK (.n 6843) (.n 6846)),
-    .atom (.load (.n 6850) (.n 15) 162),
-    .atom (.load (.n 6853) (.n 15) 163),
-    .atom (.load (.n 6854) (.n 15) 164)]
+    .atom (.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] [.n 6924, .n 6925, .n 6926, .n 6927, .n 6928, .n 6929, .n 6930, .n 6931, .n 6932, .n 6933, .n 6934, .n 6935, .n 6936] false false),
+    .atom (.assertInK (.n 6937) (.n 6940)),
+    .atom (.assertInK (.n 6944) (.n 6947)),
+    .atom (.assertInK (.n 6949) (.n 6952)),
+    .atom (.load (.n 6956) (.n 15) 164),
+    .atom (.load (.n 6959) (.n 15) 165),
+    .atom (.load (.n 6960) (.n 15) 166)]
 
 /-- What the tail gives: `rm`, the returned capacity, cursor, `g^n`, bytecode value, `rm` and
 `col_eval_words` (the rounds' cursor). -/
 def ZtOut (σ : Val) (S2 : Fs) : Prop :=
-  σ (.n 6837) = S2.squeeze.1 ∧
-    [σ (.n 6855), σ (.n 6856), σ (.n 6857), σ (.n 6858), σ (.n 6859)] = S2.squeeze.2.cap ∧
-    σ (.n 6862) = σ (.n 2609) * gen ^ 157 ∧ σ (.n 6863) = σ (.n 2500) ∧
-    σ (.n 6864) = σ (.n 581) ∧ σ (.n 6865) = S2.squeeze.1 ∧ σ (.n 6866) = σ (.n 2609)
+  σ (.n 6943) = S2.squeeze.1 ∧
+    [σ (.n 6961), σ (.n 6962), σ (.n 6963), σ (.n 6964), σ (.n 6965)] = S2.squeeze.2.cap ∧
+    σ (.n 6968) = σ (.n 2625) * gen ^ 159 ∧ σ (.n 6969) = σ (.n 2516) ∧
+    σ (.n 6970) = σ (.n 581) ∧ σ (.n 6971) = S2.squeeze.1 ∧ σ (.n 6972) = σ (.n 2625)
 
 set_option maxRecDepth 100000 in
-/-- **Statements `6251 ..< 6294`, completely.** -/
+/-- **Statements `6353 ..< 6398`, completely.** -/
 theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {S2 : Fs}
     (hSr : rateOf S2.pend =
-      [vtσ rd w args (.n 5696), vtσ rd w args (.n 5698), 0, 0, 0, 0, 0, 0])
-    (hSc : S2.cap = [vtσ rd w args (.n 5684), vtσ rd w args (.n 5685), vtσ rd w args (.n 5686),
-      vtσ rd w args (.n 5687), vtσ rd w args (.n 5688)])
+      [vtσ rd w args (.n 5712), vtσ rd w args (.n 5714), vtσ rd w args (.n 5723),
+        vtσ rd w args (.n 5725), vtσ rd w args (.n 5734), vtσ rd w args (.n 5736), 0, 0])
+    (hSc : S2.cap = [vtσ rd w args (.n 5700), vtσ rd w args (.n 5701), vtσ rd w args (.n 5702),
+      vtσ rd w args (.n 5703), vtσ rd w args (.n 5704)])
     (hcan : AllCanonical (rateOf S2.pend ++ S2.cap))
     (hc6 : IsCanonical128 (vtσ rd w args (.n 6))) (hc7 : IsCanonical128 (vtσ rd w args (.n 7)))
-    (hp0 : LoadHolds rd (vtσ rd w args (.n 15)) 162 (multilinearEval
+    (hp0 : LoadHolds rd (vtσ rd w args (.n 15)) 164 (multilinearEval
       [ofK ((vtσ rd w args (.n 6)).limb 0), ofK ((vtσ rd w args (.n 7)).limb 0)] [S2.squeeze.1]))
-    (hp1 : LoadHolds rd (vtσ rd w args (.n 15)) 163 (multilinearEval
+    (hp1 : LoadHolds rd (vtσ rd w args (.n 15)) 165 (multilinearEval
       [ofK ((vtσ rd w args (.n 6)).limb 1), ofK ((vtσ rd w args (.n 7)).limb 1)] [S2.squeeze.1]))
-    (hp2 : LoadHolds rd (vtσ rd w args (.n 15)) 164 0) :
-    (∀ s ∈ (vtPre.drop 6251).take 43, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
+    (hp2 : LoadHolds rd (vtσ rd w args (.n 15)) 166 0) :
+    (∀ s ∈ (vtPre.drop 6353).take 45, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZtOut (vtσ rd w args) S2 := by
-  have g : GoodL rd w (vtσ rd w args) zTail := vt_goodL hl 6251 zTail zTail_at
-  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n 5696, .n 5698, .n 2549, .n 2549, .n 2549,
-      .n 2550, .n 2551, .n 2552, .n 5684, .n 5685, .n 5686, .n 5687, .n 5688] (lyOuts 6818) false
-      false) := (vt_goodL (rd := rd) (w := w) hl 6251 [.atom (.keccak [.n 5696, .n 5698, .n 2549,
-      .n 2549, .n 2549, .n 2550, .n 2551, .n 2552, .n 5684, .n 5685, .n 5686, .n 5687, .n 5688]
-      (lyOuts 6818) false false)] (by decide +kernel)).1
-  have gch : GoodL rd w (vtσ rd w args) (challengeT (.n 6818) (.n 6819) 6831) :=
-    vt_goodL hl 6252 _ (by decide +kernel)
-  have gz := vt_goodL (rd := rd) (w := w) hl 2607 [.atom (.const (.n 2549) (word 0 0 0)),
-    .atom (.const (.n 2550) (word 0 0 0)), .atom (.const (.n 2551) (word 0 0 0)),
-    .atom (.const (.n 2552) (word 0 0 0))] (by decide +kernel)
+  have g : GoodL rd w (vtσ rd w args) zTail := vt_goodL hl 6353 zTail zTail_at
+  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] (lyOuts 6924) false
+      false) := (vt_goodL (rd := rd) (w := w) hl 6355 [.atom (.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704]
+      (lyOuts 6924) false false)] (by decide +kernel)).1
+  have gch : GoodL rd w (vtσ rd w args) (challengeT (.n 6924) (.n 6925) 6937) :=
+    vt_goodL hl 6356 _ (by decide +kernel)
   have e := tbStmtsEqb_sound zTail_at
-  have hlen42 : zTail.length = 43 := rfl
+  have hlen42 : zTail.length = 45 := rfl
   suffices H : (∀ s ∈ zTRest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZtOut (vtσ rd w args) S2 by
     refine ⟨fun s hs => ?_, H.2⟩
     rw [← hlen42, ← e] at hs
-    exact vt_block hl 6251 zTail zTail_at zTRest (by decide +kernel) H.1 s hs
+    exact vt_block hl 6353 zTail zTail_at zTRest (by decide +kernel) H.1 s hs
   generalize vtσ rd w args = σ at *
   simp only [zTail, GoodL, GoodS, Good, fixNe, Nat.reduceLT, and_true, ↓reduceIte] at g
-  obtain ⟨g6251, g6252, g6253, g6254, g6255, g6256, g6257, g6258, g6259, g6260, g6261, g6262, g6263, g6264, g6265, g6266, g6267, g6268, g6269, g6270, g6271, g6272, g6273, g6274, g6275, g6276, g6277, g6278, g6279, g6280, g6281, g6282, g6283, g6284, g6285, g6286, g6287, g6288, g6289, g6290, g6291, g6292, g6293⟩ := g
-  simp only [GoodL, GoodS, Good, fixNe, tb_word_zero] at gz
-  obtain ⟨hz0, hz1, hz2, hz3, -⟩ := gz
+  obtain ⟨g6353, g6354, g6355, g6356, g6357, g6358, g6359, g6360, g6361, g6362, g6363, g6364, g6365, g6366, g6367, g6368, g6369, g6370, g6371, g6372, g6373, g6374, g6375, g6376, g6377, g6378, g6379, g6380, g6381, g6382, g6383, g6384, g6385, g6386, g6387, g6388, g6389, g6390, g6391, g6392, g6393, g6394, g6395, g6396, g6397⟩ := g
+  rw [tb_word_zero] at g6353 g6354
   -- the squeeze
-  have hin : ([.n 5696, .n 5698, .n 2549, .n 2549, .n 2549, .n 2550, .n 2551, .n 2552, .n 5684,
-      .n 5685, .n 5686, .n 5687, .n 5688] : List V).map σ = rateOf S2.pend ++ S2.cap := by
-    rw [hSr, hSc]; simp [hz0, hz1, hz2, hz3]
-  have k6251 : (Atom.keccak [.n 5696, .n 5698, .n 2549, .n 2549, .n 2549, .n 2550, .n 2551,
-      .n 2552, .n 5684, .n 5685, .n 5686, .n 5687, .n 5688] (lyOuts 6818) false false).Holds rd σ :=
+  have hin : ([.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700,
+      .n 5701, .n 5702, .n 5703, .n 5704] : List V).map σ = rateOf S2.pend ++ S2.cap := by
+    rw [hSr, hSc]; simp [g6353, g6354]
+  have k6355 : (Atom.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922, .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] (lyOuts 6924) false false).Holds rd σ :=
     z_keccak gk (by rw [hin]; exact hcan)
-  obtain ⟨-, hPk, -⟩ := ly_keccak k6251
+  obtain ⟨-, hPk, -⟩ := ly_keccak k6355
   rw [hin] at hPk
-  have hch : ChallengeOk σ (.n 6818) (.n 6819) 6831 :=
+  have hch : ChallengeOk σ (.n 6924) (.n 6925) 6937 :=
     z_challenge gch
       (by rw [hPk 1 (by norm_num)]; exact cellsOfState_canonical _ _ _)
-  have vrm : σ (.n 6837) = S2.squeeze.1 :=
+  have vrm : σ (.n 6943) = S2.squeeze.1 :=
     challengeT_value hch (hPk 0 (by norm_num)) (hPk 1 (by norm_num))
   -- the public words' limbs
-  have l6 : σ (.n 6838) = ofK ((σ (.n 6)).limb 0) := by
-    have := g6260 0 (by simp); simpa [limbAt] using this
-  have l7 : σ (.n 6843) = ofK ((σ (.n 7)).limb 0) := by
-    have := g6266 0 (by simp); simpa [limbAt] using this
-  have h6 : σ (.n 6841) = ofK ((σ (.n 6)).limb 1) := by
-    rw [g6263, g6261, g6262, word_y_inv, l6]; exact split_hi hc6
-  have h7 : σ (.n 6846) = ofK ((σ (.n 7)).limb 1) := by
-    rw [g6269, g6267, g6268, word_y_inv, l7]; exact split_hi hc7
-  have i6256 : (Atom.assertInK (.n 6831) (.n 6834)).Holds rd σ := ⟨hch.2.2.2.1, hch.2.2.2.2.1⟩
-  have i6264 : (Atom.assertInK (.n 6838) (.n 6841)).Holds rd σ := by
+  have l6 : σ (.n 6944) = ofK ((σ (.n 6)).limb 0) := by
+    have := g6364 0 (by simp); simpa [limbAt] using this
+  have l7 : σ (.n 6949) = ofK ((σ (.n 7)).limb 0) := by
+    have := g6370 0 (by simp); simpa [limbAt] using this
+  have h6 : σ (.n 6947) = ofK ((σ (.n 6)).limb 1) := by
+    rw [g6367, g6365, g6366, word_y_inv, l6]; exact split_hi hc6
+  have h7 : σ (.n 6952) = ofK ((σ (.n 7)).limb 1) := by
+    rw [g6373, g6371, g6372, word_y_inv, l7]; exact split_hi hc7
+  have i6360 : (Atom.assertInK (.n 6937) (.n 6940)).Holds rd σ := ⟨hch.2.2.2.1, hch.2.2.2.2.1⟩
+  have i6368 : (Atom.assertInK (.n 6944) (.n 6947)).Holds rd σ := by
     rw [Atom.Holds, l6, h6]; exact ⟨ofK_isInK _, ofK_isInK _⟩
-  have i6270 : (Atom.assertInK (.n 6843) (.n 6846)).Holds rd σ := by
+  have i6374 : (Atom.assertInK (.n 6949) (.n 6952)).Holds rd σ := by
     rw [Atom.Holds, l7, h7]; exact ⟨ofK_isInK _, ofK_isInK _⟩
-  have s6275 : (Atom.load (.n 6850) (.n 15) 162).Holds rd σ := by
+  have s6379 : (Atom.load (.n 6956) (.n 15) 164).Holds rd σ := by
     show LoadHolds rd _ _ _
     have e : multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [S2.squeeze.1] =
-        σ (.n 6850) := by
-      rw [g6274, g6273, g6272, g6271, g6265, l6, l7, vrm]
+        σ (.n 6956) := by
+      rw [g6378, g6377, g6376, g6375, g6369, l6, l7, vrm]
       simp only [multilinearEval, List.foldl, foldPairs, List.headD]
       ring
     rw [← e]; exact hp0
-  have s6279 : (Atom.load (.n 6853) (.n 15) 163).Holds rd σ := by
+  have s6383 : (Atom.load (.n 6959) (.n 15) 165).Holds rd σ := by
     show LoadHolds rd _ _ _
     have e : multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [S2.squeeze.1] =
-        σ (.n 6853) := by
-      rw [g6278, g6277, g6276, h6, h7, vrm]
+        σ (.n 6959) := by
+      rw [g6382, g6381, g6380, h6, h7, vrm]
       simp only [multilinearEval, List.foldl, foldPairs, List.headD]
       ring
     rw [← e]; exact hp1
-  have s6281 : (Atom.load (.n 6854) (.n 15) 164).Holds rd σ := by
+  have s6385 : (Atom.load (.n 6960) (.n 15) 166).Holds rd σ := by
     show LoadHolds rd _ _ _
-    rw [g6280, tb_word_zero]; exact hp2
+    rw [g6384, tb_word_zero]; exact hp2
   have hrest : ∀ s ∈ zTRest, VSH (coreProgram.Rel rd) rd σ s := by
     intro s hs
     simp only [zTRest, List.mem_cons, List.not_mem_nil, or_false] at hs
     obtain rfl | rfl | rfl | rfl | rfl | rfl | rfl := hs
-    · exact k6251
-    · exact i6256
-    · exact i6264
-    · exact i6270
-    · exact s6275
-    · exact s6279
-    · exact s6281
-  refine ⟨hrest, vrm, ?_, ?_, g6290, g6291, by rw [g6292, vrm], g6293⟩
-  · rw [g6282, g6283, g6284, g6285, g6286, hPk 8 (by norm_num), hPk 9 (by norm_num),
+    · exact k6355
+    · exact i6360
+    · exact i6368
+    · exact i6374
+    · exact s6379
+    · exact s6383
+    · exact s6385
+  refine ⟨hrest, vrm, ?_, ?_, g6394, g6395, by rw [g6396, vrm], g6397⟩
+  · rw [g6386, g6387, g6388, g6389, g6390, hPk 8 (by norm_num), hPk 9 (by norm_num),
       hPk 10 (by norm_num), hPk 11 (by norm_num), hPk 12 (by norm_num)]
     rfl
-  · rw [g6289, g6288, g6287, vtW157]
+  · rw [g6393, g6392, g6391, vtW159]
 
 end
 end LeanVM.Guest.B1.Tables

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZInBuf
 
-  Where `verify_tables`' statements `2587 ..< 2688` and `6355 ..< 6398` load: the rounds'
+  Where `verify_tables`' statements `2587 ..< 2688` and `6353 ..< 6398` load: the rounds'
   records, the running products, `claim_pool`.
 -/
 
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.VtC.InBuf
 
 `vtZ_inBuf`: the loads of `2587 ..< 2688` read the records (`7(n + 1)` words at `w 2605`, the
 last one `7n` on) and the running products (`n + 1` at `w 2608`).
-`vtZt_inBuf`: those of `6355 ..< 6398` read `claim_pool` (`165` words).
+`vtZt_inBuf`: those of `6353 ..< 6398` read `claim_pool` (`167` words).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -68,12 +68,12 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
     | exact ⟨_, bC, 0, by rw [g2]; simp, by omega⟩
 
 set_option maxRecDepth 100000 in
-/-- **The loads of `6355 ..< 6398`** read `claim_pool`. -/
+/-- **The loads of `6353 ..< 6398`** read `claim_pool`. -/
 theorem vtZt_inBuf {rd : Reader} {w : ℕ → E} {args : List E} {bufs : List (E × ℕ)}
-    (b15 : (vtσ rd w args (.n 15), 165) ∈ bufs) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 6355).take 43) := by
+    (b15 : (vtσ rd w args (.n 15), 167) ∈ bufs) :
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 6353).take 45) := by
   have e := tbStmtsEqb_sound zTail_at
-  have hlen : zTail.length = 43 := rfl
+  have hlen : zTail.length = 45 := rfl
   rw [← hlen, ← e]
   intro d p off hm
   simp only [zTail, List.mem_cons, Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, false_or,

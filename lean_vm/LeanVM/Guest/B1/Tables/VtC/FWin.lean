@@ -51,7 +51,7 @@ theorem vt_readM (hl : args.length = 20) {d p : V} {off : ℕ}
 /-! ## The evaluations -/
 
 /-- **Evaluation `k`'s equations**: its high limb, its tag, its two cells. -/
-theorem vtF_evalGood (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
+theorem vtF_evalGood (hl : args.length = 20) {k : ℕ} (hk : k < 159) :
     vtσ rd w args (.n (vtEvB k + 3)) = ofK ((vtσ rd w args (.n (vtEvB k))).limb 2) ∧
       vtσ rd w args (.n (vtEvB k + 4)) = word dsObserve 0 0 ∧
       vtσ rd w args (.n (vtEvB k + 7)) = fsPackVals (vtσ rd w args (.n (vtEvB k))) dsObserve 6 ∧
@@ -77,7 +77,7 @@ theorem vtF_evalGood (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
   · rw [g9, g8, e3]; rfl
 
 /-- An evaluation's cells are canonical. -/
-theorem vtF_cellsCanon (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
+theorem vtF_cellsCanon (hl : args.length = 20) {k : ℕ} (hk : k < 159) :
     IsCanonical128 (vtσ rd w args (.n (vtEvB k + 7))) ∧
       IsCanonical128 (vtσ rd w args (.n (vtEvB k + 9))) := by
   obtain ⟨-, -, e7, e9⟩ := vtF_evalGood (rd := rd) (w := w) hl hk
@@ -86,14 +86,14 @@ theorem vtF_cellsCanon (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
 
 /-- The cursor's read. -/
 theorem vtF_evRead (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
-    (hk : k < 157) :
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 159 ≤ evs.length) {k : ℕ}
+    (hk : k < 159) :
     LoadHolds rd (vtσ rd w args (.n 2625)) k (evs.getD k 0) ∧
       vtσ rd w args (.n (vtEvB k)) = evs.getD k 0 := by
   have heq := vtEval_check k hk
   have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2625) k) ∈ vtPre :=
     vt_mem_slice (vtPre_drop _ ▸ heq) (by simp [vtEvalT, fsNextT, vtEvB])
-  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2625) (b := 157) hl vtF_loadsBelow (by simp) hcur hevl
+  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2625) (b := 159) hl vtF_loadsBelow (by simp) hcur hevl
     (vtEvL_mem hs (fun _ _ _ h ↦ by cases h))
   exact ⟨hm, hr (not_mem_vtSL vtF_noStore.2.1 _ _)⟩
 
@@ -183,8 +183,8 @@ theorem vtF_airVals (hl : args.length = 20) {τs : ℕ → ℕ}
 
 /-- **Evaluation `k`'s read and limb check hold.** -/
 theorem vtF_ev (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
-    (hk : k < 157) :
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs) (hevl : 159 ≤ evs.length) {k : ℕ}
+    (hk : k < 159) :
     ∀ s ∈ vtEvRest k, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   obtain ⟨hm, hb⟩ := vtF_evRead (w := w) hl hcur hevl hk
   obtain ⟨e3, e4, -, -⟩ := vtF_evalGood (rd := rd) (w := w) hl hk
@@ -206,9 +206,8 @@ theorem vtF_permOut (hl : args.length = 20) {j : ℕ} (hj : j < 39) {i : ℕ} (h
   have g := vt_goodAt (rd := rd) (w := w) hl _ _ (vtPerm_check j hj)
   simp only [vtPermT, keccakA, fixNe, GoodS, Good] at g
   generalize (vtPermData.getD j (0, 0)).2 = o at g ⊢
-  have := g.2.2 ⟨i, hi⟩
-  simp only [cells13, lyOuts, List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map,
-    List.getElem?_range hi, Option.map_some, Option.getD_some, Function.comp_apply] at this
+  have := g.2.2 ⟨i, hi⟩ (by simp [lyOuts]; exact hi)
+  simp only [lyOuts, List.getElem_map, List.getElem_range] at this
   rw [this]
   exact canon_cellsOfState _ _ _
 
@@ -223,7 +222,7 @@ theorem vtF_perm (hl : args.length = 20)
     intro v hv
     rcases List.mem_append.mp hv with hv | hv
     · obtain ⟨i, hi, hv⟩ := List.mem_flatMap.mp hv
-      have hk : 4 * j + i < 157 := by simp at hi; omega
+      have hk : 4 * j + i < 159 := by simp at hi; omega
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl
       · exact (vtF_cellsCanon (rd := rd) (w := w) hl hk).1
@@ -249,7 +248,7 @@ theorem vtF_perm (hl : args.length = 20)
 14 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, the
 challenges' products `cp` and the equality prefix `pe` up to `n`, and a canonical carried
 capacity, every statement of `2688 ..< 6352` holds. -/
-theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 157 ≤ evs.length)
+theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 159 ≤ evs.length)
     (hcur : TbReadsAt rd (vtσ rd w args (.n 2625)) evs)
     {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 14 ≤ W.length)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
