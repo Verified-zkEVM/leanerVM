@@ -48,22 +48,26 @@ example : prog.fetch 0 = none := prog.fetch_zero
 #guard i2.opcode = .deref
 #guard i3.opcode = .jump
 #guard (LeanIsaInstruction.mulNative 1 g (addressOfIndex 2)).opcode = .mulNative
-#guard (LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true).opcode = .keccak
+#guard (LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all).opcode = .keccak
 
 /-! ## Equality -/
 
 #guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
-    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true =
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all =
   LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
-      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all
 #guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
-    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true ≠
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all ≠
   LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 5] (addressOfIndex 4)
-      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all
 #guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
-    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true ≠
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all ≠
   LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
-      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true true
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true true .all
+#guard LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+    (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false false .one ≠
+  LeanIsaInstruction.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4)
+      (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false false .two
 #guard LeanIsaInstruction.deref 1 g (addressOfIndex 2) .pc ≠ LeanIsaInstruction.deref 1 g
     (addressOfIndex 2) .fp
 #guard LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
