@@ -383,11 +383,12 @@ theorem ok18 : CplOk 18 := by
     rw [hn] at hk
     interval_cases k
     · exact cw18_1_0
-  · have hn : nParts 18 2 = 2 := by decide +kernel
+  · have hn : nParts 18 2 = 3 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw18_2_0
     · exact cw18_2_1
+    · exact cw18_2_2
 
 theorem ok19 : CplOk 19 := by
   intro i hi k hk

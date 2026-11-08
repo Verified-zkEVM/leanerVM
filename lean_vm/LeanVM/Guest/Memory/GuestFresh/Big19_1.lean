@@ -16,36 +16,28 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `61` to `70`. -/
-def ts19_61 : List ℕ := [10820, 10821, 12016, 12017]
+/-- The temporaries of statements `81` to `95`. -/
+def ts19_81 : List ℕ := [14200, 14201, 15288, 15289, 16376, 16377]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_61 : RangeFresh ((Data.core19.body.drop 61).take 10) ts19_61 temps19 := by
-  unfold RangeFresh ts19_61; decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- The temporaries of statements `71` to `80`. -/
-def ts19_71 : List ℕ := [13212, 13213, 14408, 14409]
-
-set_option maxRecDepth 100000 in
-theorem fresh19_71 : RangeFresh ((Data.core19.body.drop 71).take 10) ts19_71 temps19 := by
-  unfold RangeFresh ts19_71; decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- The temporaries of statements `81` to `90`. -/
-def ts19_81 : List ℕ := [15604, 15605, 16800, 16801]
-
-set_option maxRecDepth 100000 in
-theorem fresh19_81 : RangeFresh ((Data.core19.body.drop 81).take 10) ts19_81 temps19 := by
+theorem fresh19_81 : RangeFresh ((Data.core19.body.drop 81).take 15) ts19_81 temps19 := by
   unfold RangeFresh ts19_81; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `91` to `100`. -/
-def ts19_91 : List ℕ := [17996, 17997, 19192, 19193]
+/-- The temporaries of statements `96` to `110`. -/
+def ts19_96 : List ℕ := [17464, 17465, 18552, 18553, 19640, 19641]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_91 : RangeFresh ((Data.core19.body.drop 91).take 10) ts19_91 temps19 := by
-  unfold RangeFresh ts19_91; decide +kernel
+theorem fresh19_96 : RangeFresh ((Data.core19.body.drop 96).take 15) ts19_96 temps19 := by
+  unfold RangeFresh ts19_96; decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- The temporaries of statements `111` to `209`. -/
+def ts19_111 : List ℕ := [20728, 20729, 21816, 21817, 22904, 22905]
+
+set_option maxRecDepth 100000 in
+theorem fresh19_111 : RangeFresh ((Data.core19.body.drop 111).take 99) ts19_111 temps19 := by
+  unfold RangeFresh ts19_111; decide +kernel
 
 end
 end LeanVM.Guest

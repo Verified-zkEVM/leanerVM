@@ -10,16 +10,8 @@ import LeanVM.Cost.DecoderSize.Rows4
 import LeanVM.Cost.DecoderSize.Rows5
 import LeanVM.Cost.DecoderSize.Rows6
 import LeanVM.Cost.DecoderSize.Rows7
-import LeanVM.Cost.DecoderSize.Rows8
-import LeanVM.Cost.DecoderSize.Rows9
-import LeanVM.Cost.DecoderSize.Rows10
-import LeanVM.Cost.DecoderSize.Rows11
-import LeanVM.Cost.DecoderSize.Rows12
-import LeanVM.Cost.DecoderSize.Rows13
 import LeanVM.Cost.DecoderSize.Names0
 import LeanVM.Cost.DecoderSize.Names1
-import LeanVM.Cost.DecoderSize.Names2
-import LeanVM.Cost.DecoderSize.Names3
 import LeanVM.Cost.Decoder.GuestTablesCheck.C0
 import LeanVM.Cost.Decoder.GuestTablesCheck.C1
 import LeanVM.Cost.Decoder.GuestTablesCheck.C2

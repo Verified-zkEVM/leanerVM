@@ -16,20 +16,12 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `93` to `93`. -/
-def ts36_93 : List ℕ := []
+/-- The temporaries of statements `223` to `223`. -/
+def ts36_223 : List ℕ := []
 
 set_option maxRecDepth 100000 in
-theorem fresh36_93 : RangeFresh ((Data.core36.body.drop 93).take 1) ts36_93 temps36 := by
-  unfold RangeFresh ts36_93; decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- The temporaries of statements `94` to `171`. -/
-def ts36_94 : List ℕ := [40135, 40136]
-
-set_option maxRecDepth 100000 in
-theorem fresh36_94 : RangeFresh ((Data.core36.body.drop 94).take 78) ts36_94 temps36 := by
-  unfold RangeFresh ts36_94; decide +kernel
+theorem fresh36_223 : RangeFresh ((Data.core36.body.drop 223).take 1) ts36_223 temps36 := by
+  unfold RangeFresh ts36_223; decide +kernel
 
 end
 end LeanVM.Guest

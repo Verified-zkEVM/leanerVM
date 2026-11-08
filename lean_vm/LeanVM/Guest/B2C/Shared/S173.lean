@@ -16,72 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_ood_point__L16`, once. -/
-theorem st430 : shareStatic 430 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 11. -/
+theorem w434_11 : shareWin 434 (snapsOf 434) 11 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_ood_point__L16`, window 0. -/
-theorem w430_0 : shareWin 430 (snapsOf 430) 0 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 12. -/
+theorem w434_12 : shareWin 434 (snapsOf 434) 12 = true := by decide +kernel
 
-theorem ok430 : ShareOk 430 := ⟨st430, fun i hi ↦ by
-  have h : (snapsOf 430).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 13. -/
+theorem w434_13 : shareWin 434 (snapsOf 434) 13 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L17_L8`, once. -/
+theorem st435 : shareStatic 435 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 0. -/
+theorem w435_0 : shareWin 435 (snapsOf 435) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 1. -/
+theorem w435_1 : shareWin 435 (snapsOf 435) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_ood_point__L12`, once. -/
+theorem st436 : shareStatic 436 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_ood_point__L12`, window 0. -/
+theorem w436_0 : shareWin 436 (snapsOf 436) 0 = true := by decide +kernel
+
+theorem ok436 : ShareOk 436 := ⟨st436, fun i hi ↦ by
+  have h : (snapsOf 436).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w430_0⟩
+  exact w436_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L17`, once. -/
-theorem st431 : shareStatic 431 = true := by decide +kernel
+/-- `__loop42`, once. -/
+theorem st437 : shareStatic 437 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L17`, window 0. -/
-theorem w431_0 : shareWin 431 (snapsOf 431) 0 = true := by decide +kernel
+/-- `__loop42`, window 0. -/
+theorem w437_0 : shareWin 437 (snapsOf 437) 0 = true := by decide +kernel
 
-theorem ok431 : ShareOk 431 := ⟨st431, fun i hi ↦ by
-  have h : (snapsOf 431).length = 0 := by decide +kernel
+theorem ok437 : ShareOk 437 := ⟨st437, fun i hi ↦ by
+  have h : (snapsOf 437).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w431_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop41`, once. -/
-theorem st432 : shareStatic 432 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop41`, window 0. -/
-theorem w432_0 : shareWin 432 (snapsOf 432) 0 = true := by decide +kernel
-
-theorem ok432 : ShareOk 432 := ⟨st432, fun i hi ↦ by
-  have h : (snapsOf 432).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w432_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `opening_row_weights__L6_L1`, once. -/
-theorem st433 : shareStatic 433 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_row_weights__L6_L1`, window 0. -/
-theorem w433_0 : shareWin 433 (snapsOf 433) 0 = true := by decide +kernel
-
-theorem ok433 : ShareOk 433 := ⟨st433, fun i hi ↦ by
-  have h : (snapsOf 433).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w433_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, once. -/
-theorem st434 : shareStatic 434 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 0. -/
-theorem w434_0 : shareWin 434 (snapsOf 434) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 1. -/
-theorem w434_1 : shareWin 434 (snapsOf 434) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 2. -/
-theorem w434_2 : shareWin 434 (snapsOf 434) 2 = true := by decide +kernel
+  exact w437_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
