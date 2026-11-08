@@ -1,5 +1,5 @@
 # usage: python3 -I gencsort.py  — writes Tables/VtC/SGrpT.lean: each block group's key and size
-# statements (G:2169-2173 at 5e3ade21) hold on the honest valuation (`vtc_grp{gi}`), from
+# statements (G:2141-2145 at 873ee6d8) hold on the honest valuation (`vtc_grp{gi}`), from
 # vt_ir.txt (dump.py). The completeness twin of gensort.py's `vt_grp{gi}`.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -134,7 +134,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The block groups' keys and sizes, honestly (G:2152-2156)
+# The block groups' keys and sizes, honestly (G:2124-2128)
 
 `vtc_grp{gi}`: with `kappa_g = g^κ` (the group's `kappa_base` variable, times `g^19` for the
 bytecode's group `2`), the exponent tables' rank key `g^(254 κ)` and square `g^(2^κ)` at `κ`, and
