@@ -28,9 +28,16 @@ theorems; the bus is `Soundness.Bus`'s.
 component as the typed row `rowInput` (the first cells, a missing cell `0`). Whatever its cells,
 the row circuit of each opcode table sends the messages `sendsOf pc fp next rbc e reads` of
 `Completeness.Rows`: the state pull `(pc, fp)` and push `next`, the bytecode pull and push of the
-eleven coordinates `e` at `pc`, and per memory read a pull of `(addr, count, v)` and a push of
-`(addr, g·count, v)`, at most twenty-six reads (`KECCAK`). The memory and bytecode pairs need nothing
-more of the rows than this shape (`Soundness.MemChannel`, `Soundness.BytecodeChannel`).
+thirteen coordinates `e` at `pc`, and per memory read a pull of `(addr, count, v)` and a push of
+`(addr, g·count, v)`; then, for `KECCAK`'s output cells `1..13` (leanVM PR #724 head `873ee6d8`),
+per gated read `(flag, addr, count, v)` a pull of `(addr, count, v)` and a push of
+`(addr, count + g·(flag·count) + flag·count, v)` (`gatedSends`): at most twenty-six reads, plain
+or gated. A gated read at flag `1` is a read (`RowRec.real`); at flag `0` a cancelled pair
+(`RowRec.skips`). A memory pull of multiplicity `-1`, the one whose guarantee a soundness proof
+assumes, is a read the row makes (the gated pull's multiplicity is `-flag`), and when the row's
+bytecode coordinates are an instruction's every gate is `0` or `1` (`decode` of the output flags).
+The memory and bytecode pairs need nothing more of the rows than this shape
+(`Soundness.MemChannel`, `Soundness.BytecodeChannel`).
 
 **The step** (also `OpRow`). Under the table's `Assumptions` (the permutation, for `KECCAK`), its
 constraints (the `JUMP` residuals), and the guarantees of its pulls (that the memory reads are the
