@@ -224,7 +224,7 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
   have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) 0 lx (by norm_num) hlx.le
   have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
-    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 431)) (σ (.n 52)) (σ (.n 55)) _ _
+    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) _ _
     (regionTable_good (rd := rd) D (σ (.n 66)) 0 lx hlx.le)
     (regionTable_good (rd := rd) D (σ (.n 66)) lx ls hls)
     ((regionTable_size_le (rd := rd) D (σ (.n 66)) 0 lx).trans hlxN)

@@ -77,7 +77,7 @@ theorem l2ArgsD_eq : l2ArgsD = l2Args := by
   simp [l2ArgsD, l2Args, List.range_succ]
 
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 416), σ (.n 422), σ (.n 428), σ (.n 449)]
+def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 405), σ (.n 411), σ (.n 417), σ (.n 438)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD

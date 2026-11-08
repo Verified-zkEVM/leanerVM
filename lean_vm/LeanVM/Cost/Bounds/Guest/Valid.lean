@@ -156,7 +156,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
         (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
-      (σ (.n 431)) (σ (.n 52)) (σ (.n 55)) (lxTable discreteLogTables rd σ)
+      (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩
