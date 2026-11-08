@@ -74,7 +74,7 @@ theorem forall₂_range_of {P : ℕ → E → Prop} {n : ℕ} {ps : List E} (hl 
   have := h i (by simpa using h1)
   simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2] using this
 
-/-- **One iteration of the residual loop, honestly** (G:1758-1767): at `x`, whose memory is the
+/-- **One iteration of the residual loop, honestly** (G:1730-1739): at `x`, whose memory is the
 iteration's meaning (`ResIter`: the batch's eight positions at `qpos·g^posOff·x^8`, `chain[x]`
 and `chain[x·g]` the steps over them), the row's words `D` at `bd`. -/
 theorem resIter_complete (lvl : ℕ) (lv : OsLv) (hml : 1 ≤ lv.logCols)

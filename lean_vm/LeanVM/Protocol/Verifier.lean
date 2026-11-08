@@ -106,7 +106,7 @@ def decodeAll {α : Type} (size : ℕ) (decode : Bytes → α) (b : Bytes) : Opt
   | some (xs, []) => some xs
   | _ => none
 
-/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1531-1532`). -/
+/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1544-1545`). -/
 def decodeWords (b : Bytes) : Option (List K) := decodeAll 8 kOfBytes b
 
 /-- `public_input.bin`: the 32-byte public input (`Digest.__post_init__`). -/
@@ -119,7 +119,7 @@ def decodeScalars (b : Bytes) : Option (List E) := decodeAll 24 eOfBytes b
 /-- The natural number of eight little-endian bytes (`int.from_bytes(…, "little")`). -/
 def natOfBytes (b : Bytes) : ℕ := (laneOfBytes b).toNat
 
-/-- Read one opening of the given height and width (`Transcript.merkle`, `verifier.py:435`): its
+/-- Read one opening of the given height and width (`Transcript.merkle`, `verifier.py:430`): its
 position, eight little-endian bytes, then its leaf's words and its siblings. -/
 def readOpening (height width : ℕ) (b : Bytes) : Option (Opening × Bytes) := do
   let (position, b) ← readMany 8 natOfBytes 1 b
@@ -161,7 +161,7 @@ def laterOpeningShapes : ℕ → List Whir.Level → List (List (ℕ × ℕ))
 
 /-- The openings of a WHIR run on a `logN`-variable stack, level by level: level `0` opens the
 stack at `commitStack`'s shape, level `ℓ + 1` the commitment read at level `ℓ`
-(`verify_whir`, `verifier.py:1125-1203`), one phase per level. -/
+(`verify_whir`, `verifier.py:1138-1216`), one phase per level. -/
 def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (List (ℕ × ℕ))
   | [] => []
   | level :: rest =>

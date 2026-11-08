@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.TailSpec
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# The tail rounds (G:1676-1694)
+# The tail rounds (G:1648-1666)
 
 The last level's tail: `yrLog - 1` `opening_fold` rounds (`osFolds_sound`) then the closing
 squeeze on the two waiting scalars, its challenge stored at `tail_challenges[yrLog - 1]`, the
@@ -29,7 +29,7 @@ open LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- **The tail rounds** (G:1676-1694): from the guest's claim and quadratic, the `2(yrLog - 1)`
+/-- **The tail rounds** (G:1648-1666): from the guest's claim and quadratic, the `2(yrLog - 1)`
 words at the cursor read, they run `tailRounds yrLog`; its challenges are stored at
 `tail_challenges` (the returned pointer), the entries past them zero, its claim the state's. -/
 theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → MeaningOpeningFold rd args rets)

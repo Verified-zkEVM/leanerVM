@@ -53,7 +53,7 @@ loading/correspondence theorem. Those interfaces require separate coverage or re
 * An output flag of `KECCAK` is `0` or `1`: that is what makes its gated memory pair either a
   read or a cancelled pair (`Tables.Keccak`), and `decode` is where it comes from.
 * A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
-  literal zeros in its spare coordinates (`_flushes_*`, `verifier.py:806-922`), and `decode`
+  literal zeros in its spare coordinates (`_flushes_*`, `verifier.py:808-933`), and `decode`
   rejects a tuple that violates that opcode's canonical entry shape. This is a thirteen-coordinate
   entry claim, not rejection by the typed program's address lookup.
 -/

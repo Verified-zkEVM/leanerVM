@@ -30,7 +30,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 namespace KeccakHash
 
-/-- The digest of a Merkle node (`Transcript.merkle`, `verifier.py:433-445`): Keccak-256 of the
+/-- The digest of a Merkle node (`Transcript.merkle`, `verifier.py:428-440`): Keccak-256 of the
 64 bytes of its two children, left first. -/
 def hashPair (left right : Digest) : Digest := keccak256 (digestBytes left ++ digestBytes right)
 

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Head
 
-  `verify_sub`'s head (G:3356-3364), honestly: the pool and the lengths allocated, the seed's
+  `verify_sub`'s head (G:3328-3336), honestly: the pool and the lengths allocated, the seed's
   permutation, the stream allocated and hinted, `table_rows` allocated.
 -/
 

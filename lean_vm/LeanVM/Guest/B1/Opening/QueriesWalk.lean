@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.B1.Opening.WalkDefs
 
 /-!
-# The windows a walk dispatches on (lean_ethereum.py:1336-1371, 1421-1443 at 5e3ade21)
+# The windows a walk dispatches on (lean_ethereum.py:1308-1343, 1393-1415 at 873ee6d8)
 
 `walk_path__L{pd}_L{cd}` (a function) dispatches `match(log(w))` on each path window
 `w = wins[g^i]`; `opening_queries` calls it on the window pointer `wins` loaded from
