@@ -44,21 +44,21 @@ def sPre : List Stmt :=
 theorem sBody_splitC : sBody = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
   simp only [sBody, sAfterDigest, sPre, List.append_assoc]
 
-theorem sLayerB_end : sLayerB.2.1 = 8713 := rfl
-theorem sLayerM_end : sLayerM.2.1 = 8979 := rfl
-theorem sMidAddrs_seq : SeqOK 8713 sMidAddrs 8722 := seqB_ok (by decide +kernel)
-theorem sTopAddrs_seq : SeqOK 8979 sTopAddrs 8985 := seqB_ok (by decide +kernel)
-theorem sBottom_nb : NumBelow 8456 (Stmt.valsList (sDigestBlock ++ (sForsAddrs ++ sForsB.1))) :=
+theorem sLayerB_end : sLayerB.2.1 = 5398 := rfl
+theorem sLayerM_end : sLayerM.2.1 = 5556 := rfl
+theorem sMidAddrs_seq : SeqOK 5398 sMidAddrs 5407 := seqB_ok (by decide +kernel)
+theorem sTopAddrs_seq : SeqOK 5556 sTopAddrs 5562 := seqB_ok (by decide +kernel)
+theorem sBottom_nb : NumBelow 5249 (Stmt.valsList (sDigestBlock ++ (sForsAddrs ++ sForsB.1))) :=
   numBelow_of_all (by decide +kernel)
-theorem sLayerB_nb : NumBelow 8713 (Stmt.valsList sLayerB.1) := numBelow_of_all (by decide +kernel)
-theorem sLayerM_nb : NumBelow 8979 (Stmt.valsList sLayerM.1) := numBelow_of_all (by decide +kernel)
-theorem sLayerT_le : 8985 ≤ sLayerT.2.1 := by decide +kernel
-theorem sLayerB_rootC : ∃ k < 8713, sLayerB.2.2 = .n k := ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩
-theorem sLayerM_rootC : ∃ k < 8979, sLayerM.2.2 = .n k := ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩
+theorem sLayerB_nb : NumBelow 5398 (Stmt.valsList sLayerB.1) := numBelow_of_all (by decide +kernel)
+theorem sLayerM_nb : NumBelow 5556 (Stmt.valsList sLayerM.1) := numBelow_of_all (by decide +kernel)
+theorem sLayerT_le : 5562 ≤ sLayerT.2.1 := by decide +kernel
+theorem sLayerB_rootC : ∃ k < 5398, sLayerB.2.2 = .n k := ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩
+theorem sLayerM_rootC : ∃ k < 5556, sLayerM.2.2 = .n k := ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩
 theorem sAfterDigest_ptrs : loadPtrs (sForsAddrs ++ sForsB.1) = [] ∧ loadPtrs sMidAddrs = [] ∧
     loadPtrs sTopAddrs = [] := by decide +kernel
-theorem sLayerB_ptrs : ∀ q ∈ loadPtrs sLayerB.1, q < 8713 := by decide +kernel
-theorem sLayerM_ptrs : ∀ q ∈ loadPtrs sLayerM.1, q < 8979 := by decide +kernel
+theorem sLayerB_ptrs : ∀ q ∈ loadPtrs sLayerB.1, q < 5398 := by decide +kernel
+theorem sLayerM_ptrs : ∀ q ∈ loadPtrs sLayerM.1, q < 5556 := by decide +kernel
 
 /-- **The body's loads**: through the claim's `n0` at an offset below `4`, or through a pointer of
 `sPre`'s byte reads. -/
@@ -85,7 +85,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   rw [sForsKeyOf_eq] at h0
   have hT8 := sLayerT_le
   unfold sPre
-  refine Completes.append (m := 8456) (by norm_num) (by omega) sBottom_nb
+  refine Completes.append (m := 5249) (by norm_num) (by omega) sBottom_nb
     (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA hA => ?_)
   have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
   -- the bottom layer
@@ -93,13 +93,13 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
     σA hA1 hA hA.2.2.2.2.2.1 hA.2.2.2.2.2.2.1 hA.2.2.2.2.2.2.2
   set R0 := layerRootCell pk (digestIdx pk m sig) sig ⟨0, by decide⟩ (forsKeyCell pk m sig)
     with hR0d
-  refine Completes.append (m := 8713) (by norm_num) (by omega) sLayerB_nb hL0
+  refine Completes.append (m := 5398) (by norm_num) (by omega) sLayerB_nb hL0
     (fun σB heB ⟨hB0, hBp⟩ => ?_)
-  have tB : ∀ k < 8456, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
+  have tB : ∀ k < 5249, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
   -- the middle layer's address
   refine Completes.seq sMidAddrs_seq (by omega) (fun σC heC hAtC => ?_)
-  have tC : ∀ k < 8713, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
-  have tCA : ∀ k < 8456, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
+  have tC : ∀ k < 5398, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
+  have tCA : ∀ k < 5249, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
   have hAC := hA.congr tCA
   obtain ⟨ha0C, ha1C⟩ := sMidAddrs_vals hAC.2.2.2.1.2.2.2.1 hAC.2.2.2.1.2.2.2.2 hAtC
   have hsC : σC (sSignedOf 1) = R0 := by
@@ -111,14 +111,14 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   obtain ⟨hr1, hL1⟩ := layer_stage hB hC hm hbb (l := 1) (by norm_num) h1'
     (canon_layerRootCell ..) σC (by rw [tCA 1 (by norm_num)]; exact hA1) hAC ha0C ha1C hsC
   set R1 := layerRootCell pk (digestIdx pk m sig) sig ⟨1, by decide⟩ R0 with hR1d
-  refine Completes.append (m := 8979) (by norm_num) (by omega) sLayerM_nb hL1
+  refine Completes.append (m := 5556) (by norm_num) (by omega) sLayerM_nb hL1
     (fun σD heD ⟨hD1, hDp⟩ => ?_)
-  have tD : ∀ k < 8722, σD (.n k) = σC (.n k) := fun k hk => heD.apply (Or.inl hk)
+  have tD : ∀ k < 5407, σD (.n k) = σC (.n k) := fun k hk => heD.apply (Or.inl hk)
   -- the top layer's address
   refine Completes.seq sTopAddrs_seq (by omega) (fun σE heE hAtE => ?_)
-  have tE : ∀ k < 8979, σE (.n k) = σD (.n k) := fun k hk => heE.apply (Or.inl hk)
-  have tEC : ∀ k < 8722, σE (.n k) = σC (.n k) := fun k hk => by rw [tE k (by omega), tD k hk]
-  have tEA : ∀ k < 8456, σE (.n k) = σA (.n k) := fun k hk => by rw [tEC k (by omega), tCA k hk]
+  have tE : ∀ k < 5556, σE (.n k) = σD (.n k) := fun k hk => heE.apply (Or.inl hk)
+  have tEC : ∀ k < 5407, σE (.n k) = σC (.n k) := fun k hk => by rw [tE k (by omega), tD k hk]
+  have tEA : ∀ k < 5249, σE (.n k) = σA (.n k) := fun k hk => by rw [tEC k (by omega), tCA k hk]
   have hAE := hA.congr tEA
   obtain ⟨ha0E, ha1E⟩ := sTopAddrs_vals hAE.2.2.2.1.2.2.2.1 hAE.2.2.2.1.2.2.2.2 hAtE
   have hsE : σE (sSignedOf 2) = R1 := by
@@ -132,11 +132,11 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   have hR2 : layerRootCell pk (digestIdx pk m sig) sig ⟨2, by decide⟩ R1 = cellOf128 pk.root := by
     rw [hr2, cellOf128_cellVal (canon_layerRootCell ..)]
   obtain ⟨σF, heF, ⟨hF2, hFp⟩, hhF⟩ := hL2
-  have tF : ∀ k < 8985, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
-  have tFA : ∀ k < 8456, σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
-  have tFB : ∀ k < 8713, σF (.n k) = σB (.n k) := fun k hk => by
+  have tF : ∀ k < 5562, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
+  have tFA : ∀ k < 5249, σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
+  have tFB : ∀ k < 5398, σF (.n k) = σB (.n k) := fun k hk => by
     rw [tF k (by omega), tE k (by omega), tD k (by omega), tC k hk]
-  have tFD : ∀ k < 8979, σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
+  have tFD : ∀ k < 5556, σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
   obtain ⟨-, -, hrA, -, hqA, -⟩ := hA
   refine ⟨σF, heF, ⟨hF2.trans hR2, by rw [show sRoot = .n 3 from rfl, tFA 3 (by norm_num)]; exact hrA,
     ?_⟩, hhF⟩

@@ -73,10 +73,13 @@ def spLeafCs (e : E) : List KC := spLeafCells.map KC.cell ++ [.const e]
 
 /-- The leaf's `keccak_cells`, the padding cell's constant `e`. -/
 def spLeafKOf (e : E) : List Stmt × Nat × Nat :=
-  let bl := kBlocks spPad (spLeafCs e) 8 false none 8 0 none (spC + 3)
+  let bl := kBlocks spPad (spLeafCs e) 8 false none 1 8 0 none (spC + 3)
   ([] ++ [] ++ bl.1, bl.2.1, bl.2.2)
 
-theorem spLeafK_of : spLeafK = spLeafKOf (byteWord 1072 1 + byteWord 1087 0x80) := rfl
+set_option maxRecDepth 40000 in
+theorem spLeafK_of : spLeafK = spLeafKOf (byteWord 1072 1 + byteWord 1087 0x80) := by
+  unfold spLeafK kMsg spLeafKOf
+  rfl
 
 theorem spPadCell : byteWord 1072 1 + byteWord 1087 0x80 = word 1 (2 ^ 63) 0 := by
   have e1 : byteWord 1072 1 = word 1 0 0 := rfl

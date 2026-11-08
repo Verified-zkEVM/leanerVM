@@ -228,17 +228,47 @@ theorem flatMap_cellBytes_length : ∀ cs : List E, (cs.flatMap cellBytes).lengt
         flatMap_cellBytes_length cs, List.length_cons]
       ring
 
-/-- **A message of whole cells** hashes to their `hcell`. -/
+theorem kXorByte_getD_ne (cs : List KC) (pos v b : Nat) {j : Nat} (hj : j ≠ pos / 16) :
+    (kXorByte cs pos v b).2.1.getD j .zero = cs.getD j .zero := by
+  unfold kXorByte
+  dsimp only
+  split <;> simp [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hj)]
+
+/-- A message's cells below its length, as `kMsg` absorbs them, are the cells themselves. -/
+theorem kMsgCells_getD (cells : List KC) (len b : Nat) {j : Nat} (hj : j < len / 16)
+    (hjc : j < cells.length) : (kMsgCells cells len b).getD j .zero = cells.getD j .zero := by
+  unfold kMsgCells
+  dsimp only
+  rw [kXorByte_getD_ne _ _ _ _ (by unfold kBlocksOf; omega),
+    kXorByte_getD_ne _ _ _ _ (by omega), List.getD_append _ _ _ _ hjc]
+
+/-- **A message of whole cells has cells for its first block's tail.** -/
+theorem tailCells_of_cells {vs : List V} {len b : Nat} (h8 : 8 ≤ vs.length) (hl : 128 ≤ len) :
+    TailCells (blockOf (kMsgCells (vs.map KC.cell) len b) 0) := by
+  have e : ∀ j, 4 ≤ j → j < 8 →
+      (blockOf (kMsgCells (vs.map KC.cell) len b) 0).getD j .zero = .cell (vs.getD j default) := by
+    intro j hj1 hj2
+    rw [blockOf, Nat.mul_zero, Nat.zero_div, List.drop_zero, List.getD_eq_getElem?_getD,
+      List.getElem?_take_of_lt (by omega), ← List.getD_eq_getElem?_getD,
+      kMsgCells_getD _ _ _ (by omega) (by simp; omega)]
+    simp [List.getD_eq_getElem?_getD, show j < vs.length by omega]
+  intro k hk
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+  rcases hk with rfl | rfl | rfl | rfl
+  exacts [⟨_, e 4 (by omega) (by omega)⟩, ⟨_, e 5 (by omega) (by omega)⟩,
+    ⟨_, e 6 (by omega) (by omega)⟩, ⟨_, e 7 (by omega) (by omega)⟩]
+
+/-- **A message of whole cells** hashes to their `hcell`, its one output cell the first half; its
+first block's tail may be read in place (`tailRun`) when it has eight cells or more. -/
 theorem kMsg_cells_sound {pad : Nat} (hp : PadOK σ pad) {vs : List V} {len b : Nat}
-    (hlen : len = 16 * vs.length)
-    (h : AtomsHold rd σ (kMsg pad (vs.map KC.cell) len false none b).1) :
-    (σ (.n (kMsg pad (vs.map KC.cell) len false none b).2.2),
-        σ (.n ((kMsg pad (vs.map KC.cell) len false none b).2.2 + 1))) = hcell (vs.map σ) := by
+    {tailRun : Bool} (hlen : len = 16 * vs.length) (htr : tailRun = true → 8 ≤ vs.length)
+    (h : AtomsHold rd σ (kMsg pad (vs.map KC.cell) len tailRun none b).1) :
+    σ (.n (kMsg pad (vs.map KC.cell) len tailRun none b).2.2) = (hcell (vs.map σ)).1 := by
   have hm : (vs.map KC.cell).map (KC.val σ) = vs.map σ := by
     rw [List.map_map]
     rfl
-  have k := kMsg_sound (cells := vs.map KC.cell) (len := len) (tailRun := false) (out := none) hp
-    (fun h => by simp at h) h (by simp [hlen]) (fun j hj => by
+  have k := kMsg_sound (cells := vs.map KC.cell) (len := len) (tailRun := tailRun) (out := none) hp
+    (fun ht => tailCells_of_cells (htr ht) (by have := htr ht; omega)) h (by simp [hlen]) (fun j hj => by
     rw [hm, cellsBytes_eq_flatMap, List.getD_eq_getElem?_getD, List.getElem?_eq_none (by
       rw [flatMap_cellBytes_length, List.length_map]; omega)]
     rfl)
@@ -246,7 +276,7 @@ theorem kMsg_cells_sound {pad : Nat} (hp : PadOK σ pad) {vs : List V} {len b : 
     rw [flatMap_cellBytes_length, List.length_map]; omega)]
 
 theorem kNode_shape (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) :
-    (kNode pad pp a0 adr k0 k1 y).2.1 = y + 17 ∧ (kNode pad pp a0 adr k0 k1 y).2.2 = y + 4 := by
+    (kNode pad pp a0 adr k0 k1 y).2.1 = y + 5 ∧ (kNode pad pp a0 adr k0 k1 y).2.2 = y + 4 := by
   constructor <;> rfl
 
 theorem padCells_five (a b c d e : E) :
@@ -257,7 +287,7 @@ theorem padCells_five (a b c d e : E) :
 in place, the three cells after it set to the padding (`pad_tail=1`). -/
 theorem kNode_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr k0 k1 : V} {y : Nat}
     (h : AtomsHold rd σ (kNode pad pp a0 adr k0 k1 y).1) :
-    (σ (.n (y + 4)), σ (.n (y + 5))) = hcell [σ pp, σ a0, σ adr, σ k0, σ k1] := by
+    σ (.n (y + 4)) = (hcell [σ pp, σ a0, σ adr, σ k0, σ k1]).1 := by
   obtain ⟨-, p1, p2, p3, p4⟩ := hp
   have c0 : σ (.n y) = word 1 0 0 := h.atom (a := .const (.n y) _) (by simp [kNode, cst])
   have c1 : σ (.n (y + 1)) = word 0 0 0 := h.atom (a := .const (.n (y + 1)) _) (by simp [kNode, cst])
@@ -266,8 +296,8 @@ theorem kNode_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr k0 k1 : V} {y : N
     h.atom (a := .const (.n (y + 3)) _) (by simp [kNode, cst])
   set ins : List V := [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
     .n (pad + 2), .n (pad + 3), .n (pad + 4)] with hins
-  have hk := h.atom (a := .keccak ins (runV (y + 4) 13) false false) (by simp [kNode, kecS, hins])
-  obtain ⟨-, -, hk⟩ := hk
+  have hk := h.atom (a := .keccak ins (runV (y + 4) 1) false false) (by simp [kNode, kecS, hins])
+  obtain ⟨-, -, O, hk, hw⟩ := keccak_holds_full hk
   have hget : ∀ k : Fin 13, cells13 (ins.map σ) k = σ (ins.getD k.val (.n 0)) := fun k => by
     simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
     rw [List.getElem?_eq_getElem (by simp [hins])]
@@ -293,7 +323,7 @@ theorem kNode_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr k0 k1 : V} {y : N
     rw [cellsBytes_eq_flatMap, flatMap_cellBytes_length]; simp
   rw [List.take_of_length_le hlen] at this
   rw [hcell, ← cellsBytes_eq_flatMap, ← this.2]
-  simp [cells13, runV]
+  simpa [runV] using hw 0 (by simp [runV])
 
 /-- **One level of a tree**: the children hinted at `x` and checked by `is_child` against `cur` and
 the bit `bit`, then hashed at the address `adr` holding `A`, give the parent of `cur` and its
@@ -311,7 +341,7 @@ theorem level_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr cur bit : V} {x y
   have e3 : σ (.n (x + 2)) = σ bit * σ (.n (x + 3)) :=
     hc.atom (a := .mul (.n (x + 2)) bit (.n (x + 3))) (by simp [isChildS, mulS])
   rw [← isChild_sound hbit e1 e2 e3]
-  exact congrArg Prod.fst (kNode_sound hp hk)
+  exact kNode_sound hp hk
 
 /-! ## The paths -/
 
@@ -324,7 +354,7 @@ def pNodeE (pp a0 : E) (e : Nat) (sib : Nat → E) (z : Nat) (v : E) : E :=
     (mPair (e.testBit z) v (sib z)).2]).1
 
 /-- A path level's width when `m` levels follow it. -/
-def pathWidth (m : Nat) : Nat := if m = 0 then 22 else if (m + 7) / 8 = 2 then 28 else 25
+def pathWidth (m : Nat) : Nat := if m = 0 then 10 else if (m + 7) / 8 = 2 then 16 else 13
 
 /-- The hinted sibling of level `j` of `sPath … m z cur x` (`0` outside its levels). -/
 def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) : Nat → Nat → Nat → Nat → E
@@ -350,20 +380,20 @@ theorem sPath_succ (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off m z : Nat)
           (kNode pad pp a0 (sPathAddr val off z m (x + 4)).2.2 (.n x) (.n (x + 1))
             (sPathAddr val off z m (x + 4)).2.1).1 ++
           (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 17)).1,
+            ((sPathAddr val off z m (x + 4)).2.1 + 5)).1,
         (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 17)).2.1,
+            ((sPathAddr val off z m (x + 4)).2.1 + 5)).2.1,
         (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 17)).2.2) := by
+            ((sPathAddr val off z m (x + 4)).2.1 + 5)).2.2) := by
   simp only [sPath, sPathAddr, (kNode_shape ..).1, (kNode_shape ..).2]
 
 theorem sBe16_next (val : Nat → V) (pos n x : Nat) :
     (sBe16 val pos n x).2.1 = x + (if (n + 7) / 8 = 2 then 5 else 2) := by
   unfold sBe16; split <;> rfl
 
-/-- The address part of a path level ends `pathWidth m - 17` after its base. -/
+/-- The address part of a path level ends `pathWidth m - 5` after its base. -/
 theorem sPathAddr_next (val : Nat → V) (off z m x : Nat) :
-    (sPathAddr val off z m (x + 4)).2.1 = x + pathWidth m - 17 := by
+    (sPathAddr val off z m (x + 4)).2.1 = x + pathWidth m - 5 := by
   unfold sPathAddr pathWidth
   by_cases hm0 : m = 0
   · simp [hm0]
@@ -445,7 +475,7 @@ theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat �
         rw [hlv, hd, hadr]
         simp [pNodeE, sPathSib]
       rw [hrest, nIter, hfirst, sPathAddr_next,
-        show x + pathWidth m - 17 + 17 = x + pathWidth m by unfold pathWidth; split_ifs <;> omega]
+        show x + pathWidth m - 5 + 5 = x + pathWidth m by unfold pathWidth; split_ifs <;> omega]
       refine nIter_congr _ _ _ fun j hj => ?_
       unfold pNodeE
       simp only [sPathSib, show j ≠ z by omega, ite_false]
