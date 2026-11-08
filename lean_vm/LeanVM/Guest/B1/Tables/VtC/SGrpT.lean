@@ -10,11 +10,11 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The block groups' keys and sizes, honestly (G:2169-2173)
+# The block groups' keys and sizes, honestly (G:2152-2156)
 
 `vtc_grp{gi}`: with `kappa_g = g^κ` (the group's `kappa_base` variable, times `g^19` for the
-bytecode's group `2`), the exponent tables' rank key `g^(252 κ)` and square `g^(2^κ)` at `κ`, and
-`group_key[gi]`, `group_size[gi]` holding the group's key `g^(252 κ - b0)` and size
+bytecode's group `2`), the exponent tables' rank key `g^(254 κ)` and square `g^(2^κ)` at `κ`, and
+`group_key[gi]`, `group_size[gi]` holding the group's key `g^(254 κ - b0)` and size
 `g^(len·2^κ)`, the group's statements hold: two reads, two stores.
 -/
 
@@ -39,9 +39,9 @@ set_option maxRecDepth 100000 in
 /-- Group `0`'s key and size statements (`21 ..< 27`). -/
 theorem vtc_grp0 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 0)) * gen ^ vtAdj 0 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 0) (gen ^ (κ * 252) * (gen ^ vtB0 0)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 0) (gen ^ (κ * 254) * (gen ^ vtB0 0)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 0) (gen ^ (vtLen 0 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 0)).take (vtGrpL 0), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 0 = 28 from rfl, show vtAdj 0 = 0 from rfl] at hkx
@@ -56,7 +56,7 @@ theorem vtc_grp0 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 28) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 22 (d := .n 41) (p := .n 40) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q21, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q21, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 25 (d := .n 43) (p := .n 42) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q24, hk]; exact hsq)
   have hsz2 : σv (.n 43) = σv (.n 43) ^ 1 := by rw [pow_one]
@@ -79,9 +79,9 @@ set_option maxRecDepth 100000 in
 /-- Group `1`'s key and size statements (`27 ..< 35`). -/
 theorem vtc_grp1 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 1)) * gen ^ vtAdj 1 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 1) (gen ^ (κ * 252) * (gen ^ vtB0 1)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 1) (gen ^ (κ * 254) * (gen ^ vtB0 1)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 1) (gen ^ (vtLen 1 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 1)).take (vtGrpL 1), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 1 = 29 from rfl, show vtAdj 1 = 0 from rfl] at hkx
@@ -102,7 +102,7 @@ theorem vtc_grp1 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 29) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 28 (d := .n 45) (p := .n 44) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q27, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q27, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 33 (d := .n 49) (p := .n 48) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q32, hk]; exact hsq)
   have hsz2 : σv (.n 49) = σv (.n 49) ^ 1 := by rw [pow_one]
@@ -126,9 +126,9 @@ set_option maxRecDepth 100000 in
 /-- Group `2`'s key and size statements (`35 ..< 45`). -/
 theorem vtc_grp2 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 2)) * gen ^ vtAdj 2 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 2) (gen ^ (κ * 252) * (gen ^ vtB0 2)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 2) (gen ^ (κ * 254) * (gen ^ vtB0 2)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 2) (gen ^ (vtLen 2 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 2)).take (vtGrpL 2), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 2 = 28 from rfl, show vtAdj 2 = 19 from rfl] at hkx
@@ -157,7 +157,7 @@ theorem vtc_grp2 (hl : args.length = 20) {κ : ℕ}
     rw [q36, q35, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
     exact hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 38 (d := .n 53) (p := .n 52) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q37, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q37, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 43 (d := .n 57) (p := .n 56) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q42, hk]; exact hsq)
   have hsz2 : σv (.n 57) = σv (.n 57) ^ 1 := by rw [pow_one]
@@ -181,9 +181,9 @@ set_option maxRecDepth 100000 in
 /-- Group `3`'s key and size statements (`45 ..< 56`). -/
 theorem vtc_grp3 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 3)) * gen ^ vtAdj 3 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 3) (gen ^ (κ * 252) * (gen ^ vtB0 3)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 3) (gen ^ (κ * 254) * (gen ^ vtB0 3)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 3) (gen ^ (vtLen 3 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 3)).take (vtGrpL 3), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 3 = 30 from rfl, show vtAdj 3 = 0 from rfl] at hkx
@@ -213,7 +213,7 @@ theorem vtc_grp3 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 30) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 46 (d := .n 59) (p := .n 58) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q45, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q45, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 51 (d := .n 63) (p := .n 62) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q50, hk]; exact hsq)
   have hsz2 : σv (.n 66) = σv (.n 63) ^ 5 := by rw [q54, q53, q52]; ring
@@ -237,9 +237,9 @@ set_option maxRecDepth 100000 in
 /-- Group `4`'s key and size statements (`56 ..< 67`). -/
 theorem vtc_grp4 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 4)) * gen ^ vtAdj 4 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 4) (gen ^ (κ * 252) * (gen ^ vtB0 4)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 4) (gen ^ (κ * 254) * (gen ^ vtB0 4)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 4) (gen ^ (vtLen 4 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 4)).take (vtGrpL 4), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 4 = 31 from rfl, show vtAdj 4 = 0 from rfl] at hkx
@@ -269,7 +269,7 @@ theorem vtc_grp4 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 31) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 57 (d := .n 68) (p := .n 67) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q56, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q56, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 62 (d := .n 72) (p := .n 71) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q61, hk]; exact hsq)
   have hsz2 : σv (.n 75) = σv (.n 72) ^ 5 := by rw [q65, q64, q63]; ring
@@ -293,9 +293,9 @@ set_option maxRecDepth 100000 in
 /-- Group `5`'s key and size statements (`67 ..< 77`). -/
 theorem vtc_grp5 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 5)) * gen ^ vtAdj 5 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 5) (gen ^ (κ * 252) * (gen ^ vtB0 5)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 5) (gen ^ (κ * 254) * (gen ^ vtB0 5)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 5) (gen ^ (vtLen 5 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 5)).take (vtGrpL 5), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 5 = 32 from rfl, show vtAdj 5 = 0 from rfl] at hkx
@@ -322,7 +322,7 @@ theorem vtc_grp5 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 32) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 68 (d := .n 77) (p := .n 76) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q67, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q67, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 73 (d := .n 81) (p := .n 80) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q72, hk]; exact hsq)
   have hsz2 : σv (.n 83) = σv (.n 81) ^ 3 := by rw [q75, q74]; ring
@@ -346,9 +346,9 @@ set_option maxRecDepth 100000 in
 /-- Group `6`'s key and size statements (`77 ..< 88`). -/
 theorem vtc_grp6 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 6)) * gen ^ vtAdj 6 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 6) (gen ^ (κ * 252) * (gen ^ vtB0 6)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 6) (gen ^ (κ * 254) * (gen ^ vtB0 6)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 6) (gen ^ (vtLen 6 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 6)).take (vtGrpL 6), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 6 = 33 from rfl, show vtAdj 6 = 0 from rfl] at hkx
@@ -378,7 +378,7 @@ theorem vtc_grp6 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 33) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 78 (d := .n 85) (p := .n 84) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q77, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q77, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 83 (d := .n 89) (p := .n 88) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q82, hk]; exact hsq)
   have hsz2 : σv (.n 92) = σv (.n 89) ^ 5 := by rw [q86, q85, q84]; ring
@@ -402,9 +402,9 @@ set_option maxRecDepth 100000 in
 /-- Group `7`'s key and size statements (`88 ..< 99`). -/
 theorem vtc_grp7 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 7)) * gen ^ vtAdj 7 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 7) (gen ^ (κ * 252) * (gen ^ vtB0 7)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 7) (gen ^ (κ * 254) * (gen ^ vtB0 7)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 7) (gen ^ (vtLen 7 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 7)).take (vtGrpL 7), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 7 = 34 from rfl, show vtAdj 7 = 0 from rfl] at hkx
@@ -434,7 +434,7 @@ theorem vtc_grp7 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 34) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 89 (d := .n 94) (p := .n 93) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q88, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q88, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 94 (d := .n 98) (p := .n 97) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q93, hk]; exact hsq)
   have hsz2 : σv (.n 101) = σv (.n 98) ^ 5 := by rw [q97, q96, q95]; ring
@@ -458,9 +458,9 @@ set_option maxRecDepth 100000 in
 /-- Group `8`'s key and size statements (`99 ..< 113`). -/
 theorem vtc_grp8 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 8)) * gen ^ vtAdj 8 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 8) (gen ^ (κ * 252) * (gen ^ vtB0 8)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 8) (gen ^ (κ * 254) * (gen ^ vtB0 8)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 8) (gen ^ (vtLen 8 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 8)).take (vtGrpL 8), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 8 = 35 from rfl, show vtAdj 8 = 0 from rfl] at hkx
@@ -499,7 +499,7 @@ theorem vtc_grp8 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 35) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 100 (d := .n 103) (p := .n 102) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q99, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q99, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 105 (d := .n 107) (p := .n 106) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q104, hk]; exact hsq)
   have hsz2 : σv (.n 113) = σv (.n 107) ^ 28 := by rw [q111, q110, q109, q108, q107, q106]; ring
@@ -523,9 +523,9 @@ set_option maxRecDepth 100000 in
 /-- Group `18`'s key and size statements (`342 ..< 352`). -/
 theorem vtc_grp18 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 9)) * gen ^ vtAdj 9 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 9) (gen ^ (κ * 252) * (gen ^ vtB0 9)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 9) (gen ^ (κ * 254) * (gen ^ vtB0 9)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 9) (gen ^ (vtLen 9 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 9)).take (vtGrpL 9), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 9 = 30 from rfl, show vtAdj 9 = 0 from rfl] at hkx
@@ -552,7 +552,7 @@ theorem vtc_grp18 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 30) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 343 (d := .n 360) (p := .n 359) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q342, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q342, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 348 (d := .n 364) (p := .n 363) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q347, hk]; exact hsq)
   have hsz2 : σv (.n 366) = σv (.n 364) ^ 4 := by rw [q350, q349]; ring
@@ -576,9 +576,9 @@ set_option maxRecDepth 100000 in
 /-- Group `19`'s key and size statements (`352 ..< 362`). -/
 theorem vtc_grp19 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 10)) * gen ^ vtAdj 10 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 10) (gen ^ (κ * 252) * (gen ^ vtB0 10)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 10) (gen ^ (κ * 254) * (gen ^ vtB0 10)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 10) (gen ^ (vtLen 10 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 10)).take (vtGrpL 10), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 10 = 31 from rfl, show vtAdj 10 = 0 from rfl] at hkx
@@ -605,7 +605,7 @@ theorem vtc_grp19 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 31) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 353 (d := .n 368) (p := .n 367) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q352, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q352, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 358 (d := .n 372) (p := .n 371) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q357, hk]; exact hsq)
   have hsz2 : σv (.n 374) = σv (.n 372) ^ 4 := by rw [q360, q359]; ring
@@ -629,9 +629,9 @@ set_option maxRecDepth 100000 in
 /-- Group `20`'s key and size statements (`362 ..< 371`). -/
 theorem vtc_grp20 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 11)) * gen ^ vtAdj 11 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 11) (gen ^ (κ * 252) * (gen ^ vtB0 11)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 11) (gen ^ (κ * 254) * (gen ^ vtB0 11)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 11) (gen ^ (vtLen 11 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 11)).take (vtGrpL 11), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 11 = 32 from rfl, show vtAdj 11 = 0 from rfl] at hkx
@@ -655,7 +655,7 @@ theorem vtc_grp20 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 32) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 363 (d := .n 376) (p := .n 375) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q362, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q362, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 368 (d := .n 380) (p := .n 379) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q367, hk]; exact hsq)
   have hsz2 : σv (.n 381) = σv (.n 380) ^ 2 := by rw [q369]; ring
@@ -679,9 +679,9 @@ set_option maxRecDepth 100000 in
 /-- Group `21`'s key and size statements (`371 ..< 381`). -/
 theorem vtc_grp21 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 12)) * gen ^ vtAdj 12 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 12) (gen ^ (κ * 252) * (gen ^ vtB0 12)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 12) (gen ^ (κ * 254) * (gen ^ vtB0 12)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 12) (gen ^ (vtLen 12 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 12)).take (vtGrpL 12), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 12 = 33 from rfl, show vtAdj 12 = 0 from rfl] at hkx
@@ -708,7 +708,7 @@ theorem vtc_grp21 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 33) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 372 (d := .n 383) (p := .n 382) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q371, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q371, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 377 (d := .n 387) (p := .n 386) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q376, hk]; exact hsq)
   have hsz2 : σv (.n 389) = σv (.n 387) ^ 4 := by rw [q379, q378]; ring
@@ -732,9 +732,9 @@ set_option maxRecDepth 100000 in
 /-- Group `22`'s key and size statements (`381 ..< 391`). -/
 theorem vtc_grp22 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 13)) * gen ^ vtAdj 13 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 13) (gen ^ (κ * 252) * (gen ^ vtB0 13)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 13) (gen ^ (κ * 254) * (gen ^ vtB0 13)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 13) (gen ^ (vtLen 13 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 13)).take (vtGrpL 13), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 13 = 34 from rfl, show vtAdj 13 = 0 from rfl] at hkx
@@ -761,7 +761,7 @@ theorem vtc_grp22 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 34) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 382 (d := .n 391) (p := .n 390) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q381, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q381, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 387 (d := .n 395) (p := .n 394) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q386, hk]; exact hsq)
   have hsz2 : σv (.n 397) = σv (.n 395) ^ 4 := by rw [q389, q388]; ring
@@ -785,9 +785,9 @@ set_option maxRecDepth 100000 in
 /-- Group `23`'s key and size statements (`391 ..< 406`). -/
 theorem vtc_grp23 (hl : args.length = 20) {κ : ℕ}
     (hkx : σv (.n (vtKv 14)) * gen ^ vtAdj 14 = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 14) (gen ^ (κ * 252) * (gen ^ vtB0 14)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi 14) (gen ^ (κ * 254) * (gen ^ vtB0 14)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi 14) (gen ^ (vtLen 14 * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA 14)).take (vtGrpL 14), VSH (coreProgram.Rel rd) rd σv s := by
   rw [show vtKv 14 = 35 from rfl, show vtAdj 14 = 0 from rfl] at hkx
@@ -829,7 +829,7 @@ theorem vtc_grp23 (hl : args.length = 20) {κ : ℕ}
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have hk : σv (.n 35) = gen ^ κ := by simpa using hkx
   have r1 := vt_readAt (rd := rd) (w := w) hl 392 (d := .n 399) (p := .n 398) (off := 178) (by decide +kernel) (by decide +kernel)
-    (v := gen ^ (κ * 252)) (by rw [q391, hk]; exact hrk)
+    (v := gen ^ (κ * 254)) (by rw [q391, hk]; exact hrk)
   have r2 := vt_readAt (rd := rd) (w := w) hl 397 (d := .n 403) (p := .n 402) (off := 0) (by decide +kernel) (by decide +kernel)
     (v := gen ^ 2 ^ κ) (by rw [q396, hk]; exact hsq)
   have hsz2 : σv (.n 410) = σv (.n 403) ^ 27 := by rw [q404, q403, q402, q401, q400, q399, q398]; ring
@@ -852,9 +852,9 @@ theorem vtc_grp23 (hl : args.length = 20) {κ : ℕ}
 /-- **Every group's key and size statements**, by group. -/
 theorem vtc_grps (hl : args.length = 20) {k : ℕ} (hk : k < 15) {κ : ℕ}
     (hkx : σv (.n (vtKv k)) * gen ^ vtAdj k = gen ^ κ)
-    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)))
+    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))
     (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))
-    (hkey : LoadHolds rd (σv (.n 36)) (vtGi k) (gen ^ (κ * 252) * (gen ^ vtB0 k)⁻¹))
+    (hkey : LoadHolds rd (σv (.n 36)) (vtGi k) (gen ^ (κ * 254) * (gen ^ vtB0 k)⁻¹))
     (hsz : LoadHolds rd (σv (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ κ))) :
     ∀ s ∈ (vtPre.drop (vtGrpA k)).take (vtGrpL k), VSH (coreProgram.Rel rd) rd σv s := by
   interval_cases k
