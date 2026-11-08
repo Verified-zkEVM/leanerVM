@@ -685,8 +685,8 @@ def publicInputOf : PublicIO K :=
 /-- The memory block has five columns. -/
 theorem width_memTable : (⟨memTable⟩ : Component K).width = 5 := by decide +kernel
 
-/-- The bytecode block has thirteen columns. -/
-theorem width_bytecodeTable : (⟨bytecodeTable⟩ : Component K).width = 13 := by decide +kernel
+/-- The bytecode block has fifteen columns. -/
+theorem width_bytecodeTable : (⟨bytecodeTable⟩ : Component K).width = 15 := by decide +kernel
 
 /-- A table of the witness: a component, its rows of its width, the data. -/
 def tableOf (c : Component K) (rows : List (Array K)) (data : ProverData K)
@@ -753,7 +753,8 @@ theorem qSlot_spare {c : Col} (h : IsSpare c) :
       if c.2.val < 65 then (c.2.val - 15) % 25 else 0) - 50) = c.2.val
   unfold spareColumn
   have h' := h.2
-  split_ifs <;> omega
+  split_ifs
+  omega
 
 /-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs:56-111`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
