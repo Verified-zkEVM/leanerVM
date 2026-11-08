@@ -19,42 +19,42 @@ open LeanVM.Guest.Check
 
 /-- `__loop2`, window 39, arms 1 to 16. -/
 theorem wg37_39_0 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 1 17
-    [(0, 128), (128, 1840)] = true :=
+    [(0, 32), (32, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 17 to 32. -/
 theorem wg37_39_1 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 17 33
-    [(0, 128), (1968, 1840)] = true :=
+    [(0, 32), (528, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 33 to 48. -/
 theorem wg37_39_2 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 33 49
-    [(0, 128), (3808, 1840)] = true :=
+    [(0, 32), (1024, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 49 to 64. -/
 theorem wg37_39_3 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 49 65
-    [(0, 128), (5648, 1840)] = true :=
+    [(0, 32), (1520, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 65 to 80. -/
 theorem wg37_39_4 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 65 81
-    [(0, 128), (7488, 1840)] = true :=
+    [(0, 32), (2016, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 81 to 96. -/
 theorem wg37_39_5 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 81 97
-    [(0, 128), (9328, 1840)] = true :=
+    [(0, 32), (2512, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 97 to 112. -/
 theorem wg37_39_6 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 97 113
-    [(0, 128), (11168, 1840)] = true :=
+    [(0, 32), (3008, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 113 to 128. -/
 theorem wg37_39_7 : checkWinS glob 37 (coreOf 37) (certOf 37) false 39 113 129
-    [(0, 128), (13008, 1840)] = true :=
+    [(0, 32), (3504, 496)] = true :=
   checkWinS_of_pre x37_39_eq (by decide +kernel)
 
 end
