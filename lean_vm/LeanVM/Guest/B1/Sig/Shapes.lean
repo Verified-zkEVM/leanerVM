@@ -180,9 +180,13 @@ def kIns (pad : Nat) (blk : List KC) (tailRun : Bool) (st : Option (List V)) (b 
       (m0.1 ++ m1.1 ++ m2.1 ++ m3.1 ++ t.1 ++ b8.1,
         [m0.2.1, m1.2.1, m2.2.1, m3.2.1] ++ t.2.1 ++ [b8.2.1, s 9, s 10, s 11, s 12], b8.2.2)
 
-/-- Blocks `k, …, k + m - 1` of `B`, from the state `st`: the statements, the next base and the
-last output run's base. -/
-def kBlocks (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (out : Option Nat) :
+/-- The cells block `k` of `B` writes: the `n` cells of `out` the last (`out_cells`), the whole
+thirteen-cell state the next one reads before it. -/
+def kOutN (B n k : Nat) : Nat := if k + 1 == B then n else 13
+
+/-- Blocks `k, …, k + m - 1` of `B`, from the state `st`, the last writing `n` cells: the
+statements, the next base and the last output run's base. -/
+def kBlocks (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (out : Option Nat) (n : Nat) :
     Nat → Nat → Option (List V) → Nat → List Stmt × Nat × Nat
   | 0, _, _, b => ([], b, b)
   | m + 1, k, st, b =>
@@ -190,9 +194,9 @@ def kBlocks (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (out : Option 
       let ins := kIns pad blk tailRun st b
       let last := k + 1 == B
       let o := if last then out.getD ins.2.2 else ins.2.2
-      let b' := if last && out.isSome then ins.2.2 else ins.2.2 + 13
-      let rest := kBlocks pad cs B tailRun out m (k + 1) (some (runV o 13)) b'
-      (ins.1 ++ [kecS ins.2.1 (runV o 13) (k % 2 == 1) (!last && k % 2 == 0)] ++ rest.1,
+      let b' := if last && out.isSome then ins.2.2 else ins.2.2 + kOutN B n k
+      let rest := kBlocks pad cs B tailRun out n m (k + 1) (some (runV o 13)) b'
+      (ins.1 ++ [kecS ins.2.1 (runV o (kOutN B n k)) (k % 2 == 1) (!last && k % 2 == 0)] ++ rest.1,
         rest.2.1, if last then o else rest.2.2)
 
 /-- `xor_byte` of byte `v` at `pos`: into a zero or a constant, folded; into a value, one `XOR`
@@ -208,23 +212,24 @@ def kXorByte (cs : List KC) (pos v b : Nat) : List Stmt × List KC × Nat :=
 /-- The blocks of a `len`-byte message. -/
 def kBlocksOf (len : Nat) : Nat := len / 136 + 1
 
-/-- **`emit_keccak_message`** from the zero state, `len=` bytes: the statements, the next base and
-the output run's base. -/
-def kMsg (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (out : Option Nat) (b : Nat) :
-    List Stmt × Nat × Nat :=
+/-- **`emit_keccak_message`** from the zero state, `len=` bytes, the last block writing `n` cells
+of `out` (`out_cells`: one for a one-cell `out`, every signature digest but `H_msg`'s first, two
+for a digest, thirteen for a state): the statements, the next base and the output run's base. -/
+def kMsg (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (out : Option Nat) (b : Nat)
+    (n : Nat := 1) : List Stmt × Nat × Nat :=
   let B := kBlocksOf len
   let read := 17 * (B - 1) / 2 + 9
   let cs0 := cells ++ List.replicate (read - cells.length) KC.zero
   let x1 := kXorByte cs0 len 1 b
   let x2 := kXorByte x1.2.1 (136 * B - 1) 0x80 x1.2.2
-  let bl := kBlocks pad x2.2.1 B tailRun out B 0 none x2.2.2
+  let bl := kBlocks pad x2.2.1 B tailRun out n B 0 none x2.2.2
   (x1.1 ++ x2.1 ++ bl.1, bl.2.1, bl.2.2)
 
-/-- `keccak([m0, m1], [m2, m3], out)`: 64 bytes, its last byte's constant at `c`, the outputs from
-`o`. -/
+/-- `keccak([m0, m1], [m2, m3], out)` into a one-cell `out`: 64 bytes, its last byte's constant at
+`c`, the output at `o`. -/
 def k64 (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) : List Stmt :=
   [cst c (word (2 ^ 63) 0 0), kecS [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c,
-    .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV o 13) false false]
+    .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV o 1) false false]
 
 theorem k64_eq (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) :
     k64 pad m0 m1 m2 m3 c o = (kMsg pad [.cell m0, .cell m1, .cell m2, .cell m3] 64 false (some o) c).1 := by
