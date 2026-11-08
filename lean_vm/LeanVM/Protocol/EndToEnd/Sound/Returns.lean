@@ -26,9 +26,9 @@ The instances bound the column claims the front phases of `leanVmVerifierProgram
 
 * `retOK_verifyBusBalance`: the bus phase returns at most five framework claims (the three memory
   columns and the two final counters);
-* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most `5 + 6 · 90 = 545`
-  claims, every one of the six tables contributing one claim per column and being at most `90`
-  columns wide (`tables_width_le`, `KECCAK`'s);
+* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most `5 + 159 = 164`
+  claims, every one of the six tables contributing one claim per column, `159` columns in all
+  (`tables_width_sum`), within the `545` the later phases are budgeted for;
 * `retOK_publicInputPhase`: the public-input phase returns at most three claims.
 
 ## Deployed behaviour
@@ -118,50 +118,54 @@ theorem retOK_verifyBusBalance (layout : Layout) :
   simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil]
   omega
 
-/-- The tables' row evaluations: at most `w` claims per row, added to the claims so far. -/
-theorem retOK_tableTerms (constraintPowers formPowers point : List E) (w : ℕ) :
+/-- The tables' row evaluations: one claim per column of each row's table, added to the claims
+so far. -/
+theorem retOK_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), (∀ r ∈ rows, r.1.width ≤ w) →
-      RetOK (fun r : E × List ColumnClaim ↦ r.2.length ≤ claims.length + rows.length * w)
+      (claims : List ColumnClaim),
+      RetOK (fun r : E × List ColumnClaim ↦
+          r.2.length ≤ claims.length + (rows.map fun r ↦ r.1.width).sum)
         (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
-  | [], _, _, _, _ => RetOK.ret (by simp)
-  | (table, h, forms, weight) :: rest, cursor, final, claims, hw => by
-    have h0 := hw _ List.mem_cons_self
+  | [], _, _, _ => RetOK.ret (by simp)
+  | (table, h, forms, weight) :: rest, cursor, final, claims => by
     refine (RetOK.readN table.width).bind fun evaluations he ↦
-      (retOK_tableTerms constraintPowers formPowers point w rest _ _ _
-        fun r hr ↦ hw r (List.mem_cons_of_mem _ hr)).mono fun r hr ↦ ?_
+      (retOK_tableTerms constraintPowers formPowers point rest _ _ _).mono fun r hr ↦ ?_
     simp only [List.length_append, List.length_map, List.length_zipIdx, he,
-      List.length_cons, Nat.succ_mul] at hr h0 ⊢
+      List.map_cons, List.sum_cons] at hr ⊢
     omega
 
-/-- Every table is at most `90` columns wide (`KECCAK`'s). -/
-theorem tables_width_le : ∀ t ∈ tables, t.width ≤ 90 := by decide +kernel
+/-- A sum over the first components of a zip is at most the sum over the first list. -/
+theorem sum_map_zip_fst_le {α β : Type} (f : α → ℕ) :
+    ∀ (l₁ : List α) (l₂ : List β), ((l₁.zip l₂).map fun r ↦ f r.1).sum ≤ (l₁.map f).sum
+  | [], _ => by simp
+  | _ :: _, [] => by simp
+  | a :: l₁, _ :: l₂ => by
+    simp only [List.zip_cons_cons, List.map_cons, List.sum_cons]
+    exact Nat.add_le_add_left (sum_map_zip_fst_le f l₁ l₂) _
 
-/-- The table sumcheck returns at most `6 · 90` claims. -/
+/-- The six tables have `159` columns in all (`KECCAK`'s `92` the widest). -/
+theorem tables_width_sum : (tables.map Table.width).sum = 159 := by decide +kernel
+
+/-- The table sumcheck returns at most `159` claims, one per column of the six tables. -/
 theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 6 * 90)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 159)
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
   unfold tableSumcheckClaims
   refine RetOK.bind_true fun r ↦ ?_
   obtain ⟨challenges, claim⟩ := r
-  have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
-      (tableWeights heights equalityPoint challenges.reverse))), r.1.width ≤ 90 :=
-    fun r hr ↦ tables_width_le _ (List.of_mem_zip hr).1
-  have hlen : (List.zip tables (List.zip heights (List.zip busForms
-      (tableWeights heights equalityPoint challenges.reverse)))).length ≤ 6 := by
-    simp only [List.length_zip]
-    exact (min_le_left _ _).trans (by simp [tables])
-  refine (retOK_tableTerms _ _ _ 90 _ 0 0 [] hrows).bind fun r hr ↦ ?_
+  refine (retOK_tableTerms _ _ _ _ 0 0 []).bind fun r hr ↦ ?_
   obtain ⟨final, claims⟩ := r
   refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
+  have hs := sum_map_zip_fst_le Table.width tables (List.zip heights (List.zip busForms
+    (tableWeights heights equalityPoint challenges.reverse)))
+  rw [tables_width_sum] at hs
   simp only [List.length_nil, Nat.zero_add] at hr
-  have := Nat.mul_le_mul_right 90 hlen
   omega
 
-/-- The table phase returns the bus's claims and at most `6 · 90` more. -/
+/-- The table phase returns the bus's claims and at most `159` more. -/
 theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 6 * 90)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 159)
       (tablePhaseClaims layout bus) := by
   unfold tablePhaseClaims
   refine RetOK.bind_true fun _ ↦ (retOK_tableSumcheck _ _ _ _ _ _).bind fun claims hc ↦
@@ -169,7 +173,8 @@ theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
   simp only [List.length_append]
   omega
 
-/-- The bus phase and the table sumcheck return at most `5 + 6·90` claims. -/
+/-- The bus phase and the table sumcheck return at most `5 + 159 = 164` claims, within the `545`
+the later phases are budgeted for. -/
 theorem retOK_busTable (layout : Layout) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 545)
       ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) :=
