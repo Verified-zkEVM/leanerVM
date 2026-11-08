@@ -38,7 +38,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 /-- The six channels by name, with their arities. -/
 def channelTable : List (String × ℕ) :=
   [(StatePull.name, 2), (StatePush.name, 2), (MemPull.name, 5), (MemPush.name, 5),
-    (BytecodePull.name, 13), (BytecodePush.name, 13)]
+    (BytecodePull.name, 15), (BytecodePush.name, 15)]
 
 /-- The eight components of the ensemble emit on the six channels only, with their arities. -/
 private theorem tables_channels :
@@ -99,7 +99,7 @@ def channelOf : Side → Fin 3 → RawChannel K
   | .pull => pullOf
 
 /-- The arity of pair `k`'s messages. -/
-def arityOf (k : Fin 3) : ℕ := ![2, 5, 13] k
+def arityOf (k : Fin 3) : ℕ := ![2, 5, 15] k
 
 /-- The three separators are distinct and nonzero. -/
 private theorem gpow_facts : addressOfIndex 0 ≠ addressOfIndex 1 ∧ addressOfIndex 0 ≠ addressOfIndex
