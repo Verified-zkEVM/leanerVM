@@ -106,6 +106,25 @@ inductive DerefMode
   | fp
   deriving DecidableEq
 
+/-- How many of a `KECCAK`'s thirteen output cells it writes, from the first on: the first, the
+first two (a 256-bit digest), or all thirteen (a state a later block reads) (`OutCells`,
+`crates/leanvm_core/src/cpu/isa.rs:59-67`). The program fixes it, never the prover. -/
+inductive KeccakOutputCells
+  /-- The first output cell. -/
+  | one
+  /-- The first two output cells. -/
+  | two
+  /-- All thirteen output cells. -/
+  | all
+  deriving DecidableEq
+
+/-- The number of output cells written: `1`, `2` or `13` (`OutCells::cells`,
+`crates/leanvm_core/src/cpu/isa.rs:70-77`). -/
+def KeccakOutputCells.cellCount : KeccakOutputCells → ℕ
+  | .one => 1
+  | .two => 2
+  | .all => 13
+
 /-- The six instructions. -/
 inductive LeanIsaInstruction
   /-- `[o_C] = [o_A] + [o_B]`. -/
@@ -121,9 +140,11 @@ inductive LeanIsaInstruction
   | jump (oc od of : K)
   /-- One Keccak-f[1600] permutation of a state held in thirteen cells: the cells
   `[o_m₀], …, [o_m₃]`, `[g^k · o_tail]` (`k < 4`), `[o_b8]`, `[g^k · o_cap]` (`k < 4`), read in the
-  layout `inOdd`, permute to the cells `[g^k · o_out]` (`k < 13`), written in the layout `outOdd`
-  (`KeccakCellsRelation`). -/
+  layout `inOdd`, permute to thirteen cells in the layout `outOdd`, of which the first
+  `outCells.cellCount`, the cells `[g^k · o_out]` (`k < outCells.cellCount`), are written; the
+  others are left untouched (`KeccakCellsRelation`). -/
   | keccak (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool)
+      (outCells : KeccakOutputCells)
   deriving DecidableEq
 
 /-- The opcode of an instruction. -/
@@ -191,16 +212,19 @@ def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
     | none => 0
   E.ofLimbs (limb (cellLanes odd c).1) (limb (cellLanes odd c).2) 0
 
-/-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the thirteen written are
-the cells, in the layout `outOdd`, of Keccak-f[1600] of the state the cells read hold in the
-layout `inOdd`. -/
-def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
-    Prop :=
+/-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the first
+`outCells.cellCount` cells written are those cells, in the layout `outOdd`, of Keccak-f[1600] of
+the state the cells read hold in the layout `inOdd`; nothing is asked of a cell past them, which
+the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:958-994`). -/
+def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
+    (outCells : KeccakOutputCells) : Prop :=
   (∀ c, IsCanonical128 (input c)) ∧
-    ∀ c, output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c
+    ∀ c : Fin 13, c.val < outCells.cellCount →
+      output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c
 
-instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool} :
-    Decidable (KeccakCellsRelation input inOdd output outOdd) := by
+instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool}
+    {outCells : KeccakOutputCells} :
+    Decidable (KeccakCellsRelation input inOdd output outOdd outCells) := by
   unfold KeccakCellsRelation; infer_instance
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
@@ -219,6 +243,15 @@ def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option 
     let v ← read (fp * offset c)
     let rest ← acc
     pure fun c' ↦ if c' = c then v else rest c') (some fun _ ↦ 0)
+
+/-- Read the first `count` of the thirteen words at the frame-relative offsets `offset c`, in
+order; a word past them is not read and is `0`; `none` if any read fails. -/
+def readFirstCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) (count : ℕ) :
+    Option (Fin 13 → E) :=
+  (List.finRange 13).foldr (fun c acc ↦ if c.val < count then do
+    let v ← read (fp * offset c)
+    let rest ← acc
+    pure fun c' ↦ if c' = c then v else rest c' else acc) (some fun _ ↦ 0)
 
 /-! ## One step -/
 
@@ -283,10 +316,10 @@ def executeWith (read : K → Option E) (registers : Registers K) :
     let f ← read (registers.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then registers.next else ⟨d.limb 0, f.limb 0⟩)
-  | .keccak om otail ob8 ocap oout inOdd outOdd => do
+  | .keccak om otail ob8 ocap oout inOdd outOdd outCells => do
     let input ← readCells read registers.fp (keccakInputCellOffset om otail ob8 ocap)
-    let output ← readCells read registers.fp fun c ↦ g ^ c.val * oout
-    guard (KeccakCellsRelation input inOdd output outOdd)
+    let output ← readFirstCells read registers.fp (fun c ↦ g ^ c.val * oout) outCells.cellCount
+    guard (KeccakCellsRelation input inOdd output outOdd outCells)
     pure registers.next
 
 /-- Execute an instruction on `memory`. -/
@@ -386,7 +419,7 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ## The bytecode encoding (specification §8.1) -/
 
 /-- The `DEREF` store-mode flags `(f_pc, f_fp)`: `cell ↦ (0, 0)`, `pc ↦ (1, 0)`, `fp ↦ (0, 1)`
-(`crates/leanvm_core/src/cpu/isa.rs:68-75`; specification §7.4). -/
+(`crates/leanvm_core/src/cpu/isa.rs:85-93`; specification §7.4). -/
 def derefFlags : DerefMode → K × K
   | .cell => (0, 0)
   | .pc => (1, 0)
@@ -396,28 +429,35 @@ def derefFlags : DerefMode → K × K
 `crates/leanvm_core/src/cpu/layout.rs:301`). -/
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
-/-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
-§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:292-362`): offsets as
+/-- `KECCAK`'s output flags `(out_two, out_all)`: whether output cell `1` is written, and whether
+cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`OutCells::flags`,
+`crates/leanvm_core/src/cpu/isa.rs:79-82`; `cpu/layout.rs:335-348`). -/
+def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
+  (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
+
+/-- The bus entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
+§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs:292-366`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
-layout flags as `0` or `1`, unused slots zero. -/
-def busEntry : LeanIsaInstruction → Vector K 11
-  | .xor oA oB oC => #v[Opcode.xor.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
-  | .mulNative oA oB oC => #v[Opcode.mulNative.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
+layout and output flags as `0` or `1`, unused slots zero. -/
+def busEntry : LeanIsaInstruction → Vector K 13
+  | .xor oA oB oC => #v[Opcode.xor.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  | .mulNative oA oB oC => #v[Opcode.mulNative.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   | .setConstant o k =>
-      #v[Opcode.setConstant.busCode, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0, 0, 0, 0]
+      #v[Opcode.setConstant.busCode, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0, 0, 0, 0, 0, 0]
   | .deref o1 o2 o3 mode =>
-      #v[Opcode.deref.busCode, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0]
-  | .jump oc od of => #v[Opcode.jump.busCode, oc, od, of, 0, 0, 0, 0, 0, 0, 0]
-  | .keccak om otail ob8 ocap oout inOdd outOdd =>
+      #v[Opcode.deref.busCode, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0,
+        0, 0, 0]
+  | .jump oc od of => #v[Opcode.jump.busCode, oc, od, of, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  | .keccak om otail ob8 ocap oout inOdd outOdd outCells =>
       #v[Opcode.keccak.busCode, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout,
-          layoutFlagWord inOdd,
-        layoutFlagWord outOdd]
+        layoutFlagWord inOdd, layoutFlagWord outOdd, (keccakOutputFlags outCells).1,
+        (keccakOutputFlags outCells).2]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`crates/leanvm_core/src/leaf.rs:776`): the entry at slots 3 to 13, zero elsewhere. -/
+`crates/leanvm_core/src/leaf.rs:777`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
   let e := busEntry i
-  #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
+  #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]]
 
 end LeanVM.Arithmetization
 
@@ -464,9 +504,10 @@ inductive OffsetInstruction
   | jump (oc od of : ℕ)
   /-- `KECCAK`: the thirteen cells `fp[m0], …, fp[m3]`, `fp[tail + k]` (`k < 4`), `fp[b8]`,
   `fp[cap + k]` (`k < 4`), in that order, hold a Keccak state in the layout `inOdd`, and the
-  thirteen cells `fp[out + k]` (`k < 13`) hold its Keccak-f[1600] in the layout `outOdd`
-  (`KeccakCellsRelation`; `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
-  | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool)
+  cells `fp[out + k]` (`k < outCells.cellCount`) hold the first `outCells.cellCount` of the
+  thirteen cells of its Keccak-f[1600] in the layout `outOdd` (`KeccakCellsRelation`;
+  `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs:35-56`). -/
+  | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)
   deriving DecidableEq
 
 /-- The padding instruction, `SET fp[0] = 0`. -/
@@ -483,10 +524,10 @@ def OffsetInstruction.toLeanIsaInstruction : OffsetInstruction → LeanIsaInstru
   | .set o k0 k1 k2 => .setConstant (addressOfIndex o) (OffsetInstruction.immediateWord k0 k1 k2)
   | .deref o1 o2 o3 mode => .deref (addressOfIndex o1) (addressOfIndex o2) (addressOfIndex o3) mode
   | .jump oc od of => .jump (addressOfIndex oc) (addressOfIndex od) (addressOfIndex of)
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
+  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells =>
       .keccak ![addressOfIndex m0, addressOfIndex m1, addressOfIndex m2, addressOfIndex m3]
           (addressOfIndex tail) (addressOfIndex b8) (addressOfIndex cap) (addressOfIndex out)
-        inOdd outOdd
+        inOdd outOdd outCells
 
 /-- The instructions per chunk of a compiled function's code. -/
 def chunkSize : ℕ := 2048
