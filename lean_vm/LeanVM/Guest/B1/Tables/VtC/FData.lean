@@ -115,7 +115,7 @@ theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2625 = true ∧
     ∀ t < 6, noStoreB (vtAirX t + 1) = true ∧ noStoreB (vtAirX t + 3) = true := by
   decide +kernel
 
-theorem vtF_loadsBelow : loadsBelow [(13, 14), (2625, 159)] = true := by decide +kernel
+theorem vtF_loadsBelow : loadsBelow [(13, 16), (2625, 159)] = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

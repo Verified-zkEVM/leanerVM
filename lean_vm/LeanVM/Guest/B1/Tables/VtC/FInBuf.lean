@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.VtC.InBuf
 # The window's loads, inside buffers
 
 `BufWin σ bufs p len`: the pointer `σ p` starts a run of `len` words inside one of the buffers
-`bufs`. `vtF_loadsInBuf`: given such runs for `fp_w` (14 words read), the cursor (the 159
+`bufs`. `vtF_loadsInBuf`: given such runs for `fp_w` (16 words read), the cursor (the 159
 evaluations) and the challenges' products and equality prefix (`n + 1` each), every load of the
 statements lands in a buffer.
 -/
@@ -50,7 +50,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The window's loads land in buffers.** -/
 theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
-    (h13 : BufWin (vtσ rd w args) bufs (.n 13) 14)
+    (h13 : BufWin (vtσ rd w args) bufs (.n 13) 16)
     (hcur : BufWin (vtσ rd w args) bufs (.n 2625) 159)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
@@ -97,7 +97,7 @@ theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
         vtEvL_mem (vtF_mem hs) (fun _ _ _ h ↦ by cases h)
       have := List.all_eq_true.mp vtF_loadsBelow _ hm
       simp only at this
-      have := List.all_eq_true.mp this (13, 14) (by simp)
+      have := List.all_eq_true.mp this (13, 16) (by simp)
       exact h13.inBuf (by simpa using this)
 
 end
