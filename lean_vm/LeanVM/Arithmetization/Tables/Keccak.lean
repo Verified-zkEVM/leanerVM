@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `KECCAK` table
 
-At leanVM PR #724 head `873ee6d8a57428e33908ecf1608a7bdd43bf832e` and Clean pin `42fe4b26`. The
+At leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9` and Clean pin `42fe4b26`. The
 columns are `KECCAK_COLUMNS` (`verifier.py:943-953`; `crates/leanvm_core/src/tables.rs:880-889`,
 `keccakt`) and the flushes `_flushes_keccak` (`verifier.py:898-934`; `tables.rs:937-961`),
 matching specification §7.6 (`doc/leanvm/body/07-instruction-tables.tex`). There is no table constraint: the permutation is

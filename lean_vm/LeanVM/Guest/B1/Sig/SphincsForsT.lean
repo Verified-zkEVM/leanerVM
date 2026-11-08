@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsForsT
 
   The FORS trees, their key `T_k`, the hypertree's paths and a layer of `verify_sig_lean_sphincs`
-  as templates (`lean_ethereum.py:3813-3948, 4031-4036` at leanVM PR #724 head 873ee6d8), with the values
+  as templates (`lean_ethereum.py:3813-3948, 4031-4036` at leanVM main 40f877dc), with the values
   numbered as the renumbered expansion numbers them, over the values the body sets before.
 -/
 

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsT
 
   The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py:3880-3909` at leanVM PR #724 head 873ee6d8) with the values numbered uniformly, every
+  (`lean_ethereum.py:3880-3909` at leanVM main 40f877dc) with the values numbered uniformly, every
   chain step taking three fresh values; the guest's numbering is this one with the two values the
   steps without an address constant leave unused removed (`SpWotsLayout`'s `spRen`).
 -/

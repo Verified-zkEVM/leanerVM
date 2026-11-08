@@ -12,7 +12,7 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM PR #724 head `873ee6d8a57428e33908ecf1608a7bdd43bf832e`, transcribed
+At leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9`, transcribed
 from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen

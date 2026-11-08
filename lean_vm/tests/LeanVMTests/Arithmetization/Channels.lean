@@ -132,7 +132,7 @@ example (a c : Expression K) (v : Vector (Expression K) 3) :
   rfl
 
 /-- `memReadIf` is a `pullIf` of multiplicity `-flag` then a `push` of the gated counter
-`count + g·(flag·count) + flag·count` (`memory_coords_if`, leanVM PR #724 head `873ee6d8`). -/
+`count + g·(flag·count) + flag·count` (`memory_coords_if`, leanVM main `40f877dc`). -/
 example (f a c : Expression K) (v : Vector (Expression K) 3) :
     (memReadIf f a c v).operations 0 =
       [.interact ⟨MemPull.toRaw, -f, toElements (⟨a, c, v⟩ : MemMsg (Expression K)), true⟩,

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindows
 public import LeanVM.Guest.Word
 
 /-!
-# `decode_query_windows`' honest values (lean_ethereum.py:798-909 at 873ee6d8)
+# `decode_query_windows`' honest values (lean_ethereum.py:798-909 at 40f877dc)
 
 On a word `w`, the honest run hints each window as `g^n`, `n` the window's bits of the word
 (`WindowsExp`, Interp's `execHint`: `n = Σ_{j<width} 2^j·bit(start + j)`, `winHintVal`,

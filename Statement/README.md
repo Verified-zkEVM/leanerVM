@@ -26,9 +26,9 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`873ee6d8a57428e33908ecf1608a7bdd43bf832e`, the head of leanVM pull request #724 (`KECCAK` writes
-only the output cells its bytecode requests, one, two or all thirteen, and the guest program writes
-each digest as one or two cells), on top of `main`'s `8577d1e2` ([`../leanvm-rev`](../leanvm-rev)):
+`40f877dc2c858f013c5974ab71ca594b31a7aec9`, leanVM `main` with pull request #724 squash-merged
+(`KECCAK` writes only the output cells its bytecode requests, one, two or all thirteen, and the
+guest program writes each digest as one or two cells; [`../leanvm-rev`](../leanvm-rev)):
 each cites
 its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
@@ -354,7 +354,7 @@ execution within its budget. The program is that decoder compiled
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `628800`) limits any program; it is the
-compiled decoder's size at leanVM `873ee6d8`, `628372` (proved at most that and measured exactly),
+compiled decoder's size at leanVM `40f877dc`, `628372` (proved at most that and measured exactly),
 and a slack of `428`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
 (the bound was `1130000` at `5e3ade21`, whose `KECCAK` wrote all thirteen output cells, which every
 certificate's frame then held, `1130500` at `834e6614`, before H_msg read the message off the claim's cells,

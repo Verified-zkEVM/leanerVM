@@ -148,7 +148,7 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
   0, g, 1, 0] = none
 
 -- `KECCAK`'s output flags `(out_two, out_all)`: `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`
--- (`OutCells::flags`, `isa.rs:79-82` at leanVM PR #724 head `873ee6d8`); `(0, 1)` and a non-bit
+-- (`OutCells::flags`, `isa.rs:79-82` at leanVM main `40f877dc`); `(0, 1)` and a non-bit
 -- are none.
 #guard keccakOutputFlags .one = (0, 0)
 #guard keccakOutputFlags .two = (1, 0)

@@ -20,7 +20,7 @@ Lemma 6.3, Theorem 6.4 and Corollary 6.5 (`doc/leanvm/body/06-bus-interactions.t
 §6.3) for the memory pair, as `mem_channel_sound`: the guarantee of the memory pull
 (`MemPull.Guarantees`, `Arithmetization.Channels`) for every memory pull of a witness of the
 constraint statement `SatisfiedBy` of multiplicity `-1`: every memory pull but the cancelled
-gated pulls of `KECCAK` output cells (leanVM PR #724 head `873ee6d8`, `memory_coords_if`). It
+gated pulls of `KECCAK` output cells (leanVM main `40f877dc`, `memory_coords_if`). It
 serves `constraintSoundness`.
 
 **The argument.** A memory message `(addr, count, v)` is read as the triple of its address, count

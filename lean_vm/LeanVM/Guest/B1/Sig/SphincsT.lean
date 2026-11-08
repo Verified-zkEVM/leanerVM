@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3735-4051` at leanVM PR #724 head 873ee6d8) with the values numbered as the renumbered
+  (`lean_ethereum.py:3735-4051` at leanVM main 40f877dc) with the values numbered as the renumbered
   expansion numbers them: the digest block (`SphincsDigestT`), then FORS and the hypertree
   (`SphincsForsT`'s templates, instantiated here).
 -/
@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.Sig.SphincsForsT
 /-!
 # `verify_sig_lean_sphincs` as a template
 
-`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3951-4051`; `G` is `lean_ethereum.py` at leanVM PR #724
-head 873ee6d8). Its first 1358 statements, through the digest's check, are `sDigestBlock`
+`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3951-4051`; `G` is `lean_ethereum.py` at leanVM main 40f877dc). Its first 1358 statements, through the digest's check, are `sDigestBlock`
 (`SphincsDigestT`); the next value is `n1372`. After them:
 
 * `sForsAddrs` (`G:4028-4029`): `a0_b` at `n1379` (`sA0B`), `key_b` at `n1381` (`sKeyB`);

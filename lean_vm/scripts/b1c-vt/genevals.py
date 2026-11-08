@@ -1,5 +1,5 @@
 # usage: python3 -I genevals.py  — rewrites the data of Tables/Vt/EvalsT.lean (verify_tables' 159
-# table evaluations, G:2436-2444 at 873ee6d8: `fs_next` at the cursor, copied into `col_evals`; the
+# table evaluations, G:2436-2444 at 40f877dc: `fs_next` at the cursor, copied into `col_evals`; the
 # permutations between them) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

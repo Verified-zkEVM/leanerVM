@@ -201,7 +201,7 @@ def slot14 : List K := [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
 def slot15 : List K := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
 
 /-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:777-795` at leanVM
-PR #724 head `873ee6d8a57428e33908ecf1608a7bdd43bf832e`): sixteen slots of `2 ^ κ_bc` cells, the
+main `40f877dc2c858f013c5974ab71ca594b31a7aec9`): sixteen slots of `2 ^ κ_bc` cells, the
 cell `(slot << κ_bc) + i` holding column `slot` at instruction `i`; the thirteen public columns at
 slots 3 to 15 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at slots 0 to 2. -/
 def rustTable : List K :=

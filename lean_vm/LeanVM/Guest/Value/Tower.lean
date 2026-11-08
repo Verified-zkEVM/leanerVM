@@ -19,7 +19,7 @@ import CompPoly.Fields.Binary.BF64.Impl
 /-!
 # The tower, as the guest reads it
 
-The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM PR #724 head `873ee6d8`, G
+The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM main `40f877dc`, G
 below) never reads a limb directly:
 it hints one, derives the next by `y⁻¹` and proves every piece lies in `K` with `assert_in_k`
 (one untaken `JUMP` whose operands must be in `K`). The tower representation `c0 + c1·y + c2·y²`

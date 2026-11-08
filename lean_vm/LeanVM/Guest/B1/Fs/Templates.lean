@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # The inline Fiat-Shamir helpers (TRIAGE G #5-15)
 
-The helpers of the guest's sponge (`lean_ethereum.py` at leanVM `873ee6d8`, G below,
+The helpers of the guest's sponge (`lean_ethereum.py` at leanVM `40f877dc`, G below,
 G:588-710) are `@inline`: their atoms sit in their callers' core IR, numbered by the caller.
 Their expansions are uniform (`Expand.lean`, the compiler's `builtins.rs`), so each is a template
 over its operands and its first value `b`; a caller's body is checked equal to its composition of

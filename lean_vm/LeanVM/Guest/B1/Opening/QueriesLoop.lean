@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesSound
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# One iteration of `opening_queries`' loop (lean_ethereum.py:1406-1414 at 873ee6d8)
+# One iteration of `opening_queries`' loop (lean_ethereum.py:1406-1414 at 40f877dc)
 
 * `oqQuery_sound_wins`: a query whose window pointer names a run of a position's windows reads
   them all and opens at that position.

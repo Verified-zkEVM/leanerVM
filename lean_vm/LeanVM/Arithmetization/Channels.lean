@@ -32,7 +32,7 @@ interaction's coordinates, then zeros (specification §5.1,
   `tables.rs:163-170`);
 * bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₁₂)`, the bytecode `entry` after the
   address and the count, fifteen coordinates, the widest message, filling the sixteen slots (§6.4;
-  `tables.rs:113-122` at leanVM PR #724 head `873ee6d8`).
+  `tables.rs:113-122` at leanVM main `40f877dc`).
 
 A typed message is one such coordinate list: the state message is the register pair `Regs` of
 the semantics itself, over `K` when evaluated and over `Expression K` in a row (one structure, one
@@ -44,7 +44,7 @@ channels rather than transcribing the tuples again (issue #13).
 
 **The channels** (specification §6, Theorem 6.4 and Corollary 6.5). A read is
 `pull (addr, count, v)` and `push (addr, g·count, v)` (§6.2 "Flush rules"). A *gated* read
-(`memReadIf`, the Rust's `memory_coords_if`, `tables.rs:132-147` at `873ee6d8`, for a `KECCAK`
+(`memReadIf`, the Rust's `memory_coords_if`, `tables.rs:132-147` at `40f877dc`, for a `KECCAK`
 output cell past the first) pushes the counter `count + flag·count·g + flag·count` instead: in
 characteristic two that is `g·count` at `flag = 1`, a read, and `count` at `flag = 0`, where the
 push is the pull's own tuple and the pair cancels; its pull is a `Channel.pullIf flag`, so a
@@ -253,8 +253,8 @@ def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit 
   MemPush.push ⟨addr, Expression.const g * count, v⟩
 
 /-- A memory read of the word `v` at `addr` with count `count` when `flag` is `1`
-(`memory_coords_if`, `tables.rs:132-147`, and `memory_if`, `verifier.py:762-766`, at leanVM PR
-#724 head `873ee6d8`): pull `(addr, count, v)` and push `(addr, count + flag·count·g + flag·count,
+(`memory_coords_if`, `tables.rs:132-147`, and `memory_if`, `verifier.py:762-766`, at leanVM main
+`40f877dc`): pull `(addr, count, v)` and push `(addr, count + flag·count·g + flag·count,
 v)`, `g·count` at `flag = 1` and the pull's own tuple at `flag = 0`, where the pair cancels. The
 pull is a `Channel.pullIf flag`: its guarantee is assumed at `flag = 1` only. -/
 def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 3) : Circuit K Unit := do
@@ -262,7 +262,7 @@ def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 3) : C
   MemPush.push ⟨addr, count + Expression.const g * (flag * count) + flag * count, v⟩
 
 /-- The push counter of a gated read (`memReadIf`; `memory_coords_if`, `tables.rs:132-147` at
-leanVM PR #724 head `873ee6d8`): `count + g·(flag·count) + flag·count`, the value of `memReadIf`'s push counter, which is `g·count` at
+leanVM main `40f877dc`): `count + g·(flag·count) + flag·count`, the value of `memReadIf`'s push counter, which is `g·count` at
 `flag = 1` (`gatedCount_one`) and `count` at `flag = 0` (`gatedCount_zero`). -/
 def gatedCount (flag c : K) : K := c + g * (flag * c) + flag * c
 

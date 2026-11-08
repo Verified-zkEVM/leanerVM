@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundDigest
 
-  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4024` at leanVM PR #724 head 873ee6d8)
+  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4024` at leanVM main 40f877dc)
   is sound: `H_msg`'s two calls hash `R | PK.seed | PK.root | M | BE_32(i)`, `M` the claim's two
   message cells, and whatever bits are hinted, they are the digest's, each field's values theirs.
 -/

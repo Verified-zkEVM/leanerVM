@@ -29,7 +29,7 @@ component as the typed row `rowInput` (the first cells, a missing cell `0`). Wha
 the row circuit of each opcode table sends the messages `sendsOf pc fp next rbc e reads` of
 `Completeness.Rows`: the state pull `(pc, fp)` and push `next`, the bytecode pull and push of the
 thirteen coordinates `e` at `pc`, and per memory read a pull of `(addr, count, v)` and a push of
-`(addr, g·count, v)`; then, for `KECCAK`'s output cells `1..13` (leanVM PR #724 head `873ee6d8`),
+`(addr, g·count, v)`; then, for `KECCAK`'s output cells `1..13` (leanVM main `40f877dc`),
 per gated read `(flag, addr, count, v)` a pull of `(addr, count, v)` and a push of
 `(addr, count + g·(flag·count) + flag·count, v)` (`gatedSends`): at most twenty-six reads, plain
 or gated. A gated read at flag `1` is a read (`RowRec.real`); at flag `0` a cancelled pair

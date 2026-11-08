@@ -86,7 +86,7 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-PIN = "873ee6d8a57428e33908ecf1608a7bdd43bf832e"
+PIN = "40f877dc2c858f013c5974ab71ca594b31a7aec9"
 VERIFIER_SHA256 = "7195c0db8c69b15339f9d754908334a2956ccf0906371026330ce8b31e47bae0"
 FLAT = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")  # the Python verifier's
 ROOT = Path(__file__).resolve().parent.parent

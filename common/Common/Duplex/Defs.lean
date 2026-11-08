@@ -14,7 +14,7 @@ public import Common.Duplex.Spec
 A protocol derives the challenges of a root (`chalP`) by a duplex over a random function `F` on
 states: `y₁ = F (first r iv)` from the label's hash `iv = H label`, then `y_{k+1} = F (next y_k)`,
 the challenges being `out y₁, …, out y_n`. LeanDA's challenge over Keccak-f[1600] is `out y₂`
-(`membership_challenge` at leanVM PR #724 head `873ee6d8`), whose `first`, `next`, `out` read and write lanes of
+(`membership_challenge` at leanVM main `40f877dc`), whose `first`, `next`, `out` read and write lanes of
 the state.
 
 The **simulator** (`simImpl`) answers `F` for an adversary from a random oracle `G` of the roots

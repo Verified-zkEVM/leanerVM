@@ -1,5 +1,5 @@
 # usage: python3 -I gencsort.py  — writes Tables/VtC/SGrpT.lean: each block group's key and size
-# statements (G:2141-2145 at 873ee6d8) hold on the honest valuation (`vtc_grp{gi}`), from
+# statements (G:2141-2145 at 40f877dc) hold on the honest valuation (`vtc_grp{gi}`), from
 # vt_ir.txt (dump.py). The completeness twin of gensort.py's `vt_grp{gi}`.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

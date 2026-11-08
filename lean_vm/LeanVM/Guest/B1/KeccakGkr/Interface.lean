@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Base
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
-`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `873ee6d8`, G
+`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `40f877dc`, G
 below, G:2923-3089) runs the specification's `verifyKeccak` (V:2061), then draws the first
 challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 

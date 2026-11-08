@@ -25,7 +25,7 @@ and the frame map `V`, reading words only (no hash, no verifier function, no cho
 * `oqSibsOf pd ch q σ`: the siblings below the cap, read off the children cells `ch ..` of a
   frame: at level `l` the pair off the walk's side (`sibOff`);
 * `oqQueryW s rd bp cap flags b emit σ V`: the query hinted at `b`, its window pointer `bp` (`oqRow`
-  its row), its siblings off its `walk_path` call's frame (873ee6d8: the walk is a function);
+  its row), its siblings off its `walk_path` call's frame (40f877dc: the walk is a function);
 * `oqIterOf s rd σ V`: a loop iteration's queries (two at level 0, one deeper), from its frame;
 * `oqsOf s odd loop N rd σ V`: the function's queries, from its frame `σ` (the odd first query at
   level 0) and the frames `V loop (g^j :: ps) []` of its `N` iterations, `ps` the loop's other

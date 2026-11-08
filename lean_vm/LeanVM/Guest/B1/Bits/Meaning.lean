@@ -14,17 +14,17 @@ public import LeanVM.Guest.ExpTables
 # Bits, logs and the exponent: meanings (TRIAGE G #2, #16-21)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`873ee6d8`, G below) its meaning `Meaning…` on its argument and return words, and `…_Spec`, the
+`40f877dc`, G below) its meaning `Meaning…` on its argument and return words, and `…_Spec`, the
 statement that its core IR relation (`coreProgram.Rel`) is that meaning. A `…_Spec` is a
 definition (a `Prop`); its proof is the theorem `…_holds : …_Spec` of the family's modules.
 
 | function | G | meaning |
 | --- | --- | --- |
 | `assert_canonical` | 493-501 | `IsCanonical128` |
-| `exponent_tables` | 717-742 (873ee6d8) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
-| `g_power_of_word` | 745-758 (873ee6d8) | `v = E(n)`, `n < 64`, returns `g^n` |
-| `assert_small_g_power` | 761-776 (873ee6d8) | `x = g^e`, `e < 2^36` |
-| `log2_ceil_in_the_exponent` | 779-794 (873ee6d8) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
+| `exponent_tables` | 717-742 (40f877dc) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
+| `g_power_of_word` | 745-758 (40f877dc) | `v = E(n)`, `n < 64`, returns `g^n` |
+| `assert_small_g_power` | 761-776 (40f877dc) | `x = g^e`, `e < 2^36` |
+| `log2_ceil_in_the_exponent` | 779-794 (40f877dc) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
 | `grind_check` | 781-807 | `powOk` (V:427): the low `bits` bits of the first limb are zero |
 
 The range checks (`assert_small_g_power`, `log2_ceil_in_the_exponent`) are stated on a memory

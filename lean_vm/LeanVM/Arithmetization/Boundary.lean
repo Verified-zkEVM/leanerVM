@@ -207,8 +207,8 @@ theorem mem_word_complete {data : ProverData K} (i : Fin (2 ^ (imageOf data).1))
 
 /-- A row of the bytecode block: the counter `g^i` (the index column), the finalize count
 `g^(A[i])` (`BFCNT`), and the `entry` at that slot, the opcode and the twelve operand slots (the
-thirteen public columns of `bytecode_columns`, `cpu/layout.rs:292-366` at leanVM PR #724 head
-`873ee6d8`). -/
+thirteen public columns of `bytecode_columns`, `cpu/layout.rs:292-366` at leanVM main
+`40f877dc`). -/
 structure BytecodeRow (F : Type) where
   /-- The counter, `g^i` for row `i`. -/
   idx : F

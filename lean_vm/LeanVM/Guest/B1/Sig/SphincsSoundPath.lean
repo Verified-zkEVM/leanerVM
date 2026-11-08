@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundPath
 
-  `sp_path` (`lean_ethereum.py:3913-3933` at leanVM PR #724 head 873ee6d8) is sound: whatever children are
+  `sp_path` (`lean_ethereum.py:3913-3933` at leanVM main 40f877dc) is sound: whatever children are
   hinted, the node a path reaches is the tree's fold of the hinted siblings; with the pieces the
   FORS trees share (`is_child`, `sp_be16`, a node's 80-byte hash).
 -/

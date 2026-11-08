@@ -497,7 +497,7 @@ example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = n
   rw [keccak_reads]
   decide +kernel
 
-/-- The same row writing only output cell `0` (`out_cells = One`, leanVM PR #724 head `873ee6d8`,
+/-- The same row writing only output cell `0` (`out_cells = One`, leanVM main `40f877dc`,
 `keccak_writes_only_requested_cells`, `cpu/mod.rs`): it reads cell `13` alone of the output. -/
 def keccakIns1 : LeanIsaInstruction := .keccak ![addressOfIndex 2, addressOfIndex 3, addressOfIndex
     2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9)

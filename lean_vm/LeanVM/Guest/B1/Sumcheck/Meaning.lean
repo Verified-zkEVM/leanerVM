@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `873ee6d8`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `40f877dc`, G below) its meaning
 on its argument and return words, the Fiat-Shamir sponge as the guest carries it (`Fs`,
 `B1/Common/Sponge.lean`), and `…_Spec`, the statement that its core IR relation is that meaning
 (proved as `…_holds`).

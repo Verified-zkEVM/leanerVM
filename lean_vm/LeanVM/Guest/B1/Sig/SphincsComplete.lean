@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsComplete
 
-  `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4051` at leanVM PR #724 head 873ee6d8) is complete, loading
+  `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4051` at leanVM main 40f877dc) is complete, loading
   only the claim and the byte table (`verify_sig_lean_sphincs_complete_loads_of`), given its
   blocks' completeness (`SphincsBlocksComplete`).
 -/

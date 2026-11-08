@@ -15,7 +15,7 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The stacked WHIR opening's helpers: meanings (TRIAGE G #35-38)
 
-For each function of the guest (`lean_ethereum.py` at leanVM PR #724 head `873ee6d8`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM main `40f877dc`, G below) its meaning
 on its argument and return words, the sponge as the guest carries it (`Fs`), and `…_Spec`, the
 statement that its core IR relation is that meaning (proved as `…_holds`). The Spec steps they
 are (`foldRounds`, `tailRounds`, V:1750, 1702; `sampleN`; `readN` and `grindP`) are the `…_run`
@@ -181,7 +181,7 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
     else sibs.getD (k / 4) (Vector.replicate 4 0)
   if k % 2 = 0 then (digestHalves d).1 else (digestHalves d).2
 
-/-- **One query** (`opening_query`, lean_ethereum.py:1347-1390 at 873ee6d8, with `walk_path`,
+/-- **One query** (`opening_query`, lean_ethereum.py:1347-1390 at 40f877dc, with `walk_path`,
 :1295-1331; TRIAGE #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words
 of `K`, hashed (`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels
 by hinted siblings (`climb`, V:492, the position's low bits: `climbD`); the node reached is
@@ -219,7 +219,7 @@ def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
     ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
 /-- **`opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_iters_g, odd,
-base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1393-1417 at 873ee6d8; TRIAGE #40):
+base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1393-1417 at 40f877dc; TRIAGE #40):
 `n_iters_g = g^N`, `λ ≠ 0`; query `k < Q` (`oqCount`) reads its window pointer and the windows
 `g^(qwVal …)` of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the

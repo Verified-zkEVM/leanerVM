@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsHash
 
   leanSPHINCS's addressed hash (the statement's, over Keccak-f[1600] in `Id`) as a function of the
-  guest's cells (leanVM PR #724 head 873ee6d8, `crates/signatures/src/lean_sphincs/hash.rs:28-93`,
+  guest's cells (leanVM main 40f877dc, `crates/signatures/src/lean_sphincs/hash.rs:28-93`,
   `lean_ethereum.py:483-509, 3735-3746, 3937-3946`).
 -/
 

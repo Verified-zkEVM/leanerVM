@@ -8,8 +8,8 @@ Every expected value below was printed by `python-verifier/verifier.py` at leanV
 inputs drawn from the word generator `fw`, which the driver mirrors exactly, but the tag, the IV
 and the seed, printed at `990b935263dc7f793f280914f262ca7955ddc3e0` (the only functions checked
 here that changed between the two), and the tables, the `q_keccak` slots, the output columns and
-`build_layout`'s sample layout and bus blocks printed at leanVM PR #724 head
-`873ee6d8a57428e33908ecf1608a7bdd43bf832e` (the `KECCAK` table's output flags; the driver checked
+`build_layout`'s sample layout and bus blocks printed at leanVM main
+`40f877dc2c858f013c5974ab71ca594b31a7aec9` (the `KECCAK` table's output flags; the driver checked
 first to print the previous values at `5e3ade21`); the drivers live in the port's scratch, not in
 the repository. The line citations are to `990b935263dc7f793f280914f262ca7955ddc3e0`. Compiled checks (`#guard`): `E` multiplication does not
 reduce in the kernel from module files.

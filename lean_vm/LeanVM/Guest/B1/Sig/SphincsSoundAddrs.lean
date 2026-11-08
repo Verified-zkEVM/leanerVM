@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundAddrs
 
   The hypertree's address cells in `verify_sig_lean_sphincs` (`lean_ethereum.py:4028-4029,
-  4044-4045, 4048-4049` at leanVM PR #724 head 873ee6d8) are the statement's: each layer's `a0` is the first
+  4044-4045, 4048-4049` at leanVM main 40f877dc) are the statement's: each layer's `a0` is the first
   address cell of its tree, its `a1` the second cell of its one-time key, type `WOTS_HASH`.
 -/
 

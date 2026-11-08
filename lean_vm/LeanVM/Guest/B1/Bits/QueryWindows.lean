@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.QueryWindowsLib
 
 /-!
-# `decode_query_windows` (lean_ethereum.py:798-909 at 873ee6d8)
+# `decode_query_windows` (lean_ethereum.py:798-909 at 40f877dc)
 
 `decode_query_windows(word, positions, win_ptrs, tabs, d, cd)` (template `qwBody d cd`) hints the
 squeezed word's bits in windows, each `g^n` range checked below `2^w` and read back through
