@@ -50,14 +50,14 @@ parties, `Coord.known`; `bytecode_columns`, `layout.rs:295`). The index column i
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
 **The stack** (`crates/leanvm_core/src/witness.rs:56-95`). Every committed column has a
-log-size, its table's; the `KECCAK` table's columns `0 … 63` have none (`IsVirtual`: the fifty
-value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
-`witness.rs:20`; `layout.rs:228-240`), so `99` of the `163` columns are committed. The committed
+log-size, its table's; the `KECCAK` table's columns `0 … 64` but `14` have none (`IsVirtual`: the
+fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
+`witness.rs:20`; `layout.rs:228-240`), so `101` of the `165` columns are committed. The committed
 columns, in global order, are sorted by log-size, largest first, ties in global order
 (`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
 `μ = max(⌈log₂ total⌉, 15)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
-read at slot `l` of `QKECCAK`, and its columns `0 … 12` and `63` at slots `50 … 62` and `63`
-(`qSlot`, `Blocks.sliceLayout`; `KECCAK_SLOT_OF`, `verifier.py:951-953, 1009`): cell `x` of the
+read at slot `l` of `QKECCAK`, and its columns `0 … 13` at slots `50 … 63`
+(`qSlot`, `Blocks.sliceLayout`; `KECCAK_SLOT_OF`, `verifier.py:965-967, 1022`): cell `x` of the
 column at slot `k` is cell `x + k · 2^τ_KECCAK` of the region. The output lanes are *derived*
 (`derived`): lane `l` at row `x` is lane `l` of the
 last twelve rounds of Keccak-f[1600] (`keccakSegment 1`) of the state after twelve rounds that
@@ -471,7 +471,7 @@ def outColumn (q : Column (leanIsaμ prog s)) (c : Col) (h : IsOut c) : Column (
   ⟨Vector.ofFn fun x ↦
     stateLanes (keccakSegment 1 (midState prog s q
       (Fin.cast (congrArg (2 ^ ·) (kappa_of_isLane prog s ⟨h.1, by have := h.2.1; omega, h.2.2⟩))
-        x))) ⟨c.2.val - 38, by have := h.2.2; omega⟩⟩
+        x))) ⟨c.2.val - 40, by have := h.2.2; omega⟩⟩
 
 /-- The derived columns: the `KECCAK` output lanes. -/
 def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog s c)) :=
@@ -533,11 +533,11 @@ theorem padding_eq_map_ofK (t : Verifier.Table) : t.padding = (padRowK t).map of
 
 /-! ### The `KECCAK` padding row, by column -/
 
-/-- The `KECCAK` table has ninety column names. -/
-theorem keccakColumns_length : Verifier.keccakColumns.length = 90 := by decide +kernel
+/-- The `KECCAK` table has ninety-two column names. -/
+theorem keccakColumns_length : Verifier.keccakColumns.length = 92 := by decide +kernel
 
-/-- `KECCAK_OUT` is column `38`. -/
-theorem keccakOut_eq : Verifier.keccakOut = 38 := by decide +kernel
+/-- `KECCAK_OUT` is column `40`. -/
+theorem keccakOut_eq : Verifier.keccakOut = 40 := by decide +kernel
 
 /-- The zero state's lanes. -/
 theorem laneState_zero : laneState (fun _ ↦ 0) = Vector.replicate 25 0 := by
@@ -548,16 +548,16 @@ theorem laneState_zero : laneState (fun _ ↦ 0) = Vector.replicate 25 0 := by
 
 /-- The `KECCAK` padding row, column by column: the output lanes hold Keccak-f[1600] of the zero
 state, every other column zero. -/
-theorem padRowK_keccak_getD (i : ℕ) (hi : i < 90) :
+theorem padRowK_keccak_getD (i : ℕ) (hi : i < 92) :
     (padRowK (Verifier.tables.getD 5 default)).getD i 0 =
-      if h : 38 ≤ i ∧ i < 63 then
-        stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i - 38, by omega⟩
+      if h : 40 ≤ i ∧ i < 65 then
+        stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i - 40, by omega⟩
       else 0 := by
-  have hw : (Verifier.tables.getD 5 default).width = 90 := by decide +kernel
+  have hw : (Verifier.tables.getD 5 default).width = 92 := by decide +kernel
   have ho : (Verifier.tables.getD 5 default).opcode = Verifier.opKeccak := rfl
   rw [padRowK, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range (by omega),
     Option.map_some, Option.getD_some, keccakOut_eq]
-  by_cases h : 38 ≤ i ∧ i < 63
+  by_cases h : 40 ≤ i ∧ i < 65
   · rw [ite_eq_left ⟨ho, h⟩, dite_eq_left h, laneState_zero]
     simp only [stateLanes, K.ofLane, K.ofBits]
     congr 1
@@ -578,8 +578,8 @@ theorem padRow_of_ne_keccak :
 /-- The `KECCAK` padding row: Keccak-f[1600] of the zero state at the output lanes, zero
 elsewhere. -/
 theorem padRow_keccak (i : Fin (width (opIdx 5))) :
-    padRow (opIdx 5) i = if h : 38 ≤ i.val ∧ i.val < 63 then
-      stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i.val - 38, by omega⟩ else 0 :=
+    padRow (opIdx 5) i = if h : 40 ≤ i.val ∧ i.val < 65 then
+      stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i.val - 40, by omega⟩ else 0 :=
   padRowK_keccak_getD i.val (width_keccak ▸ i.isLt)
 
 end LeanIsa
@@ -738,22 +738,22 @@ def memRowCell : Fin 4 → ℕ := ![2, 3, 4, 1]
 
 /-- Input lane `l` of row `x` of the `KECCAK` table; a padding row's is zero (`padRow`). -/
 def inLaneOf (w : EnsembleWitness (leanIsaEnsemble prog)) (x : ℕ) (l : Fin 25) : K :=
-  if x < s.rows 5 then cellOf (tableAt w 5) x (13 + l) else 0
+  if x < s.rows 5 then cellOf (tableAt w 5) x (15 + l) else 0
 
-/-- The `KECCAK` column spare slot `50 + k` of `QKECCAK` carries: column `k` for `k < 13`, then
-column `63` (`cnt_0`), the table's first fourteen committed columns in order
-(`_KECCAK_COMMITTED[:QKECCAK_SPARE]`, `verifier.py:947-953`). -/
-def spareColumn (k : ℕ) : ℕ := if k < 13 then k else 63
+/-- The `KECCAK` column spare slot `50 + k` of `QKECCAK` carries: column `k`, the table's first
+fourteen committed columns in order (`_KECCAK_COMMITTED[:QKECCAK_SPARE]`, `verifier.py:959-967`). -/
+def spareColumn (k : ℕ) : ℕ := k
 
 /-- A spare column's slot is `50` or above, and `spareColumn` names the column back. -/
 theorem qSlot_spare {c : Col} (h : IsSpare c) :
     50 ≤ (qSlot c).val ∧ spareColumn ((qSlot c).val - 50) = c.2.val := by
-  show 50 ≤ (if c.2.val < 13 then 50 + c.2.val else
-      if c.2.val < 63 then (c.2.val - 13) % 25 else 63) ∧
-    spareColumn ((if c.2.val < 13 then 50 + c.2.val else
-      if c.2.val < 63 then (c.2.val - 13) % 25 else 63) - 50) = c.2.val
+  show 50 ≤ (if c.2.val < 14 then 50 + c.2.val else
+      if c.2.val < 65 then (c.2.val - 15) % 25 else 0) ∧
+    spareColumn ((if c.2.val < 14 then 50 + c.2.val else
+      if c.2.val < 65 then (c.2.val - 15) % 25 else 0) - 50) = c.2.val
   unfold spareColumn
-  rcases h.2 with h' | h' <;> split_ifs <;> omega
+  have h' := h.2
+  split_ifs <;> omega
 
 /-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs:56-111`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
