@@ -20,14 +20,13 @@ time on its tables `COL_KAPPA_SRC`, `COL_KAPPA_ADJ` (`Tables.colKappaSrc`, `Tabl
 the slot `termSlot j`:
 
 * claims `0 .. 4`, the bus's, on the prefix chain at `zeta` (kind `0`), committed columns `0 .. 4`;
-* claims `5 .. 71` and `136 .. 161`, the tables' committed columns, on the chain at `chi`
+* claims `5 .. 71`, `86` and `137 .. 163`, the tables' committed columns, on the chain at `chi`
   (kind `1`);
-* claims `72 .. 109` and `135`, `KECCAK`'s columns with a `q_keccak` slot (its first thirteen
-  committed columns, slots `50 .. 62`, its input lanes, slots `0 .. 24`, and its first read count,
-  slot `63`), on the chain at `chi` and their slot's bits (kind `2`), on `q_keccak` (committed
-  column `5`);
-* claims `110 .. 134`, `KECCAK`'s output lanes, skipped (kind `4`);
-* claims `162 .. 164`, the public input's, on the chain of `(rm, 0, …, 0)` (kind `3`).
+* claims `72 .. 85` and `87 .. 111`, `KECCAK`'s columns with a `q_keccak` slot (its fourteen
+  operand and flag columns, slots `50 .. 63`, and its input lanes, slots `0 .. 24`), on the chain
+  at `chi` and their slot's bits (kind `2`), on `q_keccak` (committed column `5`);
+* claims `112 .. 136`, `KECCAK`'s output lanes, skipped (kind `4`);
+* claims `164 .. 166`, the public input's, on the chain of `(rm, 0, …, 0)` (kind `3`).
 
 Every claim's source and adjustment are its column's, so the guest emits no length check
 (G:3323-3327); a low length `kb[s]·g^a` is `kb[s]` itself at `a = 0` (`kapT`). The running power
@@ -46,16 +45,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 /-- The kind of claim `j`'s low point (`CLAIM_POINT_BUF`): `0` the bus point, `1` the table
 point, `2` a `q_keccak` lane, `3` the public input's, `4` a `KECCAK` output lane. -/
 def termKind (j : ℕ) : ℕ :=
-  if j < 5 then 0 else if j < 72 then 1 else if j < 110 then 2 else if j < 135 then 4
-  else if j = 135 then 2 else if j < 162 then 1 else 3
+  if j < 5 then 0 else if j < 72 then 1 else if j < 86 then 2 else if j = 86 then 1
+  else if j < 112 then 2 else if j < 137 then 4 else if j < 164 then 1 else 3
 
 /-- Claim `j`'s committed column (`CLAIM_COMMITTED_COL`). -/
 def termCol (j : ℕ) : ℕ :=
-  if j < 5 then j else if j < 72 then j + 1 else if j < 110 then 5 else if j = 135 then 5
-  else if j < 162 then j - 63 else j - 162
+  if j < 5 then j else if j < 72 then j + 1 else if j < 86 then 5 else if j = 86 then 73
+  else if j < 137 then 5 else if j < 164 then j - 63 else j - 164
 
 /-- The `q_keccak` slot of claim `j` of kind `2` (`CLAIM_QKECCAK_SLOT_BITS`). -/
-def termSlot (j : ℕ) : ℕ := if j < 85 then j - 22 else if j < 110 then j - 85 else 63
+def termSlot (j : ℕ) : ℕ := if j < 86 then j - 22 else j - 87
 
 /-- The claims' sources and adjustments are the source's arrays `CLAIM_KAPPA_SRC`,
 `CLAIM_KAPPA_ADJ`. -/
@@ -123,7 +122,7 @@ def selBlockT (c : ℕ) : List Stmt :=
 def selsT : List Stmt := (List.range Tables.nCommittedCols).flatMap selBlockT
 
 /-- The claims' first value: past the selectors. -/
-abbrev claimsStart : ℕ := 442
+abbrev claimsStart : ℕ := 450
 
 /-- A claim on a prefix chain at `ch` (kinds `0`, `1`), its length's `g`-power at `kr`, its
 column's selector at `sel`, the running power at `lr`, from value `r`, the sum so far at `acc`. -/

@@ -173,9 +173,9 @@ def vsPre : List Stmt :=
   vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
     vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT
 
-theorem vsPre_length : vsPre.length = 1578 := by decide +kernel
+theorem vsPre_length : vsPre.length = 1586 := by decide +kernel
 
-theorem vsT_take : vsT.take 1592 = vsPre ++ vsTailT.take 14 := by
+theorem vsT_take : vsT.take 1600 = vsPre ++ vsTailT.take 14 := by
   rw [show vsT = vsPre ++ vsTailT from rfl, List.take_append, List.take_of_length_le
     (by rw [vsPre_length]; omega), vsPre_length]
 
@@ -192,7 +192,7 @@ theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32
     (htab : Tables.verify_tables_SpecC (List.replicate (2 ^ 23) 0) L.read (coreProgram.Rel L.read))
     (hcp : Tables.certify_placement_Spec L.read)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1592) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1600) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 139)) i (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32

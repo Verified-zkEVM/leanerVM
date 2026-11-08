@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Terminal.TermKids
 
 The oracle `termW b0 outs`: the buffers at `b0`, `b0 + 35`, `b0 + 70`, `b0 + 105`, and the callees'
 results `outs` (`selector_tables`' at `41`, column `c`'s selector at `selV c`, the ring switch's
-weight at `1754`). On a valuation satisfying the evaluator's equations (`GoodS`):
+weight at `1774`). On a valuation satisfying the evaluator's equations (`GoodS`):
 `head_complete`, `sel_complete`, `tail_complete`, as `zrT_complete` for the claims.
 -/
 
@@ -50,9 +50,9 @@ theorem selV_bounds : ∀ c < Tables.nCommittedCols, 41 < selV c ∧ selV c < cl
 noncomputable def termW (b0 : ℕ) (outs : List (List E × Main.Layout)) : ℕ → E := fun i =>
   if i = 18 then ofK (addressOfIndex b0) else if i = 20 then ofK (addressOfIndex (b0 + 35)) else
   if i = 24 then ofK (addressOfIndex (b0 + 70)) else
-  if i = 1746 then ofK (addressOfIndex (b0 + 105)) else
+  if i = 1766 then ofK (addressOfIndex (b0 + 105)) else
   if i = 41 then (stRes outs).1.getD 0 0 else
-  if i = 1754 then (outs.getD 104 ([], [])).1.getD 0 0 else
+  if i = 1774 then (outs.getD 106 ([], [])).1.getD 0 0 else
   match selOfV i with
   | some c => (outs.getD (4 + c) ([], [])).1.getD 0 0
   | none => 0
@@ -266,16 +266,16 @@ theorem sel_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Main
 /-! ## The tail -/
 
 theorem termTailPre_eq : termTailPre =
-    [.atom (.hint (.alloc (.n 1746) 41)), .atom (.const (.n 1747) (word 1 0 0)),
-      .atom (.const (.n 1748) (word 64 0 0)), .atom (.mul (.n 1749) (.n 7) (.n 1748)),
-      .call "eq_prefix_chain" [.n 1746, .n 1747, .n 11, .n 14, .n 1749] [],
-      .atom (.const (.n 1750) (word 549755813888 0 0)), .atom (.mul (.n 1751) (.n 11) (.n 1750)),
-      .atom (.const (.n 1752) (word 64 0 0)), .atom (.mul (.n 1753) (.n 7) (.n 1752)),
-      .call "ring_switch_weight" [.n 1751, .n 14, .n 12, .n 1753] [.n 1754],
-      .atom (.mul (.n 1755) (.n 1746) (.n 7)), .atom (.load (.n 1756) (.n 1755) 6),
-      .atom (.mul (.n 1757) (.n 1745) (.n 1756)), .atom (.add (.n 1758) (.n 1754) (.n 1757)),
-      .atom (.mul (.n 1759) (.n 1758) (.n (selV 5))), .atom (.add (.n 1760) (.n 1744) (.n 1759)),
-      .atom (.mul (.n 1761) (.n 1760) (.n 16)), .atom (.assertEq (.n 1761) (.n 17))] := rfl
+    [.atom (.hint (.alloc (.n 1766) 41)), .atom (.const (.n 1767) (word 1 0 0)),
+      .atom (.const (.n 1768) (word 64 0 0)), .atom (.mul (.n 1769) (.n 7) (.n 1768)),
+      .call "eq_prefix_chain" [.n 1766, .n 1767, .n 11, .n 14, .n 1769] [],
+      .atom (.const (.n 1770) (word 549755813888 0 0)), .atom (.mul (.n 1771) (.n 11) (.n 1770)),
+      .atom (.const (.n 1772) (word 64 0 0)), .atom (.mul (.n 1773) (.n 7) (.n 1772)),
+      .call "ring_switch_weight" [.n 1771, .n 14, .n 12, .n 1773] [.n 1774],
+      .atom (.mul (.n 1775) (.n 1766) (.n 7)), .atom (.load (.n 1776) (.n 1775) 6),
+      .atom (.mul (.n 1777) (.n 1765) (.n 1776)), .atom (.add (.n 1778) (.n 1774) (.n 1777)),
+      .atom (.mul (.n 1779) (.n 1778) (.n (selV 5))), .atom (.add (.n 1780) (.n 1764) (.n 1779)),
+      .atom (.mul (.n 1781) (.n 1780) (.n 16)), .atom (.assertEq (.n 1781) (.n 17))] := rfl
 
 /-- **The tail, completely**: the outputs' chain, the ring switch's weight, the terminal's
 check (given its value). -/
@@ -284,20 +284,20 @@ theorem tail_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
     (e7 : σ (.n 7) = gen ^ τ)
     (hch : LoadHolds rd (ofK (addressOfIndex (b0 + 105))) (τ + 6) v)
     (ach : R (b0 + 105 + (τ + 6))) :
-    (σ (.n 1761) = σ (.n 17) → ∀ s ∈ termTailPre, Fwd.SHolds TrivC rd σ s) ∧
+    (σ (.n 1781) = σ (.n 17) → ∀ s ∈ termTailPre, Fwd.SHolds TrivC rd σ s) ∧
       (∀ q ∈ termTailPre.filterMap Stmt.loadS, AddrIn R (σ q.1) q.2) ∧
-      σ (.n 1746) = ofK (addressOfIndex (b0 + 105)) ∧ σ (.n 1747) = word 1 0 0 ∧
-      σ (.n 1749) = gen ^ τ * word 64 0 0 ∧ σ (.n 1751) = σ (.n 11) * word 549755813888 0 0 ∧
-      σ (.n 1753) = gen ^ τ * word 64 0 0 ∧ σ (.n 1754) = (outs.getD 104 ([], [])).1.getD 0 0 ∧
-      σ (.n 1756) = v ∧
-      σ (.n 1761) = (σ (.n 1744) + (σ (.n 1754) + σ (.n 1745) * σ (.n 1756)) * σ (.n (selV 5))) *
+      σ (.n 1766) = ofK (addressOfIndex (b0 + 105)) ∧ σ (.n 1767) = word 1 0 0 ∧
+      σ (.n 1769) = gen ^ τ * word 64 0 0 ∧ σ (.n 1771) = σ (.n 11) * word 549755813888 0 0 ∧
+      σ (.n 1773) = gen ^ τ * word 64 0 0 ∧ σ (.n 1774) = (outs.getD 106 ([], [])).1.getD 0 0 ∧
+      σ (.n 1776) = v ∧
+      σ (.n 1781) = (σ (.n 1764) + (σ (.n 1774) + σ (.n 1765) * σ (.n 1776)) * σ (.n (selV 5))) *
         σ (.n 16) := by
   have mm : ∀ s, s ∈ termTailPre → GoodS rd S (termW b0 outs) σ s := hg
   simp only [termTailPre_eq, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
     forall_eq] at mm
   obtain ⟨g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16, g17⟩ := mm
-  have h5 : selV 5 < 1759 := by decide
-  have e0 : σ (.n 1746) = ofK (addressOfIndex (b0 + 105)) := by
+  have h5 : selV 5 < 1779 := by decide
+  have e0 : σ (.n 1766) = ofK (addressOfIndex (b0 + 105)) := by
     rw [good_hint_alloc g0]; simp [termW]
   have e1 := good_const g1
   have e2 := good_const g2
@@ -308,9 +308,9 @@ theorem tail_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
   have e8 := goodS_mul g8 (by omega) (by omega)
   have r9 := good_rets g9
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq] at r9
-  have e9 : σ (.n 1754) = (outs.getD 104 ([], [])).1.getD 0 0 := by rw [r9]; simp [termW]
+  have e9 : σ (.n 1774) = (outs.getD 106 ([], [])).1.getD 0 0 := by rw [r9]; simp [termW]
   have e10 := goodS_mul g10 (by omega) (by omega)
-  have h11 : LoadHolds rd (σ (.n 1755)) 6 v := by
+  have h11 : LoadHolds rd (σ (.n 1775)) 6 v := by
     rw [e10, e0, e7, loadHolds_mul_gen_pow]; exact hch
   obtain ⟨e11, l11⟩ := good_load_eq hS (n_ne_24 (by decide)) g11 h11
   have e12 := goodS_mul g12 (by omega) (by omega)
@@ -340,13 +340,13 @@ theorem tail_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
     · exact e14
     · exact e15
     · exact e16
-    · show σ (.n 1761) + σ (.n 17) = 0
+    · show σ (.n 1781) + σ (.n 17) = 0
       rw [hfin]; exact e_add_self _
   · simp only [termTailPre_eq, List.filterMap_cons, Stmt.loadS, List.filterMap_nil,
       List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl
     refine ⟨b0 + 105 + (τ + 6), ?_, ach⟩
-    show (σ (.n 1755)).limb 0 * addressOfIndex 6 = _
+    show (σ (.n 1775)).limb 0 * addressOfIndex 6 = _
     rw [e10, e0, e7, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_assoc]
 
 end

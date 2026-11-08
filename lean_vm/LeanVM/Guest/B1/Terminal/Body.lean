@@ -38,7 +38,7 @@ theorem termFound : ∃ fn : Fn, coreProgram.find? "check_opening_terminal" = so
   · exact absurd h (by simp)
 
 /-- The template's claims end at value `1746`, the sum at `1744`, `lam_out` at `1745`. -/
-theorem termClaims_end : termClaims.2 = (1746, 1744, 1745) := by
+theorem termClaims_end : termClaims.2 = (1766, 1764, 1765) := by
   decide +kernel
 
 end

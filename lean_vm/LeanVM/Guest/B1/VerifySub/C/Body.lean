@@ -110,7 +110,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   -- the batching
   hcap966 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (754 + i)))
   vals : ℕ → E
-  hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n (vsClaimAt (vsKept i)).1))
+  hpool : ∀ i < 142, LoadHolds rd (vsσ rd w args (.n (vsClaimAt (vsKept i)).1))
     (vsClaimAt (vsKept i)).2 (vals i)
   -- the tail
   m : ℕ
@@ -119,7 +119,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hm28 : m ≤ 28
   hr1 : 1 ≤ r
   hr4 : r ≤ 4
-  e1890 : vsσ rd w args (.n 1676) = gen ^ m
+  e1890 : vsσ rd w args (.n 1684) = gen ^ m
   e124 : vsσ rd w args (.n 122) = gen ^ (r - 1)
   zs : ℕ → E
   al : ℕ → E

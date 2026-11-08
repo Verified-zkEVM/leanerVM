@@ -186,7 +186,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       omega
     -- `col_eval_words` in the stream buffer
     have hcev : ∃ e, vsσ rd (vsW bs outs) args (.n 645) = ofK (addressOfIndex e) ∧
-        ∀ k < 157, Main.RegionL Lin (e + k) ∨
+        ∀ k < 159, Main.RegionL Lin (e + k) ∨
           Main.RegionL (bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW) (e + k) := by
       refine ⟨_, G.e645, fun k hk ↦ Or.inr ⟨_, vs_own_mem S _ (i := 1) (by norm_num), ?_, ?_⟩⟩
       · simp only [ChildSegs.cT, vcG, vb, hbs]; omega

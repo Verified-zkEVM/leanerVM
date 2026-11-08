@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Terminal.TermCompleteB
 
   **`check_opening_terminal` is complete, placed, within a bound** (`CompleteAtB`): its frame, its
-  four buffers (`146` words) and its 105 callees' bounds, before the memory.
+  four buffers (`146` words) and its 107 callees' bounds, before the memory.
 -/
 
 module
@@ -18,7 +18,7 @@ public import LeanVM.Guest.Memory.LoopPre
 `check_opening_terminal_completeAtB`: `check_opening_terminal_completeAt` with the size at most
 
   `fs "check_opening_terminal" + 146 + 3·Beqc + (32·K15 + fs "__loop14")
-    + (fs "selector_tables" + 448) + 99·Bcs + (fs "ring_switch_weight" + 2240 + Brs)`
+    + (fs "selector_tables" + 448) + 101·Bcs + (fs "ring_switch_weight" + 2240 + Brs)`
 
 (`completeAt_flatDepRB`, the callees within `termBs`, `termKids_completeB`). The pure callees'
 words are fs-generic hypotheses, in the forms the words certificates give at `B2C.fs`:
@@ -28,7 +28,7 @@ words are fs-generic hypotheses, in the forms the words certificates give at `B2
   (`TotalLeOn … LoopPre`, as `Count.wSKt_totalLeOn`; its certificate: `19`); its end is `g^m`,
   `m ≤ 32`, so `32·K15` and its frame (its frame alone when skipped, `m = 1`);
 * `hCsF`: each `column_selector__L{κ}`, `κ < 29`, has its frame within `Bcs` (it has no buffer and
-  no callee: `cs_completeAtB`; its certificates: at most `157`), `99` calls;
+  no callee: `cs_completeAtB`; its certificates: at most `157`), `101` calls;
 * `hrs`: `rs_eq_run` on `c ≤ 34` coordinates within `Brs` (`TotalLeOn`; it has no words
   certificate), through `ring_switch_weight` (`rsw_completeAtB`, its chain `64·(τ + 7) ≤ 2240`);
 * `selector_tables` within its frame and buffer (B1-c's `selector_tables_completeAtB`: `448`).
@@ -118,7 +118,7 @@ def termBs (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : List ℕ :=
 
 theorem termBs_sum (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) :
     (termBs fs Beqc K15 Bcs Brs).sum = 3 * Beqc + (32 * K15 + fs "__loop14") +
-      (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs) := by
+      (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs) := by
   simp only [termBs, List.sum_append, List.sum_cons, List.sum_nil, List.sum_replicate,
     smul_eq_mul, Tables.nCommittedCols]
   omega
@@ -222,7 +222,7 @@ set_option maxHeartbeats 1000000 in
 /-- **`check_opening_terminal` is complete, placed, within a bound**
 (`check_opening_terminal_completeAt` with its size at most
 `fs "check_opening_terminal" + 146 + 3·Beqc + (32·K15 + fs "__loop14") + (fs "selector_tables"
-+ 448) + 99·Bcs + (fs "ring_switch_weight" + 2240 + Brs)` at every frame pointer, before the
++ 448) + 101·Bcs + (fs "ring_switch_weight" + 2240 + Brs)` at every frame pointer, before the
 memory): its frame, its buffers (`35 + 35 + 35 + 41`) and its callees' bounds (`termBs`), the pure
 callees' words by the hypotheses `hEqc`, `hL15`, `hCsF`, `hrs`. -/
 theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : TermBases)
@@ -246,7 +246,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
     CompleteAtB fs cert κ "check_opening_terminal" Lin
       (termArgs B rm gmu gzcn glm gtau lamCl inner yr target) (Returns [])
       (fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
-        (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
+        (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap
   · intro fp

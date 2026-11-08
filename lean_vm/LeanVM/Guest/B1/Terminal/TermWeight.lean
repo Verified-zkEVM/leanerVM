@@ -81,7 +81,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
   intro j hT hW rd' t' args' rets' hv' hb' hTj
   rw [List.getElem_zipWith] at hTj
   obtain ⟨hn, htot⟩ := hTj
-  have hj : j < 105 := by simpa [termWs, Tables.nCommittedCols] using hW
+  have hj : j < 107 := by simpa [termWs, Tables.nCommittedCols] using hW
   by_cases h4 : j < 4
   · interval_cases j <;>
       simp only [termNames, termBs, termWs, List.append_assoc, List.cons_append,
@@ -90,7 +90,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     · exact hEqcW i rd' t' args' rets' hn hv' hb'
     · exact h15W i rd' t' args' rets' hn hv' hb' htot
     · exact hStW i rd' t' args' rets' hn hv' hb'
-  by_cases h103 : j < 103
+  by_cases h103 : j < 105
   · have e1 : (termNames D)[j]'(by simp [termNames, Tables.nCommittedCols]; omega) =
         Tables.lName "column_selector" (D.KC.getD (j - 4) 0) := by
       simp only [termNames, List.append_assoc]
@@ -105,7 +105,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     rw [e1] at hn
     rw [e2]
     exact hCsW i _ (hKC _ (by simp [Tables.nCommittedCols]; omega)) rd' t' args' rets' hn hv' hb'
-  · have hj' : j = 103 ∨ j = 104 := by omega
+  · have hj' : j = 105 ∨ j = 106 := by omega
     rcases hj' with rfl | rfl <;>
       simp [termNames, termBs, termWs, Tables.nCommittedCols, List.getElem_append_right] at hn htot ⊢
     · exact hEqcW i rd' t' args' rets' hn hv' hb'
@@ -150,7 +150,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
       (fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
-        (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
+        (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap
   · intro fp

@@ -31,20 +31,20 @@ namespace VtHonest
 /-- Honest claim `j`'s point. -/
 noncomputable def ptsP (H : VtHonest) (j : ℕ) : List E :=
   if j < 4 then H.point.take H.lm else if j = 4 then H.point.take 19
-  else if j < 162 then H.chiW.take (vtHt H.rows (vsEvTab (j - 5)))
+  else if j < 164 then H.chiW.take (vtHt H.rows (vsEvTab (j - 5)))
   else H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0
 
 variable {H : VtHonest}
 
 theorem vtH_ptsP (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23) :
-    H.claims.map (·.point) = (List.range 165).map H.ptsP := by
+    H.claims.map (·.point) = (List.range 167).map H.ptsP := by
   rw [vtH_points h hr hbc]
   apply List.ext_getElem (by simp)
   intro j h1 h2
   simp only [List.length_map, List.length_range] at h2
   simp only [List.getElem_map, List.getElem_range, ptsP]
   have e4 : (List.replicate 4 (H.point.take H.lm) ++ [H.point.take 19]).length = 5 := by simp
-  have e157 : ((List.range 157).map fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))).length = 157 := by
+  have e157 : ((List.range 159).map fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))).length = 159 := by
     simp
   by_cases hj4 : j < 4
   · rw [List.getElem_append_left (by simp; omega), List.getElem_append_left (by simp; omega),
@@ -55,7 +55,7 @@ theorem vtH_ptsP (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23
   · subst hj5
     rw [List.getElem_append_left (by simp), List.getElem_append_left (by simp)]
     simp
-  by_cases hj162 : j < 162
+  by_cases hj162 : j < 164
   · rw [List.getElem_append_left (by simp; omega), List.getElem_append_right (by simp; omega)]
     simp only [List.length_append, List.length_replicate, List.length_cons, List.length_nil,
       List.getElem_map, List.getElem_range, hj4, hj5, hj162, ↓reduceIte]
@@ -68,7 +68,7 @@ theorem take_self_len (l : List E) (k : ℕ) : l.take k = l.take (l.take k).leng
 theorem chiW_length (H : VtHonest) : H.chiW.length = H.n := by
   simp [VtHonest.chiW, zcChis]
 
-theorem vsEvTab_lt : ∀ k < 157, vsEvTab k < 6 := by decide +kernel
+theorem vsEvTab_lt : ∀ k < 159, vsEvTab k < 6 := by decide +kernel
 
 theorem vtH_n_ge (hr : H.rows.length = 6) {t : ℕ} (ht : t < 6) : vtHt H.rows t ≤ H.n :=
   VerifySub.mem_le_foldl_max 0 (by
@@ -95,12 +95,12 @@ theorem vtH_n_ex (hr : H.rows.length = 6) : ∃ t < 6, vtHt H.rows t = H.n := by
     show vtHt H.rows t = (tableHeightsOf H.rows).foldl max 0
     rw [vt_tableHeights_eq hr]; exact e
 
-theorem claimKappaSrc_code : ∀ j < 162, claimKappaSrc.getD j 0 =
+theorem claimKappaSrc_code : ∀ j < 164, claimKappaSrc.getD j 0 =
     (if j < 4 then 1 else if j = 4 then 0 else vsEvTab (j - 5) + 2) := by decide +kernel
 
 /-- **Each pooled honest claim's point has its low dimension.** -/
 theorem ptsP_length (hr : H.rows.length = 6) (hlmμ : H.lm ≤ H.point.length)
-    (h19 : 19 ≤ H.point.length) {j : ℕ} (hj : j < 162) :
+    (h19 : 19 ≤ H.point.length) {j : ℕ} (hj : j < 164) :
     (H.ptsP j).length = claimLowDim H.lm (tableHeightsOf H.rows) j := by
   unfold claimLowDim ptsP
   rw [claimKappaSrc_code j hj]
@@ -121,13 +121,13 @@ theorem vtH_tctx (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23
     TCtx rd H.L H.bus H.claims [zeta, chi, H.rm, gen ^ H.point.length, gen ^ H.n] := by
   have hbus : H.bus = H.busH := (vt_spec h).2.1
   have hcol := vtH_columns h hr
-  have hl : H.claims.length = 165 := by
+  have hl : H.claims.length = 167 := by
     rw [← List.length_map (f := (·.column)), hcol]; decide +kernel
   obtain ⟨t, ht, htn⟩ := vtH_n_ex hr
   refine ⟨H.chiW, by rw [hbus]; exact hz, by rw [hbus]; rfl, hc, by rw [chiW_length],
     by rw [chiW_length, hbus, ← htn]; exact hτμ t ht, hl, hcol, fun j p hp ↦ ?_⟩
   rw [vtH_ptsP h hr hbc, List.getElem?_map] at hp
-  have hj : j < 165 := by
+  have hj : j < 167 := by
     by_contra hn; rw [List.getElem?_eq_none (by simp; omega)] at hp; simp at hp
   rw [List.getElem?_range hj] at hp
   simp only [Option.map_some, Option.some.injEq] at hp
@@ -139,13 +139,13 @@ theorem vtH_tctx (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23
     by_cases hj4 : j < 4
     · simp only [hj4, ↓reduceIte]; exact take_self_len _ _
     · simp only [show j = 4 by omega, ↓reduceIte]; exact take_self_len _ _
-  · have hj2' : j < 162 := hj2
+  · have hj2' : j < 164 := hj2
     unfold ptsP
     simp only [show ¬ j < 4 by omega, show j ≠ 4 by omega, hj2', ↓reduceIte]
     exact take_self_len _ _
-  · have hj2' : 162 ≤ j := hj2
+  · have hj2' : 164 ≤ j := hj2
     unfold ptsP
-    simp only [show ¬ j < 4 by omega, show j ≠ 4 by omega, show ¬ j < 162 by omega, ↓reduceIte]
+    simp only [show ¬ j < 4 by omega, show j ≠ 4 by omega, show ¬ j < 164 by omega, ↓reduceIte]
 
 end VtHonest
 

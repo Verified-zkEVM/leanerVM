@@ -48,19 +48,19 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ 23) {σ : Val} (F : VsFront bytecode C L.read σ)
     (hexp : ExpTables L.read (σ (.n 4)))
-    (hcp : C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1674), σ (.n 1675)])
-    (hl2 : C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1674), σ (.n 4)] [σ (.n 1676)])
-    (e1892 : σ (.n 1678) = σ (.n 1676) * word 8198552432976855044 0 0)
-    (r1 : LoadHolds L.read (σ (.n 1678)) 0 (σ (.n 1681)) ∧ word 64 0 0 = σ (.n 1678) * σ (.n 1680) ∧
-      LoadHolds L.read (σ (.n 1680)) 0 (σ (.n 1682)))
-    (e1901 : σ (.n 1687) = σ (.n 1678) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
+    (hcp : C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)])
+    (hl2 : C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)])
+    (e1892 : σ (.n 1686) = σ (.n 1684) * word 8198552432976855044 0 0)
+    (r1 : LoadHolds L.read (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 64 0 0 = σ (.n 1686) * σ (.n 1688) ∧
+      LoadHolds L.read (σ (.n 1688)) 0 (σ (.n 1690)))
+    (e1901 : σ (.n 1695) = σ (.n 1686) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
       (σ (.n 122) * σ (.n 122) * σ (.n 122)) * σ (.n 122)))
-    (r2 : LoadHolds L.read (σ (.n 1687)) 0 (σ (.n 1690)) ∧
-      word 134217728 0 0 = σ (.n 1687) * σ (.n 1689) ∧ LoadHolds L.read (σ (.n 1689)) 0 (σ (.n 1691))) :
+    (r2 : LoadHolds L.read (σ (.n 1695)) 0 (σ (.n 1698)) ∧
+      word 134217728 0 0 = σ (.n 1695) * σ (.n 1697) ∧ LoadHolds L.read (σ (.n 1697)) 0 (σ (.n 1699))) :
     22 ≤ (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ∧
       (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ≤ 28 ∧
-      σ (.n 1687) = gen ^ B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir ∧
-      Tables.PCtx L.read (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) (σ (.n 1675)) ∧
+      σ (.n 1695) = gen ^ B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir ∧
+      Tables.PCtx L.read (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) (σ (.n 1683)) ∧
       Tables.KappasBelow (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) := by
   have hsL := tableHeights_length _ F.hrowsL
   -- the placement
@@ -84,7 +84,7 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
   have hμe : μ = e + 22 := size_sel_eq hm34 he (by rw [← hret, ← e1892, hx])
   -- the candidate
   obtain ⟨c, hc, hcx⟩ := rc_lt28 hκ hκ6 L r2.1 (by simpa using r2.2.1) r2.2.2
-  have hcand : σ (.n 1687) = gen ^ B1.Whir.candidate μ F.lir := by
+  have hcand : σ (.n 1695) = gen ^ B1.Whir.candidate μ F.lir := by
     rw [e1901, hx, F.e124]
     simp only [← pow_add]
     congr 1

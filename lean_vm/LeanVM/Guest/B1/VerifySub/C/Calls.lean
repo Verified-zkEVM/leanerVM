@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.Gw
 # The three calls, honestly
 
 `vsCallsT_complete`: the GKR cursor (`stream·g^10`), `chi`, `z_vals` and `slices` allocated, the
-`KECCAK` table's height read from `dims_g`, the output lanes' values in place (`col_eval_words·g^105`), and
+`KECCAK` table's height read from `dims_g`, the output lanes' values in place (`col_eval_words·g^107`), and
 the capacity after `verify_keccak` copied, around the three calls (in `C`, at the honest
 valuation's words).
 -/
@@ -46,7 +46,7 @@ theorem vsCallsT_complete (hl : args.length = 6) {τg : E}
       (vsσ rd w args ∘ V.n)) ((List.range 8).map (vsσ rd w args ∘ V.n ∘ (651 + ·))))
     {next : Prop} {kret : List E → Prop} (hn : next) :
     vsσ rd w args (.n 625) = vsσ rd w args (.n 25) * gen ^ 10 ∧ vsσ rd w args (.n 646) = τg ∧
-      vsσ rd w args (.n 650) = vsσ rd w args (.n 645) * gen ^ 105 ∧
+      vsσ rd w args (.n 650) = vsσ rd w args (.n 645) * gen ^ 107 ∧
       (∀ i < 5, vsσ rd w args (.n (659 + i)) = vsσ rd w args (.n (651 + i))) ∧
       Stmt.HoldsList C rd (vsσ rd w args) vsCallsT next kret := by
   have hG : ∀ s ∈ vsCallsT, GoodS rd vsSL w (vsσ rd w args) s := fun s hs ↦ by
@@ -54,13 +54,13 @@ theorem vsCallsT_complete (hl : args.length = 6) {τg : E}
       (by decide +kernel) hs)
     rwa [fixNe_of_noNe (List.all_eq_true.mp vsCallsT_noNe s hs)] at h
   have m : ∀ s, s ∈ [vsConst 624 (word 1024 0 0), vsMul 625 25 624, vsLd 646 127 6,
-      vsConst 649 (word 59373627899904 0 0), vsMul 650 645 649] → s ∈ vsCallsT := by
+      vsConst 649 (word 237494511599616 0 0), vsMul 650 645 649] → s ∈ vsCallsT := by
     intro s hs
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
     rw [vsCallsT]
     rcases hs with rfl | rfl | rfl | rfl | rfl <;> simp
   have c837 : vsσ rd w args (.n 624) = word 1024 0 0 := hG (vsConst 624 _) (m _ (by simp))
-  have c861 : vsσ rd w args (.n 649) = word 59373627899904 0 0 := hG (vsConst 649 _) (m _ (by simp))
+  have c861 : vsσ rd w args (.n 649) = word 237494511599616 0 0 := hG (vsConst 649 _) (m _ (by simp))
   have g838 : Good rd vsSL w (vsσ rd w args) (.mul (.n 625) (.n 25) (.n 624)) :=
     hG (vsMul 625 25 624) (m _ (by simp))
   have g862 : Good rd vsSL w (vsσ rd w args) (.mul (.n 650) (.n 645) (.n 649)) :=
@@ -77,7 +77,7 @@ theorem vsCallsT_complete (hl : args.length = 6) {τg : E}
       rw [vsCallsT]; exact List.mem_append_right _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩))
     exact this
   refine ⟨by rw [g838, c837, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)],
-    r858.1, by rw [g862, c861, word_g105], hcp, ?_⟩
+    r858.1, by rw [g862, c861, word_g107], hcp, ?_⟩
   rw [vsCallsT, show List.range 5 = [0, 1, 2, 3, 4] from rfl]
   simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append, Stmt.HoldsList,
     Stmt.Holds, vsCall, vsConst, vsMul, vsAlloc, vsLd, Atom.Holds]

@@ -87,7 +87,7 @@ the constant; each table's claims on the table; `q_keccak`'s lanes, `KECCAK`'s o
 read counts on `KECCAK`; the public input's on the memory. -/
 def claimKappaSrc (j : ℕ) : ℕ :=
   if j < 4 then 1 else if j = 4 then 0 else if j < 20 then 2 else if j < 35 then 3
-  else if j < 43 then 4 else if j < 58 then 5 else if j < 72 then 6 else if j < 162 then 7 else 1
+  else if j < 43 then 4 else if j < 58 then 5 else if j < 72 then 6 else if j < 164 then 7 else 1
 
 /-- `CLAIM_KAPPA_ADJ[j]` (G:3298): the bytecode's log size `19` on the bus's bytecode claim. -/
 def claimKappaAdj (j : ℕ) : ℕ := if j = 4 then 19 else 0
@@ -101,7 +101,7 @@ def claimLow (layout : Layout) (j : ℕ) : ℕ :=
 g_zc_n]`: `Tables.TCtx`'s content without its `claim_cplen_g` buffer: the claims are
 `claimColumns`'s; the bus's lie on a prefix of the bus point at `zeta`, the tables' on a prefix of
 the table sumcheck's point `chis` at `chi`, the public input's at `(rm, 0, …, 0)`; and each of the
-first `162` has a low point `claimLow` long. `verify_sub` derives the lengths from
+first `164` has a low point `claimLow` long. `verify_sub` derives the lengths from
 `verify_tables`' context (the claims' points are the bus's and the tables' at their blocks'
 heights). -/
 def TermCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :

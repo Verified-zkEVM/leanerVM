@@ -34,39 +34,39 @@ theorem vsT_split : vsT = vsFrontT ++ (vsMapsT ++ (vsCtabT ++ (vsLamT ++ vsTailT
 
 /-! ## The output lanes among the pooled claims -/
 
-theorem claimColumns_length : Tables.claimColumns.length = 165 := by decide +kernel
+theorem claimColumns_length : Tables.claimColumns.length = 167 := by decide +kernel
 
-theorem claimColumns_front : ∀ x ∈ Tables.claimColumns.take 110, x ∉ keccakOutputColumns := by
+theorem claimColumns_front : ∀ x ∈ Tables.claimColumns.take 112, x ∉ keccakOutputColumns := by
   decide +kernel
 
-theorem claimColumns_lanes : ∀ x ∈ (Tables.claimColumns.drop 110).take 25,
+theorem claimColumns_lanes : ∀ x ∈ (Tables.claimColumns.drop 112).take 25,
     x ∈ keccakOutputColumns := by decide +kernel
 
-theorem claimColumns_back : ∀ x ∈ Tables.claimColumns.drop 135, x ∉ keccakOutputColumns := by
+theorem claimColumns_back : ∀ x ∈ Tables.claimColumns.drop 137, x ∉ keccakOutputColumns := by
   decide +kernel
 
-theorem claimColumns_lanes_eq : (Tables.claimColumns.drop 110).take 25 = keccakOutputColumns := by
+theorem claimColumns_lanes_eq : (Tables.claimColumns.drop 112).take 25 = keccakOutputColumns := by
   decide +kernel
 
 theorem claims_split (claims : List ColumnClaim) :
-    claims = claims.take 110 ++ (claims.drop 110).take 25 ++ claims.drop 135 := by
-  have e : (claims.drop 110).take 25 ++ claims.drop 135 = claims.drop 110 := by
-    rw [show claims.drop 135 = (claims.drop 110).drop 25 by simp [List.drop_drop]]
+    claims = claims.take 112 ++ (claims.drop 112).take 25 ++ claims.drop 137 := by
+  have e : (claims.drop 112).take 25 ++ claims.drop 137 = claims.drop 112 := by
+    rw [show claims.drop 137 = (claims.drop 112).drop 25 by simp [List.drop_drop]]
     exact List.take_append_drop 25 _
   rw [List.append_assoc, e, List.take_append_drop]
 
 theorem lanes_eq {claims : List ColumnClaim} (hcol : claims.map (·.column) = Tables.claimColumns) :
-    lanesOf claims = (claims.drop 110).take 25 ∧
+    lanesOf claims = (claims.drop 112).take 25 ∧
       claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) =
-        claims.take 110 ++ claims.drop 135 := by
-  have hA : ∀ c ∈ claims.take 110, c.column ∉ keccakOutputColumns := fun c hc ↦
+        claims.take 112 ++ claims.drop 137 := by
+  have hA : ∀ c ∈ claims.take 112, c.column ∉ keccakOutputColumns := fun c hc ↦
     claimColumns_front _ (by rw [← hcol, ← List.map_take]; exact List.mem_map_of_mem hc)
-  have hB : ∀ c ∈ (claims.drop 110).take 25, c.column ∈ keccakOutputColumns := by
+  have hB : ∀ c ∈ (claims.drop 112).take 25, c.column ∈ keccakOutputColumns := by
     intro c hc
     apply claimColumns_lanes
     rw [← hcol, ← List.map_drop, ← List.map_take]
     exact List.mem_map_of_mem hc
-  have hD : ∀ c ∈ claims.drop 135, c.column ∉ keccakOutputColumns := fun c hc ↦
+  have hD : ∀ c ∈ claims.drop 137, c.column ∉ keccakOutputColumns := fun c hc ↦
     claimColumns_back _ (by rw [← hcol, ← List.map_drop]; exact List.mem_map_of_mem hc)
   refine ⟨?_, ?_⟩
   · conv_lhs => rw [claims_split claims]

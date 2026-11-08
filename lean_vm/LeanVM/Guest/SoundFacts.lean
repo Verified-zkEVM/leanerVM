@@ -136,9 +136,9 @@ theorem vs_cut1 : ((certOf 19).cutAt 1).start = 552 ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
 /-- `verify_sub`'s third window starts at its call of `check_opening_terminal` (statement
-`1592`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
+`1600`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
 value `139`). -/
-theorem vs_cut : ((certOf 19).cutAt 2).start = 1592 ∧
+theorem vs_cut : ((certOf 19).cutAt 2).start = 1600 ∧
     ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ++
       (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
     ((certOf 19).cutAt 2).knownIf = [] ∧ ((certOf 19).cutAt 2).sems = [] := by decide +kernel

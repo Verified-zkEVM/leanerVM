@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.LanesK
 
   The output lanes' claims of `verify_sub`'s table phase: at the table sumcheck's point cut to
-  the `KECCAK` table's height, their values at `col_eval_words·g^105`.
+  the `KECCAK` table's height, their values at `col_eval_words·g^107`.
 -/
 
 module
@@ -66,13 +66,13 @@ def vsFixed (σ : Val) (point : List E) : BytecodeClaim :=
 
 /-- **The output lanes**: their claims are on `KECCAK`'s output columns at one point, the table
 sumcheck's point `chis` (at `chi`) cut to the table's height `τ ≤ |chis|`, and their values are
-at `col_eval_words·g^105` (claims `110 .. 134`, read in place: `col_eval_words` holds claims `5 .. 161`). -/
+at `col_eval_words·g^107` (claims `112 .. 136`, read in place: `col_eval_words` holds claims `5 .. 163`). -/
 theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallRel} {rd : Reader}
     {σ : Val} (F : VsFront bytecode C rd σ) :
     ∃ chis : List E, ReadsAt rd (σ (.n 635)) chis ∧ vsTau F.rowsN ≤ chis.length ∧
       (lanesOf F.claims).map (·.column) = keccakOutputColumns ∧
       (∀ c ∈ lanesOf F.claims, c.point = chis.take (vsTau F.rowsN)) ∧
-      ReadsAt rd (σ (.n 645) * gen ^ 105) ((lanesOf F.claims).map (·.value)) ∧
+      ReadsAt rd (σ (.n 645) * gen ^ 107) ((lanesOf F.claims).map (·.value)) ∧
       (lanesOf F.claims).length = 25 := by
   have hctx := F.hctx
   simp only [Tables.TCtx] at hctx
@@ -82,7 +82,7 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
   obtain ⟨sp4, hs4⟩ := carrier_of_squeeze F.hbeta
   obtain ⟨sp5, hs5⟩ := RunsTo.carrier F.hrunG hs4
   rw [F.capG_eq] at hs5
-  have hcl' : F.claims.length = 165 := hcl
+  have hcl' : F.claims.length = 167 := hcl
   have hτdef : vsTau F.rowsN = (Tables.tableHeightsOf F.rowsN).getD 5 0 := rfl
   have hrunT := F.hrunT (claimedBytecodeValue (vsFixed σ F.r.2.1)) (by
     rw [logBytecode_eq hbl]; exact bytecodeAt_claimed bytecode _ _)
@@ -93,21 +93,21 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
     rw [hptL]
     exact mem_le_foldl_max 0 (getD_mem' (by rw [tableHeights_length _ F.hrowsL]; omega))
   -- a lane's point
-  have hlane : ∀ i < 25, (F.claims[110 + i]?.map (·.point)) = some (chis.take (vsTau F.rowsN)) ∧
+  have hlane : ∀ i < 25, (F.claims[112 + i]?.map (·.point)) = some (chis.take (vsTau F.rowsN)) ∧
       (chis.take (vsTau F.rowsN)).length = vsTau F.rowsN := by
     intro i hi
-    have hlt : 110 + i < F.claims.length := by rw [hcl']; omega
-    have hmem : F.claims[110 + i] ∈ (F.claims.drop 110).take 25 := by
+    have hlt : 112 + i < F.claims.length := by rw [hcl']; omega
+    have hmem : F.claims[112 + i] ∈ (F.claims.drop 112).take 25 := by
       rw [List.mem_iff_getElem]
       exact ⟨i, by simp; omega, by simp⟩
-    have hout : F.claims[110 + i].column ∈ keccakOutputColumns := by
+    have hout : F.claims[112 + i].column ∈ keccakOutputColumns := by
       apply claimColumns_lanes
       rw [← hcol, ← List.map_drop, ← List.map_take]
       exact List.mem_map_of_mem hmem
     have e1 := hpt _ (List.getElem_mem hlt) hout
-    obtain ⟨-, -, h5, -⟩ := hpts (110 + i) F.claims[110 + i].point (by simp [hlt])
-    have e2 := h5 (by omega) (show 110 + i < 162 by omega)
-    have hlen : F.claims[110 + i].point.length = vsTau F.rowsN := by
+    obtain ⟨-, -, h5, -⟩ := hpts (112 + i) F.claims[112 + i].point (by simp [hlt])
+    have e2 := h5 (by omega) (show 112 + i < 164 by omega)
+    have hlen : F.claims[112 + i].point.length = vsTau F.rowsN := by
       rw [e1, List.length_take, ← hτdef]; omega
     rw [hlen] at e2
     refine ⟨by simpa [List.getElem?_eq_getElem hlt] using congrArg some e2, by rw [← e2, hlen]⟩
@@ -130,9 +130,9 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
     intro k hk
     have hk' : k < 25 := by simp [hcl'] at hk; omega
     rw [loadHolds_mul_gen_pow]
-    have e2 : Tables.nPooled = 162 := rfl
+    have e2 : Tables.nPooled = 164 := rfl
     have e3 : Tables.nBusClaims = 5 := rfl
-    have := F.hcew (105 + k) (by simp [hcl']; omega)
+    have := F.hcew (107 + k) (by simp [hcl']; omega)
     simp only [List.getElem_map, List.getElem_take, List.getElem_drop] at this ⊢
     convert this using 3
     omega

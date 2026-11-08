@@ -65,7 +65,7 @@ theorem vsSqzT_complete (hl : args.length = 6) {capb o : ℕ}
     · exact hcap i hi
   have hK := keccakA_complete hk hcan
   have h1 : IsCanonical128 (vsσ rd w args (.n (o + 1))) := by
-    have := hk.2.2 ⟨1, by norm_num⟩
+    have := (good_keccak13 hk (by simp [vsRun])).2.2 ⟨1, by norm_num⟩
     simp [cells13, vsRun] at this
     rw [this]
     exact canon_cellsOfState _ _ _

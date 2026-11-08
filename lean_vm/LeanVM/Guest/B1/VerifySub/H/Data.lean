@@ -170,7 +170,7 @@ theorem bytecodeAt (hbl : bytecode.length = 2 ^ 23) :
 /-- **`verify_tables`' honest data is the run's**, accepted. -/
 theorem H_run (hbl : bytecode.length = 2 ^ 23) :
     S.H.Ok ∧ S.xsT = S.H.xs5 ++ S.H.xsR ++ S.H.evsT.flatten ∧ S.s6 = ⟨S.s6.cap, []⟩ ∧
-      S.xsT.length = 5 + 3 * S.H.n + 157 := by
+      S.xsT.length = 5 + 3 * S.H.n + 159 := by
   have h := S.runT
   rw [S.hlayout, (S.runG' hbl).2.1] at h
   exact Tables.vtH_run S.hrowsL h (S.s5_carries hbl) (S.bytecodeAt hbl)

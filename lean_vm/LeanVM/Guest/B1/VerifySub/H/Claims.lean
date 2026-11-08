@@ -84,7 +84,7 @@ def vsEvTab (k : ℕ) : ℕ :=
   (List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
     List.replicate 14 4 ++ List.replicate 90 5).getD k 0
 
-theorem vsEvTab_blocks : (List.range 157).map vsEvTab =
+theorem vsEvTab_blocks : (List.range 159).map vsEvTab =
     List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
       List.replicate 14 4 ++ List.replicate 90 5 := by decide +kernel
 
@@ -192,7 +192,7 @@ theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.colum
 /-- **The honest claims' points**, by position. -/
 theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23) :
     H.claims.map (·.point) = List.replicate 4 (H.point.take H.lm) ++ [H.point.take 19] ++
-      (List.range 157).map (fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))) ++
+      (List.range 159).map (fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))) ++
       List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := by
   have hlb : H.L.logBytecode = 19 := by
     show Nat.log2 H.bc.length - busBits = 19
@@ -212,8 +212,8 @@ theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 
   rw [hchi]
   simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil, hlb,
     hlm]
-  have e : (List.range 157).map (fun k ↦ H.pts.reverse.take (vtHt H.rows (vsEvTab k))) =
-      ((List.range 157).map vsEvTab).map (fun t ↦ H.pts.reverse.take (vtHt H.rows t)) := by
+  have e : (List.range 159).map (fun k ↦ H.pts.reverse.take (vtHt H.rows (vsEvTab k))) =
+      ((List.range 159).map vsEvTab).map (fun t ↦ H.pts.reverse.take (vtHt H.rows t)) := by
     rw [List.map_map]; rfl
   rw [e, vsEvTab_blocks]
   match hhs : tableHeightsOf H.rows, hsl, H.xs5.take 3, h3 with

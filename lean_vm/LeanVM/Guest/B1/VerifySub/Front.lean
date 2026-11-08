@@ -35,9 +35,10 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 
 /-- **The capacity a `KECCAK` atom writes**: outputs `8 .. 12`, the capacity of the permutation
 of the cells it reads. -/
-theorem keccak_cap {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ) :
+theorem keccak_cap {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
+    (ho13 : outs.length = 13 := by first | rfl | simp) :
     (outs.drop 8).map σ = capOf (permOf (ins.map σ)) := by
-  obtain ⟨-, ho, -, hout⟩ := keccak_outs hk
+  obtain ⟨-, ho, -, hout⟩ := keccak_outs hk ho13
   apply List.ext_getElem (by simp [ho, capOf])
   intro k h1 h2
   simp only [List.length_map, List.length_drop, ho] at h1
@@ -92,7 +93,7 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
   obtain ⟨seed, es⟩ := digest_of_canonical (hc (σ (.n 2)) (by simp)) (hc (σ (.n 3)) (by simp))
   obtain ⟨pi, ep⟩ := digest_of_canonical (hc (σ (.n 0)) (by simp)) (hc (σ (.n 1)) (by simp))
   refine ⟨seed, pi, es, ep, ?_⟩
-  obtain ⟨-, -, hK⟩ := hk
+  obtain ⟨-, -, hK⟩ := (keccak_holds_13 (outs := vsRun 12 13) (by simp [vsRun])).mp hk
   have hch := Keccak.keccak_chain (P := [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)]) (S0 := Keccak.zeroState)
     (B := 1)
     (I := fun _ ↦ cells13 ([.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8,
