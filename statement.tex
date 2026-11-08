@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{56a4109f}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{5e3ade21}}
 \date{7 November 2026}
 \begin{document}
 \maketitle
@@ -26,9 +26,9 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{56a4109f}, the head of its pull request \#662 (leanSPHINCS on FIPS 205's
-layout, its guest check hashing each tree node's children in place, merged with \texttt{main} at
-\texttt{69fb2482}, which has the proof's wire encoding).
+leanVM at commit \texttt{5e3ade21} of its \texttt{main} branch, with pull request \#662 squash-merged
+(leanSPHINCS on FIPS 205's layout, its guest check hashing each tree node's children in place, on
+top of the proof's wire encoding).
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements ($7188$ lines with their documentation), which import Mathlib,
@@ -401,7 +401,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{56a4109f}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{5e3ade21}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -603,7 +603,7 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1130000$)
-limits any program; it is the compiled decoder's size at leanVM \texttt{56a4109f}, $1129545$ (proved
+limits any program; it is the compiled decoder's size at leanVM \texttt{5e3ade21}, $1129545$ (proved
 at most that, measured exactly; the guest's frame-cell table is $1088689$ of it), and a slack of
 $455$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
@@ -763,7 +763,7 @@ $2627$ leanXMSS or $873$ leanSPHINCS signatures (each declared once), and a node
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{56a4109f}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
+\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.

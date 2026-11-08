@@ -11,7 +11,7 @@ import Statement.Fast.Keccak
 vendors them at the pin (`crates/signatures/tests/signatures/ethlib/xmss` of `../.leanvm`, the
 checkout `../leanvm-tree.sh` makes; the first argument overrides the directory) and on
 leanSPHINCS's known answer (`crates/signatures/src/lean_sphincs/known_answer.hex`, three
-directories above it; leanVM `56a4109f` has no EthLib leanSPHINCS vectors):
+directories above it; leanVM `5e3ade21` has no EthLib leanSPHINCS vectors):
 
 * by default, leanXMSS's verification (`verify`) and its signature's leaf index
   (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept, and

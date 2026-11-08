@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsDigestT
 
   The message digest of `verify_sig_lean_sphincs` as a template: the statements from the claim's
-  loads to the digest's check (`lean_ethereum.py:3763-3838, 3979-4052` at leanVM 56a4109f), with the
+  loads to the digest's check (`lean_ethereum.py:3763-3838, 3979-4052` at leanVM 5e3ade21), with the
   values numbered as the renumbered expansion numbers them.
 -/
 

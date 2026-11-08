@@ -5,7 +5,7 @@ import Statement.Fast.Keccak
 # The wire encoding on the Rust test's vector
 
 The vector of `proof_round_trips_through_its_one_encoding` (`crates/fiat_shamir/src/wire.rs`,
-leanVM PR #662 head `56a4109f`): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `[0, 0, 4]`,
+leanVM main `5e3ade21`): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `[0, 0, 4]`,
 `[0, 5, 0]`, opened at the queries `3, 1, 3` with leaves of `3` words (`open`,
 `crates/fiat_shamir/src/merkle.rs:54-69`: the sibling at level `l` of query `q` is the node
 `(q >> l) ^ 1`), and the stream `[F192::new(1, 2, 3)]`. As the Rust asserts: the encoding is

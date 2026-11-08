@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.Interface
 # LeanDA: meanings (TRIAGE G #90-93)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`56a4109f`, G below) its meaning on its argument and return words, and `…_sound_Spec`: its core
+`5e3ade21`, G below) its meaning on its argument and return words, and `…_sound_Spec`: its core
 IR relation (`coreProgram.Rel`) gives the meaning. A `…_Spec` is a definition (a `Prop`); its
 proof is the theorem `…_holds` of the family's modules. The functions building the dual codeword
 (`da_vector` and its callees) have their meanings in `VectorDefs`.

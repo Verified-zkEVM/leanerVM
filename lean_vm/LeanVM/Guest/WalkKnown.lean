@@ -29,7 +29,7 @@ proves on the template (`B1.Opening.QueriesWalk`):
   an odd count's first query (`oqMainT_wins`), and its loop call's tuple the walk from `x = 1`,
   conditional on the argument's cell holding `1` (`impTag … 1 1`, a constant `SET` in the call's
   setup), so it is `OqMainWins`' second half;
-* at 56a4109f the queries call `walk_path__L{pd}_L{cd}`, which dispatches on the windows: the cut
+* at 5e3ade21 the queries call `walk_path__L{pd}_L{cd}`, which dispatches on the windows: the cut
   before each call hands it `WinsAt` (`winsTag`) of the loaded window pointer (`winSemOk`, the same
   B1 facts as the window bounds), and `walk_path`'s own precondition `WinsAt` on `wins` (value `2`)
   gives its cuts' window bounds (`wpOk`, `wp_cutsKnown`; PR661-IFACE 'walk-K').

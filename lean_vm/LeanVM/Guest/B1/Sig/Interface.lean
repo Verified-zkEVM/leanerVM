@@ -27,7 +27,7 @@ public import LeanVM.Guest.B1.Sig.Frame
 
 `verify_lean_xmss(signer, tags)` (`lean_ethereum.py:3683-3756`, inline in `main`'s raw-leanXMSS loop
 `__loop2`, `Data.core36`, as its statements `xSeg`) and
-`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3979-4080` at leanVM 56a4109f,
+`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3979-4080` at leanVM 5e3ade21,
 `Data.core20`) check one signature of the claim at `signer`: four cells, the key (leanXMSS: its root
 and parameter; leanSPHINCS: `PK.seed` and `PK.root`), then the message's two halves, the low
 first. `verify_lean_xmss` calls nothing (every helper is `@inline`

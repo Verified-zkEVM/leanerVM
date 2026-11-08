@@ -971,7 +971,7 @@ theorem kRow_wrong_no_relation : ¬ KeccakRelation (kRow wrongLout) := by
   intro h
   exact absurd ((congrFun h 0).trans (keccak_lanes 0)) (by decide +kernel)
 
-/-- The permutation is checked (§8.5): the wrong output lane fails `KeccakRowsValid`. -/
+/-- The permutation is checked (§8.6): the wrong output lane fails `KeccakRowsValid`. -/
 theorem wrong_lane_not_valid : ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) := fun h ↦
   kRow_wrong_no_relation (by
     have hrel := h (rawRow (kRow wrongLout)) (by
@@ -1007,7 +1007,7 @@ theorem wrong_bytecode_balanced :
   simp only [table_interactions_eq]
   decide +kernel
 
-/-- The permutation is the Keccak reduction's alone (§8.5): the witness with the wrong output
+/-- The permutation is the Keccak reduction's alone (§8.6): the witness with the wrong output
 lane, consistent in the row and in the image, satisfies every other conjunct of `SatisfiedBy`
 and fails `KeccakRowsValid`. It fails no constraint: the table has none (`keccak_constraints`),
 and the bus binds the lanes to the cells, which hold the wrong lane too. -/

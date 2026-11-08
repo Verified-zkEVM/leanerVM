@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsGlue
 
   The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4056-4057,
-  4044-4045, 4048-4049` at leanVM 56a4109f): each layer's `A0` and its key pair's `A1`, from the
+  4044-4045, 4048-4049` at leanVM 5e3ade21): each layer's `A0` and its key pair's `A1`, from the
   digest's leaves.
 -/
 

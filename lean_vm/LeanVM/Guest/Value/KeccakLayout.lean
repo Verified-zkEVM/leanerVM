@@ -19,7 +19,7 @@ A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, ea
 little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak state
 sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
-`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:267-322` at leanVM `56a4109f`)
+`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:267-322` at leanVM `5e3ade21`)
 reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity: a block of `136`
 bytes is `8.5` cells, so an odd block starts in its first cell's limb `1`, which the odd layout
 places at lane `0`. XORing the block's nine cells into the previous output, which `KECCAK` wrote in

@@ -9,7 +9,7 @@ public import Statement.Prover.Mle
 The honest prover of ring switching (`ringSwitch`: `ring_switch`, `verifier.py:1436-1452`, with
 `_phi` and `_ring_weight`, `:1415-1433`) and of the stacked opening (`verifyStackedOpening`:
 `verify_stacked_opening`, `verifier.py:1454-1461`, then `verify_whir`, `:1125-1203`), at leanVM
-`56a4109f6dbe74c7f7836184a5cba56a2b38d250`, on arrays.
+`5e3ade21d339a45e1b3b0dba97ad9300ab50e49b`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSig
 
   The leanSPHINCS signature `verify_sig_lean_sphincs` checks, read off its valuation and the frames
-  of its three `sp_wots` calls (leanVM 56a4109f).
+  of its three `sp_wots` calls (leanVM 5e3ade21).
 -/
 
 module

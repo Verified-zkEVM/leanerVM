@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundLayer
 
   A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3964-3976` at leanVM
-  56a4109f, after its counter) is sound: its encoding digest is the hash of `P`, `A0`,
+  5e3ade21, after its counter) is sound: its encoding digest is the hash of `P`, `A0`,
   `key + WOTS_ENC`, the value it signs and the counter's four bytes, and its root the path's fold
   from the leaf `sp_wots` returns.
 -/

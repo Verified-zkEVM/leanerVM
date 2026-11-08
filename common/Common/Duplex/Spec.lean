@@ -11,7 +11,7 @@ public import Statement.RandomPermutation
 
 The duplex of `Common.Duplex` (`Common.SimDefs`) shares the answer `y₀` of the label's state among
 the roots, a root absorbed after it. This one starts each root's chain at a state of its own,
-`first r iv` from the label's hash `iv`, as LeanDA derives its challenge at leanVM `56a4109f`
+`first r iv` from the label's hash `iv`, as LeanDA derives its challenge at leanVM `5e3ade21`
 (`membership_challenge`, `verifier/src/da.rs:14-17`: the transcript seeded with the label's hash
 and the root, then sampled): `y₁ = F (first r iv)`, then `y_{k+1} = F (next y_k)`. The first states
 share the capacity of `init iv`. The simulator recognises a chain's first state from the label's

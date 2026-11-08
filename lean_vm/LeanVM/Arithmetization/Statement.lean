@@ -37,7 +37,7 @@ announcement checks of `walk` and `build_layout`, which replace `read_public` of
 product", `:78`; `cpu/layout.rs:136`, the count channel of the six tables' read-count columns,
 `:396-412`), the public words against the committed memory (§8.2,
 `08-end-to-end-protocol.tex:27-37`), the public parts of the bus the verifier forms itself, the
-index column and the program's share of the bytecode blocks (§8.5, `:74`; §6.5,
+index column and the program's share of the bytecode blocks (§8.6, `:105`; §6.5,
 `06-bus-interactions.tex:98`), and the `KECCAK` validity the Keccak reduction proves
 (`verify_execution` step 6, `verifier.py:1505-1509`). This file is the accept relation of the M3 constraint
 system and its ensemble, a statement with no soundness or completeness theorem: it is what
@@ -105,7 +105,7 @@ the memory block's rows are the words of the image the prover data names, in ord
 and finalize columns free (§6.2 "Seed" and "Finalize"; `layout.rs:425-448`, `MEM_LO, MEM_HI,
 MEM_TOP` and `MFCNT`); and `BytecodeRowsAreTheProgram prog w`, the bytecode block's rows are
 `bytecodeRowOf prog i cntFin` for every slot `i` with some finalize-count column `cntFin`
-(§8.5 Bus 4: the verifier forms "the program's whole share of the two bytecode blocks" itself;
+(§8.6 Bus 4: the verifier forms "the program's whole share of the two bytecode blocks" itself;
 `layout.rs:354-356` and `:449-461`, `Coord::Public` and `BFCNT`). Each is faithful: the index
 column is verifier-computed, the memory columns are the committed image, the program is
 public. Their per-row readings are `memRowOf_bindings` and `BytecodeBindings prog`.
@@ -291,7 +291,7 @@ def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
 
 /-- The bytecode block's rows are the program's: for some finalize-count column `cntFin`, the
 block's raw rows are `bytecodeRowOf prog i (cntFin i)` for `i < 2 ^ prog.logSize`, in order.
-The verifier forms the block's entry columns from the program itself (§8.5, Bus 4;
+The verifier forms the block's entry columns from the program itself (§8.6, Bus 4;
 `Coord::Public`), the prover commits only `cntFin`; Clean PR #446's fixed columns are this
 conjunct as a primitive. Its per-row reading is `BytecodeBindings prog`. -/
 def BytecodeRowsAreTheProgram (prog : LeanIsaProgram) (w : EnsembleWitness (leanIsaEnsemble prog)) :
@@ -337,7 +337,7 @@ structure SatisfiedBy (prog : LeanIsaProgram) (input : PublicInput)
   index_columns : IndexColumnsAreRowIndices w
   /-- The memory block's rows are the image (§6.2). -/
   seed_rows : SeedRowsAreTheImage w
-  /-- The bytecode block's rows are the program's (§8.5). -/
+  /-- The bytecode block's rows are the program's (§8.6). -/
   bytecode_rows : BytecodeRowsAreTheProgram prog w
   /-- Every `KECCAK` row permutes. -/
   keccak_valid : KeccakRowsValid w

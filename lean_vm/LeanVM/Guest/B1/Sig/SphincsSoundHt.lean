@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundHt
 
   A hypertree layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3965-3976` at
-  leanVM 56a4109f) against the statement: its counter and encoding, the call of `sp_wots` and the
+  leanVM 5e3ade21) against the statement: its counter and encoding, the call of `sp_wots` and the
   path reach the statement's layer root (`LayerReaches`).
 -/
 

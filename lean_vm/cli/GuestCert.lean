@@ -818,7 +818,7 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 def vsIdx : ℕ := 19
 
 /-- `opening_queries__L{odd}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
-`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1421` at `56a4109f`). -/
+`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1421` at `5e3ade21`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with

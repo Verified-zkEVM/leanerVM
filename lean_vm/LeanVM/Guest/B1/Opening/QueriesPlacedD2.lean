@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-/-- The frames fit a specialization's frame runs: at 56a4109f neither its queries nor their
+/-- The frames fit a specialization's frame runs: at 5e3ade21 neither its queries nor their
 `walk_path` frames place a frame run (the path children are hinted into frame cells), so nothing
 is asked; kept so the statements
 reading it stand. -/

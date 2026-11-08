@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsPathComplete
 
-  `sp_path` (`lean_ethereum.py:3941-3961` at leanVM 56a4109f) is complete: each level's children
+  `sp_path` (`lean_ethereum.py:3941-3961` at leanVM 5e3ade21) is complete: each level's children
   hinted in the order of the leaf's bit, the root is the tree's fold of the siblings; with a level
   of any tree (the hinted pair, `is_child`, an address, the node's hash) complete.
 -/

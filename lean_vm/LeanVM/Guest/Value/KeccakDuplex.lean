@@ -16,7 +16,7 @@ The verifier's transcript (`Statement/LeanVmVerifier.lean`, `Sponge`, `duplex`, 
 duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its three limbs
 and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and lanes
 `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at
-leanVM `56a4109f`, G below) holds the sponge as the thirteen-cell output of its last permutation,
+leanVM `5e3ade21`, G below) holds the sponge as the thirteen-cell output of its last permutation,
 of which only the five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x`
 with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:617-625), canonical
 exactly when `c2` is `x`'s top limb (`fsPack_cells`); a permutation is `keccak(a, b, out,

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBridgeCells
 
-  leanSPHINCS's verification stages (`Statement/LeanSphincs.lean` at leanVM `56a4109f`) over the
+  leanSPHINCS's verification stages (`Statement/LeanSphincs.lean` at leanVM `5e3ade21`) over the
   guest's cells: a tree's fold, a FORS tree's root, the FORS key and a one-time leaf.
 -/
 

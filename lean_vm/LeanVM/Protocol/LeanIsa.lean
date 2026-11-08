@@ -97,7 +97,7 @@ With `d = 2` it meets the table sumcheck's degree bound by definition.
 
 The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
 `python-verifier/verifier.py` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the Rust lines
-at `56a4109f`); the instance's polynomials are Clean's, through `Component.toM3`.
+at `5e3ade21`); the instance's polynomials are Clean's, through `Component.toM3`.
 
 ## Wrong readings excluded
 

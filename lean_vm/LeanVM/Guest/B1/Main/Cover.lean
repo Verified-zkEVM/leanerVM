@@ -14,7 +14,7 @@ public import LeanVM.Guest.Value.Pigeonhole
 /-!
 # The coverage table
 
-The writers of `main`'s coverage table (lean_ethereum.py:4598-4669 at 56a4109f) are indexed by
+The writers of `main`'s coverage table (lean_ethereum.py:4598-4669 at 5e3ade21) are indexed by
 `m < T`: the raw leanXMSS signatures (`m < RX`), the raw leanSPHINCS ones
 (`RX ≤ m < RX + RS`), and child `c`'s claims, from its base `a c`: its leanXMSS claims, then its
 leanSPHINCS ones (`Segs`). Writer `m` stores the mark `g^(wmark m)`: its index, except along a

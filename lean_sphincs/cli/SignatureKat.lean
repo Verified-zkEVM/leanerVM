@@ -6,7 +6,7 @@ import Statement.Fast.Schemes
 `signature-kat DIR` runs the statement's key generation, signer and verifier, compiled over
 Keccak-f[1600], on the EthLib test vectors of `crates/signatures` (`DIR` is
 `crates/signatures/tests/signatures/ethlib` at the leanVM commit the statement cites: the `key_gen`,
-`sign` and `verify` cases of `xmss`, and of `sphincs` where they exist; leanVM `56a4109f` has
+`sign` and `verify` cases of `xmss`, and of `sphincs` where they exist; leanVM `5e3ade21` has
 leanXMSS's only) and on leanSPHINCS's known answer
 (`crates/signatures/src/lean_sphincs/known_answer.hex`, beside `DIR`'s crate, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case

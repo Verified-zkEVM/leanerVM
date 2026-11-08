@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBottomComplete
 
-  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-4064` at leanVM 56a4109f)
+  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-4064` at leanVM 5e3ade21)
   are complete for an honest signature: the message digest, the bottom key's address, FORS.
 -/
 

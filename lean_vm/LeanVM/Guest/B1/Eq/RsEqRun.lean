@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Eq.RsLoop
 public import LeanVM.Guest.B1.Bits.GPower
 
 /-!
-# `rs_eq_run` (lean_ethereum.py:1053-1079 at leanVM `56a4109f`)
+# `rs_eq_run` (lean_ethereum.py:1053-1079 at leanVM `5e3ade21`)
 
 `rs_eq_run(chain, z_vals, point1, count_g)` hints the six bits of `count` (`count_g = g^count`),
 pins them by booleanity and `q_g^8 · r_g = count_g` (`r_g` from bits `0 .. 2`, `q_g` from bits

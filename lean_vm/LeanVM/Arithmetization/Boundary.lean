@@ -22,7 +22,7 @@ At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26
 blocks are `crates/leanvm_core/src/cpu/layout.rs:351-394` (the "shared blocks" of `layout`),
 matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary),
 §6.2 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:98`, the
-index column), and §8.5 (`08-end-to-end-protocol.tex:74`: "three blocks per side belong to no
+index column), and §8.6 (`08-end-to-end-protocol.tex:105`: "three blocks per side belong to no
 table"). The committed
 columns are `MEM_LO, MEM_HI, MEM_TOP, MFCNT` and `BFCNT` (`layout.rs:13-17`); the bytecode entry
 rides eight *public* columns (`bytecode_columns`, `layout.rs:228-289`, `Bytecode`'s `entry`); the
@@ -54,7 +54,7 @@ data` says the row is bound to the image the data names, `MemBindings (imageOf d
 cell at `idx` holding the row's word `E.ofLimbs m[0] m[1] m[2]`; `BytecodeDecodes r` says the
 row's entry decodes to an instruction (`decode`), the program-free guarantee of the bytecode
 pull, which reads no data. The program is not the block's to name: its rows are the public
-program's entries because the verifier forms them from the program (§8.5, Bus 4;
+program's entries because the verifier forms them from the program (§8.6, Bus 4;
 `Coord::Public`), which the statement gives as the conjunct `BytecodeRowsAreTheProgram prog` of
 `SatisfiedBy prog`, that the block's rows are `bytecodeRowOf prog i cntFin` for every slot `i`
 with some finalize count. `BytecodeBindings prog r` is that conjunct's per-row reading, the

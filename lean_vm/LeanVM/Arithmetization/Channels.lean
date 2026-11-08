@@ -103,7 +103,7 @@ fixed for all programs. It enters in three places only: the bytecode block's row
 (`Arithmetization.Boundary`), and the statement `SatisfiedBy prog`, whose
 conjunct `BytecodeRowsAreTheProgram prog` says the block's rows are built from the program with
 only the finalize counts free, as the verifier forms "the program's whole share of the two
-bytecode blocks" itself (§8.5, Bus 4); Clean PR #446's fixed columns are that conjunct as a
+bytecode blocks" itself (§8.6, Bus 4); Clean PR #446's fixed columns are that conjunct as a
 primitive.
 
 ## Wrong readings excluded

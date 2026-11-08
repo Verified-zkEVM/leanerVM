@@ -10,7 +10,7 @@ The encoder of leanVM's binary Reed-Solomon code in the novel basis (Annex D,
 `X_j = ∏_i Ŵ_i^{j_i}`, `Ŵ_i` the normalized subspace polynomials, `x_p = K.ofBits p`) for all
 `2^(κ+R)` domain points at once, in `O((κ+R)·2^(κ+R))` operations
 (`AdditiveNttF64`, `crates/pcs/src/ntt/twiddles.rs:52`, and its `standard`, `:92`, at leanVM
-`56a4109f6dbe74c7f7836184a5cba56a2b38d250`).
+`5e3ade21d339a45e1b3b0dba97ad9300ab50e49b`).
 `Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is additive and vanishes on `U_i`), so the transform
 folds the message's variables from the top, a stage the butterfly
 `(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})` of the block `b`;

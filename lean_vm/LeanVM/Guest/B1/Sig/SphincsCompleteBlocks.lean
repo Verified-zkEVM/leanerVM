@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 
   The completeness of `verify_sig_lean_sphincs`'s FORS block and of a layer of its hypertree
-  (`lean_ethereum.py:3841-3976, 4059-4064` at leanVM 56a4109f), as the statements its assembly
+  (`lean_ethereum.py:3841-3976, 4059-4064` at leanVM 5e3ade21), as the statements its assembly
   consumes; the byte table's pointers.
 -/
 

@@ -106,7 +106,7 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 ## LeanDA
 
 The erasure code commitment of `crates/lean_da` at leanVM
-`56a4109f6dbe74c7f7836184a5cba56a2b38d250`, specified in `doc/leanvm/body/10-ethereum.tex`
+`5e3ade21d339a45e1b3b0dba97ad9300ab50e49b`, specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on

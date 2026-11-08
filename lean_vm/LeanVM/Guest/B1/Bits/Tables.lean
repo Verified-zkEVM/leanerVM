@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `exponent_tables` (lean_ethereum.py:718-743 at leanVM `56a4109f`)
+# `exponent_tables` (lean_ethereum.py:718-743 at leanVM `5e3ade21`)
 
 `exponent_tables()` fills a fresh `HeapBuf(236)` with constants the compiler folds: `236`
 pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and the groups' sides

@@ -10,7 +10,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 The scheme of `crates/signatures/src/lean_sphincs` (`mod.rs`, `hash.rs`, `wots.rs`, `fors.rs`,
 `scheme.rs`; the shared `hasher` and `truncate` of `crates/signatures/src/lib.rs`), specified in
-`doc/lean_sphincs`, at leanVM `56a4109f`: SLH-DSA (FIPS 205) on Keccak-256, with WOTS+C as its
+`doc/lean_sphincs`, at leanVM `5e3ade21`: SLH-DSA (FIPS 205) on Keccak-256, with WOTS+C as its
 one-time signature and a hypertree of layers of different heights.
 
 * Every hash of a tree, a chain or a secret is `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` (`th`, `prf`),
