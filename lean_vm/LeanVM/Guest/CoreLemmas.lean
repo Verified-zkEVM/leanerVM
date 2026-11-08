@@ -322,5 +322,98 @@ theorem rangeCheck_iff {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) (x : E)
       simp only [addressOfIndex, pow_zero, mul_one]
       exact (read_some_iff hκ64 L _ _).mpr ⟨⟨K - 1 - e, hc⟩, rfl, rfl⟩
 
+/-! ## `KECCAK`
+
+A `KECCAK` atom writes one, two or all thirteen output cells (`Op::Keccak`'s `out_cells`, the
+`KeccakOutputCells` of `outs.length`):
+
+* `keccak_holds_full`, `keccak_holds_of`: the atom holds exactly when the read cells and some
+  thirteen cells `O` are in `KeccakCellsRelation … .all` (`O` is then Keccak-f's output cells) and
+  the written values are `O`'s first cells;
+* `keccak_holds_13`: with thirteen written cells, the atom's relation is `KeccakCellsRelation … .all`
+  of the read and written cells;
+* `keccak_holds_one`, `keccak_holds_two`: with one or two written cells, the read cells
+  canonical and the written values the output state's first cells.
+-/
+
+section Keccak
+
+/-- **A `KECCAK` atom gives the full output**: Keccak-f's thirteen output cells `O`, in
+`KeccakCellsRelation` with the read cells, whose first cells the written values are. -/
+theorem keccak_holds_full {ins outs : List V} {i o : Bool}
+    (h : (Atom.keccak ins outs i o).Holds rd σ) :
+    ins.length = 13 ∧ (∃ oc : KeccakOutputCells, outs.length = oc.cellCount) ∧
+      ∃ O : Fin 13 → E, KeccakCellsRelation (cells13 (ins.map σ)) i O o .all ∧
+        ∀ (c : Fin 13) (hc : c.val < outs.length), σ outs[c.val] = O c := by
+  obtain ⟨hi, oc, ho, hc, hk⟩ := h
+  refine ⟨hi, ⟨oc, ho⟩, _, ⟨hc, fun _ _ ↦ rfl⟩, fun c hlt ↦ ?_⟩
+  have := hk c (by omega)
+  rwa [cells13, List.getD_eq_getElem _ _ (by simpa using hlt), List.getElem_map] at this
+
+/-- **A `KECCAK` atom holds** of read cells in `KeccakCellsRelation` with some thirteen cells `O`
+whose first cells the written values are, one, two or thirteen of them. -/
+theorem keccak_holds_of {ins outs : List V} {i o : Bool} {O : Fin 13 → E}
+    {oc : KeccakOutputCells} (hi : ins.length = 13) (ho : outs.length = oc.cellCount)
+    (hk : KeccakCellsRelation (cells13 (ins.map σ)) i O o .all)
+    (hw : ∀ (c : Fin 13) (hc : c.val < outs.length), σ outs[c.val] = O c) :
+    (Atom.keccak ins outs i o).Holds rd σ := by
+  refine ⟨hi, oc, ho, hk.1, fun c hlt ↦ ?_⟩
+  rw [cells13, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map,
+    hw c (by omega), hk.2 c (by simp [KeccakOutputCells.cellCount])]
+
+/-- **Thirteen written cells**: the atom's relation is `KeccakCellsRelation … .all` of the read
+and written cells. -/
+theorem keccak_holds_13 {ins outs : List V} {i o : Bool} (ho : outs.length = 13) :
+    (Atom.keccak ins outs i o).Holds rd σ ↔
+      ins.length = 13 ∧ outs.length = 13 ∧
+        KeccakCellsRelation (cells13 (ins.map σ)) i (cells13 (outs.map σ)) o .all := by
+  constructor
+  · intro h
+    obtain ⟨hi, -, O, hk, hw⟩ := keccak_holds_full h
+    have e : cells13 (outs.map σ) = O := by
+      funext c
+      rw [cells13, List.getD_eq_getElem _ _ (by simp [ho]), List.getElem_map]
+      exact hw c (by omega)
+    exact ⟨hi, ho, e ▸ hk⟩
+  · rintro ⟨hi, -, hk⟩
+    exact ⟨hi, .all, ho, hk⟩
+
+/-- **One written cell**: the read cells canonical and the written value the output state's
+first cell. -/
+theorem keccak_holds_one {ins : List V} {v : V} {i o : Bool} :
+    (Atom.keccak ins [v] i o).Holds rd σ ↔
+      ins.length = 13 ∧ (∀ c, IsCanonical128 (cells13 (ins.map σ) c)) ∧
+        σ v = cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o 0 := by
+  constructor
+  · intro h
+    obtain ⟨hi, -, O, hk, hw⟩ := keccak_holds_full h
+    exact ⟨hi, hk.1, (hw 0 (by simp)).trans (hk.2 0 (by decide))⟩
+  · rintro ⟨hi, hc, hv⟩
+    refine ⟨hi, .one, rfl, hc, fun c hlt ↦ ?_⟩
+    have : c = 0 := Fin.ext (by simpa [KeccakOutputCells.cellCount] using hlt)
+    subst this
+    simpa [cells13] using hv
+
+/-- **Two written cells**: the read cells canonical and the written values the output state's
+first two cells. -/
+theorem keccak_holds_two {ins : List V} {v w : V} {i o : Bool} :
+    (Atom.keccak ins [v, w] i o).Holds rd σ ↔
+      ins.length = 13 ∧ (∀ c, IsCanonical128 (cells13 (ins.map σ) c)) ∧
+        σ v = cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o 0 ∧
+        σ w = cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o 1 := by
+  constructor
+  · intro h
+    obtain ⟨hi, -, O, hk, hw⟩ := keccak_holds_full h
+    exact ⟨hi, hk.1, (hw 0 (by simp)).trans (hk.2 0 (by decide)),
+      (hw 1 (by simp)).trans (hk.2 1 (by decide))⟩
+  · rintro ⟨hi, hc, hv, hw⟩
+    refine ⟨hi, .two, rfl, hc, fun c hlt ↦ ?_⟩
+    have hlt' : c.val < 2 := by simpa [KeccakOutputCells.cellCount] using hlt
+    match c, hlt' with
+    | ⟨0, _⟩, _ => simpa [cells13] using hv
+    | ⟨1, _⟩, _ => simpa [cells13] using hw
+
+end Keccak
+
 end
 end LeanVM.Guest.Core
