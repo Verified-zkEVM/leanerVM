@@ -234,13 +234,13 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have g839 := vtB_glue_839 hl hw (hpS 1 843 (by norm_num) x1)
   have g852 := vtB_glue_852 hl hw (hpS 2 856 (by norm_num) x2)
   have g877 := vtB_glue_877 hl hw I2 h881
-  have g1425 := vtB_glue_1425 hl hw hidxσ
-  have g1882 := vtB_glue_1882 hl hw hpoolσ hidxσ (hpS 3 1843 (by norm_num) x3) h1915
-  have g1925 := vtB_glue_1925 hl hw (hpS 4 1898 (by norm_num) x4)
-  have g2517 := vtB_glue_2517 (rd := rd) (wo := wo) hl
+  have g1425 := vtB_glue_1433 hl hw hidxσ
+  have g1882 := vtB_glue_1890 hl hw hpoolσ hidxσ (hpS 3 1843 (by norm_num) x3) h1915
+  have g1925 := vtB_glue_1933 hl hw (hpS 4 1898 (by norm_num) x4)
+  have g2517 := vtB_glue_2533 (rd := rd) (wo := wo) hl
   -- every statement
   have hall : ∀ s ∈ (vtPre.drop 769).take 1820, VSH (coreProgram.Rel rd) rd σv s := by
-    refine vtB_cover [3, 12, 10, 13, 10, 9, 4, 9, 4, 9, 12, 13, 58, 490, 448, 9, 34, 9, 159, 433,
+    refine vtB_cover [3, 12, 10, 13, 10, 9, 4, 9, 4, 9, 12, 13, 66, 490, 448, 9, 34, 9, 167, 433,
       56] 769 fun i hi ↦ ?_
     simp only [List.length_cons, List.length_nil] at hi
     interval_cases i
