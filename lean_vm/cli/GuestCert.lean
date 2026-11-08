@@ -513,10 +513,10 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
       | _ => return none
   | .keccak ins outs inOdd outOdd =>
     go p facts fun ft => match ft with
-      | .instr _ (.keccak m0 m1 m2 m3 tail b8 cap out iO oO) =>
-        if iO == inOdd && oO == outOdd && ins.length == 13 && outs.length == 13 then
+      | .instr _ (.keccak m0 m1 m2 m3 tail b8 cap out iO oO oC) =>
+        if iO == inOdd && oO == outOdd && ins.length == 13 && outs.length == oC.cellCount then
           unify ((ins.map vi).zip (keccakIns m0 m1 m2 m3 tail b8 cap) ++
-            (outs.map vi).zip (keccakOuts out))
+            (outs.map vi).zip (keccakOuts out oC.cellCount))
         else return none
       | _ => return none
   | .frameAddr q run =>
@@ -983,7 +983,7 @@ def keysG : Exec.Atom → List ℕ
   | .instr _ (.set o _ _ _) => [o]
   | .instr _ (.deref _ _ o3 .cell) => [o3]
   | .instr _ (.deref o1 _ _ .fp) => [o1]
-  | .instr _ (.keccak _ _ _ _ _ _ _ out _ _) => [out]
+  | .instr _ (.keccak _ _ _ _ _ _ _ out _ _ _) => [out]
   | .jump _ od _ => [od]
   | .copy d s => [d, s]
   | .eq a b => [a, b]
@@ -1009,7 +1009,9 @@ def instrText : OffsetInstruction → String
   | .set o k0 k1 k2 => s!"(.set {o} {k0} {k1} {k2})"
   | .deref a b c m => s!"(.deref {a} {b} {c} {modeText m})"
   | .jump a b c => s!"(.jump {a} {b} {c})"
-  | .keccak a b c d t b8 cp o i j => s!"(.keccak {a} {b} {c} {d} {t} {b8} {cp} {o} {i} {j})"
+  | .keccak a b c d t b8 cp o i j n =>
+    let n := match n with | .one => "one" | .two => "two" | .all => "all"
+    s!"(.keccak {a} {b} {c} {d} {t} {b8} {cp} {o} {i} {j} .{n})"
 
 def atomText : Exec.Atom → String
   | .instr pc i => s!"(.instr {pc} {instrText i})"
@@ -1238,8 +1240,8 @@ def offTop : OffsetInstruction → ℕ
   | .xor a b c | .mul a b c | .jump a b c => max a (max b c)
   | .set o _ _ _ => o
   | .deref o1 _ o3 _ => max o1 o3
-  | .keccak m0 m1 m2 m3 tail b8 cap out _ _ =>
-    max ((keccakIns m0 m1 m2 m3 tail b8 cap).foldl max 0) (out + 12)
+  | .keccak m0 m1 m2 m3 tail b8 cap out _ _ oC =>
+    max ((keccakIns m0 m1 m2 m3 tail b8 cap).foldl max 0) (out + oC.cellCount - 1)
 
 structure CertOut where
   name : String
@@ -1762,10 +1764,11 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
     match st.frames.get? o1 with
     | some fcs => fcs.any fun (o, fc) => o == o2 && fc == .pc (pc + 2)
     | none => false
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
+  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oC =>
     (bookAt st out).any fun x => match x with
       | .keccak ins outs iO oO =>
-        ins.map (cell ·.idx) == keccakIns m0 m1 m2 m3 tail b8 cap && outs.map (cell ·.idx) == keccakOuts out &&
+        ins.map (cell ·.idx) == keccakIns m0 m1 m2 m3 tail b8 cap &&
+          outs.map (cell ·.idx) == keccakOuts out oC.cellCount &&
           iO == inOdd && oO == outOdd
       | _ => false
   | .jump .. => false

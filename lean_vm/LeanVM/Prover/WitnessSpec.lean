@@ -44,15 +44,15 @@ theorem opIdx_inj {j j' : Fin 6} (h : opIdx j = opIdx j') : j = j' := by
   exact Fin.ext (by omega)
 
 /-- A column of the `KECCAK` table that is a lane but no output lane is an input lane. -/
-theorem eq_inCol {i : Fin (width (opIdx 5))} (h : 13 ≤ i.val) (h' : i.val < 38) :
-    (⟨opIdx 5, i⟩ : Col) = inCol ⟨i.val - 13, by omega⟩ := by
+theorem eq_inCol {i : Fin (width (opIdx 5))} (h : 15 ≤ i.val) (h' : i.val < 40) :
+    (⟨opIdx 5, i⟩ : Col) = inCol ⟨i.val - 15, by omega⟩ := by
   unfold inCol
   congr 1
   exact Fin.ext (by simp; omega)
 
-/-- A column of the `KECCAK` table in `38 … 62` is an output lane. -/
-theorem eq_outCol {i : Fin (width (opIdx 5))} (h : 38 ≤ i.val) (h' : i.val < 63) :
-    (⟨opIdx 5, i⟩ : Col) = outCol ⟨i.val - 38, by omega⟩ := by
+/-- A column of the `KECCAK` table in `40 … 64` is an output lane. -/
+theorem eq_outCol {i : Fin (width (opIdx 5))} (h : 40 ≤ i.val) (h' : i.val < 65) :
+    (⟨opIdx 5, i⟩ : Col) = outCol ⟨i.val - 40, by omega⟩ := by
   unfold outCol
   congr 1
   exact Fin.ext (by simp; omega)
@@ -62,7 +62,7 @@ variable {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog))
 
 /-- An input lane of a witness, at the sizes it carries, is its cell, a padding row's zero. -/
 theorem inLaneOf_eq (x : ℕ) (l : Fin 25) :
-    inLaneOf prog (witnessSizes w hp) w x l = cellOf (tableAt w 5) x (13 + l) := by
+    inLaneOf prog (witnessSizes w hp) w x l = cellOf (tableAt w 5) x (15 + l) := by
   unfold inLaneOf
   split_ifs with hx
   · rfl
@@ -78,7 +78,7 @@ theorem column_toArray_committed (c : Col) (h : ¬ IsVirtual c) :
 /-- Cell `x` of input lane `l` of the stack is the row's cell. -/
 theorem column_getElem_in (l : Fin 25) (x : ℕ) (hx : x < 2 ^ (witnessSizes w hp).τ 5) :
     ((leanIsaInstance prog (witnessSizes w hp)).column (stackOf prog (witnessSizes w hp) w)
-        (inCol l)).values[x]'hx = cellOf (tableAt w 5) x (13 + l) := by
+        (inCol l)).values[x]'hx = cellOf (tableAt w 5) x (15 + l) := by
   have h1 := column_inCol prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) l ⟨x, hx⟩
   rw [word_stackOf prog (witnessSizes w hp) w l (by omega) ⟨x, hx⟩,
     keccakWitness_getElem prog (witnessSizes w hp) w l (by omega) x hx, dite_eq_left l.isLt,
@@ -128,12 +128,12 @@ theorem column_getElem_out (l : Fin 25) (x : ℕ) (hx : x < 2 ^ (witnessSizes w 
     ((leanIsaInstance prog (witnessSizes w hp)).column (stackOf prog (witnessSizes w hp) w)
         (outCol l)).values[x]'hx =
       stateLanes (keccakSegment 1 (keccakSegment 0
-        (laneState fun l' : Fin 25 ↦ cellOf (tableAt w 5) x (13 + l'.val)))) l := by
+        (laneState fun l' : Fin 25 ↦ cellOf (tableAt w 5) x (15 + l'.val)))) l := by
   have h1 := column_outCol prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) l
     ⟨x, hx⟩
   rw [state_mid_stackOf w hp] at h1
   have hin : inLaneOf prog (witnessSizes w hp) w x =
-      fun l' : Fin 25 ↦ cellOf (tableAt w 5) x (13 + l'.val) :=
+      fun l' : Fin 25 ↦ cellOf (tableAt w 5) x (15 + l'.val) :=
     funext fun l' ↦ inLaneOf_eq w hp x l'
   rw [hin] at h1
   exact h1
@@ -149,15 +149,15 @@ theorem column_toArray_table (j : Fin 6) (i : Fin (width (opIdx j)))
   by_cases hv : IsVirtual ⟨opIdx j, i⟩
   · obtain rfl : j = 5 := opIdx_inj hv.1
     rcases hv.lane_or_spare with hl | hs
-    · have h13 : 13 ≤ i.val := hl.2.1
-      have h38 : i.val < 38 := Nat.lt_of_not_le fun h ↦ hout ⟨rfl, h, hl.2.2⟩
+    · have h13 : 15 ≤ i.val := hl.2.1
+      have h38 : i.val < 40 := Nat.lt_of_not_le fun h ↦ hout ⟨rfl, h, hl.2.2⟩
       refine (congrArg (fun c : Col ↦ ((leanIsaInstance prog (witnessSizes w hp)).column
         (stackOf prog (witnessSizes w hp) w) c).values.toArray) (eq_inCol h13 h38)).trans ?_
       refine Array.ext (by simp only [Vector.size_toArray, Array.size_ofFn]; rfl)
         fun x h1 h2 ↦ ?_
       have hx : x < 2 ^ (witnessSizes w hp).τ 5 := by simpa using h2
       rw [Array.getElem_ofFn, Vector.getElem_toArray]
-      exact (column_getElem_in w hp ⟨i.val - 13, by omega⟩ x hx).trans
+      exact (column_getElem_in w hp ⟨i.val - 15, by omega⟩ x hx).trans
         (congrArg (cellOf (tableAt w 5) x) (by simp; omega))
     · refine Array.ext (by simp only [Vector.size_toArray, Array.size_ofFn]; rfl)
         fun x h1 h2 ↦ ?_

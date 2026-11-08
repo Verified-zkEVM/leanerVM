@@ -28,10 +28,6 @@ set_option maxRecDepth 100000 in
 theorem w1_1 : shareWin 1 (snapsOf 1) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `main`, window 2. -/
-theorem w1_2 : shareWin 1 (snapsOf 1) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `assert_canonical`, once. -/
 theorem st2 : shareStatic 2 = true := by decide +kernel
 
@@ -82,6 +78,19 @@ theorem ok5 : ShareOk 5 := ⟨st5, fun i hi ↦ by
   have h : (snapsOf 5).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w5_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_chain`, once. -/
+theorem st6 : shareStatic 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_chain`, window 0. -/
+theorem w6_0 : shareWin 6 (snapsOf 6) 0 = true := by decide +kernel
+
+theorem ok6 : ShareOk 6 := ⟨st6, fun i hi ↦ by
+  have h : (snapsOf 6).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w6_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

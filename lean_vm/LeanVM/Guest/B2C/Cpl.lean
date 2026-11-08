@@ -440,10 +440,10 @@ noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
         | some (.fpg x) => decide (statAt X x = some (.fpg 0))
         | _ => false)))
   | .deref o1 o2 o3 .pc => known X st o3 && frameHas st o1 o2 (.pc (pc + 2))
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
+  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oC =>
     (lookC st.book out).any fun x ↦ match x with
       | .keccak ins outs iO oO => ins == keccakIns m0 m1 m2 m3 tail b8 cap &&
-          outs == keccakOuts out && iO == inOdd && oO == outOdd
+          outs == keccakOuts out oC.cellCount && iO == inOdd && oO == outOdd
       | _ => false
   | .jump .. => false
 

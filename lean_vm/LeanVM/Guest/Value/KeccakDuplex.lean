@@ -132,10 +132,10 @@ scalars' (`rateCell`) and whose cells `8..12` are those of a state `S` writes th
 theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c)
-    (hK : KeccakCellsRelation I false O false) :
+    (hK : KeccakCellsRelation I false O false .all) :
     O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, pending⟩)) false := by
   funext c
-  rw [hK.2 c, stateOfCells_duplex hrate hcap]
+  rw [hK.2 c c.isLt, stateOfCells_duplex hrate hcap]
 
 /-- `squeeze` with Keccak-f: a permutation, its challenge. -/
 theorem squeeze_id (sp : Compile.Sponge) :

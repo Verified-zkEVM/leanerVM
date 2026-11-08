@@ -9,8 +9,8 @@ import LeanVM.Guest.Check
 * `assert_canonical`, straight code: its one segment, its atoms, and its contract by `exec_sound`,
   the run returning in fewer steps;
 * `claim_list_last__L0`, straight code with a `KECCAK`: its contract gives `KeccakCellsRelation` of the
-  thirteen cells it reads (`m0..m3`, the runs from `tail` and `cap`, `b8`) and the thirteen it
-  writes;
+  thirteen cells it reads (`m0..m3`, the runs from `tail` and `cap`, `b8`) and the two it writes,
+  the digest;
 * the selectors bounded by booleanity (`Check.selBound`): `r_g` of `shared_selector_tables`
   (`(1 + b₀(1 + g))(1 + b₁(1 + g²))`, below `g^4`) and `rem_g` of `verify_keccak`
   (`(1 + b₀(1 + g))(1 + b₁(1 + g²))(1 + b₂(1 + g⁴))`, below `g^8`), from the atoms of the
@@ -58,33 +58,34 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 
 /-! ## A `KECCAK`: `claim_list_last__L0` -/
 
-/-- Its `KECCAK`: the thirteen cells `fp[37], fp[20], fp[21], fp[22]`, `fp[23..26]`, `fp[39]`,
-`fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
-def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
+/-- Its `KECCAK`: the thirteen cells `fp[26], fp[9], fp[10], fp[11]`, `fp[12..15]`, `fp[28]`,
+`fp[17..20]`, in the even layout, to the two cells `fp[6..7]`, in the even layout. -/
+def hashIns : OffsetInstruction := .keccak 26 9 10 11 12 28 17 6 false false .two
 
-theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 293885 := by
+theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 293983 := by
   decide +kernel
 
 theorem hash_shape : (exec F0 Data.f333).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 293906 hashIns),
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 294004 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
 /-- **`claim_list_last__L0`'s contract**: a halting run entering it, on the run from `(g^0, 1)`,
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
-Keccak-f[1600] the cells it writes hold. -/
+Keccak-f[1600]'s first two cells the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 293885 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
-      (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
+    FunSpecReached guestProgram L 293983 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+      (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 26 9 10 11 12 28 17 c.val)) = some
           (input c)) ∧
-      (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
-      KeccakCellsRelation input false output false) := by
+      (∀ c : Fin 13, c.val < KeccakOutputCells.two.cellCount →
+        L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
+      KeccakCellsRelation input false output false .two) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (hash_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f333.entryPc + s.start = 293885 := by rw [h0]; rfl
+  have hentry : Data.f333.entryPc + s.start = 293983 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 333) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=

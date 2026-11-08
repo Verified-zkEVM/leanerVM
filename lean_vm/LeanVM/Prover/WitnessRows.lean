@@ -93,8 +93,10 @@ theorem vec4_toList {F : Type} (v : Vector F 4) : v.toList = [v[0], v[1], v[2], 
 
 theorem keccakRow_toArray {F : Type} (r : KeccakRow F) : (toElements r).toArray =
     #[r.pc, r.fp, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout, r.oddIn,
-      r.oddOut, r.free] ++ r.lin.toArray ++ r.lout.toArray ++ r.cnt.toArray ++ #[r.rbc] := by
-  obtain ⟨pc, fp, om, otail, ob8, ocap, oout, oddIn, oddOut, free, lin, lout, cnt, rbc⟩ := r
+      r.oddOut, r.outTwo, r.outAll, r.free] ++ r.lin.toArray ++ r.lout.toArray ++ r.cnt.toArray ++
+        #[r.rbc] := by
+  obtain ⟨pc, fp, om, otail, ob8, ocap, oout, oddIn, oddOut, outTwo, outAll, free, lin, lout, cnt,
+    rbc⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
@@ -170,7 +172,7 @@ theorem rowIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (pc fp : K) (c : �
   | jump oc od of =>
     simp only [rowIn, rowOf, jumpRaw, rawRow, jumpRow_toArray, jumpRowOf, limbsIn_powIndex hκ]
     simp
-  | keccak om otail ob8 ocap oout inOdd outOdd =>
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     simp only [rowIn, rowOf, rawRow, keccakRow_toArray, keccakRowOf,
       keccakInputIn_powIndex hκ]
     simp [laneK, freeLimb]

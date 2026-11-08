@@ -16,10 +16,6 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 9. -/
-theorem w12_9 : shareWin 12 (snapsOf 12) 9 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `verify_tables`, window 10. -/
 theorem w12_10 : shareWin 12 (snapsOf 12) 10 = true := by decide +kernel
 
@@ -34,6 +30,10 @@ theorem w12_12 : shareWin 12 (snapsOf 12) 12 = true := by decide +kernel
 set_option maxRecDepth 100000 in
 /-- `verify_tables`, window 13. -/
 theorem w12_13 : shareWin 12 (snapsOf 12) 13 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 14. -/
+theorem w12_14 : shareWin 12 (snapsOf 12) 14 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

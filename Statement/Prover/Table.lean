@@ -161,7 +161,7 @@ def finalEvals (F : Array (Array E)) : List E :=
 def tableEvals (st : TableState) : List E :=
   (List.range 6).flatMap fun t ↦ finalEvals (st.cols.getD t #[])
 
-/-- The constraint powers of `ξ` and its form powers, one per side (`verifier.py:1383-1385`). -/
+/-- The constraint powers of `ξ` and its form powers, one per side (`verifier.py:1396-1398`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
   ((powers xi (nc + 3)).take nc, (powers xi (nc + 3)).drop nc)

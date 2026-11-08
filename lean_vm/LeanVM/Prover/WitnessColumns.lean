@@ -139,12 +139,12 @@ theorem cellAt_eq {R : Array (Array K)} {T : Air.Flat.Table K} (h : R.toList = T
 /-- The twelve-round states of the pass. -/
 theorem midStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
     (midStates R h).getD x zeroState =
-      keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (13 + l.val)) := by
+      keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (15 + l.val)) := by
   simp only [midStates, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, hx, dite_true,
     Option.getD_some]
   split_ifs with hr
   · rfl
-  · have hz : (fun l : Fin 25 ↦ cellAt R x (13 + l.val)) = fun _ ↦ 0 := funext fun l ↦ by
+  · have hz : (fun l : Fin 25 ↦ cellAt R x (15 + l.val)) = fun _ ↦ 0 := funext fun l ↦ by
       simp [cellAt, Array.getElem?_eq_none (Nat.not_lt.mp hr)]
     rw [hz, laneState_zero]
     rfl
@@ -152,19 +152,19 @@ theorem midStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
 /-- The twenty-four-round states of the pass. -/
 theorem outStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
     (outStates R (midStates R h)).getD x zeroState =
-      keccakSegment 1 (keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (13 + l.val))) := by
+      keccakSegment 1 (keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (15 + l.val))) := by
   have hm := midStates_getD R h x hx
   have hsize : (midStates R h).size = 2 ^ h := by simp [midStates]
   have hx' : x < (midStates R h).size := by rw [hsize]; exact hx
   have hm' : (midStates R h)[x]'hx' =
-      keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (13 + l.val)) := by
+      keccakSegment 0 (laneState fun l : Fin 25 ↦ cellAt R x (15 + l.val)) := by
     rw [← hm, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hx', Option.getD_some]
   simp only [outStates, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, hx', dite_true,
     Option.getD_some, Fin.getElem_fin]
   split_ifs with hr
   · rw [hm']
     rfl
-  · have hz : (fun l : Fin 25 ↦ cellAt R x (13 + l.val)) = fun _ ↦ 0 := funext fun l ↦ by
+  · have hz : (fun l : Fin 25 ↦ cellAt R x (15 + l.val)) = fun _ ↦ 0 := funext fun l ↦ by
       simp [cellAt, Array.getElem?_eq_none (Nat.not_lt.mp hr)]
     rw [hz, laneState_zero]
     rfl

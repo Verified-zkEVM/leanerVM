@@ -321,9 +321,9 @@ theorem inKOk_sound (hB : BookHolds L fp B) {a b : ℕ} (h : inKOk B a b = true)
 
 theorem keccakOk_sound (hB : BookHolds L fp B) {ins outs : List ℕ} {inOdd outOdd : Bool}
     (h : keccakOk B ins outs inOdd outOdd = true) :
-    ins.length = 13 ∧ outs.length = 13 ∧
+    ins.length = 13 ∧ ∃ oc : KeccakOutputCells, outs.length = oc.cellCount ∧
       KeccakCellsRelation (Core.cells13 (ins.map (wd L fp))) inOdd (Core.cells13 (outs.map (wd L fp)))
-        outOdd := by
+        outOdd oc := by
   unfold keccakOk at h
   split at h
   · exact absurd h Bool.false_ne_true
@@ -331,25 +331,27 @@ theorem keccakOk_sound (hB : BookHolds L fp B) {ins outs : List ℕ} {inOdd outO
   obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
   have hh := hB o x hx
   split at hp
-  · rename_i pc m0 m1 m2 m3 tail b8 cap out iO oO
+  · rename_i pc m0 m1 m2 m3 tail b8 cap out iO oO oC
     simp only [Bool.and_eq_true, beq_iff_eq] at hp
     obtain ⟨⟨⟨⟨-, rfl⟩, rfl⟩, hins⟩, hout⟩ := hp
     obtain ⟨input, output, hin, hout', hk⟩ := hh
+    have hlen : (o :: rest).length = oC.cellCount := by rw [hout, keccakOuts_length]
     have ei : Core.cells13 (ins.map (wd L fp)) = input := by
       funext c
       rw [Core.cells13, hins, List.getD_eq_getElem?_getD, List.getElem?_map,
         List.getElem?_eq_getElem (by simp [keccakIns]), Option.map_some, Option.getD_some,
         List.getElem_eq_getD 0, keccakIns_getD _ _ _ _ _ _ _ c.isLt]
       exact wd_of (hin c)
-    have eo : Core.cells13 ((o :: rest).map (wd L fp)) = output := by
-      funext c
+    have eo : ∀ c : Fin 13, c.val < oC.cellCount →
+        Core.cells13 ((o :: rest).map (wd L fp)) c = output c := by
+      intro c hc
       rw [Core.cells13, hout, List.getD_eq_getElem?_getD, List.getElem?_map,
-        List.getElem?_eq_getElem (by simp [keccakOuts]), Option.map_some, Option.getD_some,
-        List.getElem_eq_getD 0, keccakOuts_getD _ c.isLt]
-      exact wd_of (hout' c)
-    refine ⟨by rw [hins, keccakIns_eq]; rfl, by rw [hout]; simp [keccakOuts], ?_⟩
-    rw [ei, eo]
-    exact hk
+        List.getElem?_eq_getElem (by simp [keccakOuts]; exact hc), Option.map_some,
+        Option.getD_some, List.getElem_eq_getD 0, keccakOuts_getD _ _ hc]
+      exact wd_of (hout' c hc)
+    refine ⟨by rw [hins, keccakIns_eq]; rfl, oC, hlen, ?_⟩
+    rw [ei]
+    exact ⟨hk.1, fun c hc ↦ (eo c hc).trans (hk.2 c hc)⟩
   · exact absurd hp Bool.false_ne_true
 
 theorem neOk_sound (hB : BookHolds L fp B) {x i p : ℕ} (h : neOk B x i p = true) :
@@ -516,8 +518,8 @@ theorem atomOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {
   | rangeCheck x y t1 t2 k => exact rangeOk_sound hB h
   | assertInK a b => exact inKOk_sound hB h
   | keccak ins outs inOdd outOdd =>
-    obtain ⟨h1, h2, h3⟩ := keccakOk_sound hB h
-    refine ⟨by simpa [cellsOf] using h1, by simpa [cellsOf] using h2, ?_⟩
+    obtain ⟨h1, oc, h2, h3⟩ := keccakOk_sound hB h
+    refine ⟨by simpa [cellsOf] using h1, oc, by simpa [cellsOf] using h2, ?_⟩
     simp only [cellsOf, List.map_map] at h3
     exact h3
   | frameAddr p run => exact addrOk_sound hF hB hψ h

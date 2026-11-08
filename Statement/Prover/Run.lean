@@ -40,7 +40,7 @@ def sibling (i : ℕ) : ℕ := if i % 2 = 0 then i + 1 else i - 1
 /-- The root of a tree. -/
 def Tree.root (t : Tree) : Digest := (t.levels.getD t.height #[]).getD 0 default
 
-/-- The opening of a tree at position `q` (`open`, `crates/fiat_shamir/src/merkle.rs:52-69`): the
+/-- The opening of a tree at position `q` (`open`, `crates/fiat_shamir/src/merkle.rs:51-68`): the
 position, the row at `q`'s low `height` bits and its authentication path, leaf level first. -/
 def Tree.opening (t : Tree) (q : ℕ) : Opening :=
   let i := q % 2 ^ t.height

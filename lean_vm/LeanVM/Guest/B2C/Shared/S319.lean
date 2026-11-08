@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L15_L7`, window 4. -/
-theorem w926_4 : shareWin 926 (snapsOf 926) 4 = true := by decide +kernel
+/-- `__loop416`, window 1. -/
+theorem w943_1 : shareWin 943 (snapsOf 943) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop407`, once. -/
-theorem st927 : shareStatic 927 = true := by decide +kernel
+/-- `__loop416`, window 2. -/
+theorem w943_2 : shareWin 943 (snapsOf 943) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop407`, window 0. -/
-theorem w927_0 : shareWin 927 (snapsOf 927) 0 = true := by decide +kernel
+/-- `__loop416`, window 3. -/
+theorem w943_3 : shareWin 943 (snapsOf 943) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop407`, window 1. -/
-theorem w927_1 : shareWin 927 (snapsOf 927) 1 = true := by decide +kernel
+/-- `__loop417`, once. -/
+theorem st944 : shareStatic 944 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop407`, window 2. -/
-theorem w927_2 : shareWin 927 (snapsOf 927) 2 = true := by decide +kernel
+/-- `__loop417`, window 0. -/
+theorem w944_0 : shareWin 944 (snapsOf 944) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop407`, window 3. -/
-theorem w927_3 : shareWin 927 (snapsOf 927) 3 = true := by decide +kernel
+/-- `__loop417`, window 1. -/
+theorem w944_1 : shareWin 944 (snapsOf 944) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L16_L7`, once. -/
-theorem st928 : shareStatic 928 = true := by decide +kernel
+/-- `__loop417`, window 2. -/
+theorem w944_2 : shareWin 944 (snapsOf 944) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L16_L7`, window 0. -/
-theorem w928_0 : shareWin 928 (snapsOf 928) 0 = true := by decide +kernel
+/-- `__loop417`, window 3. -/
+theorem w944_3 : shareWin 944 (snapsOf 944) 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

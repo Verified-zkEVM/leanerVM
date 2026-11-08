@@ -37,8 +37,8 @@ def tableWidth : ℕ → ℕ
   | 2 => 8
   | 3 => 15
   | 4 => 14
-  | 5 => 90
-  | _ => 90
+  | 5 => 92
+  | _ => 92
 
 /-- The instance's opcode tables have these widths. -/
 theorem width_opIdx_eq : ∀ j : Fin 6, width (opIdx j) = tableWidth j := by decide +kernel
@@ -59,7 +59,7 @@ theorem globalColumnBases_getD : ∀ j : Fin 6, globalColumnBases.getD j 0 = tab
 
 /-- The columns, by number. -/
 theorem colsOf_getD {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (n : ℕ)
-    (hn : n < 163) :
+    (hn : n < 165) :
     (colsOf img acc logs).getD n #[] =
       columnAt img acc logs (midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0))
         (outStates (acc.tabs.getD 5 #[]) (midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0))) n := by
@@ -71,8 +71,8 @@ otherwise. -/
 theorem columnAt_base {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
     (mids outs : Array KeccakState) (j : ℕ) (hj : j < 6) (i : ℕ) (hi : i < tableWidth j) :
     columnAt img acc logs mids outs (tableBase j + i) =
-      if j = 5 ∧ 38 ≤ i ∧ i < 63 then
-        Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 38)
+      if j = 5 ∧ 40 ≤ i ∧ i < 65 then
+        Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 40)
       else tableColumn (acc.tabs.getD j #[]) (logs.getD j 0) i := by
   have hb : 6 ≤ tableBase j := by interval_cases j <;> decide
   have hidx : tableIndexOf (tableBase j + i) = j := by
@@ -115,8 +115,8 @@ theorem column_toArray_out (c : Col) (h : IsOut c) :
         c).values.toArray =
       Array.ofFn (n := 2 ^ (witnessSizes w hp).τ 5) fun x ↦
         stateLanes (keccakSegment 1 (keccakSegment 0
-          (laneState fun l : Fin 25 ↦ cellOf (tableAt w 5) x (13 + l.val))))
-          ⟨c.2.val - 38, by have := h.2.2; omega⟩ := by
+          (laneState fun l : Fin 25 ↦ cellOf (tableAt w 5) x (15 + l.val))))
+          ⟨c.2.val - 40, by have := h.2.2; omega⟩ := by
   obtain ⟨j, i⟩ := c
   obtain ⟨hj, h38, h63⟩ := h
   change j = opIdx 5 at hj
@@ -222,7 +222,7 @@ theorem qkeccak_trace (hv : ValidExecution prog input t) {logs : List ℕ}
   · rw [midStates_getD _ _ _ hx]
     have hin : (fun l : Fin 25 ↦ cellAt ((traceRows t).tabs.getD 5 #[])
         (i.val % 2 ^ (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).τ 5)
-        (13 + l.val)) = inLaneOf prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))
+        (15 + l.val)) = inLaneOf prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))
           (traceWitness prog input t)
           (i.val % 2 ^ (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).τ 5) :=
       funext fun l ↦ by rw [inLaneOf_eq _ (traceWitness_pos hv)]; exact cellAt_eq hR _ _
@@ -276,7 +276,7 @@ theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
       (pyCol_opIdx ⟨j, hj6⟩ ⟨i, hi⟩).trans (congrArg (· + i) (globalColumnBases_getD ⟨j, hj6⟩))
     refine (congrArg (columnAt t.memory (traceRows t) logs _ _) hpy).trans
       ((columnAt_base _ _ _ _ _ j hj6 i hiw).trans ?_)
-    by_cases hout : j = 5 ∧ 38 ≤ i ∧ i < 63
+    by_cases hout : j = 5 ∧ 40 ≤ i ∧ i < 65
     · rw [ite_eq_left hout]
       obtain ⟨rfl, h38, h63⟩ := hout
       have hO : IsOut ⟨opIdx 5, ⟨i, hi⟩⟩ := ⟨rfl, h38, h63⟩
@@ -287,11 +287,11 @@ theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
       congr 1
       funext x
       rw [outStates_getD _ _ _ x.isLt]
-      have hin : (fun l : Fin 25 ↦ cellAt ((traceRows t).tabs.getD 5 #[]) x.val (13 + l.val)) =
-          fun l : Fin 25 ↦ cellOf (tableAt (traceWitness prog input t) 5) x (13 + l.val) :=
+      have hin : (fun l : Fin 25 ↦ cellAt ((traceRows t).tabs.getD 5 #[]) x.val (15 + l.val)) =
+          fun l : Fin 25 ↦ cellOf (tableAt (traceWitness prog input t) 5) x (15 + l.val) :=
         funext fun l ↦ cellAt_eq (tabs_trace' hv 5 (by omega)) _ _
       exact congrArg (fun L ↦ laneK (keccakSegment 1 (keccakSegment 0 (laneState L)))
-        (i - 38)) hin
+        (i - 40)) hin
     · rw [ite_eq_right hout]
       have hO : ¬ IsOut ⟨opIdx ⟨j, hj6⟩, ⟨i, hi⟩⟩ := fun h ↦ hout ⟨by
         have := congrArg Fin.val h.1; simp [opIdx] at this; omega, h.2⟩

@@ -277,10 +277,10 @@ the block's nine cells (the capacity cells unchanged) permute to the cells of
 `absorbBlock S (blockBytes inOdd blk)`, in the output layout. -/
 theorem keccak_block {S : KeccakState} {inOdd outOdd : Bool} {blk : List E} {I O : Fin 13 → E}
     (hI : ∀ c : Fin 13, I c = cellsOfState S inOdd c + if c.val < 9 then blk.getD c 0 else 0)
-    (h : KeccakCellsRelation I inOdd O outOdd) :
+    (h : KeccakCellsRelation I inOdd O outOdd .all) :
     O = cellsOfState (absorbBlock S (blockBytes inOdd blk)) outOdd := by
   funext c
-  rw [h.2 c, stateOfCells_xor hI, absorbBlock_eq]
+  rw [h.2 c c.isLt, stateOfCells_xor hI, absorbBlock_eq]
 
 /-- The zero state's cells are zero. -/
 theorem cellsOfState_zero (odd : Bool) (c : Fin 13) :

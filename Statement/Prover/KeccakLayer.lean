@@ -5,7 +5,7 @@ public import Statement.Prover.KeccakTables
 /-!
 # The Keccak prover: a layer
 
-One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1312-1355`): the bits entering χ,
+One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1325-1368`): the bits entering χ,
 the sixteen instances of a pack as a mask per position (`layerMasks`); `G`'s coefficients, χ's
 product of the embedded masks as a carry-less product (`gCoeffs`); the pack rounds and the position
 rounds on tables folded in place; the next claim through `keccakLinearTranspose`.
@@ -198,7 +198,7 @@ def posFold (st : PosState) (c : E) : PosState :=
 
 /-! ## A layer -/
 
-/-- The verifier's batched weights (`verifier.py:1353`) from an equality table. -/
+/-- The verifier's batched weights (`verifier.py:1366`) from an equality table. -/
 def batchWeights (p : List E) (beta : E) : List E :=
   let e := eqTable p
   (List.range keccakBits).map fun j ↦

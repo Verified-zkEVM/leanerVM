@@ -60,10 +60,11 @@ def LHolds : LAtom → Prop
           some v2 ∧
       rdc L fp k = some (vx * vy)
   | .inK a b => ∃ va vb, rdc L fp a = some va ∧ IsInK va ∧ rdc L fp b = some vb ∧ IsInK vb
-  | .keccak ins outs inOdd outOdd => outs.length = 13 ∧ ∃ input output : Fin 13 → E,
+  | .keccak ins outs inOdd outOdd => ∃ oc : KeccakOutputCells, outs.length = oc.cellCount ∧
+      ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, rdc L fp (ins.getD c 0) = some (input c)) ∧
-      (∀ c : Fin 13, rdc L fp (outs.getD c 0) = some (output c)) ∧
-      KeccakCellsRelation input inOdd output outOdd
+      (∀ c : Fin 13, c.val < oc.cellCount → rdc L fp (outs.getD c 0) = some (output c)) ∧
+      KeccakCellsRelation input inOdd output outOdd oc
   | .addr p run => ∃ c0 rest, run = c0 :: rest ∧ rdc L fp p = some (ofK (addressOfIndex (fp + c0)))
   | .none => True
 
@@ -679,20 +680,21 @@ theorem derefPc_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 : �
   exact deref_holds hq (isInK_ofK _) hv (by rw [limb_ofK0, derefSource_pc]; exact hfc)
 
 theorem keccak_sound (hst : CWOk L fp X st) {pc m0 m1 m2 m3 tail b8 cap out : ℕ}
-    {inOdd outOdd : Bool}
-    (h : justI X st pc (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd) = true) :
-    Guest.Holds L pc (addressOfIndex fp) (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd) := by
+    {inOdd outOdd : Bool} {oC : KeccakOutputCells}
+    (h : justI X st pc (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oC) = true) :
+    Guest.Holds L pc (addressOfIndex fp) (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oC) := by
   obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
   have hh := (hst.book out x hx).1
   split at hp
   · simp only [Bool.and_eq_true, beq_iff_eq] at hp
     obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := hp
-    obtain ⟨-, input, output, hin, hout, hk⟩ := hh
-    refine ⟨input, output, fun c ↦ ?_, fun c ↦ ?_, hk⟩
+    obtain ⟨oc, hlen, input, output, hin, hout, hk⟩ := hh
+    obtain rfl : oc = oC := Core.cellCount_injective (by rw [← hlen, keccakOuts_length])
+    refine ⟨input, output, fun c ↦ ?_, fun c hc ↦ ?_, hk⟩
     · rw [← keccakIns_getD _ _ _ _ _ _ _ c.isLt]
       exact hin c
-    · rw [← keccakOuts_getD _ c.isLt]
-      exact hout c
+    · rw [← keccakOuts_getD _ _ hc]
+      exact hout c hc
   · cases hp
 
 /-- **A justified instruction holds.** -/

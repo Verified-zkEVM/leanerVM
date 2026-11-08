@@ -79,19 +79,19 @@ impl Out {
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
     fn statement(&mut self, p: &EthereumProof) {
         self.tag("xmss");
-        self.n(p.xmss_signers.len());
-        for (pk, m) in &p.xmss_signers {
+        self.n(p.claims.xmss.len());
+        for (pk, m) in &p.claims.xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("sphincs");
-        self.n(p.lean_sphincs_signers.len());
-        for (pk, m) in &p.lean_sphincs_signers {
+        self.n(p.claims.lean_sphincs.len());
+        for (pk, m) in &p.claims.lean_sphincs {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("da");
-        self.bytes(&verifier::da::digest(p.da_root));
+        self.bytes(&verifier::da::digest(p.claims.da_commitment));
         self.deferred(&p.defer);
     }
 
@@ -174,7 +174,7 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.statement(verifier::da::digest(node.da_root)));
+    out.es(&node.vm_public_input());
     out.tag("statement");
     out.statement(&node);
 
@@ -184,7 +184,7 @@ fn export(
     for child in &children {
         out.tag("child");
         out.statement(child);
-        let pi = child.statement(verifier::da::digest(child.da_root));
+        let pi = child.vm_public_input();
         let scalar = scalar_proof(&child.proof);
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
@@ -237,7 +237,7 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs));
+    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("a whole number of blob rows"));
     out.tag("da_witness");
     match &direct {
         Some((root, witness)) => {
