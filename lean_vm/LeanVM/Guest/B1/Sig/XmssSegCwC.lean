@@ -122,7 +122,7 @@ theorem armM_snd_ge (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (f
       (walksT W slots first k st n 0 (if fold then b + 1 else b)).2 := fun st => by
     rw [walksT_snd, walkBase_eq]; omega
   have hb : b ≤ (if fold then b + 1 else b) := by split <;> omega
-  have h := hw (if k = 0 then W.size + 13 else W.size)
+  have h := hw (if k = 0 then W.size + 1 else W.size)
   unfold armM
   by_cases hk : k % 4 ^ n = 0 <;> simp only [hk, ↓reduceIte] <;> omega
 

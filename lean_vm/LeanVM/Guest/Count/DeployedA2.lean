@@ -18,10 +18,10 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 @[expose] public section
 
 /-- The claim lists' last digests' words. -/
-theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = 2530 := by decide +kernel
+theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = 2343 := by decide +kernel
 
 /-- The children's claim lists' last digests' frames. -/
-theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = 4348 := by decide +kernel
+theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = 4161 := by decide +kernel
 
 end
 end LeanVM.Guest.Count

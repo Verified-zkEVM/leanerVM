@@ -16,35 +16,35 @@ namespace LeanVM.Guest.B2C.Cplw
 @[expose] public section
 
 /-- `__loop2`, window 39, arms 129 to 144. -/
-theorem cg37_39_8 : cplWinS 37 39 129 145 14848 1840 0 128 = true :=
+theorem cg37_39_8 : cplWinS 37 39 129 145 4000 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 145 to 160. -/
-theorem cg37_39_9 : cplWinS 37 39 145 161 16688 1840 0 128 = true :=
+theorem cg37_39_9 : cplWinS 37 39 145 161 4496 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 161 to 176. -/
-theorem cg37_39_10 : cplWinS 37 39 161 177 18528 1840 0 128 = true :=
+theorem cg37_39_10 : cplWinS 37 39 161 177 4992 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 177 to 192. -/
-theorem cg37_39_11 : cplWinS 37 39 177 193 20368 1840 0 128 = true :=
+theorem cg37_39_11 : cplWinS 37 39 177 193 5488 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 193 to 208. -/
-theorem cg37_39_12 : cplWinS 37 39 193 209 22208 1840 0 128 = true :=
+theorem cg37_39_12 : cplWinS 37 39 193 209 5984 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 209 to 224. -/
-theorem cg37_39_13 : cplWinS 37 39 209 225 24048 1840 0 128 = true :=
+theorem cg37_39_13 : cplWinS 37 39 209 225 6480 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 225 to 240. -/
-theorem cg37_39_14 : cplWinS 37 39 225 241 25888 1840 0 128 = true :=
+theorem cg37_39_14 : cplWinS 37 39 225 241 6976 496 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 /-- `__loop2`, window 39, arms 241 to 255. -/
-theorem cg37_39_15 : cplWinS 37 39 241 256 27728 1725 0 128 = true :=
+theorem cg37_39_15 : cplWinS 37 39 241 256 7472 465 0 32 = true :=
   cplWinS_of_pre Checked.x37_39_eq (by decide +kernel)
 
 end

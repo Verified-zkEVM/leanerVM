@@ -62,7 +62,7 @@ def sTag (i : Nat) : V :=
 /-- The range bound `g^255` of an `8`-bit dispatch, a reduced word. -/
 def bound255 : E := word 9223372036854810629 0 0
 
-/-- leanXMSS's chain step: `keccak([P, steps s], [v, tag i], walks[o:o + 13])` (`walk`,
+/-- leanXMSS's chain step: `keccak([P, steps s], [v, tag i], walks[o:o + 1])` (`walk`,
 `lean_ethereum.py:3591-3595`), its constant at `c`. -/
 def sWots (steps : Nat → V) : WotsT where
   step i s v c o := k64 sLxPad sLxPP (steps s) v (sTag i) c o
@@ -80,7 +80,7 @@ def sPrologue : List Stmt :=
 `armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
 def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
-  let ws := walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b)
   let enc0 := if fold then V.n b else encIn
   let pre := if fold then [cst b (word 0 0 0)] else []
@@ -145,19 +145,19 @@ def lxLevelT (w k r : Nat) (cur : V) (outO : Option Nat) (b : Nat) : List Stmt �
   let ord := fun (sib : V) => if k / 2 ^ r % 2 = 0 then (cur, sib) else (sib, cur)
   if w + 1 = 4 then
     let o := if r + 1 = 8 then outO.getD (b + 3) else b + 3
-    let nb := if r + 1 = 8 ∧ outO.isSome then b + 3 else b + 16
+    let nb := if r + 1 = 8 ∧ outO.isSome then b + 3 else b + 4
     ([hintW "lx_path" [.n b], cst (b + 1) c] ++
       k64 sLxPad sLxPP (.n (b + 1)) (ord (.n b)).1 (ord (.n b)).2 (b + 2) o, nb, .n o)
   else if r + 1 = 8 then
     let o := outO.getD (b + 4)
-    let nb := if outO.isSome then b + 4 else b + 17
+    let nb := if outO.isSome then b + 4 else b + 5
     ([cst b c, addS (.n (b + 1)) (sHis (w + 1)) (.n b), hintW "lx_path" [.n (b + 2)]] ++
       k64 sLxPad sLxPP (.n (b + 1)) (ord (.n (b + 2))).1 (ord (.n (b + 2))).2 (b + 3) o, nb, .n o)
   else
     ([mulS (.n b) (sHis (w + 1)) (sPower (7 - r)), cst (b + 1) c, addS (.n (b + 2)) (.n b) (.n (b + 1)),
       hintW "lx_path" [.n (b + 3)]] ++
       k64 sLxPad sLxPP (.n (b + 2)) (ord (.n (b + 3))).1 (ord (.n (b + 3))).2 (b + 4) (b + 5),
-      b + 18, .n (b + 5))
+      b + 6, .n (b + 5))
 
 /-- Levels `r ..< r + m` of window `w` in arm `k`. -/
 def lxLevelsT (w k : Nat) (outO : Option Nat) : Nat → Nat → V → Nat → List Stmt × Nat × V
@@ -185,7 +185,7 @@ def lxArmsT (w : Nat) (cur : V) (o : Nat) : Nat → Nat → Nat → List (List S
       (a.1 :: rest.1, rest.2)
 
 /-- Where arm `0` of window `w` from base `b` numbers `out`. -/
-def lxOut0 (w b : Nat) : Nat := if w + 1 = 4 then b + 115 else b + 130
+def lxOut0 (w b : Nat) : Nat := if w + 1 = 4 then b + 31 else b + 46
 
 /-- Window `w` from base `b`, from the node `cur` (`lean_ethereum.py:3744-3753`): the range check,
 the hoisted `2^63` and the dispatch over `256` arms. The statements, the next base and `out`. -/
@@ -205,7 +205,7 @@ def sDigest0 (b : Nat) : List Stmt :=
     cst (b + 9) (word (2 ^ 63) 0 0)] ++
   (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0)) ++
   [kecS [sLxPP, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
-    .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 13) false false]
+    .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def sDigest1 (b : Nat) (root : V) : List Stmt :=
@@ -213,7 +213,7 @@ def sDigest1 (b : Nat) (root : V) : List Stmt :=
     cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
   k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
-def sA (layer b : Nat) : Nat := if layer = 0 then b + 28 else b + 19
+def sA (layer b : Nat) : Nat := if layer = 0 then b + 16 else b + 7
 def sLxIdx (layer b : Nat) : V := if layer = 0 then sHis 0 else .n (b + 1)
 def sD0 (layer b : Nat) : V := if layer = 0 then .n (b + 15) else .n (b + 6)
 def sRho (layer b : Nat) : V := if layer = 0 then .n b else .n (b + 2)
@@ -256,10 +256,10 @@ def l2Pre : List Stmt :=
 /-- `__loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
-  [cst 211052 (word 2 0 0), mulS (.n 211053) (.n 0) (.n 211052),
-    addS (.n 211054) (.n 211053) (.n 1), cst 211055 (word 2 0 0),
-    mulS (.n 211056) (.n 0) (.n 211055),
-    .callIf (.n 211054) "__loop2" (.n 211056 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
+  [cst 120764 (word 2 0 0), mulS (.n 120765) (.n 0) (.n 120764),
+    addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0 0),
+    mulS (.n 120768) (.n 0) (.n 120767),
+    .callIf (.n 120766) "__loop2" (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
 
 end
 end LeanVM.Guest.B1.Sig

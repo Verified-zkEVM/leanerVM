@@ -33,7 +33,7 @@ theorem dvC_eq : dvC B2C.fs wSB = 186001 := by
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
-theorem dvS_eq : dvS B2C.fs wSK = 218735 := by
+theorem dvS_eq : dvS B2C.fs wSK = 215776 := by
   unfold dvS B1.Main.iterK
   rw [fs_idx (j := 387) (f := "__loop21") (by decide +kernel),
     fs_idx (j := 389) (f := "__loop23") (by decide +kernel),
@@ -46,7 +46,7 @@ theorem dvS_eq : dvS B2C.fs wSK = 218735 := by
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
-theorem dvP_eq : dvP B2C.fs wSB wSK = 101 := by
+theorem dvP_eq : dvP B2C.fs wSB wSK = 82 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
     fs_idx (j := 390) (f := "__loop24") (by decide +kernel),

@@ -409,91 +409,6 @@ public import LeanVM.Guest.B2C.Shared.S397
 public import LeanVM.Guest.B2C.Shared.S398
 public import LeanVM.Guest.B2C.Shared.S399
 public import LeanVM.Guest.B2C.Shared.S400
-public import LeanVM.Guest.B2C.Shared.S401
-public import LeanVM.Guest.B2C.Shared.S402
-public import LeanVM.Guest.B2C.Shared.S403
-public import LeanVM.Guest.B2C.Shared.S404
-public import LeanVM.Guest.B2C.Shared.S405
-public import LeanVM.Guest.B2C.Shared.S406
-public import LeanVM.Guest.B2C.Shared.S407
-public import LeanVM.Guest.B2C.Shared.S408
-public import LeanVM.Guest.B2C.Shared.S409
-public import LeanVM.Guest.B2C.Shared.S410
-public import LeanVM.Guest.B2C.Shared.S411
-public import LeanVM.Guest.B2C.Shared.S412
-public import LeanVM.Guest.B2C.Shared.S413
-public import LeanVM.Guest.B2C.Shared.S414
-public import LeanVM.Guest.B2C.Shared.S415
-public import LeanVM.Guest.B2C.Shared.S416
-public import LeanVM.Guest.B2C.Shared.S417
-public import LeanVM.Guest.B2C.Shared.S418
-public import LeanVM.Guest.B2C.Shared.S419
-public import LeanVM.Guest.B2C.Shared.S420
-public import LeanVM.Guest.B2C.Shared.S421
-public import LeanVM.Guest.B2C.Shared.S422
-public import LeanVM.Guest.B2C.Shared.S423
-public import LeanVM.Guest.B2C.Shared.S424
-public import LeanVM.Guest.B2C.Shared.S425
-public import LeanVM.Guest.B2C.Shared.S426
-public import LeanVM.Guest.B2C.Shared.S427
-public import LeanVM.Guest.B2C.Shared.S428
-public import LeanVM.Guest.B2C.Shared.S429
-public import LeanVM.Guest.B2C.Shared.S430
-public import LeanVM.Guest.B2C.Shared.S431
-public import LeanVM.Guest.B2C.Shared.S432
-public import LeanVM.Guest.B2C.Shared.S433
-public import LeanVM.Guest.B2C.Shared.S434
-public import LeanVM.Guest.B2C.Shared.S435
-public import LeanVM.Guest.B2C.Shared.S436
-public import LeanVM.Guest.B2C.Shared.S437
-public import LeanVM.Guest.B2C.Shared.S438
-public import LeanVM.Guest.B2C.Shared.S439
-public import LeanVM.Guest.B2C.Shared.S440
-public import LeanVM.Guest.B2C.Shared.S441
-public import LeanVM.Guest.B2C.Shared.S442
-public import LeanVM.Guest.B2C.Shared.S443
-public import LeanVM.Guest.B2C.Shared.S444
-public import LeanVM.Guest.B2C.Shared.S445
-public import LeanVM.Guest.B2C.Shared.S446
-public import LeanVM.Guest.B2C.Shared.S447
-public import LeanVM.Guest.B2C.Shared.S448
-public import LeanVM.Guest.B2C.Shared.S449
-public import LeanVM.Guest.B2C.Shared.S450
-public import LeanVM.Guest.B2C.Shared.S451
-public import LeanVM.Guest.B2C.Shared.S452
-public import LeanVM.Guest.B2C.Shared.S453
-public import LeanVM.Guest.B2C.Shared.S454
-public import LeanVM.Guest.B2C.Shared.S455
-public import LeanVM.Guest.B2C.Shared.S456
-public import LeanVM.Guest.B2C.Shared.S457
-public import LeanVM.Guest.B2C.Shared.S458
-public import LeanVM.Guest.B2C.Shared.S459
-public import LeanVM.Guest.B2C.Shared.S460
-public import LeanVM.Guest.B2C.Shared.S461
-public import LeanVM.Guest.B2C.Shared.S462
-public import LeanVM.Guest.B2C.Shared.S463
-public import LeanVM.Guest.B2C.Shared.S464
-public import LeanVM.Guest.B2C.Shared.S465
-public import LeanVM.Guest.B2C.Shared.S466
-public import LeanVM.Guest.B2C.Shared.S467
-public import LeanVM.Guest.B2C.Shared.S468
-public import LeanVM.Guest.B2C.Shared.S469
-public import LeanVM.Guest.B2C.Shared.S470
-public import LeanVM.Guest.B2C.Shared.S471
-public import LeanVM.Guest.B2C.Shared.S472
-public import LeanVM.Guest.B2C.Shared.S473
-public import LeanVM.Guest.B2C.Shared.S474
-public import LeanVM.Guest.B2C.Shared.S475
-public import LeanVM.Guest.B2C.Shared.S476
-public import LeanVM.Guest.B2C.Shared.S477
-public import LeanVM.Guest.B2C.Shared.S478
-public import LeanVM.Guest.B2C.Shared.S479
-public import LeanVM.Guest.B2C.Shared.S480
-public import LeanVM.Guest.B2C.Shared.S481
-public import LeanVM.Guest.B2C.Shared.S482
-public import LeanVM.Guest.B2C.Shared.S483
-public import LeanVM.Guest.B2C.Shared.S484
-public import LeanVM.Guest.B2C.Shared.S485
 public import LeanVM.Guest.B2C.Shared.H37_17_0
 public import LeanVM.Guest.B2C.Shared.H37_17_8
 public import LeanVM.Guest.B2C.Shared.T37_17
@@ -510,8 +425,6 @@ public import LeanVM.Guest.B2C.Shared.N37
 public import LeanVM.Guest.B2C.Shared.B37_0
 public import LeanVM.Guest.B2C.Shared.B37_1
 public import LeanVM.Guest.B2C.Shared.B37_2
-public import LeanVM.Guest.B2C.Shared.B37_3
-public import LeanVM.Guest.B2C.Shared.B37_4
 public import LeanVM.Guest.B2C.Shared.B37
 
 namespace LeanVM.Guest.B2C.Shared
@@ -519,12 +432,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 theorem ok1 : ShareOk 1 := ⟨st1, fun i hi ↦ by
-  have h : (snapsOf 1).length = 2 := by decide +kernel
+  have h : (snapsOf 1).length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1_0
   · exact w1_1
-  · exact w1_2
 ⟩
 
 theorem ok10 : ShareOk 10 := ⟨st10, fun i hi ↦ by
@@ -647,7 +559,7 @@ theorem ok20 : ShareOk 20 := ⟨st20, fun i hi ↦ by
 ⟩
 
 theorem ok21 : ShareOk 21 := ⟨st21, fun i hi ↦ by
-  have h : (snapsOf 21).length = 44 := by decide +kernel
+  have h : (snapsOf 21).length = 40 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -691,10 +603,6 @@ theorem ok21 : ShareOk 21 := ⟨st21, fun i hi ↦ by
   · exact w21_38
   · exact w21_39
   · exact w21_40
-  · exact w21_41
-  · exact w21_42
-  · exact w21_43
-  · exact w21_44
 ⟩
 
 theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
@@ -1436,12 +1344,11 @@ theorem ok435 : ShareOk 435 := ⟨st435, fun i hi ↦ by
 ⟩
 
 theorem ok439 : ShareOk 439 := ⟨st439, fun i hi ↦ by
-  have h : (snapsOf 439).length = 2 := by decide +kernel
+  have h : (snapsOf 439).length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w439_0
   · exact w439_1
-  · exact w439_2
 ⟩
 
 theorem ok440 : ShareOk 440 := ⟨st440, fun i hi ↦ by
@@ -1450,14 +1357,6 @@ theorem ok440 : ShareOk 440 := ⟨st440, fun i hi ↦ by
   interval_cases i
   · exact w440_0
   · exact w440_1
-⟩
-
-theorem ok443 : ShareOk 443 := ⟨st443, fun i hi ↦ by
-  have h : (snapsOf 443).length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w443_0
-  · exact w443_1
 ⟩
 
 theorem ok444 : ShareOk 444 := ⟨st444, fun i hi ↦ by
@@ -1794,7 +1693,7 @@ theorem ok550 : ShareOk 550 := ⟨st550, fun i hi ↦ by
 ⟩
 
 theorem ok554 : ShareOk 554 := ⟨st554, fun i hi ↦ by
-  have h : (snapsOf 554).length = 5 := by decide +kernel
+  have h : (snapsOf 554).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w554_0
@@ -1802,7 +1701,6 @@ theorem ok554 : ShareOk 554 := ⟨st554, fun i hi ↦ by
   · exact w554_2
   · exact w554_3
   · exact w554_4
-  · exact w554_5
 ⟩
 
 theorem ok555 : ShareOk 555 := ⟨st555, fun i hi ↦ by
@@ -3226,7 +3124,7 @@ theorem ok927 : ShareOk 927 := ⟨st927, fun i hi ↦ by
 ⟩
 
 theorem ok928 : ShareOk 928 := ⟨st928, fun i hi ↦ by
-  have h : (snapsOf 928).length = 5 := by decide +kernel
+  have h : (snapsOf 928).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w928_0
@@ -3234,7 +3132,6 @@ theorem ok928 : ShareOk 928 := ⟨st928, fun i hi ↦ by
   · exact w928_2
   · exact w928_3
   · exact w928_4
-  · exact w928_5
 ⟩
 
 theorem ok929 : ShareOk 929 := ⟨st929, fun i hi ↦ by
@@ -3443,23 +3340,21 @@ theorem ok956 : ShareOk 956 := ⟨st956, fun i hi ↦ by
 ⟩
 
 theorem ok957 : ShareOk 957 := ⟨st957, fun i hi ↦ by
-  have h : (snapsOf 957).length = 3 := by decide +kernel
+  have h : (snapsOf 957).length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w957_0
   · exact w957_1
   · exact w957_2
-  · exact w957_3
 ⟩
 
 theorem ok958 : ShareOk 958 := ⟨st958, fun i hi ↦ by
-  have h : (snapsOf 958).length = 3 := by decide +kernel
+  have h : (snapsOf 958).length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w958_0
   · exact w958_1
   · exact w958_2
-  · exact w958_3
 ⟩
 
 theorem ok959 : ShareOk 959 := ⟨st959, fun i hi ↦ by
@@ -3472,13 +3367,12 @@ theorem ok959 : ShareOk 959 := ⟨st959, fun i hi ↦ by
 ⟩
 
 theorem ok960 : ShareOk 960 := ⟨st960, fun i hi ↦ by
-  have h : (snapsOf 960).length = 3 := by decide +kernel
+  have h : (snapsOf 960).length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w960_0
   · exact w960_1
   · exact w960_2
-  · exact w960_3
 ⟩
 
 theorem ok961 : ShareOk 961 := ⟨st961, fun i hi ↦ by
@@ -3622,7 +3516,7 @@ theorem ok973 : ShareOk 973 := ⟨st973, fun i hi ↦ by
 ⟩
 
 theorem ok974 : ShareOk 974 := ⟨st974, fun i hi ↦ by
-  have h : (snapsOf 974).length = 5 := by decide +kernel
+  have h : (snapsOf 974).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w974_0
@@ -3630,11 +3524,10 @@ theorem ok974 : ShareOk 974 := ⟨st974, fun i hi ↦ by
   · exact w974_2
   · exact w974_3
   · exact w974_4
-  · exact w974_5
 ⟩
 
 theorem ok975 : ShareOk 975 := ⟨st975, fun i hi ↦ by
-  have h : (snapsOf 975).length = 5 := by decide +kernel
+  have h : (snapsOf 975).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w975_0
@@ -3642,7 +3535,6 @@ theorem ok975 : ShareOk 975 := ⟨st975, fun i hi ↦ by
   · exact w975_2
   · exact w975_3
   · exact w975_4
-  · exact w975_5
 ⟩
 
 theorem ok976 : ShareOk 976 := ⟨st976, fun i hi ↦ by
@@ -3726,7 +3618,7 @@ theorem ok982 : ShareOk 982 := ⟨st982, fun i hi ↦ by
 ⟩
 
 theorem ok983 : ShareOk 983 := ⟨st983, fun i hi ↦ by
-  have h : (snapsOf 983).length = 5 := by decide +kernel
+  have h : (snapsOf 983).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w983_0
@@ -3734,7 +3626,6 @@ theorem ok983 : ShareOk 983 := ⟨st983, fun i hi ↦ by
   · exact w983_2
   · exact w983_3
   · exact w983_4
-  · exact w983_5
 ⟩
 
 theorem ok984 : ShareOk 984 := ⟨st984, fun i hi ↦ by

@@ -17,12 +17,12 @@ public import LeanVM.Guest.B1.Sig.SphincsForsT
 
 `verify_sig_lean_sphincs(signer, byte_bits)` (`G:3979-4079`; `G` is `lean_ethereum.py` at leanVM
 5e3ade21). Its first 1358 statements, through the digest's check, are `sDigestBlock`
-(`SphincsDigestT`); the next value is `n1395`. After them:
+(`SphincsDigestT`); the next value is `n1372`. After them:
 
-* `sForsAddrs` (`G:4056-4057`): `a0_b` at `n1402` (`sA0B`), `key_b` at `n1404` (`sKeyB`);
-* `sForsB` (`G:4059-4064`): `SphincsForsT.sForsBlock` from `n1405`: `fors_at` at `n1406`
+* `sForsAddrs` (`G:4056-4057`): `a0_b` at `n1379` (`sA0B`), `key_b` at `n1381` (`sKeyB`);
+* `sForsB` (`G:4059-4064`): `SphincsForsT.sForsBlock` from `n1382`: `fors_at` at `n1383`
   (`sForsA1`), the 24 trees (tree `c` from `sForsBase c`, its root at `sRootOf c`), `T_k` over the
-  roots, the FORS key at `n8443` (`sForsPk`); the trees read the digest's bits through `sForsBit`
+  roots, the FORS key at `n5248` (`sForsPk`); the trees read the digest's bits through `sForsBit`
   and the values `vals[k]` through `sVals`;
 * `sLayerAt l` (`sp_layer`, `G:3965-3976`), layer `l` from `sLayerBase l`: its counter hinted
   (`sp_counter`) and read (`sFromMarks`, 4 bytes, `sCtrOf l`), then `SphincsForsT.sHtLayer`: the
@@ -50,29 +50,29 @@ def sForsBit (k : Nat) : V := sMdBit (10 * (k / 10) + 9 - k % 10)
 
 /-- `a0_b` (the bottom key's layer `0` and tree: `lvals[8] · 2^120 + tree_mid · 2^112 + lvals[24] ·
 2^104`), `key_b` (its leaf, `lvals[0] · 2^56`), and `fors_at = key_b + SP_FORS_TREE`. -/
-def sA0B : V := .n 1402
-def sKeyB : V := .n 1404
-def sForsA1 : V := .n 1406
+def sA0B : V := .n 1379
+def sKeyB : V := .n 1381
+def sForsA1 : V := .n 1383
 
-/-- `a0_b`, `key_b` (`G:4056-4057`), from `n1395`. -/
+/-- `a0_b`, `key_b` (`G:4056-4057`), from `n1372`. -/
 def sForsAddrs : List Stmt :=
-  [cst 1395 (lit (2 ^ 120)), mulS (.n 1396) (sLVal 8) (.n 1395), cst 1397 (lit (2 ^ 112)),
-    mulS (.n 1398) sTreeMid (.n 1397), addS (.n 1399) (.n 1396) (.n 1398), cst 1400 (lit (2 ^ 104)),
-    mulS (.n 1401) (sLVal 24) (.n 1400), addS sA0B (.n 1399) (.n 1401),
-    cst 1403 (lit (2 ^ 56)), mulS sKeyB (sLVal 0) (.n 1403)]
+  [cst 1372 (lit (2 ^ 120)), mulS (.n 1373) (sLVal 8) (.n 1372), cst 1374 (lit (2 ^ 112)),
+    mulS (.n 1375) sTreeMid (.n 1374), addS (.n 1376) (.n 1373) (.n 1375), cst 1377 (lit (2 ^ 104)),
+    mulS (.n 1378) (sLVal 24) (.n 1377), addS sA0B (.n 1376) (.n 1378),
+    cst 1380 (lit (2 ^ 56)), mulS sKeyB (sLVal 0) (.n 1380)]
 
-/-- FORS (`G:4059-4064`) from `n1405`: the statements, the next base (`n8456`) and the FORS key's
+/-- FORS (`G:4059-4064`) from `n1382`: the statements, the next base (`n5249`) and the FORS key's
 output run's base. -/
-def sForsB : List Stmt × Nat × Nat := sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1405
+def sForsB : List Stmt × Nat × Nat := sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382
 
 /-- Tree `c`'s base, its secret's cell. -/
-def sForsBase (c : Nat) : Nat := 1407 + ((List.range c).map forsTreeW).sum
+def sForsBase (c : Nat) : Nat := 1384 + ((List.range c).map forsTreeW).sum
 
-/-- Tree `c`'s root, `roots[13 c]`: the last level's output, thirteen values before the next tree. -/
-def sRootOf (c : Nat) : V := .n (sForsBase (c + 1) - 13)
+/-- Tree `c`'s root, `roots[c]`: the last level's output, the value before the next tree. -/
+def sRootOf (c : Nat) : V := .n (sForsBase (c + 1) - 1)
 
 /-- The FORS public key, `fors_pk[0]`. -/
-def sForsPk : V := .n 8443
+def sForsPk : V := .n 5248
 
 /-! ## The hypertree -/
 
@@ -81,15 +81,15 @@ def sOffOf (l : Nat) : Nat := sLeafOff l
 def sHeightOf (l : Nat) : Nat := sLeafLen l
 
 /-- Layer `l`'s base, its counter's first mark. -/
-def sLayerBase (l : Nat) : Nat := if l = 0 then 8456 else if l = 1 then 8722 else 8985
+def sLayerBase (l : Nat) : Nat := if l = 0 then 5249 else if l = 1 then 5407 else 5562
 
 /-- Layer `l`'s `a0`, its key pair's `A1` (`sp_wots`'s `a1`), its counter, its encoding digest's
 first cell and its leaf (`sp_wots`'s return). -/
-def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 8719 else .n 8984
-def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n 8721 else .n 8983
+def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 5404 else .n 5561
+def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n 5406 else .n 5560
 def sCtrOf (l : Nat) : V := .n (sLayerBase l + 36)
 def sEncOf (l : Nat) : V := .n (sLayerBase l + 46)
-def sLeafOf (l : Nat) : V := .n (sLayerBase l + 59)
+def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47)
 
 /-- The one-time key's leaf, by a call of `sp_wots(pp, a0, a1, encoding)`, at `b`: the call
 `SphincsForsT.sHtLayer` writes. -/
@@ -107,22 +107,22 @@ def sLayerAt (l : Nat) (a0 a1 signed : V) : List Stmt × Nat × V :=
 def sLayerB : List Stmt × Nat × V := sLayerAt 0 sA0B sKeyB sForsPk
 
 /-- `a0_m = SP_LAYER_MUL + tree_mid · 2^120 + lvals[24] · 2^112`, `key_m = lvals[8] · 2^56`
-(`G:4071-4072`), from `n8713`. -/
+(`G:4071-4072`), from `n5398`. -/
 def sMidAddrs : List Stmt :=
-  [cst 8713 (lit (2 ^ 24)), cst 8714 (lit (2 ^ 120)), mulS (.n 8715) sTreeMid (.n 8714),
-    addS (.n 8716) (.n 8713) (.n 8715), cst 8717 (lit (2 ^ 112)),
-    mulS (.n 8718) (sLVal 24) (.n 8717), addS (sA0Of 1) (.n 8716) (.n 8718),
-    cst 8720 (lit (2 ^ 56)), mulS (sA1Of 1) (sLVal 8) (.n 8720)]
+  [cst 5398 (lit (2 ^ 24)), cst 5399 (lit (2 ^ 120)), mulS (.n 5400) sTreeMid (.n 5399),
+    addS (.n 5401) (.n 5398) (.n 5400), cst 5402 (lit (2 ^ 112)),
+    mulS (.n 5403) (sLVal 24) (.n 5402), addS (sA0Of 1) (.n 5401) (.n 5403),
+    cst 5405 (lit (2 ^ 56)), mulS (sA1Of 1) (sLVal 8) (.n 5405)]
 
 /-- The middle layer (`G:4073-4074`), signing the bottom root. -/
 def sLayerM : List Stmt × Nat × V := sLayerAt 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
 
-/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48` (`G:4076`), from `n8979`, then `a0_t = 2 ·
+/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48` (`G:4076`), from `n5556`, then `a0_t = 2 ·
 SP_LAYER_MUL` (`G:4075`): a constant, bound to a value as `sp_layer`'s argument. -/
 def sTopAddrs : List Stmt :=
-  [cst 8979 (lit (2 ^ 56)), mulS (.n 8980) sTreeMid (.n 8979), cst 8981 (lit (2 ^ 48)),
-    mulS (.n 8982) (sLVal 24) (.n 8981), addS (sA1Of 2) (.n 8980) (.n 8982),
-    cst 8984 (lit (2 ^ 25))]
+  [cst 5556 (lit (2 ^ 56)), mulS (.n 5557) sTreeMid (.n 5556), cst 5558 (lit (2 ^ 48)),
+    mulS (.n 5559) (sLVal 24) (.n 5558), addS (sA1Of 2) (.n 5557) (.n 5559),
+    cst 5561 (lit (2 ^ 25))]
 
 /-- The top layer (`G:4077-4078`), signing the middle root. -/
 def sLayerT : List Stmt × Nat × V := sLayerAt 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2

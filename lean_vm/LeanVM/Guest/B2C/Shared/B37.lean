@@ -11,8 +11,6 @@ public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.B2C.Shared.B37_0
 public import LeanVM.Guest.B2C.Shared.B37_1
 public import LeanVM.Guest.B2C.Shared.B37_2
-public import LeanVM.Guest.B2C.Shared.B37_3
-public import LeanVM.Guest.B2C.Shared.B37_4
 
 namespace LeanVM.Guest.B2C.Shared
 

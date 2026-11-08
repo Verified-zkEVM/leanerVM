@@ -264,7 +264,7 @@ theorem kcL3_loop (op : Opcode) :
 /-- `__loop3`'s instructions per iteration. -/
 def kcL4 : Opcode → ℕ
   | .xor => 2084
-  | .mulNative => 1487
+  | .mulNative => 1483
   | .setConstant => 1661
   | .deref => 290
   | .jump => 143
@@ -277,7 +277,7 @@ theorem kcL4_loop (op : Opcode) :
   cases op
   · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwxcertOf "__loop3" = .loop none [] ⟨2084, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwmcertOf "__loop3" = .loop none [] ⟨1487, []⟩ []) hn hv hb ha he hae heo
+  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwmcertOf "__loop3" = .loop none [] ⟨1483, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
   · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwscertOf "__loop3" = .loop none [] ⟨1661, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
@@ -344,9 +344,9 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
 theorem kwExp_totalLe : TotalLe coreProgram B2C.fs "exponent_tables" fun _ => 410 :=
   fs_totalLe (by rw [wcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : wcertOf "exponent_tables" = .stat [] ⟨410, []⟩ [])
 
-/-- **`statement_digest`**: at most 389 words. -/
-theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 389 :=
-  fs_totalLe (by rw [wcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : wcertOf "statement_digest" = .stat [] ⟨389, []⟩ [])
+/-- **`statement_digest`**: at most 378 words. -/
+theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 378 :=
+  fs_totalLe (by rw [wcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : wcertOf "statement_digest" = .stat [] ⟨378, []⟩ [])
 
 /-- **`__loop0`**: at most 18 words per iteration and its run's phantom frame. -/
 theorem kwL1_loopRunLe : LoopRunLe B2C.fs "__loop0" 18 :=
@@ -356,13 +356,13 @@ theorem kwL1_loopRunLe : LoopRunLe B2C.fs "__loop0" 18 :=
 theorem kwL2_loopRunLe : LoopRunLe B2C.fs "__loop1" 18 :=
   kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨18, []⟩ [])
 
-/-- **`__loop2`**: at most 6159 words per iteration and its run's phantom frame. -/
-theorem kwL3_loopRunLe : LoopRunLe B2C.fs "__loop2" 6159 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨6159, []⟩ [])
+/-- **`__loop2`**: at most 1551 words per iteration and its run's phantom frame. -/
+theorem kwL3_loopRunLe : LoopRunLe B2C.fs "__loop2" 1551 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨1551, []⟩ [])
 
-/-- **`__loop3`**: at most 19085 words per iteration and its run's phantom frame. -/
-theorem kwL4_loopRunLe : LoopRunLe B2C.fs "__loop3" 19085 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨19085, []⟩ [])
+/-- **`__loop3`**: at most 8582 words per iteration and its run's phantom frame. -/
+theorem kwL4_loopRunLe : LoopRunLe B2C.fs "__loop3" 8582 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨8582, []⟩ [])
 
 end
 end LeanVM.Guest.Count

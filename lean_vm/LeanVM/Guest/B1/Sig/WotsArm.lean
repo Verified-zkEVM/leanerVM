@@ -62,17 +62,17 @@ theorem ssa_single_atom {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a, v ∉
 /-- **An arm is in single-assignment form.** -/
 theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat → Nat}
     {first n : Nat} {fold : Bool} {prodIn encIn : V} {po eo k b : Nat}
-    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)))
+    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)))
     (hwd : ∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
-      WalkR (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)) x →
-      ¬ WalkR (slots t') (if k = 0 then W.size + 13 else W.size) (dig k t')
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t' (if fold then b + 1 else b)) x)
+      WalkR (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)) x →
+      ¬ WalkR (slots t') (if k = 0 then W.size + 1 else W.size) (dig k t')
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t' (if fold then b + 1 else b)) x)
     (hpi : NBv B prodIn) (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n)))
     (hpe : po ≠ eo) (hpoB : B ≤ po) (heoB : B ≤ eo)
     (hfold : fold = true → b ≠ po ∧ b ≠ eo)
-    (hR : ∀ x, WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x →
+    (hR : ∀ x, WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x →
       x ≠ .n po ∧ x ≠ .n eo ∧ (fold = true → x ≠ .n b) ∧
       (k ≠ 0 → x ≠ .n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2))
     (hws : k ≠ 0 → ¬ NBv B (.n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2) ∧
@@ -81,10 +81,10 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
       (fold = true → (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2 ≠ b)) :
     SSA (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 ∧
       ∀ x ∈ outsList (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1,
-        WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x ∨
+        WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x ∨
         x = .n po ∨ x = .n eo ∨ (fold = true ∧ x = .n b) ∨
         (k ≠ 0 ∧ x = .n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2) := by
-  obtain ⟨w1, w2, w3⟩ := walksT_ssa hW slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  obtain ⟨w1, w2, w3⟩ := walksT_ssa hW slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
   simp only [Nat.zero_add] at w2 w3
   have hnb : ∀ {x : V} {j : Nat}, B ≤ j → x = .n j → ¬ NBv B x := by
@@ -121,23 +121,23 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
     · refine ⟨ssa_single_atom trivial (by simp [aReads]), ?_, ?_⟩ <;>
         simp [cst, Stmt.vals, Atom.vals, outsList, aOuts]
   have hpw : SSA ((if fold = true then [cst b (word 0 0 0)] else []) ++
-      (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold then b + 1 else b)).1) :=
+      (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1) :=
     SSA.append' hpre.1 w1 (P := fun x => fold = true ∧ x = .n b)
-      (Q := WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b))
+      (Q := WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b))
       hpre.2.1 w2 (fun x hx ⟨hf, e⟩ => (hR x hx).2.2.1 hf e)
   have hvpw : ∀ x ∈ Stmt.valsList ((if fold = true then [cst b (word 0 0 0)] else []) ++
-      (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold then b + 1 else b)).1),
+      (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1),
       (fold = true ∧ x = .n b) ∨ NBv B x ∨
-        WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x := by
+        WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x := by
     intro x hx
     rw [valsList_append] at hx
     rcases List.mem_append.mp hx with h | h
     · exact Or.inl (hpre.2.1 x h)
     · exact Or.inr (w3 x h)
   have hopw : ∀ x ∈ outsList ((if fold = true then [cst b (word 0 0 0)] else []) ++
-      (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold then b + 1 else b)).1),
+      (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1),
       (fold = true ∧ x = .n b) ∨
-        WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x := by
+        WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x := by
     intro x hx
     rw [outsList_append] at hx
     rcases List.mem_append.mp hx with h | h
@@ -231,21 +231,21 @@ theorem kcanon_noKec {σ : Val} {ss : List Stmt}
 theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
     (hc : StepCanon W B good) {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool}
     {prodIn encIn : V} {po eo k b : Nat}
-    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)))
+    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)))
     (hwd : ∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
-      WalkR (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)) x →
-      ¬ WalkR (slots t') (if k = 0 then W.size + 13 else W.size) (dig k t')
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t' (if fold then b + 1 else b)) x)
+      WalkR (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)) x →
+      ¬ WalkR (slots t') (if k = 0 then W.size + 1 else W.size) (dig k t')
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t' (if fold then b + 1 else b)) x)
     (hB : B ≤ b)
-    (hR : ∀ x, WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x →
+    (hR : ∀ x, WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x →
       x ≠ .n po ∧ x ≠ .n eo ∧ (fold = true → x ≠ .n b) ∧
       (k ≠ 0 → x ≠ .n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2))
     (hssa : SSA (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1)
     (σ : Val) (hg : good σ)
     (hs : ∀ t < n, StartCanon σ (slots t) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b))) :
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b))) :
     KCanon (fwd (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 σ)
         (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 ∧
       ∀ t < n, IsCanonical128 (fwd (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 σ
@@ -260,7 +260,7 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
     cases fold <;> simp [cst, outsList, aOuts] at hv
     omega) σ
   have hg1 := hc.1 _ _ hσ1 hg
-  have hs1 : ∀ t < n, StartCanon (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) (slots t) (dig k t) (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold = true then b + 1 else b)) := by
+  have hs1 : ∀ t < n, StartCanon (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) (slots t) (dig k t) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold = true then b + 1 else b)) := by
     intro t ht
     have := hs t ht
     unfold StartCanon at this ⊢
@@ -275,15 +275,15 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
           exact Or.inr ⟨2, by omega, 0, by omega, by simp⟩
         · simp only [walkStartV, h3, ↓reduceIte]
           exact Or.inl ⟨0, by simp [walkSize, h3], by simp⟩
-  obtain ⟨w1, w2⟩ := walksT_canon hW hc slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
+  obtain ⟨w1, w2⟩ := walksT_canon hW hc slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
     (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) hg1 (by simpa using hs1)
   simp only [Nat.zero_add] at w2
   have fin : ∀ tail : List Stmt, (∀ x ∈ tail, ∀ ins outs i o, x ≠ .atom (.keccak ins outs i o)) →
       (∀ v ∈ outsList tail, ∀ t < n, v ≠ .n (slots t 2)) →
-      SSA ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) →
-      KCanon (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ)
-          ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) ∧
-        ∀ t < n, IsCanonical128 (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ
+      SSA ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) →
+      KCanon (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ)
+          ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) ∧
+        ∀ t < n, IsCanonical128 (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ
           (.n (slots t 2))) := by
     intro tail hk ho hs'
     refine ⟨KCanon.append (KCanon.append hpreK w1 (SSA.disj (SSA.left hs'))) (kcanon_noKec hk)
@@ -291,7 +291,7 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
     rw [fwd_append, fwd_append, fwd_of_not_mem _ _ fun hm => ho _ hm t ht rfl]
     exact w2 t ht
   have hsplit : (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 =
-      (if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++
+      (if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++
         (if k = 0 then [if fold then copyS (.n po) (W.power (digitSum k n))
             else mulS (.n po) prodIn (W.power (digitSum k n)), copyS (.n eo) (if fold then .n b else encIn)]
           else [if fold then copyS (.n po) (W.power (digitSum k n))
@@ -313,23 +313,23 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
 base and its walks' end. -/
 theorem armT_vals {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat → Nat}
     {first n : Nat} {fold : Bool} {prodIn encIn : V} {po eo k b : Nat}
-    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)))
+    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)))
     (hwd : ∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
-      WalkR (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)) x →
-      ¬ WalkR (slots t') (if k = 0 then W.size + 13 else W.size) (dig k t')
-        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t' (if fold then b + 1 else b)) x)
+      WalkR (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)) x →
+      ¬ WalkR (slots t') (if k = 0 then W.size + 1 else W.size) (dig k t')
+        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t' (if fold then b + 1 else b)) x)
     {P : V → Prop} (hP1 : ∀ x, NBv B x → P x)
-    (hP2 : ∀ x, WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x → P x)
+    (hP2 : ∀ x, WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x → P x)
     (hP3 : P (.n po) ∧ P (.n eo) ∧ P (.n b) ∧ P prodIn ∧ P encIn ∧ P (W.power (digitSum k n)) ∧
       P (.n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2)) :
     ∀ x ∈ Stmt.valsList (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1, P x := by
-  obtain ⟨-, -, w3⟩ := walksT_ssa hW slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  obtain ⟨-, -, w3⟩ := walksT_ssa hW slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
   simp only [Nat.zero_add] at w3
   obtain ⟨p1, p2, p3, p4, p5, p6, p7⟩ := hP3
-  have hw : ∀ x ∈ Stmt.valsList (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+  have hw : ∀ x ∈ Stmt.valsList (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
       (if fold then b + 1 else b)).1, P x := fun x hx => by
     rcases w3 x hx with h | h
     · exact hP1 x h
