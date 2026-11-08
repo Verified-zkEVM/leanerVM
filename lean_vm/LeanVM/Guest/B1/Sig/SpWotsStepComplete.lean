@@ -58,7 +58,7 @@ theorem spWp_shape {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) : StepShape (sp
   intro i s v c o hc ho hco h1 h2
   have hsz : (spWp b).size = 3 := rfl
   rw [hsz] at hco h1 ⊢
-  have hlow : ∀ j < 6, ¬ InR o 13 (.n j) := fun j hj ⟨k, hk, e⟩ => by
+  have hlow : ∀ j < 6, ¬ InR o 1 (.n j) := fun j hj ⟨k, hk, e⟩ => by
     simp only [V.mk.injEq, true_and] at e; omega
   rw [spWp_step]
   split
@@ -139,7 +139,7 @@ theorem spWp_canon {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) :
   have hsz : (spWp b).size = 3 := rfl
   rw [hsz] at hco h1
   have hne : ∀ {x y : Nat}, x ≠ y → V.n x ≠ V.n y := fun h e => h (by simpa using e)
-  have hlow : ∀ j < 6, ¬ InR o 13 (.n j) := fun j hj ⟨k, hk, e⟩ => by
+  have hlow : ∀ j < 6, ¬ InR o 1 (.n j) := fun j hj ⟨k, hk, e⟩ => by
     simp only [V.mk.injEq, true_and] at e; omega
   have hvc : ∀ j < 3, v ≠ .n (c + j) := fun j hj e => h1 ⟨j, hj, e⟩
   have hv0 : v ≠ .n c := by simpa using hvc 0 (by norm_num)

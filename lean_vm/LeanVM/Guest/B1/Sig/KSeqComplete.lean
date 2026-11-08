@@ -37,7 +37,8 @@ def KSeqA (lo : Nat) (X : V → Prop) (b : Nat) : Atom → Nat → Prop
   | .const d c, m => d = .n b ∧ IsCanonical128 c ∧ m = b + 1
   | .add d x y, m => d = .n b ∧ KRd lo X b x ∧ KRd lo X b y ∧ m = b + 1
   | .copy d x, m => d = .n b ∧ KRd lo X b x ∧ m = b + 1
-  | .keccak ins outs _ _, m => outs = runV b 13 ∧ ins.length = 13 ∧ (∀ v ∈ ins, KRd lo X b v) ∧ m = b + 13
+  | .keccak ins outs _ _, m => ∃ n, (n = 1 ∨ n = 2 ∨ n = 13) ∧ outs = runV b n ∧ ins.length = 13 ∧
+      (∀ v ∈ ins, KRd lo X b v) ∧ m = b + n
   | .hint (.witness _ (.stack vs)), m => vs = runV b (m - b) ∧ b ≤ m
   | _, _ => False
 
@@ -72,7 +73,7 @@ theorem KSeqA.le {b m : Nat} {a : Atom} (h : KSeqA lo X b a m) : b ≤ m := by
   | const d c => obtain ⟨-, -, rfl⟩ := h; omega
   | add d x y => obtain ⟨-, -, -, rfl⟩ := h; omega
   | copy d x => obtain ⟨-, -, rfl⟩ := h; omega
-  | keccak ins outs i o => obtain ⟨-, -, -, rfl⟩ := h; omega
+  | keccak ins outs i o => obtain ⟨_, -, -, -, -, rfl⟩ := h; omega
   | hint hh =>
       match hh, h with
       | .witness _ (.stack _), ⟨_, hbm⟩ => exact hbm
@@ -125,7 +126,7 @@ theorem KSeqA.vals {b m : Nat} {a : Atom} (hlo : lo ≤ b) (h : KSeqA lo X b a m
       · exact ⟨b, by omega, rfl⟩
       · exact (hx.nb hlo).mono' (by omega)
   | keccak ins outs i o =>
-      obtain ⟨rfl, -, hin, rfl⟩ := h
+      obtain ⟨_, -, rfl, -, hin, rfl⟩ := h
       simp only [Atom.vals, List.mem_append] at hv
       rcases hv with hv | hv
       · exact ((hin v hv).nb hlo).mono' (by omega)
@@ -202,7 +203,7 @@ theorem kseqA_complete {b m : Nat} {a : Atom} (hlo : lo ≤ b) (h : KSeqA lo X b
       rw [show j = b by omega, hp]
       exact hx.canon hX hin
   | keccak ins outs i o =>
-      obtain ⟨rfl, hl, hin', rfl⟩ := h
+      obtain ⟨n, hn, rfl, hl, hin', rfl⟩ := h
       have hcan : ∀ cc : Fin 13, IsCanonical128 (cells13 (ins.map σ) cc) := by
         intro cc
         simp only [cells13]
@@ -210,7 +211,7 @@ theorem kseqA_complete {b m : Nat} {a : Atom} (hlo : lo ≤ b) (h : KSeqA lo X b
           List.getElem?_eq_getElem (by rw [hl]; exact cc.isLt)]
         simp only [Option.map_some, Option.getD_some]
         exact (hin' _ (List.getElem_mem _)).canon hX hin
-      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (kecS_complete (C := fun _ _ _ => True) (rd := rd) σ b hl
+      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (kecS_complete (C := fun _ _ _ => True) (rd := rd) σ b hn hl
         (fun v hv => (hin' v hv).nb hlo) hcan i o)
       refine ⟨σ', he, ha, fun j h1 h2 => ?_, fun s vs e => by cases e⟩
       rw [show j = b + (j - b) by omega, hp (j - b) (by omega)]
@@ -315,7 +316,7 @@ theorem KSeqA.vals_rd {b m : Nat} {a : Atom} (h : KSeqA lo X b a m) : ∀ v ∈ 
       · exact Or.inr ⟨b, le_rfl, by omega, rfl⟩
       · exact Or.inl (hx.mono (by omega))
   | keccak ins outs i o =>
-      obtain ⟨rfl, -, hin, rfl⟩ := h
+      obtain ⟨_, -, rfl, -, hin, rfl⟩ := h
       simp only [Atom.vals, List.mem_append] at hv
       rcases hv with hv | hv
       · exact Or.inl ((hin v hv).mono (by omega))

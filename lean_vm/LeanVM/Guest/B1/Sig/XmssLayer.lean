@@ -158,7 +158,7 @@ theorem xStep_sound (hpad : PadOK σ xPad) (layer b : Nat) :
     StepSound rd σ (xW layer b)
       (fun i s y => (hcell [σ (.n 1), σ (.n (xA layer b + 2 * s + 1)), y, σ (xTag i)]).1) := by
   intro i s v c o h
-  exact congrArg Prod.fst (k64_sound hpad h)
+  exact k64_sound hpad h
 
 theorem xW_atoms (layer b : Nat) : StepAtoms (xW layer b) := fun _ _ _ _ _ => rfl
 
@@ -368,8 +368,7 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
       rw [hcells]
       exact cellsBytes_getD_past (by simp; omega))
   rw [hcells, List.take_of_length_le (by rw [length_cellsBytes]; simp)] at hleaf
-  have hlo := congrArg Prod.fst hleaf
-  simp only at hlo
+  have hlo := hleaf
   -- the path
   have hmk' : AtomsHold rd σ (merkleT xPad (.n 1) (xBitOf layer) (xNodeOf layer) (xAddrOf layer) 16 0
       (.n (xLeafK layer b).2.2) (xLeafK layer b).2.1).1 := hmk

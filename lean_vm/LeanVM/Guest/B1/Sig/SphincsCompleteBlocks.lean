@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 
   The completeness of `verify_sig_lean_sphincs`'s FORS block and of a layer of its hypertree
-  (`lean_ethereum.py:3841-3976, 4059-4064` at leanVM 5e3ade21), as the statements its assembly
+  (`lean_ethereum.py:3813-3948, 4031-4036` at leanVM PR #724 head 873ee6d8), as the statements its assembly
   consumes; the byte table's pointers.
 -/
 
@@ -23,11 +23,11 @@ from the completeness of each block (`Completes`: a valuation extending the give
 block's fresh values, under which the block holds): the digest block's (`sDigestBlock_complete`)
 and `sp_from_bytes`'s (`sFromMarks_complete`), and the two stated here:
 
-* `ForsBlockCompletes` (`sForsB`, `G:4059-4064`): at the bottom key's `A0` and `A1`, the leaves `s c`
+* `ForsBlockCompletes` (`sForsB`, `G:4031-4036`): at the bottom key's `A0` and `A1`, the leaves `s c`
   (their bits, and their shifts with the trees' places, `fIdx`), any secrets and siblings, the FORS
   key is `T_k` of the roots
   (`forsRootCell`);
-* `HtLayerCompletes` (`sHtLayer`, `G:3969-3976`): a layer whose `sp_wots` call holds of the
+* `HtLayerCompletes` (`sHtLayer`, `G:3941-3948`): a layer whose `sp_wots` call holds of the
   encoding (`encDigestCell`) and a leaf `lv` reaches `pFold` of `pNodeE` from `lv`, along any
   siblings;
 * `SphincsBlocksComplete`: the two.
@@ -77,10 +77,10 @@ theorem TablePtrs.append {bb : E} {σ : Val} {xs ys : List Stmt} (h1 : TablePtrs
 
 /-! ## Positions below the digest block's end -/
 
-theorem sLeafBit_lt {b : Nat} (hb : b < 26) : ∃ k < 1395, sLeafBit b = .n k :=
-  ⟨51 + leafPos b, by have := leafPos_lt hb; omega, sLeafBit_eq hb⟩
+theorem sLeafBit_lt {b : Nat} (hb : b < 26) : ∃ k < 1372, sLeafBit b = .n k :=
+  ⟨28 + leafPos b, by have := leafPos_lt hb; omega, sLeafBit_eq hb⟩
 
-theorem sLVal_below (i : Nat) : ∃ k < 1395, sLVal i = .n k := by
+theorem sLVal_below (i : Nat) : ∃ k < 1372, sLVal i = .n k := by
   unfold sLVal; split_ifs <;> exact ⟨_, by omega, rfl⟩
 
 theorem sOff_lt {l z : Nat} (hl : l < 3) (hz : z < sHeightOf l) : sOffOf l + z < 26 := by
@@ -97,7 +97,7 @@ theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
 
 /-! ## The blocks -/
 
-/-- **FORS completes** (`sForsB`, from `n1405` to `n8456`): at the bottom key's `A0` (`tree`) and
+/-- **FORS completes** (`sForsB`, from `n1382` to `n5249`): at the bottom key's `A0` (`tree`) and
 `A1` (`kp`), the leaves `s c` read off the digest's bits and `vals` (their shifts with the trees'
 places, the FIPS 205 tree indices `fIdx c z (s c)`), any canonical secrets and siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
 def ForsBlockCompletes : Prop :=
@@ -108,7 +108,7 @@ def ForsBlockCompletes : Prop :=
     (∀ c < 24, ∀ z < 10, σ (sForsBit (10 * c + z)) = if (s c).testBit z then 1 else 0) →
     (∀ c < 24, ∀ z < 10, σ (sVals (10 * c + z)) = eOfNat (fIdx c z (s c))) →
     (∀ c, IsCanonical128 (secret c)) → (∀ c z, IsCanonical128 (sib c z)) →
-      Completes C rd 1405 8456 sForsB.1 σ (fun σ' => σ' sForsPk =
+      Completes C rd 1382 5249 sForsB.1 σ (fun σ' => σ' sForsPk =
         (hcell ([σ sPP, adrsCell0 0 tree, adrsCell1 4 kp 0 0] ++
           List.ofFn fun c : Sphincs.ForsTreeIndex =>
             forsRootCell (σ sPP) (adrsCell0 0 tree) kp c.val (s c.val) (secret c.val)
@@ -122,7 +122,7 @@ root is `pFold` of `pNodeE` from `lv`. -/
 def HtLayerCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (l : Nat) (a0 a1 signed ctr : V) (b : Nat) (lv : E)
     (e : Nat) (sib : Nat → E),
-    l < 3 → 1395 ≤ b → NBv b a0 → NBv b a1 → NBv b signed → NBv b ctr → PadOK σ sPad →
+    l < 3 → 1372 ≤ b → NBv b a0 → NBv b a1 → NBv b signed → NBv b ctr → PadOK σ sPad →
     IsCanonical128 (σ sPP) → IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
     IsCanonical128 (σ signed) → (∃ N < 2 ^ 32, σ ctr = eOfNat (beWordAt 0 N)) →
     IsCanonical128 lv →

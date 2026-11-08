@@ -63,7 +63,7 @@ theorem spBodyT_parts : spBodyT = spCopies ++ (spPowers ++ (spGs.1 ++ (spLast.1 
   rw [spBodyT, spChecks, spCopies, spPowers]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
 
-theorem spLeafK_atoms : atomsOnly spLeafK.1 = true := kMsg_atoms _ _ _ _ _ _
+theorem spLeafK_atoms : atomsOnly spLeafK.1 = true := kMsg_atoms ..
 
 /-- **The tips, the product and the encoding** of the codeword, its groups' atoms holding. -/
 theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : PadOK σ spPad)
@@ -207,7 +207,7 @@ theorem sp_wots_soundT {rets : List E}
   have htake : (cellsBytes (spLeafCells.map σ)).take 1072 = cellsBytes (spLeafCells.map σ) := by
     rw [List.take_of_length_le (by rw [length_cellsBytes]; simp [hlenC])]
   rw [hcv, htake] at hk
-  have hleaf : σ (.n spLeafK.2.2) = (hcell (spLeafCells.map σ)).1 := congrArg Prod.fst hk
+  have hleaf : σ (.n spLeafK.2.2) = (hcell (spLeafCells.map σ)).1 := hk
   -- the return
   have s5 := s4.2
   simp only [Stmt.HoldsList, Stmt.Holds, copyS, Atom.Holds, List.map_cons, List.map_nil] at s5
@@ -227,8 +227,8 @@ theorem sp_wots_soundT {rets : List E}
 
 theorem spR_small {i : Nat} (hi : i ≤ 29) : spR i = i := by
   unfold spR spZero
-  rw [show List.countP (fun x => decide (x < i)) [29, 256, 353, 438, 507, 604, 689, 762, 819, 904,
-    977, 1038, 1083, 1152, 1209, 1254] = 0 by
+  rw [show List.countP (fun x => decide (x < i)) [29, 148, 245, 330, 399, 496, 581, 654, 711, 796,
+    869, 930, 975, 1044, 1101, 1146] = 0 by
       rw [List.countP_eq_zero]
       intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha

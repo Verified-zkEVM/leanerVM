@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssSegPathC
 
   The path of the leanXMSS check in `__loop2` (`lx_window`, `lx_top_window`, `lx_levels`,
-  `lean_ethereum.py:3641-3681, 3744-3753`), complete a window at a time: the dispatch by the
+  `lean_ethereum.py:3613-3653, 3716-3725`), complete a window at a time: the dispatch by the
   honest window `lxWin L w`, each level's sibling hinted, the arm's pin by `lx_his_honest`.
 -/
 
@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegWinSpec
 /-!
 # A window of the path, complete
 
-* `CompletesO`: completeness changing a range and, besides, the run of `13` values at `o` (an arm
+* `CompletesO`: completeness changing a range and, besides, the one-cell run at `o` (an arm
   `k ≠ 0` of a window writes its output where arm `0` numbered it); `Completes.appendO`,
   `CompletesO.append`, `CompletesO.toC`, `k64_completeO`;
 * `LxEnv`: the values below `103` a window reads (the padding run, `P`, the shifts `his[v]` of the
@@ -42,9 +42,9 @@ variable {C : CallRel} {rd : Reader}
 
 /-! ## Completeness writing a run elsewhere -/
 
-/-- `σ'` is `σ` outside `lo ..< hi` and the run of `13` values at `o`. -/
+/-- `σ'` is `σ` outside `lo ..< hi` and the one-cell run at `o`. -/
 def ExtO (lo hi o : Nat) (σ σ' : Val) : Prop :=
-  ∀ v, (∀ k, lo ≤ k → k < hi → v ≠ .n k) → ¬ InR o 13 v → σ' v = σ v
+  ∀ v, (∀ k, lo ≤ k → k < hi → v ≠ .n k) → ¬ InR o 1 v → σ' v = σ v
 
 /-- **Completeness changing `lo ..< hi` and the run at `o`.** -/
 def CompletesO (C : CallRel) (rd : Reader) (lo hi o : Nat) (ss : List Stmt) (σ : Val)
@@ -53,7 +53,7 @@ def CompletesO (C : CallRel) (rd : Reader) (lo hi o : Nat) (ss : List Stmt) (σ 
     ∀ (next : Prop) (kret : List E → Prop), next → Stmt.HoldsList C rd σ' ss next kret
 
 theorem ExtO.apply {lo hi o : Nat} {σ σ' : Val} (h : ExtO lo hi o σ σ') {j : Nat}
-    (hj : j < lo ∨ hi ≤ j) (ho : j < o ∨ o + 13 ≤ j) : σ' (.n j) = σ (.n j) :=
+    (hj : j < lo ∨ hi ≤ j) (ho : j < o ∨ o + 1 ≤ j) : σ' (.n j) = σ (.n j) :=
   h _ (fun k h1 h2 e => by simp only [V.mk.injEq, true_and] at e; omega)
     (by rintro ⟨i, hi, e⟩; simp only [V.mk.injEq, true_and] at e; omega)
 
@@ -63,13 +63,13 @@ theorem Completes.toO {lo hi : Nat} (o : Nat) {ss : List Stmt} {σ : Val} {P : V
 
 /-- A block writing only the run at `o`. -/
 theorem Completes.toO_run {lo hi o : Nat} {ss : List Stmt} {σ : Val} {P : Val → Prop}
-    (h : Completes C rd o (o + 13) ss σ P) : CompletesO C rd lo hi o ss σ P :=
+    (h : Completes C rd o (o + 1) ss σ P) : CompletesO C rd lo hi o ss σ P :=
   let ⟨σ', he, hp, hh⟩ := h
   ⟨σ', fun v _ hr => he v (fun k h1 h2 e => hr ⟨k - o, by omega, by rw [e]; congr 1; omega⟩), hp, hh⟩
 
 theorem CompletesO.toC {lo hi o lo' hi' : Nat} {ss : List Stmt} {σ : Val} {P : Val → Prop}
     (h : CompletesO C rd lo hi o ss σ P) (hlo : lo' ≤ lo) (hlo' : lo' ≤ o) (hhi : hi ≤ hi')
-    (hhi' : o + 13 ≤ hi') : Completes C rd lo' hi' ss σ P :=
+    (hhi' : o + 1 ≤ hi') : Completes C rd lo' hi' ss σ P :=
   let ⟨σ', he, hp, hh⟩ := h
   ⟨σ', fun v hv => he v (fun k h1 h2 => hv k (by omega) (by omega))
     (by rintro ⟨i, hi, rfl⟩; exact hv (o + i) (by omega) (by omega) rfl), hp, hh⟩
@@ -87,7 +87,7 @@ theorem CompletesO.reload {lo hi o : Nat} {ss : List Stmt} {σ σr : Val} {P : V
 
 /-- **A block, then one writing the run at `o` besides its range.** -/
 theorem Completes.appendO {lo m hi o : Nat} {xs ys : List Stmt} {σ : Val} {P Q : Val → Prop}
-    (hlo : lo ≤ m) (hhi : m ≤ hi) (hxs : ∀ v ∈ Stmt.valsList xs, NBv m v ∧ ¬ InR o 13 v)
+    (hlo : lo ≤ m) (hhi : m ≤ hi) (hxs : ∀ v ∈ Stmt.valsList xs, NBv m v ∧ ¬ InR o 1 v)
     (h1 : Completes C rd lo m xs σ P) (h2 : ∀ σ', Ext lo m σ σ' → P σ' → CompletesO C rd m hi o ys σ' Q) :
     CompletesO C rd lo hi o (xs ++ ys) σ Q := by
   obtain ⟨σ1, he1, hp1, hh1⟩ := h1
@@ -119,8 +119,8 @@ theorem CompletesO.append {lo m hi o : Nat} {xs ys : List Stmt} {σ : Val} {P Q 
 
 /-- **A 64-byte `keccak` completes**, its constant at `c` and its run at `o` off its inputs. -/
 theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp : PadOK σ pad)
-    (hpc : pad + 5 ≤ c) (hpo : pad + 5 ≤ o) (hco : c + 1 ≤ o ∨ o + 13 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 13 v ∧ IsCanonical128 (σ v)) :
+    (hpc : pad + 5 ≤ c) (hpo : pad + 5 ≤ o) (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
+    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ v)) :
     CompletesO C rd c (c + 1) o (k64 pad m0 m1 m2 m3 c o) σ (fun σ' => IsCanonical128 (σ' (.n o))) := by
   rw [k64_vals_eq]
   refine Completes.appendO (m := c + 1) (by omega) le_rfl (fun v hv => ?_) (cst_complete σ c _) (fun σ1 he1 hp1 => ?_)
@@ -130,7 +130,7 @@ theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp :
     exact ⟨⟨c, by omega, rfl⟩, by rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega⟩
   have hag : AgreeBelow c σ σ1 := he1.agree
   have hin : ∀ v ∈ [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
-      .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 13 v := by
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 1 v := by
     intro v hv
     rcases (k64_ins pad m0 m1 m2 m3 c v).mp hv with h | rfl | ⟨k, hk, rfl⟩
     · exact (hm v h).2.1
@@ -144,7 +144,7 @@ theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp :
     intro cc
     fin_cases cc <;> simp [cells13, q0, q1, q2, q3, q4, hp1] <;>
       first | exact h4 _ (by simp) | exact canon_word _ _ | exact canon_zero
-  refine (kecS_complete_at (C := C) (rd := rd) σ1 o rfl hin hcan false false).toO_run.mono le_rfl le_rfl
+  refine (kecS_complete_at (C := C) (rd := rd) σ1 o (.inl rfl) rfl hin hcan false false).toO_run.mono le_rfl le_rfl
     (fun σ' h => ?_)
   have := h 0 (by norm_num)
   rw [Nat.add_zero] at this
@@ -157,11 +157,11 @@ theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp :
 sequential values `s + 1 ..< c`, the `keccak` at `c` writing the run at `o`. -/
 theorem lvl_completeO {xs ys : List Stmt} {nm : String} {b s c o pad : Nat} {m0 m1 m2 m3 : V}
     (σ : Val) (hx : SeqOK b xs s) (hy : SeqOK (s + 1) ys c) (hpad : PadOK σ pad) (hpb : pad + 5 ≤ b)
-    (hco : c + 1 ≤ o ∨ o + 13 ≤ b) (hpo : pad + 5 ≤ o)
-    (hxo : ∀ v ∈ Stmt.valsList xs ++ Stmt.valsList ys, ¬ InR o 13 v)
+    (hco : c + 1 ≤ o ∨ o + 1 ≤ b) (hpo : pad + 5 ≤ o)
+    (hxo : ∀ v ∈ Stmt.valsList xs ++ Stmt.valsList ys, ¬ InR o 1 v)
     (hm : ∀ σ1, Ext b c σ σ1 → σ1 (.n s) = σ (.n s) →
       AtomsHold rd σ1 (xs ++ hintW nm [.n s] :: ys) →
-      ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 13 v ∧ IsCanonical128 (σ1 v)) :
+      ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ1 v)) :
     CompletesO C rd b (c + 1) o (xs ++ hintW nm [.n s] :: ys ++ k64 pad m0 m1 m2 m3 c o) σ
       (fun σ' => σ' (.n s) = σ (.n s) ∧ IsCanonical128 (σ' (.n o))) := by
   have hsb := hx.le
@@ -176,7 +176,7 @@ theorem lvl_completeO {xs ys : List Stmt} {nm : String} {b s c o pad : Nat} {m0 
       ⟨σ1, he1, ?_, hh1⟩).mono (by omega) le_rfl (fun _ h => h)
     show σ1 (.n s) = σ (.n s)
     rw [he1.apply (Or.inl (by omega)), hea.apply (Or.inr le_rfl)]
-  have hvals : ∀ v ∈ Stmt.valsList (xs ++ hintW nm [.n s] :: ys), NBv c v ∧ ¬ InR o 13 v := by
+  have hvals : ∀ v ∈ Stmt.valsList (xs ++ hintW nm [.n s] :: ys), NBv c v ∧ ¬ InR o 1 v := by
     intro v hv
     rw [show xs ++ hintW nm [.n s] :: ys = xs ++ [hintW nm [.n s]] ++ ys by simp, valsList_append,
       valsList_append, valsList_hint] at hv
@@ -217,7 +217,7 @@ theorem LxEnv.congr {L : Nat} {σ σ' : Val} (h : LxEnv L σ) (hσ : ∀ j < 103
 theorem lxCanon_eOfNat (n : Nat) : IsCanonical128 (eOfNat n) := by
   rw [← word_eq_eOfNat]; exact canon_word n 0
 
-theorem notInR_of {o j : Nat} (h : j < o ∨ o + 13 ≤ j) : ¬ InR o 13 (.n j) := by
+theorem notInR_of {o j : Nat} (h : j < o ∨ o + 1 ≤ j) : ¬ InR o 1 (.n j) := by
   rintro ⟨i, hi, e⟩; simp only [V.mk.injEq, true_and] at e; omega
 
 theorem ord_cases {k r : Nat} (x y : V) :
@@ -229,13 +229,13 @@ theorem ord_cases {k r : Nat} (x y : V) :
 
 /-- A level's inputs: `P`, the address at `a`, the node and the sibling at `s` in either order. -/
 theorem lvl_inputs {L : Nat} {σ1 : Val} {cur m2 m3 : V} {s a c o : Nat} (hE : LxEnv L σ1)
-    (hcur : NBv c cur) (hcurO : ¬ InR o 13 cur) (hcc : IsCanonical128 (σ1 cur))
-    (hs : s < c) (hsO : s < o ∨ o + 13 ≤ s) (hsc : IsCanonical128 (σ1 (.n s)))
-    (ha : a < c) (haO : a < o ∨ o + 13 ≤ a) (hac : IsCanonical128 (σ1 (.n a))) (h66 : 66 < c) (ho : 103 ≤ o)
+    (hcur : NBv c cur) (hcurO : ¬ InR o 1 cur) (hcc : IsCanonical128 (σ1 cur))
+    (hs : s < c) (hsO : s < o ∨ o + 1 ≤ s) (hsc : IsCanonical128 (σ1 (.n s)))
+    (ha : a < c) (haO : a < o ∨ o + 1 ≤ a) (hac : IsCanonical128 (σ1 (.n a))) (h66 : 66 < c) (ho : 103 ≤ o)
     (h23 : (m2 = cur ∧ m3 = .n s) ∨ (m2 = .n s ∧ m3 = cur)) :
-    ∀ v ∈ [sLxPP, .n a, m2, m3], NBv c v ∧ ¬ InR o 13 v ∧ IsCanonical128 (σ1 v) := by
-  have hcv : NBv c cur ∧ ¬ InR o 13 cur ∧ IsCanonical128 (σ1 cur) := ⟨hcur, hcurO, hcc⟩
-  have hsv : NBv c (.n s) ∧ ¬ InR o 13 (.n s) ∧ IsCanonical128 (σ1 (.n s)) := ⟨⟨s, hs, rfl⟩, notInR_of hsO, hsc⟩
+    ∀ v ∈ [sLxPP, .n a, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ1 v) := by
+  have hcv : NBv c cur ∧ ¬ InR o 1 cur ∧ IsCanonical128 (σ1 cur) := ⟨hcur, hcurO, hcc⟩
+  have hsv : NBv c (.n s) ∧ ¬ InR o 1 (.n s) ∧ IsCanonical128 (σ1 (.n s)) := ⟨⟨s, hs, rfl⟩, notInR_of hsO, hsc⟩
   simp only [List.mem_cons, List.not_mem_nil, or_false]
   rintro v (rfl | rfl | rfl | rfl)
   · exact ⟨⟨66, h66, rfl⟩, notInR_of (by omega), hE.2.1⟩
@@ -258,8 +258,8 @@ theorem lxLevelT_out (w k r : Nat) (cur : V) (outO : Option Nat) (b : Nat) :
   by_cases hw : w + 1 = 4 <;> by_cases hr : r + 1 = 8 <;> simp [hw, hr]
 
 theorem getD_cases {outO : Option Nat} {b d : Nat} {cur : V}
-    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 13 ≤ b ∧ ¬ InR o 13 cur) :
-    outO.getD d = d ∨ (103 ≤ outO.getD d ∧ outO.getD d + 13 ≤ b ∧ ¬ InR (outO.getD d) 13 cur) := by
+    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur) :
+    outO.getD d = d ∨ (103 ≤ outO.getD d ∧ outO.getD d + 1 ≤ b ∧ ¬ InR (outO.getD d) 1 cur) := by
   cases outO with
   | none => exact Or.inl rfl
   | some o => exact Or.inr (hO o rfl)
@@ -267,7 +267,7 @@ theorem getD_cases {outO : Option Nat} {b d : Nat} {cur : V}
 /-- **A level of a window completes** by the honest arm, its sibling `sib` hinted. -/
 theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (hr : r < 8) {cur : V}
     {outO : Option Nat} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hb : 103 ≤ b) (hcur : NBv b cur)
-    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 13 ≤ b ∧ ¬ InR o 13 cur)
+    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur)
     {sib : E} (hsib : IsCanonical128 sib) :
     CompletesO C rd b (lxLevelT w (lxWin L w) r cur outO b).2.1 (lxLvlO w r outO b)
       (lxLevelT w (lxWin L w) r cur outO b).1 σ
@@ -278,11 +278,11 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
   by_cases hw3 : w + 1 = 4
   · simp only [hw3, ↓reduceIte]
     generalize hOd : (if r + 1 = 8 then outO.getD (b + 3) else b + 3) = O
-    have hOc : O = b + 3 ∨ (103 ≤ O ∧ O + 13 ≤ b ∧ ¬ InR O 13 (.n jc)) := by
+    have hOc : O = b + 3 ∨ (103 ≤ O ∧ O + 1 ≤ b ∧ ¬ InR O 1 (.n jc)) := by
       rw [← hOd]; split
       · exact getD_cases hO
       · exact Or.inl rfl
-    have hcO : ¬ InR O 13 (.n jc) := by
+    have hcO : ¬ InR O 1 (.n jc) := by
       rcases hOc with h | h
       · exact notInR_of (by omega)
       · exact h.2.2
@@ -317,9 +317,9 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
     · obtain rfl : r = 7 := by omega
       simp only [show 7 + 1 = 8 from rfl, ↓reduceIte]
       generalize hOd : outO.getD (b + 4) = O
-      have hOc : O = b + 4 ∨ (103 ≤ O ∧ O + 13 ≤ b ∧ ¬ InR O 13 (.n jc)) := by
+      have hOc : O = b + 4 ∨ (103 ≤ O ∧ O + 1 ≤ b ∧ ¬ InR O 1 (.n jc)) := by
         rw [← hOd]; exact getD_cases hO
-      have hcO : ¬ InR O 13 (.n jc) := by
+      have hcO : ¬ InR O 1 (.n jc) := by
         rcases hOc with h | h
         · exact notInR_of (by omega)
         · exact h.2.2
@@ -394,7 +394,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
 
 theorem k64_vals_all {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} {P : V → Prop}
     (h0 : P m0) (h1 : P m1) (h2 : P m2) (h3 : P m3) (hc : P (.n c)) (hp : ∀ v, InR pad 5 v → P v)
-    (ho : ∀ v, InR o 13 v → P v) : ∀ v ∈ Stmt.valsList (k64 pad m0 m1 m2 m3 c o), P v := by
+    (ho : ∀ v, InR o 1 v → P v) : ∀ v ∈ Stmt.valsList (k64 pad m0 m1 m2 m3 c o), P v := by
   intro v hv
   rcases k64_vals pad m0 m1 m2 m3 c o hv with h | rfl | h | h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
@@ -403,7 +403,7 @@ theorem k64_vals_all {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} {P : V → Prop}
 
 /-- What a level's values are: its node, a value below `103`, one of its own, or its run. -/
 def LvlVal (cur : V) (b nb o : Nat) (v : V) : Prop :=
-  v = cur ∨ (∃ j < 103, v = .n j) ∨ (∃ j, b ≤ j ∧ j < nb ∧ v = .n j) ∨ InR o 13 v
+  v = cur ∨ (∃ j < 103, v = .n j) ∨ (∃ j, b ≤ j ∧ j < nb ∧ v = .n j) ∨ InR o 1 v
 
 theorem lxLevelT_vals {w r : Nat} (hw : w < 4) (hr : r < 8) (k : Nat) (cur : V) (outO : Option Nat) {b : Nat} :
     ∀ v ∈ Stmt.valsList (lxLevelT w k r cur outO b).1,
@@ -415,7 +415,7 @@ theorem lxLevelT_vals {w r : Nat} (hw : w < 4) (hr : r < 8) (k : Nat) (cur : V) 
     · exact Or.inr (Or.inr (Or.inl ⟨_, h.1, h.2, rfl⟩))
   have hpad : ∀ {nb o : Nat} (v : V), InR sLxPad 5 v → LvlVal cur b nb o v :=
     fun v ⟨i, hi, e⟩ => e ▸ hn (Or.inl (by simp [sLxPad]; omega))
-  have hrun : ∀ {nb o : Nat} (v : V), InR o 13 v → LvlVal cur b nb o v :=
+  have hrun : ∀ {nb o : Nat} (v : V), InR o 1 v → LvlVal cur b nb o v :=
     fun v h => Or.inr (Or.inr (Or.inr h))
   have hord : ∀ {nb o s : Nat} (k' r' : Nat), LvlVal cur b nb o (.n s) →
       LvlVal cur b nb o (if k' / 2 ^ r' % 2 = 0 then (cur, V.n s) else (.n s, cur)).1 ∧
@@ -474,10 +474,10 @@ theorem lxArmO_cases (w : Nat) (outO : Option Nat) (b0 : Nat) :
   | none => right; refine ⟨rfl, ?_⟩; split <;> simp
   | some o => left; exact ⟨o, rfl, by split <;> simp⟩
 
-theorem lxStride_ge (w : Nat) : 16 ≤ lxStride w := by unfold lxStride; split <;> omega
+theorem lxStride_ge (w : Nat) : 4 ≤ lxStride w := by unfold lxStride; split <;> omega
 
 theorem lxLvlO_lt {w r : Nat} (hr : r + 1 ≠ 8) (outO : Option Nat) (b : Nat) :
-    b + 3 ≤ lxLvlO w r outO b ∧ lxLvlO w r outO b + 13 = b + lxStride w := by
+    b + 3 ≤ lxLvlO w r outO b ∧ lxLvlO w r outO b + 1 = b + lxStride w := by
   unfold lxLvlO lxStride
   by_cases hw : w + 1 = 4 <;> simp [hw, hr]
 
@@ -487,9 +487,9 @@ theorem lxSibCell_lt (w r b : Nat) : b ≤ lxSibCell w r b ∧ lxSibCell w r b �
 /-- **The levels of an arm complete** by the honest arm, level `j`'s sibling `sibs j`. -/
 theorem lxLevelsT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {outO : Option Nat}
     {b0 : Nat} (hb0 : 103 ≤ b0) (sibs : Nat → E) (hsc : ∀ r < 8, IsCanonical128 (sibs r))
-    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 13 ≤ b0) :
+    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b0) :
     ∀ m r (cur : V) b (σ : Val), r + m = 8 → b = b0 + lxStride w * r → LxEnv L σ → NBv b cur →
-      IsCanonical128 (σ cur) → (∀ o, outO = some o → ¬ InR o 13 cur) →
+      IsCanonical128 (σ cur) → (∀ o, outO = some o → ¬ InR o 1 cur) →
       CompletesO C rd b (lxLevelsT w (lxWin L w) outO m r cur b).2.1 (lxArmO w outO b0)
         (lxLevelsT w (lxWin L w) outO m r cur b).1 σ
         (fun σ' => (∀ j, r ≤ j → j < 8 → lxSibF σ' w b0 j = sibs j) ∧
@@ -527,12 +527,12 @@ theorem lxLevelsT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {o
           rw [Nat.mul_succ] at this
           omega
         -- the level's values: below its end, off the arm's run
-        have hoff : ∀ j, b ≤ j → j < b + lxStride w → ¬ InR (lxArmO w outO b0) 13 (.n j) := fun j h1 h2 =>
+        have hoff : ∀ j, b ≤ j → j < b + lxStride w → ¬ InR (lxArmO w outO b0) 1 (.n j) := fun j h1 h2 =>
           notInR_of (by rcases hOg with ⟨o, ho, e⟩ | ⟨-, e1, -⟩
                         · have := (hO o ho).2; omega
                         · omega)
         have hxs : ∀ v ∈ Stmt.valsList (lxLevelT w (lxWin L w) r cur outO b).1,
-            NBv (b + lxStride w) v ∧ ¬ InR (lxArmO w outO b0) 13 v := by
+            NBv (b + lxStride w) v ∧ ¬ InR (lxArmO w outO b0) 1 v := by
           intro v hv
           rcases lxLevelT_vals hw hr (lxWin L w) cur outO v hv with rfl | ⟨j, hj, rfl⟩ | ⟨j, h1, h2, rfl⟩ | ⟨i, hi, rfl⟩
           · obtain ⟨j, hj, rfl⟩ := hcur
@@ -670,8 +670,8 @@ theorem lxSibCell_last {w j : Nat} (hj : j < 8) (b : Nat) :
   · simp only [hw, ↓reduceIte]; split <;> omega
 
 theorem lxArmO_lt (w : Nat) (outO : Option Nat) (b : Nat)
-    (hO : ∀ o, outO = some o → o + 13 ≤ b) :
-    lxArmO w outO b + 13 ≤ b + lxStride w * 7 + lxLastNext w outO := by
+    (hO : ∀ o, outO = some o → o + 1 ≤ b) :
+    lxArmO w outO b + 1 ≤ b + lxStride w * 7 + lxLastNext w outO := by
   rw [lxArmO_eq]
   cases outO with
   | none => unfold lxLastNext; split <;> simp
@@ -681,7 +681,7 @@ theorem lxArmO_lt (w : Nat) (outO : Option Nat) (b : Nat)
 kept, its node canonical. -/
 theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur : V}
     {outO : Option Nat} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hb : 103 ≤ b) (hcur : NBv b cur)
-    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 13 ≤ b ∧ ¬ InR o 13 cur)
+    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur)
     (sibs : Nat → E) (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
     CompletesO C rd b (lxArmT w (lxWin L w) cur outO b).2 (lxArmO w outO b)
       (lxArmT w (lxWin L w) cur outO b).1 σ
@@ -786,7 +786,7 @@ theorem lxArmsT_snd (w : Nat) (cur : V) (o : Nat) : ∀ m k b, (lxArmsT w cur o 
       simp only [lxArmsT, lxArmB]
       rw [lxArmsT_snd w cur o m (k + 1), lxArmT_next']
 
-theorem lxOut0_size (w b : Nat) : lxOut0 w b + 13 = b + lxArmSize w 0 ∧ b + 103 ≤ lxOut0 w b := by
+theorem lxOut0_size (w b : Nat) : lxOut0 w b + 1 = b + lxArmSize w 0 ∧ b + 31 ≤ lxOut0 w b := by
   unfold lxOut0 lxArmSize lxStride lxLastNext
   by_cases hw : w + 1 = 4 <;> simp [hw]
 
@@ -804,8 +804,8 @@ theorem lxWindowT_snd (w : Nat) (cur : V) (b : Nat) :
 node's run below arm `k`'s base for `k ≠ 0`. -/
 theorem lxArm_place (w : Nat) {k : Nat} (hk : k < 256) (b : Nat) :
     b + 5 ≤ lxArmB w 0 k (b + 5) ∧ lxArmB w 0 k (b + 5) + lxArmSize w k ≤ lxArmB w 0 256 (b + 5) ∧
-      lxOut0 w (b + 5) + 13 ≤ lxArmB w 0 256 (b + 5) ∧
-      (k ≠ 0 → lxOut0 w (b + 5) + 13 ≤ lxArmB w 0 k (b + 5)) := by
+      lxOut0 w (b + 5) + 1 ≤ lxArmB w 0 256 (b + 5) ∧
+      (k ≠ 0 → lxOut0 w (b + 5) + 1 ≤ lxArmB w 0 k (b + 5)) := by
   have h1 := lxArmB_succ w k 0 (b + 5)
   have h0 := lxArmB_succ w 0 0 (b + 5)
   simp only [Nat.zero_add] at h1 h0
@@ -1037,7 +1037,7 @@ theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {laye
 
 /-- A window's node lies between its base and its end. -/
 theorem lxWindowT_out_lt (w : Nat) (cur : V) (b : Nat) :
-    b + 103 ≤ (lxWindowT w cur b).2.2 ∧ (lxWindowT w cur b).2.2 + 13 ≤ (lxWindowT w cur b).2.1 := by
+    b + 36 ≤ (lxWindowT w cur b).2.2 ∧ (lxWindowT w cur b).2.2 + 1 ≤ (lxWindowT w cur b).2.1 := by
   rw [lxWindowT_snd, show (lxWindowT w cur b).2.2 = lxOut0 w (b + 5) from rfl]
   have := (lxOut0_size w (b + 5)).2
   exact ⟨by omega, (lxArm_place w (show 0 < 256 by norm_num) b).2.2.1⟩

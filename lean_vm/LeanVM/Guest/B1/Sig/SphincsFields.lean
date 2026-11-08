@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFields
 
-  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3777-3838` at leanVM
-  5e3ade21, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
+  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3749-3810` at leanVM PR #724
+  head 873ee6d8, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
   bits of the digest's number, the FORS leaves and the layers' leaves read as FIPS 205's
   Algorithm 19 reads them, their right shifts, and the digest's bytes placed back into its cells.
 -/
@@ -447,14 +447,14 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
     rw [a7, e4, m6, k5, hv1, add_mul, pw_mul hs (two_pow_mod_mul_lt (k := 8 - k1) (by omega) hq),
       ← add_assoc, hsk, eOfNat192_shift_add hq]
 
-/-- **The place `vals` adds to digest byte `i`** (`G:4029-4035`): in a byte inside a field only
+/-- **The place `vals` adds to digest byte `i`** (`G:4001-4007`): in a byte inside a field only
 where the field starts (`c · 256`), in a byte across two the second field's
 (`(c + 1) · 2^(8 i + 8 - 10 (c + 1))`). -/
 def mdPlaceN (i : Nat) : Nat :=
   if (8 * i + 7) / 10 ≠ 8 * i / 10 then (8 * i / 10 + 1) * 2 ^ (8 * i + 8 - 10 * (8 * i / 10 + 1))
   else if 8 * i = 10 * (8 * i / 10) then 8 * i / 10 * 256 else 0
 
-/-- The place at its bit in the cell, `pc` of `G:4029-4035`. -/
+/-- The place at its bit in the cell, `pc` of `G:4001-4007`. -/
 def mdPlace (i : Nat) : E := eOfNat (mdPlaceN i) * pw (8 * (i % 16))
 
 /-- The places of bytes `i0 ..< i0 + n`, summed. -/
@@ -562,9 +562,9 @@ theorem sMdSum_sound {T i0 : Nat} (hi0 : i0 = 0 ∨ i0 = 16) (hv : FValsAt σ T)
       rw [this, show i + 1 + m = i + (m + 1) by omega]
 
 /-- **`md0`** with `corr0`: the first call's first cell, the digest's bytes `0 … 15`. -/
-theorem sMd0_sound {T : Nat} (hv : FValsAt σ T) (h0 : AtomsHold rd σ (sMdByte 0 1090).1)
+theorem sMd0_sound {T : Nat} (hv : FValsAt σ T) (h0 : AtomsHold rd σ (sMdByte 0 1067).1)
     (h : AtomsHold rd σ sMd0.1) : σ sMd0.2.2 + corr0W = eOfNat192 (T % 2 ^ 128) := by
-  have hb := sMdByte_sound (T := T) (i := 0) (b := 1090) (by norm_num) hv h0
+  have hb := sMdByte_sound (T := T) (i := 0) (b := 1067) (by norm_num) hv h0
   have := sMdSum_sound (Or.inl rfl) hv 15 1 _ _ (by norm_num) (by norm_num) (by norm_num)
     (by rw [hb]; simp [byteN, mdPlaces]) h
   unfold sMd0
@@ -585,42 +585,42 @@ theorem sMd1_sound {T : Nat} (hv : FValsAt σ T) (h : AtomsHold rd σ sMd1.1) :
 
 /-! ## The bits -/
 
-/-- **The digest's bits are those of `T`**: the run `n51 …` holds `T`'s bits `0 … 271`. -/
-def BitsAt (σ : Val) (T : Nat) : Prop := ∀ k < 272, σ (.n (51 + k)) = bitE (T.testBit k)
+/-- **The digest's bits are those of `T`**: the run `n28 …` holds `T`'s bits `0 … 271`. -/
+def BitsAt (σ : Val) (T : Nat) : Prop := ∀ k < 272, σ (.n (28 + k)) = bitE (T.testBit k)
 
 theorem mem_sBooleans {k : Nat} (hk : k < 272) :
-    Stmt.atom (.mul (.n (51 + k)) (.n (51 + k)) (.n (51 + k))) ∈ sBooleans := by
+    Stmt.atom (.mul (.n (28 + k)) (.n (28 + k)) (.n (28 + k))) ∈ sBooleans := by
   unfold sBooleans
   by_cases h1 : k < 128
   · exact List.mem_append_left _ (List.mem_flatMap.mpr ⟨k, List.mem_range.mpr h1, List.mem_cons_self ..⟩)
   · by_cases h2 : k < 256
     · refine List.mem_append_left _ (List.mem_flatMap.mpr ⟨k - 128, List.mem_range.mpr (by omega), ?_⟩)
       refine List.mem_cons_of_mem _ ?_
-      rw [show 179 + (k - 128) = 51 + k by omega]
+      rw [show 156 + (k - 128) = 28 + k by omega]
       exact List.mem_cons_self ..
     · refine List.mem_append_right _ (List.mem_map.mpr ⟨k - 256, List.mem_range.mpr (by omega), ?_⟩)
       show mulS _ _ _ = _
-      rw [show 307 + (k - 256) = 51 + k by omega]
+      rw [show 284 + (k - 256) = 28 + k by omega]
       rfl
 
 /-- **The bits pinned Boolean are those of their number.** -/
-theorem sBooleans_bitsAt (h : AtomsHold rd σ sBooleans) : BitsAt σ (bitsOf σ 51 272) := by
+theorem sBooleans_bitsAt (h : AtomsHold rd σ sBooleans) : BitsAt σ (bitsOf σ 28 272) := by
   intro k hk
-  have hb : IsBit (σ (.n (51 + k))) := (h.atom (mem_sBooleans hk)).symm
+  have hb : IsBit (σ (.n (28 + k))) := (h.atom (mem_sBooleans hk)).symm
   rw [bitsOf, testBit_bitsVal]
   simp only [hk, decide_true, Bool.true_and]
   rcases isBit_cases hb with h0 | h1
   · rw [h0]; simp [bitE]
   · rw [h1]; simp [bitE]
 
-theorem bitsOf_lt' (σ : Val) : bitsOf σ 51 272 < 2 ^ 272 := bitsVal_lt _ _
+theorem bitsOf_lt' (σ : Val) : bitsOf σ 28 272 < 2 ^ 272 := bitsVal_lt _ _
 
-theorem sMdBit_eq {p : Nat} : sMdBit p = .n (51 + mdPos p) := by
+theorem sMdBit_eq {p : Nat} : sMdBit p = .n (28 + mdPos p) := by
   simp only [sMdBit, mdPos]; congr 1; omega
 
 theorem mdPos_lt {p : Nat} (hp : p < 240) : mdPos p < 240 := by unfold mdPos; omega
 
-theorem sLeafBit_eq {b : Nat} (hb : b < 26) : sLeafBit b = .n (51 + leafPos b) := by
+theorem sLeafBit_eq {b : Nat} (hb : b < 26) : sLeafBit b = .n (28 + leafPos b) := by
   simp only [sLeafBit, leafPos]
   split_ifs <;> congr 1 <;> omega
 
@@ -640,22 +640,22 @@ theorem sForsFields_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sFor
   have hbit : ∀ r < 10, σ (sMdBit (10 * c + r)) = bitE (T.testBit (mdPos (10 * c + r))) := by
     intro r hr
     rw [sMdBit_eq]; exact hb _ (by have := mdPos_lt (p := 10 * c + r) (by omega); omega)
-  have h0 : σ (.n (323 + 29 * c)) = σ (sMdBit (10 * c + 0)) + eOfNat (2 * c) := by
+  have h0 : σ (.n (300 + 29 * c)) = σ (sMdBit (10 * c + 0)) + eOfNat (2 * c) := by
     by_cases hc0 : c = 0
     · subst hc0
-      have e := hF.atom (a := .copy (.n 323) (sMdBit 0)) (by simp [sForsField, copyS])
+      have e := hF.atom (a := .copy (.n 300) (sMdBit 0)) (by simp [sForsField, copyS])
       simp only [Atom.Holds] at e
       simpa [Value.eOfNat_zero] using e
-    · have k := hF.atom (a := .const (.n (322 + 29 * c)) (word (2 * c) 0 0))
+    · have k := hF.atom (a := .const (.n (299 + 29 * c)) (word (2 * c) 0 0))
         (by simp [sForsField, hc0, cst])
-      have a := hF.atom (a := .add (.n (323 + 29 * c)) (sMdBit (10 * c)) (.n (322 + 29 * c)))
+      have a := hF.atom (a := .add (.n (300 + 29 * c)) (sMdBit (10 * c)) (.n (299 + 29 * c)))
         (by simp [sForsField, hc0, addS])
       simp only [Atom.Holds] at k a
       rw [a, k, word_eq_eOfNat, Nat.add_zero]
   have hs := shiftsP_sound (σ := σ) (bit := fun r => sMdBit (10 * c + r)) (n := 10)
-    (o := 323 + 29 * c) (P := c) (f := fun r => T.testBit (mdPos (10 * c + r))) (by norm_num)
+    (o := 300 + 29 * c) (P := c) (f := fun r => T.testBit (mdPos (10 * c + r))) (by norm_num)
     (by omega) hbit h0 (hF.sub fun x hx => List.mem_append_right _ hx) (9 - z) (by omega)
-  rw [show sFVal c z = .n (323 + 29 * c + 3 * (9 - z)) from rfl, hs, show 10 - 1 - (9 - z) = z by omega,
+  rw [show sFVal c z = .n (300 + 29 * c + 3 * (9 - z)) from rfl, hs, show 10 - 1 - (9 - z) = z by omega,
     show 9 - z + 1 = 10 - z by omega]
   congr 3
 

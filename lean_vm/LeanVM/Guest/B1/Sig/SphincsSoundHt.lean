@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundHt
 
-  A hypertree layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3965-3976` at
-  leanVM 5e3ade21) against the statement: its counter and encoding, the call of `sp_wots` and the
+  A hypertree layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3937-3948` at
+  leanVM PR #724 head 873ee6d8) against the statement: its counter and encoding, the call of `sp_wots` and the
   path reach the statement's layer root (`LayerReaches`).
 -/
 
@@ -172,7 +172,7 @@ theorem sLayerPre_cells {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
       simp only [List.map_cons, List.map_nil, KC.val, hctr]
       exact hz j (by simpa using hj))
   have e : sEncOf l = .n (sLayerK l a0 signed).2.2 := by rw [(sLayerK_out l a0 signed).1]; rfl
-  have k1 := congrArg Prod.fst k
+  have k1 := k
   simp only [List.map_cons, List.map_nil, KC.val, hctr, c1, c0] at k1
   rw [e]
   exact k1
@@ -225,7 +225,7 @@ theorem sPathSib_eq (bit : Nat → V) (off : Nat) :
 
 /-- The layers' siblings at `SphincsSig`'s positions. -/
 theorem sPathPos_layer : ∀ l < 3, ∀ j < sHeightOf l,
-    sPathPos (sHeightOf l) 0 (sLayerBase l + 60) j = sPathKid l j := by decide +kernel
+    sPathPos (sHeightOf l) 0 (sLayerBase l + 48) j = sPathKid l j := by decide +kernel
 
 /-- **A layer's path, sound**: the bits of the layer's leaf `layerLeafN T l` and its shifts as the
 digest block gives them, the root is `pFold` of `pNodeE` from the leaf `sp_wots` returns. -/
@@ -296,7 +296,7 @@ theorem layer_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {Vm : Fram
     refine htTreeFold_cells _ _ _ _ _ _ _ _ (by unfold sHeightOf; have := sLeafLen_le (l := l.val); omega)
       fun j hj => ?_
     rw [sPathSib_eq sLeafBit _ _ 0 _ j (by omega) (by omega), eK.2,
-      show sLayerBase l.val + 59 + 1 = sLayerBase l.val + 60 by omega,
+      show sLayerBase l.val + 47 + 1 = sLayerBase l.val + 48 by omega,
       sPathPos_layer l.val hl3 j hj]
     simp only [layerPath, show j < layerHeight l by rw [hh]; exact hj, ↓reduceDIte, sphincsSigOf,
       sLayerOf]

@@ -127,7 +127,7 @@ theorem sWc_sound {layer b : Nat} {σ : Val} (hg : SGood layer b σ) :
     StepSound rd σ (sWc layer b)
       (fun i s y => (hcell [σ sLxPP, σ (.n (sA layer b + 2 * min s 2 + 1)), y, σ (sTag (min i 57))]).1) := by
   intro i s v c o h
-  exact congrArg Prod.fst (k64_sound hg.2.2.2.1 h)
+  exact k64_sound hg.2.2.2.1 h
 
 theorem sWc_pow {layer b : Nat} {σ : Val} (hg : SGood layer b σ) :
     ∀ s < 13, σ ((sWc layer b).power s) = gen ^ s := by
@@ -157,47 +157,49 @@ theorem Completes.append_in {lo m hi lo2 hi2 : Nat} {xs ys : List Stmt} {σ : Va
 
 /-! ## A `KECCAK` writing an earlier run -/
 
-/-- **A `KECCAK` completes** writing the run at `o`, its inputs off the run. -/
-theorem kecS_complete_at (σ : Val) {ins : List V} (o : Nat) (hl : ins.length = 13)
-    (hin : ∀ v ∈ ins, ¬ InR o 13 v) (hc : ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c))
-    (inOdd outOdd : Bool) :
-    Completes C rd o (o + 13) [kecS ins (runV o 13) inOdd outOdd] σ
-      (fun σ' => ∀ c < 13, σ' (.n (o + c)) = kOut (ins.map σ) inOdd outOdd c) := by
-  have hins : ins.map (updRun σ o 13 (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
-    List.map_congr_left fun v hv => (updRun_ext σ o 13 _) v (fun k h1 h2 e => hin v hv ⟨k - o, by omega,
-      by rw [e]; congr 1; omega⟩)
-  refine completes_atoms rfl (updRun_ext σ o 13 _) (fun c hc => updRun_at σ o 13 _ hc)
+/-- **A `KECCAK` completes** writing the run of its `n` outputs (one, two or thirteen) at `o`, its
+inputs off the run. -/
+theorem kecS_complete_at (σ : Val) {ins : List V} (o : Nat) {n : Nat} (hn : n = 1 ∨ n = 2 ∨ n = 13)
+    (hl : ins.length = 13) (hin : ∀ v ∈ ins, ¬ InR o n v)
+    (hc : ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c)) (inOdd outOdd : Bool) :
+    Completes C rd o (o + n) [kecS ins (runV o n) inOdd outOdd] σ
+      (fun σ' => ∀ c < n, σ' (.n (o + c)) = kOut (ins.map σ) inOdd outOdd c) := by
+  obtain ⟨oc, rfl⟩ := exists_cellCount hn
+  have hins : ins.map (updRun σ o oc.cellCount (kOut (ins.map σ) inOdd outOdd)) = ins.map σ :=
+    List.map_congr_left fun v hv => (updRun_ext σ o _ _) v (fun k h1 h2 e => hin v hv ⟨k - o,
+      by omega, by rw [e]; congr 1; omega⟩)
+  refine completes_atoms rfl (updRun_ext σ o _ _) (fun c hc => updRun_at σ o _ _ hc)
     (fun a ha => ?_)
   simp only [kecS, List.mem_singleton, Stmt.atom.injEq] at ha
   subst ha
-  refine ⟨hl, by simp [runV], ?_⟩
+  refine ⟨hl, oc, by simp [runV], ?_⟩
   rw [hins]
-  refine ⟨hc, fun c => ?_⟩
+  refine ⟨hc, fun c hco => ?_⟩
   simp only [cells13, runV, List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map,
-    List.getElem?_range c.isLt, Option.map_some, Option.getD_some, Function.comp]
-  rw [updRun_at σ o 13 _ c.isLt, kOut]
+    List.getElem?_range hco, Option.map_some, Option.getD_some, Function.comp]
+  rw [updRun_at σ o _ _ hco, kOut]
   simp [c.isLt]
 
 /-- **A 64-byte `keccak` completes writing the run at `o`**, below its constant or right after it,
 its inputs canonical, below its constant and off the run: its constant's range `c ..< c + 1` and
 the run's inside `lo ..< hi`. -/
 theorem k64_complete_at {pad : Nat} {m0 m1 m2 m3 : V} {c o lo hi : Nat} (σ : Val) (hp : PadOK σ pad)
-    (hpc : pad + 5 ≤ lo) (hlc : lo ≤ c) (hch : c + 1 ≤ hi) (hlo : lo ≤ o) (hoh : o + 13 ≤ hi)
-    (hco : c + 1 ≤ o ∨ o + 13 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 13 v ∧ IsCanonical128 (σ v)) :
+    (hpc : pad + 5 ≤ lo) (hlc : lo ≤ c) (hch : c + 1 ≤ hi) (hlo : lo ≤ o) (hoh : o + 1 ≤ hi)
+    (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
+    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ v)) :
     Completes C rd lo hi (k64 pad m0 m1 m2 m3 c o) σ
-      (fun σ' => (σ' (.n o), σ' (.n (o + 1))) = hcell [σ m0, σ m1, σ m2, σ m3] ∧
+      (fun σ' => σ' (.n o) = (hcell [σ m0, σ m1, σ m2, σ m3]).1 ∧
         IsCanonical128 (σ' (.n o))) := by
   have hmc : ∀ v ∈ [m0, m1, m2, m3], v ≠ .n c := fun v hv e => by
     obtain ⟨⟨j, hj, rfl⟩, -⟩ := hm v hv
     simp only [V.mk.injEq, true_and] at e
     omega
-  have hcr : ¬ InR o 13 (.n c) := by
+  have hcr : ¬ InR o 1 (.n c) := by
     rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
   obtain ⟨σ1, he1, hp1, hh1⟩ := cst_complete (C := C) (rd := rd) σ c (word (2 ^ 63) 0 0)
   have hσ1 : ∀ v, v ≠ .n c → σ1 v = σ v := fun v hv => he1 v (fun k h1 h2 e => hv (by rw [e]; congr 1; omega))
   have hin : ∀ v ∈ [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
-      .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 13 v := by
+      .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 1 v := by
     intro v hv
     rcases (k64_ins pad m0 m1 m2 m3 c v).mp hv with h | rfl | ⟨k, hk, rfl⟩
     · exact (hm v h).2.1
@@ -219,8 +221,8 @@ theorem k64_complete_at {pad : Nat} {m0 m1 m2 m3 : V} {c o lo hi : Nat} (σ : Va
     intro cc
     fin_cases cc <;> simp [cells13, q0, q1, q2, q3, q4, p0, p1, p2, p3, p4, hp1] <;>
       first | exact h4 _ (by simp) | exact canon_word _ _ | exact canon_zero
-  obtain ⟨σ2, he2, hp2, hh2⟩ := kecS_complete_at (C := C) (rd := rd) σ1 o rfl hin hcan false false
-  have hσ2 : ∀ v, ¬ InR o 13 v → σ2 v = σ1 v := fun v hv => he2 v (fun k h1 h2 e => hv ⟨k - o, by omega,
+  obtain ⟨σ2, he2, hp2, hh2⟩ := kecS_complete_at (C := C) (rd := rd) σ1 o (.inl rfl) rfl hin hcan false false
+  have hσ2 : ∀ v, ¬ InR o 1 v → σ2 v = σ1 v := fun v hv => he2 v (fun k h1 h2 e => hv ⟨k - o, by omega,
     by rw [e]; congr 1; omega⟩)
   have hc2 : σ2 (.n c) = σ1 (.n c) := hσ2 _ hcr
   have hhold : ∀ next kret, next → Stmt.HoldsList C rd σ2 (k64 pad m0 m1 m2 m3 c o) next kret := by

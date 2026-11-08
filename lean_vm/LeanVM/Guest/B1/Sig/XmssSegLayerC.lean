@@ -220,8 +220,7 @@ theorem sLeaf_complete {layer b : Nat} (hA : 103 ≤ sA layer b) (hm : MemOK rd 
       rw [List.length_map, sLeafCells, List.length_cons, List.length_cons, htips]; simp
     have hleaf := kMsg_sound (out := none) hpad4 (by simp) hlk (by rw [hlen]) (fun j hj =>
       cellsBytes_getD_past (by rw [List.length_map, hlen]; omega))
-    have := congrArg Prod.fst hleaf
-    simp only at this
+    have := hleaf
     show IsCanonical128 (σ4 (.n (kMsg sLxPad ((sLeafCells layer b).map KC.cell) 960 false none
       ((sCw layer b).2.1 + 2)).2.2))
     rw [this]

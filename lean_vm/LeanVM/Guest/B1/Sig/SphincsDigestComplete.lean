@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsDigestComplete
 
-  The message and `H_msg` of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-3994` at leanVM
-  5e3ade21) are complete: the claim's keys and message cells loaded, the randomizer hinted and both
+  The message and `H_msg` of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-3966` at leanVM PR #724
+  head 873ee6d8) are complete: the claim's keys and message cells loaded, the randomizer hinted and both
   calls hashed.
 -/
 
@@ -109,25 +109,25 @@ def hPre0 : List Stmt :=
 
 /-- Between the two calls: the second's counter cell with the `0x01`, its tail run, the `0x80`. -/
 def hPre1 : List Stmt :=
-  [cst 30 (word (2 ^ 24) 0 0), cst 31 (word (2 ^ 32) 0 0), addS (.n 32) (.n 30) (.n 31), copyS (.n 33) sM1,
-    copyS (.n 34) (.n 32), cst 35 (word 0 0 0), cst 36 (word 0 0 0), cst 37 (word (2 ^ 63) 0 0)]
+  [cst 19 (word (2 ^ 24) 0 0), cst 20 (word (2 ^ 32) 0 0), addS (.n 21) (.n 19) (.n 20), copyS (.n 22) sM1,
+    copyS (.n 23) (.n 21), cst 24 (word 0 0 0), cst 25 (word 0 0 0), cst 26 (word (2 ^ 63) 0 0)]
 
 theorem sDigests_eq : sDigests = hintW "sp_rand" [sRand] :: (hPre0 ++
-    ([kecS (sHIns 7) (runV 17 13) false false] ++ (hPre1 ++ [kecS (sHIns 33) (runV 38 13) false false]))) := by
+    ([kecS (sHIns 7) (runV 17 2) false false] ++ (hPre1 ++ [kecS (sHIns 22) (runV 27 1) false false]))) := by
   simp [sDigests, hPre0, hPre1]
 
 theorem hPre0_ok : SeqOK 7 hPre0 17 := seqB_ok (by decide +kernel)
-theorem hPre1_ok : SeqOK 30 hPre1 38 := seqB_ok (by decide +kernel)
+theorem hPre1_ok : SeqOK 19 hPre1 27 := seqB_ok (by decide +kernel)
 
 /-- What `H_msg`'s calls give: the randomizer, the padding run and both calls' outputs. -/
 def DigestsPost (σ : Val) (Rho : E) : Prop :=
   σ sRand = Rho ∧ PadOK σ sPad ∧ (σ sHm0, σ sHm0b) = hcellLen (hmsgCells σ 0) 84 ∧
-    (σ sHm1, σ (.n 39)) = hcellLen (hmsgCells σ 1) 84
+    σ sHm1 = (hcellLen (hmsgCells σ 1) 84).1
 
 /-- **`H_msg`'s two calls complete**: the randomizer hinted, both calls hashed on canonical cells. -/
 theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP : IsCanonical128 (σ sPP))
     (hR : IsCanonical128 (σ sRoot)) (h0 : IsCanonical128 (σ sM0)) (h1 : IsCanonical128 (σ sM1)) :
-    Completes C rd 6 51 sDigests σ (fun σ' => DigestsPost σ' Rho) := by
+    Completes C rd 6 28 sDigests σ (fun σ' => DigestsPost σ' Rho) := by
   rw [sDigests_eq]
   refine Completes.reload (σr := Function.update σ sRand Rho) (fun v hv =>
     Function.update_of_ne (hv 6 le_rfl (by norm_num)) _ _) ?_
@@ -169,18 +169,20 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
         | (rw [p1]; exact canon_zero) | (rw [p2]; exact canon_zero) | (rw [p3]; exact canon_zero)
         | (rw [p4]; exact canon_zero)
   have hpad2 : PadOK σ2 sPad := ⟨p0, p1, p2, p3, p4⟩
-  refine Completes.append (xs := [kecS (sHIns 7) (runV 17 13) false false]) (m := 30) (by norm_num)
+  refine Completes.append (xs := [kecS (sHIns 7) (runV 17 2) false false]) (m := 19) (by norm_num)
     (by norm_num) (numBelow_of_all (by decide))
-    (kecS_complete (C := C) (rd := rd) σ2 (ins := sHIns 7) 17 rfl
+    (kecS_complete (C := C) (rd := rd) σ2 (ins := sHIns 7) 17 (.inr (.inl rfl)) rfl
       (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 7).all (nbB 17) = true) v hv))
       hins0 false false).withHolds (fun σ3 he3 ⟨_, hh3⟩ => ?_)
   have t3 : ∀ k < 17, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
-  have hk3 : AtomsHold rd σ3 [kecS (sHIns 7) (runV 17 13) false false] :=
+  have hk3 : AtomsHold rd σ3 [kecS (sHIns 7) (runV 17 2) false false] :=
     atomsHold_of_holdsList rfl hh3
   have d0 : (σ3 (.n 17), σ3 (.n (17 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
       word (0 * 2 ^ 24) 0 0] 84 := by
-    refine kec84_sound (i := 0) (by norm_num) hk3 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
-    · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
+    have hr0 : ∀ k < 9, σ3 ((sHIns 7).getD k (.n 0)) = [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
+        word (0 * 2 ^ 24 + 2 ^ 32) 0 0, 0, 0, word (2 ^ 63) 0 0].getD k 0 := by
+      intro k hk
+      interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
         first
           | (rw [show sRand = .n 6 from rfl, t3 _ (by norm_num)])
           | (rw [show sPP = .n 2 from rfl, t3 _ (by norm_num)])
@@ -190,27 +192,31 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
           | (rw [t3 _ (by norm_num), k0] <;> norm_num)
           | (rw [t3 _ (by norm_num), k1]) | (rw [t3 _ (by norm_num), k1'])
           | (rw [t3 _ (by norm_num), k2])
-    · interval_cases k <;> simp only [sHIns, sPad, List.getD_cons_zero, List.getD_cons_succ] <;>
+    have hc0 : ∀ k, 9 ≤ k → k < 13 → σ3 ((sHIns 7).getD k (.n 0)) = 0 := by
+      intro k hk1 hk2
+      interval_cases k <;> simp only [sHIns, sPad, List.getD_cons_zero, List.getD_cons_succ] <;>
         first
           | (rw [t3 _ (by norm_num), p1])
           | (rw [t3 _ (by norm_num), p2])
           | (rw [t3 _ (by norm_num), p3])
           | (rw [t3 _ (by norm_num), p4])
-  refine Completes.seq (m := 38) hPre1_ok (by norm_num) (fun σ4 he4 hh4 => ?_)
-  have t43 : ∀ k < 30, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
+    exact Prod.ext ((kec84_sound (i := 0) (by norm_num) hk3 hr0 hc0).1 (by norm_num))
+      ((kec84_sound (i := 0) (by norm_num) hk3 hr0 hc0).2 (by norm_num))
+  refine Completes.seq (m := 27) hPre1_ok (by norm_num) (fun σ4 he4 hh4 => ?_)
+  have t43 : ∀ k < 19, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
   have t4 : ∀ k < 17, σ4 (.n k) = σ2 (.n k) := fun k hk => by
     rw [t43 k (by omega), t3 k hk]
   have e : ∀ (k : Nat) (w : E), Stmt.atom (.const (.n k) w) ∈ hPre1 → σ4 (.n k) = w := fun k w hm => hh4.atom hm
-  have e30 := e 30 (word (2 ^ 24) 0 0) (by simp [hPre1, cst])
-  have e31 := e 31 (word (2 ^ 32) 0 0) (by simp [hPre1, cst])
-  have e35 := (e 35 (word 0 0 0) (by simp [hPre1, cst])).trans word_zero
-  have e36 := (e 36 (word 0 0 0) (by simp [hPre1, cst])).trans word_zero
-  have e37 := e 37 (word (2 ^ 63) 0 0) (by simp [hPre1, cst])
-  have a32 : σ4 (.n 32) = σ4 (.n 30) + σ4 (.n 31) := hh4.atom (a := .add (.n 32) _ _) (by simp [hPre1, addS])
-  have c33 : σ4 (.n 33) = σ4 sM1 := hh4.atom (a := .copy (.n 33) sM1) (by simp [hPre1, copyS])
-  have c34 : σ4 (.n 34) = σ4 (.n 32) := hh4.atom (a := .copy (.n 34) (.n 32)) (by simp [hPre1, copyS])
-  have v34 : σ4 (.n 34) = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by rw [c34, a32, e30, e31, word_ctr_one]
-  have hins1 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 33).map σ4) c) := by
+  have e30 := e 19 (word (2 ^ 24) 0 0) (by simp [hPre1, cst])
+  have e31 := e 20 (word (2 ^ 32) 0 0) (by simp [hPre1, cst])
+  have e35 := (e 24 (word 0 0 0) (by simp [hPre1, cst])).trans word_zero
+  have e36 := (e 25 (word 0 0 0) (by simp [hPre1, cst])).trans word_zero
+  have e37 := e 26 (word (2 ^ 63) 0 0) (by simp [hPre1, cst])
+  have a32 : σ4 (.n 21) = σ4 (.n 19) + σ4 (.n 20) := hh4.atom (a := .add (.n 21) _ _) (by simp [hPre1, addS])
+  have c33 : σ4 (.n 22) = σ4 sM1 := hh4.atom (a := .copy (.n 22) sM1) (by simp [hPre1, copyS])
+  have c34 : σ4 (.n 23) = σ4 (.n 21) := hh4.atom (a := .copy (.n 23) (.n 21)) (by simp [hPre1, copyS])
+  have v34 : σ4 (.n 23) = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by rw [c34, a32, e30, e31, word_ctr_one]
+  have hins1 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 22).map σ4) c) := by
     intro c
     fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
       simp only [List.getD_cons_zero, List.getD_cons_succ] <;>
@@ -224,16 +230,16 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
         | (rw [e37]; exact canon_word _ _)
         | (rw [t4 _ (by norm_num), p1]; exact canon_zero) | (rw [t4 _ (by norm_num), p2]; exact canon_zero)
         | (rw [t4 _ (by norm_num), p3]; exact canon_zero) | (rw [t4 _ (by norm_num), p4]; exact canon_zero)
-  obtain ⟨σ5, he5, -, hh5⟩ := kecS_complete (C := C) (rd := rd) σ4 (ins := sHIns 33) 38 rfl
-    (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 33).all (nbB 38) = true) v hv))
+  obtain ⟨σ5, he5, -, hh5⟩ := kecS_complete (C := C) (rd := rd) σ4 (ins := sHIns 22) 27 (.inl rfl) rfl
+    (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 22).all (nbB 27) = true) v hv))
     hins1 false false
-  have hk5 : AtomsHold rd σ5 [kecS (sHIns 33) (runV 38 13) false false] :=
+  have hk5 : AtomsHold rd σ5 [kecS (sHIns 22) (runV 27 1) false false] :=
     atomsHold_of_holdsList rfl (hh5 True (fun _ => True) trivial)
-  have t5 : ∀ k < 38, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
+  have t5 : ∀ k < 27, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
   have u : ∀ k < 17, σ5 (.n k) = σ2 (.n k) := fun k hk => by rw [t5 k (by omega), t4 k (by omega)]
-  have d1 : (σ5 (.n 38), σ5 (.n (38 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
-      word (1 * 2 ^ 24) 0 0] 84 := by
-    refine kec84_sound (i := 1) (by norm_num) hk5 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
+  have d1 : σ5 (.n 27) = (hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1,
+      word (1 * 2 ^ 24) 0 0] 84).1 := by
+    refine (kec84_sound (i := 1) (by norm_num) hk5 (fun k hk => ?_) (fun k hk1 hk2 => ?_)).1 le_rfl
     · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
         first
           | (rw [show sRand = .n 6 from rfl, u _ (by norm_num)])
@@ -262,7 +268,7 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   · rw [hcells, show sHm0 = .n 17 from rfl, show sHm0b = .n 18 from rfl, t5 _ (by norm_num),
       t5 _ (by norm_num), t43 _ (by norm_num), t43 _ (by norm_num)]
     exact d0
-  · rw [hcells, show sHm1 = .n 38 from rfl]
+  · rw [hcells, show sHm1 = .n 27 from rfl]
     exact d1
 
 end

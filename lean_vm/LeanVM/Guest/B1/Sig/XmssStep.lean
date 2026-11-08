@@ -63,11 +63,11 @@ theorem k64_ins (pad : Nat) (m0 m1 m2 m3 : V) (c : Nat) (x : V) :
     · interval_cases j <;> simp
 
 /-- **A 64-byte `keccak` is in single-assignment form**, its inputs off its outputs. -/
-theorem k64_ssa {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (hco : c + 1 ≤ o ∨ o + 13 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], ¬ InR o 13 v) (hpo : pad + 5 ≤ o ∨ o + 13 ≤ pad) :
+theorem k64_ssa {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
+    (hm : ∀ v ∈ [m0, m1, m2, m3], ¬ InR o 1 v) (hpo : pad + 5 ≤ o ∨ o + 1 ≤ pad) :
     SSA (k64 pad m0 m1 m2 m3 c o) := by
   refine ⟨trivial, fun v hv h => by simp [aReads] at h, fun v hv h => ?_, ⟨rfl, by simp [runV],
-    runV_nodup o 13⟩, fun v hv h => ?_, fun v hv => by simp [outsList] at hv, trivial⟩
+    runV_nodup o 1⟩, fun v hv h => ?_, fun v hv => by simp [outsList] at hv, trivial⟩
   · simp only [outsList, aOuts, List.append_nil, kecS] at hv
     rw [mem_runV] at hv
     obtain ⟨j, hj, rfl⟩ := hv
@@ -86,12 +86,12 @@ theorem k64_ssa {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (hco : c + 1 ≤ o ∨
       omega
 
 theorem k64_outs (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) :
-    outsList (k64 pad m0 m1 m2 m3 c o) = .n c :: runV o 13 := by
+    outsList (k64 pad m0 m1 m2 m3 c o) = .n c :: runV o 1 := by
   simp [k64, cst, kecS, outsList, aOuts]
 
 theorem k64_vals (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) {x : V}
     (hx : x ∈ Stmt.valsList (k64 pad m0 m1 m2 m3 c o)) :
-    x ∈ [m0, m1, m2, m3] ∨ x = .n c ∨ InR pad 5 x ∨ InR o 13 x := by
+    x ∈ [m0, m1, m2, m3] ∨ x = .n c ∨ InR pad 5 x ∨ InR o 1 x := by
   simp only [k64, cst, kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
     List.mem_append, List.mem_singleton] at hx
   rcases hx with rfl | hx | hx
@@ -104,13 +104,13 @@ theorem k64_vals (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) {x : V}
 
 /-- **A 64-byte `keccak` reads and writes canonical cells**, its inputs canonical and the padding
 run set. -/
-theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco : c + 1 ≤ o ∨ o + 13 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], ¬ InR o 13 v ∧ v ≠ .n c ∧ IsCanonical128 (σ v))
+theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
+    (hm : ∀ v ∈ [m0, m1, m2, m3], ¬ InR o 1 v ∧ v ≠ .n c ∧ IsCanonical128 (σ v))
     (hpc : pad + 5 ≤ c) (hpo : pad + 5 ≤ o) (hp : PadOK σ pad) :
     KCanon (fwd (k64 pad m0 m1 m2 m3 c o) σ) (k64 pad m0 m1 m2 m3 c o) ∧
-      ∀ j < 13, IsCanonical128 (fwd (k64 pad m0 m1 m2 m3 c o) σ (.n (o + j))) := by
+      ∀ j < 1, IsCanonical128 (fwd (k64 pad m0 m1 m2 m3 c o) σ (.n (o + j))) := by
   set σ1 := Function.update σ (.n c) (word (2 ^ 63) 0 0) with hσ1
-  have hf : fwd (k64 pad m0 m1 m2 m3 c o) σ = updL σ1 (runV o 13)
+  have hf : fwd (k64 pad m0 m1 m2 m3 c o) σ = updL σ1 (runV o 1)
       (kOut ([m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
         .n (pad + 2), .n (pad + 3), .n (pad + 4)].map σ1) false false) := rfl
   refine ⟨fun ins outs i o' hmem cc => ?_, fun j hj => ?_⟩
@@ -119,7 +119,7 @@ theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco 
     obtain ⟨rfl, rfl, rfl, rfl⟩ := hmem
     rw [hf]
     have hmap : ∀ v ∈ [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
-        .n (pad + 2), .n (pad + 3), .n (pad + 4)], updL σ1 (runV o 13) (kOut ([m0, m1, m2, m3, .n pad,
+        .n (pad + 2), .n (pad + 3), .n (pad + 4)], updL σ1 (runV o 1) (kOut ([m0, m1, m2, m3, .n pad,
           .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1), .n (pad + 2), .n (pad + 3),
           .n (pad + 4)].map σ1) false false) v = σ1 v := by
       intro v hv
@@ -150,10 +150,10 @@ theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco 
     fin_cases cc <;> simp [cells13, q0, q1, q2, q3, q4, p0, p1, p2, p3, p4, hc1] <;>
       first | exact h4 _ (by simp) | exact canon_word _ _ | exact canon_zero
   · rw [hf]
-    have := updL_at σ1 (runV o 13) (kOut ([m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2),
+    have := updL_at σ1 (runV o 1) (kOut ([m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2),
       .n (pad + 3), .n c, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)].map σ1) false false)
-      (runV_nodup o 13) j (by simp [runV]; exact hj)
-    have hj' : (runV o 13)[j]'(by simp [runV]; exact hj) = .n (o + j) := by simp [runV]
+      (runV_nodup o 1) j (by simp [runV]; omega)
+    have hj' : (runV o 1)[j]'(by simp [runV]; omega) = .n (o + j) := by simp [runV]; omega
     rw [hj'] at this
     rw [this]
     exact canon_kOut _ _ _ _
@@ -236,7 +236,7 @@ theorem xWc_sound {layer b : Nat} {σ : Val} (hg : XGood layer b σ) :
     StepSound rd σ (xWc layer b)
       (fun i s y => (hcell [σ (.n 1), σ (.n (xA layer b + 2 * min s 2 + 1)), y, σ (.n (138 + min i 57))]).1) := by
   intro i s v c o h
-  exact congrArg Prod.fst (k64_sound hg.2.2.2.1 h)
+  exact k64_sound hg.2.2.2.1 h
 
 theorem xWc_pow {layer b : Nat} {σ : Val} (hg : XGood layer b σ) :
     ∀ s < 10, σ ((xWc layer b).power s) = gen ^ s := by

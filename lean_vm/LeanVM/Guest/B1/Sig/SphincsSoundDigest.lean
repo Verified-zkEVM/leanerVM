@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundDigest
 
-  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-4052` at leanVM 5e3ade21)
+  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4024` at leanVM PR #724 head 873ee6d8)
   is sound: `H_msg`'s two calls hash `R | PK.seed | PK.root | M | BE_32(i)`, `M` the claim's two
   message cells, and whatever bits are hinted, they are the digest's, each field's values theirs.
 -/
@@ -15,8 +15,9 @@ public import LeanVM.Guest.WithHashBridge
 /-!
 # The message digest, sound
 
-* `kec84_sound`: a one-block `KECCAK` of five cells and a counter cell, 84 bytes, writes the digest
-  halves of their hash (`hcellLen`);
+* `kec84_sound`: a one-block `KECCAK` of five cells and a counter cell, 84 bytes, writes the digest's
+  halves of their hash (`hcellLen`) into the cells it writes (two for `H_msg`'s first call, one for
+  its second);
 * `sMsg_sound`: the claim's keys and message cells loaded;
 * `sDigests_sound`: the padding run, and `H_msg`'s two calls;
 * `sCheck_sound`: the bits' number is the digest's: the first call's cells and the second call's low
@@ -74,14 +75,15 @@ theorem word_ctr_pad {i : Nat} (hi : i < 256) :
 
 /-- **An 84-byte `keccak`**: five cells and a counter cell `i · 2^24` (`BE_32(i)`, `i < 256`), one
 block from the zero state. -/
-theorem kec84_sound {ins : List V} {o : Nat} {a b c d e : E} {i : Nat} (hi : i < 256)
-    (hK : AtomsHold rd σ [kecS ins (runV o 13) false false])
+theorem kec84_sound {ins : List V} {o n : Nat} {a b c d e : E} {i : Nat} (hi : i < 256)
+    (hK : AtomsHold rd σ [kecS ins (runV o n) false false])
     (hrate : ∀ k < 9, σ (ins.getD k (.n 0)) =
       [a, b, c, d, e, word (i * 2 ^ 24 + 2 ^ 32) 0 0, 0, 0, word (2 ^ 63) 0 0].getD k 0)
     (hcap : ∀ k, 9 ≤ k → k < 13 → σ (ins.getD k (.n 0)) = 0) :
-    (σ (.n o), σ (.n (o + 1))) = hcellLen [a, b, c, d, e, word (i * 2 ^ 24) 0 0] 84 := by
+    (1 ≤ n → σ (.n o) = (hcellLen [a, b, c, d, e, word (i * 2 ^ 24) 0 0] 84).1) ∧
+      (2 ≤ n → σ (.n (o + 1)) = (hcellLen [a, b, c, d, e, word (i * 2 ^ 24) 0 0] 84).2) := by
   have hk := hK.atom (List.mem_singleton_self _)
-  obtain ⟨hl, -, hk⟩ := hk
+  obtain ⟨hl, -, O, hk, hw⟩ := keccak_holds_full hk
   have hget : ∀ k : Fin 13, cells13 (ins.map σ) k = σ (ins.getD k.val (.n 0)) := fun k => by
     simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
     rw [List.getElem?_eq_getElem (by omega)]
@@ -101,7 +103,9 @@ theorem kec84_sound {ins : List V} {o : Nat} {a b c d e : E} {i : Nat} (hi : i <
     (fun k hk => by rw [hget, hpad]; exact hrate k hk)
     (fun k hk => by rw [hget]; exact hcap k hk k.isLt) hk
   rw [hcellLen, ← this.2]
-  simp [cells13, runV]
+  refine ⟨fun hn => ?_, fun hn => ?_⟩
+  · simpa [runV] using hw 0 (by simp [runV]; omega)
+  · simpa [runV] using hw 1 (by simp [runV]; omega)
 
 /-! ## `H_msg` -/
 
@@ -114,7 +118,7 @@ def hmsgCells (σ : Val) (i : Nat) : List E :=
 its 84 bytes. -/
 theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
     PadOK σ sPad ∧ (σ sHm0, σ sHm0b) = hcellLen (hmsgCells σ 0) 84 ∧
-      (σ sHm1, σ (.n 39)) = hcellLen (hmsgCells σ 1) 84 := by
+      σ sHm1 = (hcellLen (hmsgCells σ 1) 84).1 := by
   have c : ∀ (k : Nat) (w : E), Stmt.atom (.const (.n k) w) ∈ sDigests → σ (.n k) = w :=
     fun k w hm => h.atom hm
   have cp : ∀ (k : Nat) (v : V), Stmt.atom (.copy (.n k) v) ∈ sDigests → σ (.n k) = σ v :=
@@ -130,29 +134,34 @@ theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
   have k1 := c 9 (word 0 0 0) (by simp [sDigests, cst])
   have k2 := c 10 (word 0 0 0) (by simp [sDigests, cst])
   have k3 := c 11 (word (2 ^ 63) 0 0) (by simp [sDigests, cst])
-  have k4 := c 30 (word (2 ^ 24) 0 0) (by simp [sDigests, cst])
-  have k5 := c 31 (word (2 ^ 32) 0 0) (by simp [sDigests, cst])
-  have k6 := c 35 (word 0 0 0) (by simp [sDigests, cst])
-  have k7 := c 36 (word 0 0 0) (by simp [sDigests, cst])
-  have k8 := c 37 (word (2 ^ 63) 0 0) (by simp [sDigests, cst])
-  have a32 : σ (.n 32) = σ (.n 30) + σ (.n 31) := h.atom (a := .add (.n 32) _ _) (by simp [sDigests, addS])
+  have k4 := c 19 (word (2 ^ 24) 0 0) (by simp [sDigests, cst])
+  have k5 := c 20 (word (2 ^ 32) 0 0) (by simp [sDigests, cst])
+  have k6 := c 24 (word 0 0 0) (by simp [sDigests, cst])
+  have k7 := c 25 (word 0 0 0) (by simp [sDigests, cst])
+  have k8 := c 26 (word (2 ^ 63) 0 0) (by simp [sDigests, cst])
+  have a32 : σ (.n 21) = σ (.n 19) + σ (.n 20) := h.atom (a := .add (.n 21) _ _) (by simp [sDigests, addS])
   have c7 := cp 7 sM1 (by simp [sDigests, copyS])
-  have c33 := cp 33 sM1 (by simp [sDigests, copyS])
-  have c34 := cp 34 (.n 32) (by simp [sDigests, copyS])
-  have w1 : σ (.n 32) = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by
+  have c33 := cp 22 sM1 (by simp [sDigests, copyS])
+  have c34 := cp 23 (.n 21) (by simp [sDigests, copyS])
+  have w1 : σ (.n 21) = word (1 * 2 ^ 24 + 2 ^ 32) 0 0 := by
     have e := word_ctr_pad (i := 1) (by norm_num)
     rw [one_mul] at e
     rw [a32, k4, k5, e, one_mul]
   rw [word_zero] at k1 k2 k6 k7
   refine ⟨hp, ?_, ?_⟩
-  · refine kec84_sound (ins := sHIns 7) (i := 0) (by norm_num) (h.sub fun x hx => by
-      simp only [List.mem_singleton] at hx; subst hx; simp [sDigests]) (fun k hk => ?_) (fun k h1 h2 => ?_)
-    · interval_cases k <;> simp [sHIns, c7, k0, k1, k2, k3]
-    · interval_cases k <;> simp [sHIns, sPad, p1, p2, p3, p4]
-  · refine kec84_sound (ins := sHIns 33) (i := 1) (by norm_num) (h.sub fun x hx => by
-      simp only [List.mem_singleton] at hx; subst hx; simp [sDigests]) (fun k hk => ?_) (fun k h1 h2 => ?_)
-    · interval_cases k <;> simp [sHIns, c33, c34, w1, k6, k7, k8]
-    · interval_cases k <;> simp [sHIns, sPad, p1, p2, p3, p4]
+  · obtain ⟨e1, e2⟩ := kec84_sound (ins := sHIns 7) (o := 17) (n := 2) (i := 0) (a := σ sRand)
+      (b := σ sPP) (c := σ sRoot) (d := σ sM0) (e := σ sM1) (by norm_num)
+      (h.sub fun x hx => by
+        simp only [List.mem_singleton] at hx; subst hx; simp [sDigests])
+      (fun k hk => by interval_cases k <;> simp [sHIns, c7, k0, k1, k2, k3])
+      (fun k h1 h2 => by interval_cases k <;> simp [sHIns, sPad, p1, p2, p3, p4])
+    exact Prod.ext (e1 (by norm_num)) (e2 (by norm_num))
+  · exact (kec84_sound (ins := sHIns 22) (o := 27) (n := 1) (i := 1) (a := σ sRand)
+      (b := σ sPP) (c := σ sRoot) (d := σ sM0) (e := σ sM1) (by norm_num)
+      (h.sub fun x hx => by
+        simp only [List.mem_singleton] at hx; subst hx; simp [sDigests])
+      (fun k hk => by interval_cases k <;> simp [sHIns, c33, c34, w1, k6, k7, k8])
+      (fun k h1 h2 => by interval_cases k <;> simp [sHIns, sPad, p1, p2, p3, p4])).1 le_rfl
 
 /-! ## The message -/
 
@@ -235,32 +244,32 @@ theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
   omega
 
 /-- The tree index's high byte's six unused bits, folded most significant first. -/
-def padV (b : Nat) : V := if b = 0 then .n 298 else .n (1303 + 3 * (b - 1) + 2)
+def padV (b : Nat) : V := if b = 0 then .n 275 else .n (1280 + 3 * (b - 1) + 2)
 
 theorem sPadBits_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sPadBits) :
     ∀ b ≤ 5, σ (padV b) = eOfNat (T / 2 ^ (247 - b) % 2 ^ (b + 1))
   | 0, _ => by
-      rw [show padV 0 = .n (51 + 247) from rfl, hb 247 (by norm_num), bitE_testBit]
+      rw [show padV 0 = .n (28 + 247) from rfl, hb 247 (by norm_num), bitE_testBit]
       norm_num
   | b + 1, hb5 => by
       have ih := sPadBits_sound hb h b (by omega)
-      have mem : ∀ x ∈ [cst (1303 + 3 * b) (word 2 0 0),
-          mulS (.n (1303 + 3 * b + 1)) (.n (if b = 0 then 298 else 1303 + 3 * b - 1)) (.n (1303 + 3 * b)),
-          addS (.n (1303 + 3 * b + 2)) (.n (297 - b)) (.n (1303 + 3 * b + 1))], x ∈ sPadBits := fun x hx =>
+      have mem : ∀ x ∈ [cst (1280 + 3 * b) (word 2 0 0),
+          mulS (.n (1280 + 3 * b + 1)) (.n (if b = 0 then 275 else 1280 + 3 * b - 1)) (.n (1280 + 3 * b)),
+          addS (.n (1280 + 3 * b + 2)) (.n (274 - b)) (.n (1280 + 3 * b + 1))], x ∈ sPadBits := fun x hx =>
         List.mem_flatMap.mpr ⟨b, List.mem_range.mpr (by omega), hx⟩
-      have k : σ (.n (1303 + 3 * b)) = word 2 0 0 := h.atom (a := .const _ _) (mem _ (by simp [cst]))
-      have m : σ (.n (1303 + 3 * b + 1)) = σ (padV b) * σ (.n (1303 + 3 * b)) := by
+      have k : σ (.n (1280 + 3 * b)) = word 2 0 0 := h.atom (a := .const _ _) (mem _ (by simp [cst]))
+      have m : σ (.n (1280 + 3 * b + 1)) = σ (padV b) * σ (.n (1280 + 3 * b)) := by
         have := h.atom (a := .mul _ _ _) (mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
         rw [this]
         congr 2
         unfold padV
         split_ifs <;> first | rfl | (congr 1; omega)
-      have a : σ (.n (1303 + 3 * b + 2)) = σ (.n (297 - b)) + σ (.n (1303 + 3 * b + 1)) :=
+      have a : σ (.n (1280 + 3 * b + 2)) = σ (.n (274 - b)) + σ (.n (1280 + 3 * b + 1)) :=
         h.atom (a := .add _ _ _) (mem _ (by simp [addS]))
       have hP : T / 2 ^ (247 - b) % 2 ^ (b + 1) < 2 ^ 6 :=
         lt_of_lt_of_le (Nat.mod_lt _ (by positivity)) (Nat.pow_le_pow_right (by norm_num) (by omega))
-      rw [show padV (b + 1) = .n (1303 + 3 * b + 2) by simp [padV], a, m, k, ih, word_two, mul_comm,
-        Value.gen_mul_eOfNat (by omega), show 297 - b = 51 + (246 - b) by omega, hb _ (by omega),
+      rw [show padV (b + 1) = .n (1280 + 3 * b + 2) by simp [padV], a, m, k, ih, word_two, mul_comm,
+        Value.gen_mul_eOfNat (by omega), show 274 - b = 28 + (246 - b) by omega, hb _ (by omega),
         bitE_testBit, add_comm, show 2 * (T / 2 ^ (247 - b) % 2 ^ (b + 1)) =
           2 ^ 1 * (T / 2 ^ (247 - b) % 2 ^ (b + 1)) by ring,
         Value.eOfNat_add_of_lt (s := 1) (r := T / 2 ^ (246 - b) % 2) (by omega)]
@@ -275,29 +284,29 @@ theorem lval_at {T : Nat} (hl : LValsAt σ T) {l z i : Nat} (hl3 : l < 3) (hz : 
 
 /-- The check's statements before `d0[0] = md0`: the tree's middle byte, the unused bits. -/
 def sCheckA : List Stmt :=
-  [cst 1300 (word 256 0 0), mulS (.n 1301) (sLVal 24) (.n 1300), addS sTreeMid (sLVal 16) (.n 1301)] ++
+  [cst 1277 (word 256 0 0), mulS (.n 1278) (sLVal 24) (.n 1277), addS sTreeMid (sLVal 16) (.n 1278)] ++
     sPadBits
 
-/-- `d0[0] = md0 + corr0` and `md1 + corr1` (`G:4046-4047`): the places `vals` carries taken out. -/
+/-- `d0[0] = md0 + corr0` and `md1 + corr1` (`G:4018-4019`): the places `vals` carries taken out. -/
 def sCheckCorr : List Stmt :=
-  [cst 1318 corr0W, addS sHm0 sMd0.2.2 (.n 1318), cst 1319 corr1W, addS (.n 1320) sMd1.2.2 (.n 1319)]
+  [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n 1295), cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)]
 
 /-- Between `d0[0] = md0 + corr0` and `d0[1] = …`: the tree index's two high bytes placed. -/
 def sCheckB : List Stmt :=
-  [cst 1321 (word 4 0 0), mulS (.n 1322) (.n 1317) (.n 1321), addS (.n 1323) (sLVal 24) (.n 1322),
-    cst 1324 (pw 112), mulS (.n 1325) (.n 1323) (.n 1324), addS (.n 1326) (.n 1320) (.n 1325),
-    cst 1327 (pw 120), mulS (.n 1328) sTreeMid (.n 1327)]
+  [cst 1298 (word 4 0 0), mulS (.n 1299) (.n 1294) (.n 1298), addS (.n 1300) (sLVal 24) (.n 1299),
+    cst 1301 (pw 112), mulS (.n 1302) (.n 1300) (.n 1301), addS (.n 1303) (.n 1297) (.n 1302),
+    cst 1304 (pw 120), mulS (.n 1305) sTreeMid (.n 1304)]
 
 /-- After the unused bytes: the second call's high lane. -/
 def sCheckC : List Stmt :=
-  [addS (.n 1386) sHm1 (sLVal 8), cst 1387 (word 256 0 0), mulS (.n 1388) (sLVal 0) (.n 1387),
-    addS (.n 1389) (.n 1386) (.n 1388), cst 1390 (word 65536 0 0),
-    mulS (.n 1391) sUnused.2.2 (.n 1390), addS (.n 1392) (.n 1389) (.n 1391),
-    cst 1393 (word 1 0 1), mulS (.n 1394) (.n 1392) (.n 1393)]
+  [addS (.n 1363) sHm1 (sLVal 8), cst 1364 (word 256 0 0), mulS (.n 1365) (sLVal 0) (.n 1364),
+    addS (.n 1366) (.n 1363) (.n 1365), cst 1367 (word 65536 0 0),
+    mulS (.n 1368) sUnused.2.2 (.n 1367), addS (.n 1369) (.n 1366) (.n 1368),
+    cst 1370 (word 1 0 1), mulS (.n 1371) (.n 1369) (.n 1370)]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
-    [addS sHm0b (.n 1326) (.n 1328), hintW "sp_unused" (runV 1329 6)] ++ sUnused.1 ++ sCheckC ++
-    [.atom (.assertInK (.n 1394) sUnused.2.2)] := by
+    [addS sHm0b (.n 1303) (.n 1305), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
+    [.atom (.assertInK (.n 1371) sUnused.2.2)] := by
   simp [sCheck, sCheckA, sCheckCorr, sCheckB, sCheckC]
 
 theorem lval_16 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 16) = eOfNat (layerLeafN T 2) := by
@@ -314,33 +323,33 @@ theorem lval_0 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 0) = eOfNat (layerLeafN
 
 /-- **The tree's middle byte and the unused bits.** -/
 theorem sCheckA_sound {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h : AtomsHold rd σ sCheckA) :
-    σ sTreeMid = eOfNat (byteN T 31) ∧ σ (.n 1317) = eOfNat (T / 2 ^ 242 % 2 ^ 6) := by
+    σ sTreeMid = eOfNat (byteN T 31) ∧ σ (.n 1294) = eOfNat (T / 2 ^ 242 % 2 ^ 6) := by
   have hA := h.left
   have hL2 : layerLeafN T 2 < 2 ^ 10 := by simpa [sLeafLen] using layerLeafN_lt T 2
   refine ⟨?_, ?_⟩
-  · have k : σ (.n 1300) = word 256 0 0 := hA.atom (a := .const _ _) (by simp [cst])
-    have m : σ (.n 1301) = σ (sLVal 24) * σ (.n 1300) := hA.atom (a := .mul _ _ _) (by simp [mulS])
-    have a : σ sTreeMid = σ (sLVal 16) + σ (.n 1301) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
+  · have k : σ (.n 1277) = word 256 0 0 := hA.atom (a := .const _ _) (by simp [cst])
+    have m : σ (.n 1278) = σ (sLVal 24) * σ (.n 1277) := hA.atom (a := .mul _ _ _) (by simp [mulS])
+    have a : σ sTreeMid = σ (sLVal 16) + σ (.n 1278) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
     rw [a, m, k, lval_16 hl, lval_24 hl, word_eq_eOfNat, show (256 : Nat) = 2 ^ 8 by norm_num, mul_comm,
       Value.eOfNat_two_pow_mul (by rw [Nat.shiftRight_eq_div_pow]; omega), eOfNat_low, layerLeaf2_low]
   · have pad := sPadBits_sound hb h.right 5 le_rfl
-    rw [show padV 5 = .n 1317 from rfl] at pad
+    rw [show padV 5 = .n 1294 from rfl] at pad
     simpa using pad
 
 /-- **The tree index's two high bytes placed**: with `md1`, the first call's second cell. -/
 theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (byteN T 31))
-    (pad : σ (.n 1317) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
-    (h1 : σ (.n 1320) = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
-    σ (.n 1326) + σ (.n 1328) = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) := by
-  have k6 : σ (.n 1321) = word 4 0 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m7 : σ (.n 1322) = σ (.n 1317) * σ (.n 1321) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have a8 : σ (.n 1323) = σ (sLVal 24) + σ (.n 1322) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
-  have k9 : σ (.n 1324) = pw 112 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m0 : σ (.n 1325) = σ (.n 1323) * σ (.n 1324) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have a1 : σ (.n 1326) = σ (.n 1320) + σ (.n 1325) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
-  have k2 : σ (.n 1327) = pw 120 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m3 : σ (.n 1328) = σ sTreeMid * σ (.n 1327) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have b30 : σ (.n 1323) = eOfNat (byteN T 30) := by
+    (pad : σ (.n 1294) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
+    (h1 : σ (.n 1297) = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
+    σ (.n 1303) + σ (.n 1305) = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) := by
+  have k6 : σ (.n 1298) = word 4 0 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m7 : σ (.n 1299) = σ (.n 1294) * σ (.n 1298) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a8 : σ (.n 1300) = σ (sLVal 24) + σ (.n 1299) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k9 : σ (.n 1301) = pw 112 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m0 : σ (.n 1302) = σ (.n 1300) * σ (.n 1301) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a1 : σ (.n 1303) = σ (.n 1297) + σ (.n 1302) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k2 : σ (.n 1304) = pw 120 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m3 : σ (.n 1305) = σ sTreeMid * σ (.n 1304) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have b30 : σ (.n 1300) = eOfNat (byteN T 30) := by
     rw [a8, m7, k6, pad, lval_24 hl, layerLeaf2_high, word_eq_eOfNat, show (4 : Nat) = 2 ^ 2 by norm_num,
       mul_comm, Value.eOfNat_two_pow_mul (by omega), add_comm,
       Value.eOfNat_add_of_lt (Nat.mod_lt _ (by norm_num))]
@@ -350,7 +359,7 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
     rw [e, show 8 * 30 = 240 by norm_num]
     generalize T / 2 ^ 240 = X
     omega
-  have e41 : σ (.n 1326) = eOfNat192 (T / 2 ^ 128 % 2 ^ 120) := by
+  have e41 : σ (.n 1303) = eOfNat192 (T / 2 ^ 128 % 2 ^ 120) := by
     rw [a1, m0, b30, k9, h1, pw_mul (by norm_num) (by have := byteN_lt T 30; norm_num; omega),
       eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
       mod_split (T / 2 ^ 128) 112 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
@@ -362,18 +371,18 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
 `y⁻¹`. -/
 theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOfNat N) (hN48 : N < 2 ^ 48)
     (hC : AtomsHold rd σ sCheckC) :
-    σ (.n 1394) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 1 0 1 := by
+    σ (.n 1371) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 1 0 1 := by
   have hL1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
   have hL0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
-  have a01 : σ (.n 1386) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k02 : σ (.n 1387) = word 256 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m03 : σ (.n 1388) = σ (sLVal 0) * σ (.n 1387) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
-  have a04 : σ (.n 1389) = σ (.n 1386) + σ (.n 1388) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k05 : σ (.n 1390) = word 65536 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m06 : σ (.n 1391) = σ sUnused.2.2 * σ (.n 1390) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
-  have a07 : σ (.n 1392) = σ (.n 1389) + σ (.n 1391) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k08 : σ (.n 1393) = word 1 0 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m09 : σ (.n 1394) = σ (.n 1392) * σ (.n 1393) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a01 : σ (.n 1363) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k02 : σ (.n 1364) = word 256 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m03 : σ (.n 1365) = σ (sLVal 0) * σ (.n 1364) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a04 : σ (.n 1366) = σ (.n 1363) + σ (.n 1365) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k05 : σ (.n 1367) = word 65536 0 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m06 : σ (.n 1368) = σ sUnused.2.2 * σ (.n 1367) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a07 : σ (.n 1369) = σ (.n 1366) + σ (.n 1368) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k08 : σ (.n 1370) = word 1 0 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m09 : σ (.n 1371) = σ (.n 1369) * σ (.n 1370) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
   rw [m09, k08, a07, m06, k05, a04, m03, k02, a01, lval_8 hl, lval_0 hl, hN, word_eq_eOfNat, word_eq_eOfNat,
     show (256 : Nat) = 2 ^ 8 by norm_num, show (65536 : Nat) = 2 ^ 16 by norm_num,
     mul_comm (eOfNat (layerLeafN T 0)), Value.eOfNat_two_pow_mul (by omega), mul_comm (eOfNat N),
@@ -398,17 +407,17 @@ theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : By
   have hA := h.left.left.left.left.left.left
   obtain ⟨tm, pad⟩ := sCheckA_sound hb hl hA
   refine ⟨tm, ?_, ?_, ?_⟩
-  · have k : σ (.n 1318) = corr0W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
-    have a : σ sHm0 = σ sMd0.2.2 + σ (.n 1318) := hc.atom (a := .add sHm0 _ _) (by simp [sCheckCorr, addS])
+  · have k : σ (.n 1295) = corr0W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
+    have a : σ sHm0 = σ sMd0.2.2 + σ (.n 1295) := hc.atom (a := .add sHm0 _ _) (by simp [sCheckCorr, addS])
     rw [a, k, h0]
-  · have k : σ (.n 1319) = corr1W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
-    have a : σ (.n 1320) = σ sMd1.2.2 + σ (.n 1319) :=
-      hc.atom (a := .add (.n 1320) _ _) (by simp [sCheckCorr, addS])
-    have a4 : σ sHm0b = σ (.n 1326) + σ (.n 1328) := hD.atom (a := .add sHm0b _ _) (by simp [addS])
+  · have k : σ (.n 1296) = corr1W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
+    have a : σ (.n 1297) = σ sMd1.2.2 + σ (.n 1296) :=
+      hc.atom (a := .add (.n 1297) _ _) (by simp [sCheckCorr, addS])
+    have a4 : σ sHm0b = σ (.n 1303) + σ (.n 1305) := hD.atom (a := .add sHm0b _ _) (by simp [addS])
     rw [a4, sCheckB_sound hl tm pad (by rw [a, k, h1]) hB]
-  · obtain ⟨N, hN, hNlt⟩ := sFromMarks_sound hκ hbb (b := 1329) (n := 6) (x := 1335) (by norm_num)
+  · obtain ⟨N, hN, hNlt⟩ := sFromMarks_sound hκ hbb (b := 1306) (n := 6) (x := 1312) (by norm_num)
       (by norm_num) hU
-    have hk : IsInK (σ (.n 1394)) := (hK.atom (a := .assertInK (.n 1394) sUnused.2.2) (by simp)).1
+    have hk : IsInK (σ (.n 1371)) := (hK.atom (a := .assertInK (.n 1371) sUnused.2.2) (by simp)).1
     rw [sCheckC_sound hl hN (by simpa using hNlt) hC] at hk
     exact high_low_bytes (Nat.mod_lt _ (by norm_num)) hk
 
@@ -489,7 +498,7 @@ theorem sDigestBlock_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
   have hMs : AtomsHold L.read σ sMsg := h.left.left.left.left.left.left.left
   obtain ⟨hp, d0, d1⟩ := sDigests_sound hDg
   obtain ⟨lP, lR, l2, l3⟩ := sMsg_sound hMs
-  set T := bitsOf σ 51 272 with hTdef
+  set T := bitsOf σ 28 272 with hTdef
   have hT : T < 2 ^ 272 := bitsOf_lt' σ
   have hb := sBooleans_bitsAt hBo
   have hv := sForsFields_sound hb hFs
@@ -500,8 +509,9 @@ theorem sDigestBlock_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
   refine ⟨hp, lP, lR, l2, l3, T, ⟨hT, hb, hv, hl, tm⟩, ?_⟩
   rw [hcellLen, hmsgCells, hmsg_take (by norm_num)] at d0
   rw [hcellLen, hmsgCells, hmsg_take (by norm_num)] at d1
-  rw [← d0, ← d1, hmsgNat]
+  rw [← d0, hmsgNat]
   dsimp only
+  rw [← d1]
   rw [c0, c1, cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)),
     c2]
   omega

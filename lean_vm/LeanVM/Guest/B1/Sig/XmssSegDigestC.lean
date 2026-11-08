@@ -85,16 +85,16 @@ theorem sDigest0_split : sDigest0 88 = [hintW "randomizer" [.n 88]] ++
           cst 97 (word (2 ^ 63) 0 0) ::
           (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0 0))) ++
         [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97, .n 99, .n 100,
-          .n 101, .n 102] (runV 103 13) false false]))) := rfl
+          .n 101, .n 102] (runV 103 1) false false]))) := rfl
 
-theorem sDigest0_nb : NumBelow 116 (Stmt.valsList (sDigest0 88)) := numBelow_of_all (by decide +kernel)
+theorem sDigest0_nb : NumBelow 104 (Stmt.valsList (sDigest0 88)) := numBelow_of_all (by decide +kernel)
 
 /-- **The bottom layer's digest completes**, its randomizer `rho` hinted, the message's cells `c`,
 `d` loaded. -/
 theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (hc : IsCanonical128 c)
     (hd : IsCanonical128 d) (hld2 : LoadHolds rd (σ sSigner) 2 c) (hld3 : LoadHolds rd (σ sSigner) 3 d)
     (hP : IsCanonical128 (σ sLxPP)) (hn0 : IsCanonical128 (σ (sHis 0))) :
-    Completes C rd 88 116 (sDigest0 88) σ
+    Completes C rd 88 104 (sDigest0 88) σ
       (fun σ' => σ' (.n 88) = rho ∧ σ' (.n 91) = c ∧ σ' (.n 92) = d) := by
   have hext : Ext 88 89 σ (Function.update σ (.n 88) rho) := fun v hv =>
     Function.update_of_ne (hv 88 le_rfl (by norm_num)) _ _
@@ -167,7 +167,7 @@ theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
     · exact vm 2 (by norm_num) (by norm_num)
     · exact vm 3 (by norm_num) (by norm_num)
     · exact vm 4 (by norm_num) (by norm_num)
-  refine ((kecS_complete (C := C) (rd := rd) σ5 103 rfl (fun v hv => by
+  refine ((kecS_complete (C := C) (rd := rd) σ5 103 (.inl rfl) rfl (fun v hv => by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
         exact ⟨_, by norm_num, rfl⟩) hcan false false).keep
@@ -188,7 +188,7 @@ theorem sDigest1_split (b : Nat) (root : V) : sDigest1 b root =
 theorem sDigest1_complete {b : Nat} {root : V} (σ : Val) {rho : E} (hb : 103 ≤ b) (hroot : NBv b root)
     (hrc : IsCanonical128 (σ root)) (hrho : IsCanonical128 rho) (hP : IsCanonical128 (σ sLxPP))
     (hn2 : IsCanonical128 (σ (sHis 2))) (hpad : PadOK σ sLxPad) :
-    Completes C rd b (b + 5 + 14) (sDigest1 b root) σ (fun σ' => σ' (.n (b + 2)) = rho) := by
+    Completes C rd b (b + 5 + 2) (sDigest1 b root) σ (fun σ' => σ' (.n (b + 2)) = rho) := by
   rw [sDigest1_split]
   refine Completes.seq (m := b + 2)
     ⟨rfl, ⟨rfl, ⟨69, by omega, rfl⟩, ⟨b, by omega, rfl⟩⟩, rfl⟩ (by omega)
@@ -240,7 +240,7 @@ theorem sDigest1_complete {b : Nat} {root : V} (σ : Val) {rho : E} (hb : 103 �
   · exact ⟨⟨b + 2, by omega, rfl⟩, by rw [v2]; exact hrho⟩
 
 theorem sDigest1_nb {b : Nat} {root : V} (hb : 103 ≤ b) (hroot : NBv b root) :
-    NumBelow (b + 19) (Stmt.valsList (sDigest1 b root)) := by
+    NumBelow (b + 7) (Stmt.valsList (sDigest1 b root)) := by
   intro x hx
   rw [sDigest1_split, valsList_append, valsList_cons (hintW "randomizer" [.n (b + 2)]), valsList_append] at hx
   rcases List.mem_append.mp hx with hx | hx
@@ -260,7 +260,7 @@ theorem sDigest1_nb {b : Nat} {root : V} (hb : 103 ≤ b) (hroot : NBv b root) :
     rcases hx with rfl | rfl | rfl | rfl
     · exact ⟨66, by omega, rfl⟩
     · exact ⟨b + 4, by omega, rfl⟩
-    · exact NBv.mono' hroot (show b ≤ b + 19 by omega)
+    · exact NBv.mono' hroot (show b ≤ b + 7 by omega)
     · exact ⟨b + 2, by omega, rfl⟩
   · exact ⟨b + 5, by omega, rfl⟩
   · exact ⟨sLxPad + k, by simp only [sLxPad]; omega, rfl⟩

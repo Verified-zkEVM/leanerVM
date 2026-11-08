@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundFors
 
-  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3870-3891`, and
-  `T_k`, `lean_ethereum.py:4059-4064`, at leanVM 5e3ade21) is sound: whatever secrets and children
+  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3842-3863`, and
+  `T_k`, `lean_ethereum.py:4031-4036`, at leanVM PR #724 head 873ee6d8) is sound: whatever secrets and children
   are hinted, each tree's root is the fold of its hinted secret and siblings, and the FORS key their
   `T_k`.
 -/
@@ -64,13 +64,13 @@ def forsLevelWidth (c z : Nat) : Nat := forsLevelW c z
 
 /-- A FORS tree's leaf part's width: its secret, its leaf's address (six values, the place in
 `vals`) and the leaf's hash. -/
-def forsLeafWidth (_c : Nat) : Nat := 21
+def forsLeafWidth (_c : Nat) : Nat := 9
 
 /-- Tree `c`'s base in the FORS block from `b0`: its secret's cell. -/
 def forsTreeBase (b0 c : Nat) : Nat := b0 + 2 + ((List.range c).map forsTreeW).sum
 
 /-- Tree `c`'s root in the FORS block from `b0`. -/
-def forsRootPos (b0 c : Nat) : Nat := forsTreeBase b0 c + forsTreeW c - 13
+def forsRootPos (b0 c : Nat) : Nat := forsTreeBase b0 c + forsTreeW c - 1
 
 /-- The hinted sibling of level `j` of `sForsLevels … c m z cur x` (`0` outside its levels). -/
 def sForsSib (σ : Val) (bit : Nat → V) (c : Nat) : Nat → Nat → Nat → Nat → E
@@ -221,9 +221,9 @@ theorem sForsAt_width (a1 : V) (val : Nat → V) (c z x : Nat) (hz : z ≤ 10) :
     · have hz0 : z ≠ 0 := by omega
       by_cases hk : c / 2 ^ (z - 2) = 0 <;> simp [hz10, hz2, sAddK_next, sBe16_next, hz0, hk]
 
-/-- The address part of FORS level `z` ends `forsLevelWidth c z - 17` after its base. -/
+/-- The address part of FORS level `z` ends `forsLevelWidth c z - 5` after its base. -/
 theorem sForsAt_next (a1 : V) (val : Nat → V) (c z x : Nat) (hz : z ≤ 9) :
-    (sForsAt a1 val c (z + 1) (x + 4)).2.1 = x + forsLevelWidth c z - 17 := by
+    (sForsAt a1 val c (z + 1) (x + 4)).2.1 = x + forsLevelWidth c z - 5 := by
   rw [sForsAt_width a1 val c (z + 1) (x + 4) (by omega), forsLevelWidth, forsLevelW]
   omega
 
@@ -234,7 +234,7 @@ theorem sForsLevel_eq (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c z : Na
         (sForsAt a1 val c (z + 1) (x + 4)).1 ++
         (kNode pad pp a0 (sForsAt a1 val c (z + 1) (x + 4)).2.2 (.n x) (.n (x + 1))
           (sForsAt a1 val c (z + 1) (x + 4)).2.1).1,
-        (sForsAt a1 val c (z + 1) (x + 4)).2.1 + 17,
+        (sForsAt a1 val c (z + 1) (x + 4)).2.1 + 5,
         .n ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 4)) := by
   simp only [sForsLevel, (kNode_shape ..).1, (kNode_shape ..).2]
 
@@ -243,13 +243,13 @@ theorem sForsLevels_succ (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c m z
       ((sForsLevel pad pp a0 a1 bit val c z cur x).1 ++
         (sForsLevels pad pp a0 a1 bit val c m (z + 1)
           (.n ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 4))
-          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 17)).1,
+          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 5)).1,
         (sForsLevels pad pp a0 a1 bit val c m (z + 1)
           (.n ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 4))
-          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 17)).2.1,
+          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 5)).2.1,
         (sForsLevels pad pp a0 a1 bit val c m (z + 1)
           (.n ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 4))
-          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 17)).2.2) := by
+          ((sForsAt a1 val c (z + 1) (x + 4)).2.1 + 5)).2.2) := by
   rw [sForsLevels, sForsLevel_eq]
 
 /-- **A FORS tree's levels, sound**: from level `z` (base `x`), `m` levels up to `10`, the node
@@ -279,7 +279,7 @@ theorem sForsLevels_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 a1 : V} {bit va
           fNodeE (σ pp) (σ a0) (σ a1) c s (sForsSib σ bit c (m + 1) z x) z (σ cur) := by
         rw [hlv, hd, hadr]
         simp [fNodeE, sForsSib]
-      rw [hfirst, hnext, show x + forsLevelWidth c z - 17 + 17 = x + forsLevelWidth c z by
+      rw [hfirst, hnext, show x + forsLevelWidth c z - 5 + 5 = x + forsLevelWidth c z by
         unfold forsLevelWidth forsLevelW; omega]
       refine nIter_congr _ _ _ fun j hj => ?_
       unfold fNodeE
@@ -297,14 +297,14 @@ theorem forsLevels_shape (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c : N
         fun j _ => by rw [show z + 1 + j = z + (j + 1) by omega]
       rw [Finset.sum_congr rfl e]
       simp only [Nat.add_zero]
-      have : x + forsLevelWidth c z - 17 + 17 = x + forsLevelWidth c z := by
+      have : x + forsLevelWidth c z - 5 + 5 = x + forsLevelWidth c z := by
         unfold forsLevelWidth forsLevelW; omega
       omega
 
 theorem forsLevels_out (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c : Nat) :
     ∀ (m z : Nat) (cur : V) (x : Nat), z + m ≤ 9 →
       (sForsLevels pad pp a0 a1 bit val c (m + 1) z cur x).2.2 =
-        .n ((sForsLevels pad pp a0 a1 bit val c (m + 1) z cur x).2.1 - 13)
+        .n ((sForsLevels pad pp a0 a1 bit val c (m + 1) z cur x).2.1 - 1)
   | 0, z, cur, x, _ => by
       rw [sForsLevels_succ]
       simp only [sForsLevels]
@@ -314,14 +314,14 @@ theorem forsLevels_out (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c : Nat
       exact forsLevels_out pad pp a0 a1 bit val c m (z + 1) _ _ (by omega)
 
 theorem forsLevelWidth_sum (c : Nat) :
-    ∑ j ∈ Finset.range 10, forsLevelWidth c (0 + j) = forsTreeW c - 21 := by
+    ∑ j ∈ Finset.range 10, forsLevelWidth c (0 + j) = forsTreeW c - 9 := by
   simp only [Nat.zero_add, forsLevelWidth, forsTreeW, Finset.sum_range_succ, Finset.sum_range_zero,
     List.range_succ, List.range_zero, List.nil_append, List.map_append, List.map_cons, List.map_nil,
     List.sum_append, List.sum_cons, List.sum_nil]
   omega
 
 theorem sForsAt_leaf_next (a1 : V) (val : Nat → V) (c b : Nat) :
-    (sForsAt a1 val c 0 (b + 1)).2.1 = b + forsLeafWidth c - 14 := by
+    (sForsAt a1 val c 0 (b + 1)).2.1 = b + forsLeafWidth c - 2 := by
   rw [sForsAt_width a1 val c 0 (b + 1) (by norm_num)]
   simp [forsAtW, forsLeafWidth]
 
@@ -337,41 +337,40 @@ theorem sForsTree_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 a1 : V} {bit val 
   simp only [sForsTree] at h ⊢
   have hy := sForsAt_leaf_next a1 val c b
   have hadr := sForsAt_sound (a1 := a1) (x := b + 1) hc (by norm_num) hs hval h.left.left.right
-  have hk := congrArg Prod.fst (k64_sound hp h.left.right)
-  simp only at hk
+  have hk := k64_sound hp h.left.right
   have hlv := sForsLevels_sound hp hc hs hbit hval 10 0 _ _ (by norm_num) h.right
   rw [hlv, nIter_zero, fRootE, hk, hadr,
-    show (sForsAt a1 val c 0 (b + 1)).2.1 + 14 = b + forsLeafWidth c by
+    show (sForsAt a1 val c 0 (b + 1)).2.1 + 2 = b + forsLeafWidth c by
       rw [hy]; unfold forsLeafWidth; omega]
   rfl
 
-theorem forsTreeW_ge (c : Nat) : 21 + 13 ≤ forsTreeW c := by
+theorem forsTreeW_ge (c : Nat) : 9 + 1 ≤ forsTreeW c := by
   unfold forsTreeW
-  have : 13 ≤ ((List.range 10).map (forsLevelW c)).sum := by
+  have : 1 ≤ ((List.range 10).map (forsLevelW c)).sum := by
     rw [List.range_succ_eq_map, List.map_cons, List.sum_cons]
-    have : 21 ≤ forsLevelW c 0 := by unfold forsLevelW; omega
+    have : 9 ≤ forsLevelW c 0 := by unfold forsLevelW; omega
     omega
   omega
 
 theorem sForsTree_shape (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c b : Nat) :
     (sForsTree pad pp a0 a1 bit val c b).2.1 = b + forsTreeW c ∧
-      (sForsTree pad pp a0 a1 bit val c b).2.2 = .n (b + forsTreeW c - 13) := by
-  have hW : 21 + 13 ≤ forsTreeW c := forsTreeW_ge c
+      (sForsTree pad pp a0 a1 bit val c b).2.2 = .n (b + forsTreeW c - 1) := by
+  have hW : 9 + 1 ≤ forsTreeW c := forsTreeW_ge c
   have hy := sForsAt_leaf_next a1 val c b
-  have hw : (sForsAt a1 val c 0 (b + 1)).2.1 + 14 = b + forsLeafWidth c := by
+  have hw : (sForsAt a1 val c 0 (b + 1)).2.1 + 2 = b + forsLeafWidth c := by
     rw [hy]; unfold forsLeafWidth; omega
   have h1 := forsLevels_shape pad pp a0 a1 bit val c 10 0
-    (.n ((sForsAt a1 val c 0 (b + 1)).2.1 + 1)) ((sForsAt a1 val c 0 (b + 1)).2.1 + 14)
+    (.n ((sForsAt a1 val c 0 (b + 1)).2.1 + 1)) ((sForsAt a1 val c 0 (b + 1)).2.1 + 2)
     (by norm_num)
   rw [forsLevelWidth_sum c] at h1
   have h2 : (sForsLevels pad pp a0 a1 bit val c 10 0 (.n ((sForsAt a1 val c 0 (b + 1)).2.1 + 1))
-      ((sForsAt a1 val c 0 (b + 1)).2.1 + 14)).2.2 =
+      ((sForsAt a1 val c 0 (b + 1)).2.1 + 2)).2.2 =
       .n ((sForsLevels pad pp a0 a1 bit val c 10 0 (.n ((sForsAt a1 val c 0 (b + 1)).2.1 + 1))
-        ((sForsAt a1 val c 0 (b + 1)).2.1 + 14)).2.1 - 13) :=
+        ((sForsAt a1 val c 0 (b + 1)).2.1 + 2)).2.1 - 1) :=
     forsLevels_out pad pp a0 a1 bit val c 9 0 _ _ (by norm_num)
   rw [h1] at h2
   unfold forsLeafWidth at hw
-  have e1 : (sForsAt a1 val c 0 (b + 1)).2.1 + 14 + (forsTreeW c - 21) = b + forsTreeW c := by omega
+  have e1 : (sForsAt a1 val c 0 (b + 1)).2.1 + 2 + (forsTreeW c - 9) = b + forsTreeW c := by omega
   rw [e1] at h1 h2
   exact ⟨h1, h2⟩
 
@@ -440,15 +439,15 @@ theorem sForsBlock_eq (pad : Nat) (pp a0 key : V) (bit val : Nat → V) (b0 : Na
           (kMsg pad (([pp, a0,
             .n ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 1)]
             ++ (sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.2).map KC.cell) 432
-            false none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).1,
+            true none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).1,
         (kMsg pad (([pp, a0,
             .n ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 1)]
             ++ (sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.2).map KC.cell) 432
-            false none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).2.1,
+            true none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).2.1,
         (kMsg pad (([pp, a0,
             .n ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 1)]
             ++ (sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.2).map KC.cell) 432
-            false none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).2.2) :=
+            true none ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 2)).2.2) :=
   rfl
 
 /-- **The FORS block, sound**: at the leaves `s c`, the FORS key (`fors_pk`) is `T_k` of `P`, `A0`,
@@ -464,8 +463,8 @@ theorem sForsBlock_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 key : V} {bit va
           (forsSib σ bit b0 c))).1 := by
   obtain ⟨t1, t2⟩ := sForsTrees_shape pad pp a0 (.n (b0 + 1)) bit val b0 24 0
   have e0 : forsTreeBase b0 0 = b0 + 2 := by simp [forsTreeBase]
-  have e24 : forsTreeBase b0 (0 + 24) = b0 + 6970 := by
-    have : ((List.range 24).map forsTreeW).sum = 6968 := by decide +kernel
+  have e24 : forsTreeBase b0 (0 + 24) = b0 + 3802 := by
+    have : ((List.range 24).map forsTreeW).sum = 3800 := by decide +kernel
     simp only [forsTreeBase, Nat.zero_add, this]
   rw [e0, e24] at t1
   rw [e0] at t2
@@ -479,12 +478,11 @@ theorem sForsBlock_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 key : V} {bit va
   have ha0 : σ (.n b0) = lit (3 * 2 ^ 24) := h.atom (a := .const (.n b0) _) (by simp [cst])
   have ha1 : σ (.n (b0 + 1)) = σ key + σ (.n b0) :=
     h.atom (a := .add (.n (b0 + 1)) _ _) (by simp [addS])
-  have hr0 : σ (.n (b0 + 6970)) = lit (4 * 2 ^ 24) :=
-    h.atom (a := .const (.n (b0 + 6970)) _) (by simp [cst])
-  have hr1 : σ (.n (b0 + 6970 + 1)) = σ key + σ (.n (b0 + 6970)) :=
-    h.atom (a := .add (.n (b0 + 6970 + 1)) _ _) (by simp [addS])
-  have hK := congrArg Prod.fst (kMsg_cells_sound (len := 432) hp (by simp) h.right)
-  simp only at hK
+  have hr0 : σ (.n (b0 + 3802)) = lit (4 * 2 ^ 24) :=
+    h.atom (a := .const (.n (b0 + 3802)) _) (by simp [cst])
+  have hr1 : σ (.n (b0 + 3802 + 1)) = σ key + σ (.n (b0 + 3802)) :=
+    h.atom (a := .add (.n (b0 + 3802 + 1)) _ _) (by simp [addS])
+  have hK := kMsg_cells_sound (len := 432) hp (by simp) (fun _ => by simp) h.right
   rw [hK]
   congr 2
   simp only [List.map_cons, List.map_map, Function.comp_def,
