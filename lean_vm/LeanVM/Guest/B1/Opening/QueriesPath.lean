@@ -43,9 +43,10 @@ theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
     (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
     (hw : σ w = word (2 ^ 63) 0 0)
     (hK : (Atom.keccak [c0, c1, c2, c3, .n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), w,
-      .n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)] outs false false).Holds rd σ) :
+      .n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)] outs false false).Holds rd σ)
+    (ho : 2 ≤ outs.length := by simp) :
     HashesPair (σ c0) (σ c1) (σ c2) (σ c3) (σ (outs.getD 0 (.n 0))) (σ (outs.getD 1 (.n 0))) := by
-  obtain ⟨-, ho, hKC⟩ := hK
+  obtain ⟨-, -, O, hKC, hO⟩ := keccak_holds_full hK
   have z1 := hz 0 (by omega); have z2 := hz 1 (by omega); have z3 := hz 2 (by omega)
   have z4 := hz 3 (by omega)
   simp only [Nat.add_zero] at z1
@@ -66,12 +67,10 @@ theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
         fin_cases c <;> simp_all [padCells, xorByte, padRead, rate, byteCell, cells13])
       (fun c hc ↦ by fin_cases c <;> simp_all [cells13]) hKC).2
     rw [List.take_of_length_le (by simp)] at h
-    have e0 : cells13 (List.map σ outs) 0 = σ (outs.getD 0 (.n 0)) := by
-      simp [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-        List.getElem?_eq_getElem (show 0 < outs.length by omega)]
-    have e1 : cells13 (List.map σ outs) 1 = σ (outs.getD 1 (.n 0)) := by
-      simp [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-        List.getElem?_eq_getElem (show 1 < outs.length by omega)]
+    have e0 : O 0 = σ (outs.getD 0 (.n 0)) := by
+      rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 0 (by simp; omega)).symm
+    have e1 : O 1 = σ (outs.getD 1 (.n 0)) := by
+      rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 1 (by simp; omega)).symm
     rw [e0, e1] at h
     exact h
 
@@ -89,7 +88,7 @@ theorem oqStepT_mem_keccak (pr ch l K n0 n1 : ℕ) (bit : Bool) :
     Stmt.atom (.keccak ((if bit then [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n n0, .n n1]
         else [.n n0, .n n1, .n (ch + 4 * l + 2), .n (ch + 4 * l + 3)]) ++
       [.n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n K, .n (pr + 1), .n (pr + 2), .n (pr + 3),
-        .n (pr + 4)]) ((List.range 13).map fun c ↦ .n (K + 1 + c)) false false) ∈
+        .n (pr + 4)]) [.n (K + 1), .n (K + 2)] false false) ∈
       oqStepT pr ch l K n0 n1 bit := by
   simp [oqStepT]
 
@@ -107,8 +106,8 @@ theorem oqStep_sound {pr ch l K n0 n1 : ℕ} {bit : Bool}
   have a0 := hA _ (by simp [oqStepT] : Stmt.atom (.const (.n K) (word (2 ^ 63) 0 0)) ∈ _)
   have a1 := hA _ (oqStepT_mem_keccak pr ch l K n0 n1 bit)
   simp only [Atom.Holds] at a0
-  have hout : ∀ (x y : E), (x, y) = (σ ((((List.range 13).map fun c ↦ V.n (K + 1 + c)).getD 0 (.n 0))),
-      σ ((((List.range 13).map fun c ↦ V.n (K + 1 + c)).getD 1 (.n 0)))) →
+  have hout : ∀ (x y : E), (x, y) = (σ (([V.n (K + 1), V.n (K + 2)]).getD 0 (.n 0)),
+      σ (([V.n (K + 1), V.n (K + 2)]).getD 1 (.n 0))) →
       (x, y) = (σ (.n (K + 1)), σ (.n (K + 2))) := fun x y h ↦ by
     rw [h]; simp [List.getD_eq_getElem?_getD]
   cases bit
@@ -130,7 +129,7 @@ theorem oqStep_sound {pr ch l K n0 n1 : ℕ} {bit : Bool}
 /-! ## An arm -/
 
 theorem oqArmT_mem_step {s : Oq} {pr kL ch i a r : ℕ} (hr : r < oqWw s i) {x : Atom}
-    (hx : Stmt.atom x ∈ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 14 * r)
+    (hx : Stmt.atom x ∈ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 3 * r)
       (oqArmN s kL ch i a r 0) (oqArmN s kL ch i a r 1) (a.testBit r)) :
     Stmt.atom x ∈ oqArmT s pr kL ch i a := by
   unfold oqArmT
@@ -188,9 +187,9 @@ theorem oqArm_sound {s : Oq} {pr kL ch i a : ℕ}
           simp [List.getD_eq_getElem?_getD, hl]
         rw [e, SibAt, sibOff, ← hb, show ch + 4 * (6 * i + r) = ch + 4 * (6 * i + r) from rfl]
         exact hsib
-    · have e0 : oqArmN s kL ch i a (m + 1) 0 = oqArmK s ch i a + 14 * m + 1 := by
+    · have e0 : oqArmN s kL ch i a (m + 1) 0 = oqArmK s ch i a + 3 * m + 1 := by
         simp [oqArmN]
-      have e1 : oqArmN s kL ch i a (m + 1) 1 = oqArmK s ch i a + 14 * m + 2 := by
+      have e1 : oqArmN s kL ch i a (m + 1) 1 = oqArmK s ch i a + 3 * m + 2 := by
         simp [oqArmN]
       rw [e0, e1, hnext, ← List.append_assoc, climbD_step, List.length_append, hl0, hl, ← hb]
 

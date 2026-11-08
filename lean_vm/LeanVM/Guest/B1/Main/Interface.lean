@@ -178,8 +178,8 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
 (each `g^count`); the region sizes `lx_slots = .n 40`, `ls_slots = .n 41`, `n_total = .n 42`;
 `fs_seed = .n 47, .n 48`; the exponent table `.n 49`; the pointers
 `lx_table = .n 52`, `ls_table = .n 55`, `cover = .n 66`, `da_digests = .n 385`,
-`child_pi = .n 416`, `child_fresh = .n 422`, `child_carried = .n 428`, `written = .n 431`,
-`defer_stmt = .n 449`; the direct DA check's words `.n 390 … .n 393`; `da_pick = .n 438`. -/
+`child_pi = .n 405`, `child_fresh = .n 411`, `child_carried = .n 417`, `written = .n 420`,
+`defer_stmt = .n 438`; the direct DA check's words `.n 390 … .n 393`; `da_pick = .n 427`. -/
 
 /-- The four cells of slot `s` of a table at `p`. -/
 noncomputable def slotCells (rd : Reader) (p : E) (s : ℕ) : List E := readCells rd (p * gen ^ (4 * s)) 4
@@ -199,7 +199,7 @@ noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : LeanSphincsClaim :
 noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 66)) s)
 
 /-- The running count `written[c]`, as a log. -/
-noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 431)) c)
+noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 420)) c)
 
 /-- The number of children. -/
 noncomputable def nKids (σ : Val) : ℕ := gLog (σ (.n 6))
@@ -242,17 +242,17 @@ noncomputable def kidStmt (rd : Reader) (σ : Val) (c : ℕ) : NodeStatement :=
   ⟨⟨(kidSlots rd σ 0 (lxSlots σ) a b).map (xmssAt rd (σ (.n 52))),
     (kidSlots rd σ (lxSlots σ) (lsSlots σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
-   deferOfCells (readCells rd (σ (.n 428) * gen ^ (24 * c)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)⟩
 
 /-- The words of child `c`'s `verify_sub` call. -/
 noncomputable def subArgs (rd : Reader) (σ : Val) (c : ℕ) : List E :=
-  [cellAt rd (σ (.n 416)) (2 * c), cellAt rd (σ (.n 416)) (2 * c + 1), σ (.n 47), σ (.n 48),
-    σ (.n 49), σ (.n 422) * gen ^ (24 * c)]
+  [cellAt rd (σ (.n 405)) (2 * c), cellAt rd (σ (.n 405)) (2 * c + 1), σ (.n 47), σ (.n 48),
+    σ (.n 49), σ (.n 411) * gen ^ (24 * c)]
 
 /-- **Child `c`**: its statement (`kidStmt`), its fresh claim at `child_fresh · g^(24c)`, its
 proof `wV` at its `verify_sub` call's words. -/
 noncomputable def decKid (rd : Reader) (σ : Val) (wV : List E → Proof) (c : ℕ) : Child :=
-  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 422) * gen ^ (24 * c)) 24),
+  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 411) * gen ^ (24 * c)) 24),
     wV (subArgs rd σ c)⟩
 
 /-- **The seed**: the cells `fs_seed`. -/
@@ -263,8 +263,8 @@ at the slot `da_pick` of `da_digests`, the deferred claim at `defer_stmt`. -/
 noncomputable def decStmt (σ : Val) (rd : Reader) : NodeStatement :=
   ⟨⟨(List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 52))),
     (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 55))),
-    daDigestAt rd σ (gLog (σ (.n 438)))⟩,
-   deferOfCells (readCells rd (σ (.n 449)) 24)⟩
+    daDigestAt rd σ (gLog (σ (.n 427)))⟩,
+   deferOfCells (readCells rd (σ (.n 438)) 24)⟩
 
 /-- The number of raw leanXMSS signatures, raw leanSPHINCS signatures, direct DA checks. -/
 noncomputable def nRawX (σ : Val) : ℕ := gLog (σ (.n 2))
@@ -304,7 +304,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
     if nDirect σ = 1 then
       some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
     else none,
-    wA [σ (.n 6), σ (.n 416), σ (.n 422), σ (.n 428), σ (.n 449)]⟩
+    wA [σ (.n 6), σ (.n 405), σ (.n 411), σ (.n 417), σ (.n 438)]⟩
 
 /-! ## The statement -/
 

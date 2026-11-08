@@ -89,43 +89,43 @@ noncomputable def clElsePre : List Stmt := cl23Else.dropLast.dropLast
 def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
 
 /-- The final copies of `claim_list_digest`. -/
-def clTail : List Stmt := [.atom (.copy (.n 87) (.n 10)), .atom (.copy (.n 88) (.n 11))]
+def clTail : List Stmt := [.atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11))]
 
 /-- The empty list's run, evaluated. -/
 noncomputable def clZEval : List Stmt :=
-  clHead ++ cl23Zero ++ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) 87 ++ clTail
+  clHead ++ cl23Zero ++ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) 76 ++ clTail
 
 /-- The nonempty list's run, evaluated: the empty branch's values hinted (the digest at `.n 10`,
 `.n 11`). -/
-noncomputable def clEEval : List Stmt := clHead ++ fillH 4 23 ++ clElsePre ++ clTail
+noncomputable def clEEval : List Stmt := clHead ++ fillH 4 12 ++ clElsePre ++ clTail
 
 /-- `list_split`'s call in `claim_list_digest`. -/
-def clSplitS : Stmt := .call "list_split" [.n 1] [.n 23, .n 24, .n 25]
+def clSplitS : Stmt := .call "list_split" [.n 1] [.n 12, .n 13, .n 14]
 
 /-- The big frames' loop call. -/
-def clBigS : Stmt := .callIf (.n 49) "__loop15" [.n 50, .n 23, .n 34, .n 0]
+def clBigS : Stmt := .callIf (.n 38) "__loop15" [.n 39, .n 12, .n 23, .n 0]
 
 /-- The groups' loop call. -/
-def clGrpS : Stmt := .callIf (.n 69) "__loop16" [.n 70, .n 24, .n 56, .n 67]
+def clGrpS : Stmt := .callIf (.n 58) "__loop16" [.n 59, .n 13, .n 45, .n 56]
 
 /-- The dispatch on the rest. -/
-def clDispS : Stmt := .dispatch (.n 25) clNames [.n 76, .n 84] [.n 85, .n 86]
+def clDispS : Stmt := .dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75]
 
 /-- **`claim_list_digest`'s branches, evaluated.** -/
 noncomputable def clBrOk : Bool :=
   let SE := storesOf 2 clEEval
-  stmtsEqb cl23Else (clElsePre ++ [.atom (.copy (.n 10) (.n 85)), .atom (.copy (.n 11) (.n 86))]) &&
+  stmtsEqb cl23Else (clElsePre ++ [.atom (.copy (.n 10) (.n 74)), .atom (.copy (.n 11) (.n 75))]) &&
   (chk 2 clEEval).isSome &&
-  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (35 + c)) (.n 34) c)) &&
+  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (24 + c)) (.n 23) c)) &&
   (atomsIn clEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
   canonChk [] ((atomsIn clEEval).filter fun a => decide (a ∉ SE)) &&
   clElsePre.all (fun s => isAtomS s || stmtEqb s clSplitS || stmtEqb s clBigS || stmtEqb s clGrpS ||
     stmtEqb s clDispS) &&
   clElsePre.any (stmtEqb · clSplitS) && clElsePre.any (stmtEqb · clBigS) &&
   clElsePre.any (stmtEqb · clGrpS) && clElsePre.any (stmtEqb · clDispS) &&
-  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (35 + c)) 0 0)) &&
+  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (24 + c)) 0 0)) &&
   (atomsIn clElsePre).any (fun a => match a with
-    | .hint (.allocDyn d _) => decide (d = .n 34)
+    | .hint (.allocDyn d _) => decide (d = .n 23)
     | _ => false) &&
   (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty && canonChk [] (atomsIn clZEval) &&
   (atomsIn clZEval).all (fun a => !needsSide a) && cl23Zero.all isAtomS

@@ -90,12 +90,12 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
     Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, l3, l4, l5, l6, l7, ⟨hl0, hp0⟩, ⟨hl1, hp1⟩, ⟨hl2, hp2⟩, h38, h39,
-      ⟨-, -, hK⟩, hch, l48, l49, l50, l51, l52, h60, h61, h62, h63, h64, h65, h66, h67, h68, h69,
+      hKH, hch, l48, l49, l50, l51, l52, h60, h61, h62, h63, h64, h65, h66, h67, h68, h69,
       h70, h71, hret⟩
     subst hp
     have hKA : (Atom.keccak [.n 15, .n 17, .n 25, .n 27, .n 35, .n 37, .n 38, .n 39, .n 3, .n 4,
         .n 5, .n 6, .n 7] [.n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49,
-        .n 50, .n 51, .n 52] false false).Holds rd σ := ⟨rfl, rfl, hK⟩
+        .n 50, .n 51, .n 52] false false).Holds rd σ := hKH
     obtain ⟨-, -, hcan, hout⟩ := keccakA_perm hKA
     have c15 : (σ (.n 15), σ (.n 17)) = Keccak.scalarCells (σ (.n 8)) dsObserve :=
       fsPackT_cells hp0 (hcan (σ (.n 15)) (by simp))
@@ -189,7 +189,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
     have hy : challengeVals (cellsOfState S false 0) (cellsOfState S false 1) 6 = challengeOf S :=
       challengeVals_six S
     refine ⟨σ, by simp [ev, r4Vals], ?_, ?_, ?_, ?_, ?_, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_,
-      ⟨rfl, rfl, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      keccak13_mk (rd := rd) rfl rfl ?_ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact ld 0 (by omega)
     · exact ld 1 (by omega)
     · exact ld 2 (by omega)
@@ -211,6 +211,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
       fin_cases c <;> simp [cells13, ev, r4Vals, p0.1, p0.2, p2.1, p2.2, p3.1, p3.2, z] <;>
         exact hcan _ (by simp)
     · intro c
+      simp only [List.map_cons, List.map_nil]
       have hS' : keccakF1600 (stateOfCells (cells13 [σ (.n 15), σ (.n 17), σ (.n 25), σ (.n 27),
           σ (.n 35), σ (.n 37), σ (.n 38), σ (.n 39), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
           σ (.n 7)]) false) = S := hS

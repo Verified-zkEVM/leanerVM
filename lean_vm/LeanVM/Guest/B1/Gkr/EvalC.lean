@@ -110,11 +110,13 @@ theorem good_readS {d p off : ℕ} (hg : GoodS rd S w σ (.atom (.load (.n d) (.
 
 /-- **A permutation of canonical cells** holds, its outputs the permutation's. -/
 theorem keccak_good {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs false false))
-    (hc : AllCanonical (ins.map σ)) :
+    (hc : AllCanonical (ins.map σ)) (ho : outs.length = 13 := by first | rfl | simp) :
     (Atom.keccak ins outs false false).Holds rd σ ∧
       cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := by
-  obtain ⟨hi, ho, he⟩ := hg
-  have hout : cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := funext he
+  obtain ⟨hi, -, he⟩ := hg
+  have hout : cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := funext fun c => by
+    rw [cells13, List.getD_eq_getElem _ _ (by simp [ho]), List.getElem_map]
+    exact he c (by omega)
   exact ⟨keccakA_of hi ho hc hout, hout⟩
 
 /-! ## Blocks of pure atoms -/

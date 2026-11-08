@@ -155,14 +155,14 @@ def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Sig
 `σ (.n 65)` in its canonical cells and a signature that verifies it, the carried chain indices
 holding their indices, on a memory of at least `256` words (the windows and the digit words are
 range-checked below `g^255`), the check `xSeg` holds of a valuation
-changing `σ` only on its own values `66 ..< 211052`, under any call relation. -/
+changing `σ` only on its own values `66 ..< 120764`, under any call relation. -/
 def verify_lean_xmss_complete_Spec : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (pk : HashSig.PublicKey) (m : HashSig.Message)
     (sig : LeanXmss.Signature), MemOK rd 256 → LxTagsHold (fun j => σ (sTagParam j)) →
     ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) →
     LeanXmss.verifyWithKeccak pk m sig = true →
-      Completes C rd 66 211052 xSeg σ (fun _ => True)
+      Completes C rd 66 120764 xSeg σ (fun _ => True)
 
 /-! ## The functions, found -/
 

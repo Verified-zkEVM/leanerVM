@@ -279,9 +279,9 @@ theorem oqTs_eq (s : Oq) (b h l : ℕ) :
 /-- The shape's numbers. -/
 theorem shape_nums {s : Oq} (hs : s.RowShape) :
     (s.base = 1 ∧ s.I = 64 ∧ s.tsz = 0 ∧ s.lo = 8 ∧ s.G = 25 ∧ s.R = 64 ∧ s.D = 207 ∧
-      s.ncells = 32 ∧ s.B = 4 ∧ s.chainLen = 80) ∨
+      s.ncells = 32 ∧ s.B = 4 ∧ s.chainLen = 69) ∨
     (s.base = 0 ∧ s.I = 16 ∧ s.tsz = 3 ∧ s.lo = 8 ∧ s.G = 49 ∧ s.R = 48 ∧ s.D = 99 ∧
-      s.ncells = 24 ∧ s.B = 3 ∧ s.chainLen = 58) := by
+      s.ncells = 24 ∧ s.B = 3 ∧ s.chainLen = 47) := by
   rcases hs with ⟨hb, hI⟩ | ⟨hb, hI⟩
   · left; simp [Oq.tsz, Oq.lo, Oq.G, Oq.R, Oq.D, Oq.ncells, Oq.B, Oq.chainLen, rowLo, rate, hb, hI]
   · right; simp [Oq.tsz, Oq.lo, Oq.G, Oq.R, Oq.D, Oq.ncells, Oq.B, Oq.chainLen, rowLo, rate, hb, hI]
@@ -344,7 +344,7 @@ def QD.wd (d : QD) (bpv : E) : WD := ⟨d.s.pd, d.s.cd, d.leaf, d.q, d.sibs, bpv
 
 /-- A window's values: its word, (window `0`) the padding run, `0x80`, `2^w` arms of `14w` values
 and the two targets. -/
-def winSz (s : Oq) (i : ℕ) : ℕ := 4 + oqWo i + 14 * oqWw s i * 2 ^ oqWw s i
+def winSz (s : Oq) (i : ℕ) : ℕ := 4 + oqWo i + 3 * oqWw s i * 2 ^ oqWw s i
 
 namespace WD
 
@@ -371,7 +371,7 @@ def levelIns (l : ℕ) : List E :=
   [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0 0, word 0 0 0,
     word 0 0 0, word 0 0 0, word (2 ^ 63) 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0]
 
-/-- Level `l`'s step at offset `c < 14`: the `0x80` constant, the permutation's cells. -/
+/-- Level `l`'s step at offset `c < 3`: the `0x80` constant, the permutation's first two cells. -/
 def stepV (l c : ℕ) : E :=
   if c = 0 then word (2 ^ 63) 0 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
 
@@ -379,16 +379,16 @@ def stepV (l c : ℕ) : E :=
 def wv (i : ℕ) : ℕ := qwVal (w.s.pd + w.s.cd) w.s.cd w.q i
 
 /-- The offset of arm `a` in a window of `ww` levels, after the padding run. -/
-def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 14 * ww * a
+def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 3 * ww * a
 
 /-- Window `i`'s value at offset `o ≥ 1` after its padding run: `0x80`, the targets (the node after
 it), arm `v`'s steps, `0` elsewhere (the arms not taken). -/
 def winA (i o : ℕ) : E :=
   if o = 1 then word (2 ^ 63) 0 0
-  else if o = 2 + 14 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
-  else if o = 3 + 14 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
-  else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 14 * oqWw w.s i then
-    w.stepV (6 * i + (o - armOff (oqWw w.s i) (w.wv i)) / 14) ((o - armOff (oqWw w.s i) (w.wv i)) % 14)
+  else if o = 2 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
+  else if o = 3 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
+  else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i then
+    w.stepV (6 * i + (o - armOff (oqWw w.s i) (w.wv i)) / 3) ((o - armOff (oqWw w.s i) (w.wv i)) % 3)
   else 0
 
 /-- The padding run's cell `k`: `1, 0, 0, 0, 0`. -/
@@ -420,7 +420,7 @@ def val (i : ℕ) : E :=
   else if i < w.W0 then w.pc (i - wpCh)
   else if i < w.Cq then
     (if i - w.W0 < winSz w.s 0 then w.winV 0 (i - w.W0)
-      else w.winV ((i - w.W0 - winSz w.s 0) / 5380 + 1) ((i - w.W0 - winSz w.s 0) % 5380))
+      else w.winV ((i - w.W0 - winSz w.s 0) / 1156 + 1) ((i - w.W0 - winSz w.s 0) % 1156))
   else w.capV (i - w.Cq)
 
 /-- What the memory holds of an honest walk: its windows at `bpv`, its cap leaf and its flag. -/
@@ -436,24 +436,24 @@ end WD
 
 /-! ## The walk frame's places -/
 
-theorem winSz_le (s : Oq) (i : ℕ) : winSz s i ≤ 5380 + oqWo i := by
+theorem winSz_le (s : Oq) (i : ℕ) : winSz s i ≤ 1156 + oqWo i := by
   have h := oqWw_le s i
   unfold winSz
   interval_cases (oqWw s i) <;> norm_num <;> omega
 
-theorem winSz_le' (s : Oq) {i : ℕ} (hi : 1 ≤ i) : winSz s i ≤ 5380 := by
+theorem winSz_le' (s : Oq) {i : ℕ} (hi : 1 ≤ i) : winSz s i ≤ 1156 := by
   have := winSz_le s i
   simp only [oqWo, show i ≠ 0 by omega, ↓reduceIte] at this; omega
 
-theorem winSz_full {s : Oq} {i : ℕ} (hi : i + 1 < oqNpw s) : winSz s i = 5380 + oqWo i := by
+theorem winSz_full {s : Oq} {i : ℕ} (hi : i + 1 < oqNpw s) : winSz s i = 1156 + oqWo i := by
   unfold winSz oqWw; simp only [show ¬ i + 1 = oqNpw s by omega, ↓reduceIte]; norm_num; ring
 
 theorem oqWk_succ (s : Oq) (ch i : ℕ) : oqWk s ch (i + 1) = oqWk s ch i + winSz s i := by
   simp [oqWk, winSz]; ring
 
-/-- Window `i ≥ 1` starts after window `0` and `i - 1` full windows of `5380` values. -/
+/-- Window `i ≥ 1` starts after window `0` and `i - 1` full windows of `1156` values. -/
 theorem oqWk_eq {s : Oq} {ch : ℕ} : ∀ {i : ℕ}, 1 ≤ i → i < oqNpw s →
-    oqWk s ch i = ch + 4 * s.pd + winSz s 0 + 5380 * (i - 1)
+    oqWk s ch i = ch + 4 * s.pd + winSz s 0 + 1156 * (i - 1)
   | 0, h, _ => absurd h (by omega)
   | 1, _, _ => by rw [oqWk_succ]; simp [oqWk]
   | i + 2, _, h => by
@@ -511,8 +511,8 @@ theorem val_win {i o : ℕ} (hi : i < oqNpw w.s) (ho : o < winSz w.s i) :
     have h7 := winSz_le' w.s hpos
     simp only [wpCh] at h6 h7 ⊢
     simp only [show ¬ oqWk w.s 5 i + o - w.W0 < winSz w.s 0 by omega, ↓reduceIte]
-    rw [show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) / 5380 + 1 = i by omega,
-      show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) % 5380 = o by omega]
+    rw [show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) / 1156 + 1 = i by omega,
+      show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) % 1156 = o by omega]
 
 theorem val_cap {o : ℕ} : w.val (w.Cq + o) = w.capV o := by
   have h4 := W0_eq w

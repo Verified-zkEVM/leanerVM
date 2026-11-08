@@ -103,8 +103,6 @@ structure OsCfg where
   yrLen : Nat
   /-- `LIG_TOTAL_FOLDS`. -/
   nFolds : Nat
-  /-- `LIG_MAX_QUERIES`: the stride of a level in `query_weights`. -/
-  maxQ : Nat
   /-- `LIG_MAX_SQUEEZES`. -/
   maxSq : Nat
   /-- `LIG_MAX_INTERLEAVE`. -/
@@ -146,7 +144,7 @@ def osCfg (m : Nat) : OsCfg :=
   { m, levels := (List.range (osNLevels m)).map (osLv m),
     yrLevel := lig Data.arr_LIG_YR_LEVEL m, yrLog := lig Data.arr_LIG_YR_LOG_LEN m,
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
-    maxQ := lig Data.arr_LIG_MAX_QUERIES m, maxSq := lig Data.arr_LIG_MAX_SQUEEZES m,
+    maxSq := lig Data.arr_LIG_MAX_SQUEEZES m,
     maxIl := lig Data.arr_LIG_MAX_INTERLEAVE m, posLen := lig Data.arr_LIG_POSITIONS_LEN m,
     capLen := lig Data.arr_LIG_CAP_LEN m, loopBase := loopBase m, plan := osMatPlan m }
 

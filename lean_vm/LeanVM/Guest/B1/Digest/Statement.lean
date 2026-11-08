@@ -43,10 +43,14 @@ def sdIn (k c : ℕ) : ℕ :=
       else if c < 2 then 447 + c else if c = 2 then 449 else if c < 8 then sdOut 4 c else 451)
   else (if k = 0 then 342 + (c - 9) else sdOut (k - 1) c)
 
+/-- The cells block `k` writes: the thirteen of the state, the last block the digest's two
+(`out_cells`). -/
+def sdOutN (k : ℕ) : ℕ := if k < 5 then 13 else 2
+
 /-- The `KECCAK` of block `k`. -/
 def sdKeccak (k : ℕ) : Atom :=
-  .keccak ((List.range 13).map fun c => .n (sdIn k c)) ((List.range 13).map fun c => .n (sdOut k c))
-    (inLayout k) (outLayout 6 k)
+  .keccak ((List.range 13).map fun c => .n (sdIn k c))
+    ((List.range (sdOutN k)).map fun c => .n (sdOut k c)) (inLayout k) (outLayout 6 k)
 
 /-- The header cells. -/
 def sdHdr : List Atom :=
@@ -77,10 +81,10 @@ def sdBlk5 : List Atom :=
 def sdAtoms : List Atom :=
   sdHdr ++ (List.range 12).flatMap (fun p => pairAtoms (.n 8) (2 * p) (17 + 27 * p)) ++ sdConsts ++
     [sdKeccak 0] ++ (List.range 4).flatMap (fun j => sdBlk (j + 1)) ++ sdBlk5 ++
-    [.copy (.n 465) (.n 452), .copy (.n 466) (.n 453)]
+    [.copy (.n 454) (.n 452), .copy (.n 455) (.n 453)]
 
 set_option maxRecDepth 100000 in
-theorem core20_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]] :=
+theorem core20_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 454, .n 455]] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem core20_params : Fn.params Data.core21 =
@@ -114,16 +118,19 @@ theorem cells13_map_range (σ : Val) (f : ℕ → ℕ) (c : Fin 13) :
     cells13 (((List.range 13).map fun c => V.n (f c)).map σ) c = σ (.n (f c)) := by
   simp [cells13, List.getD_eq_getElem?_getD, c.isLt]
 
+/-- Block `k`'s `KECCAK`: canonical inputs, and its written cells the first of their Keccak-f. -/
 theorem keccak_holds {rd : Reader} {σ : Val} {k : ℕ} (h : (sdKeccak k).Holds rd σ) :
-    KeccakCellsRelation (fun c : Fin 13 => σ (.n (sdIn k c))) (inLayout k)
-      (fun c : Fin 13 => σ (.n (sdOut k c))) (outLayout 6 k) := by
-  obtain ⟨-, -, hK⟩ := h
+    (∀ c : Fin 13, IsCanonical128 (σ (.n (sdIn k c)))) ∧ ∀ c : Fin 13, c.val < sdOutN k →
+      σ (.n (sdOut k c)) = cellsOfState (keccakF1600 (stateOfCells
+        (fun c : Fin 13 => σ (.n (sdIn k c))) (inLayout k))) (outLayout 6 k) c := by
+  obtain ⟨-, -, O, hK, hw⟩ := keccak_holds_full h
   have e1 : cells13 (((List.range 13).map fun c => V.n (sdIn k c)).map σ) =
       fun c : Fin 13 => σ (.n (sdIn k c)) := funext (cells13_map_range σ _)
-  have e2 : cells13 (((List.range 13).map fun c => V.n (sdOut k c)).map σ) =
-      fun c : Fin 13 => σ (.n (sdOut k c)) := funext (cells13_map_range σ _)
-  rw [e1, e2] at hK
-  exact hK
+  rw [e1] at hK
+  refine ⟨hK.1, fun c hc => ?_⟩
+  have := hw c (by simpa using hc)
+  simp only [List.getElem_map, List.getElem_range] at this
+  rw [this, hK.2 c c.isLt]
 
 /-- The padded 44-cell message past its cells: the `0x01` cell at `44`, the `0x80` cell at `50`,
 zero between. -/
@@ -155,7 +162,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
   obtain ⟨hat, hr⟩ := hb
   simp only [sdAtoms, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
     IsEmpty.forall_iff, implies_true, and_true] at hat
-  obtain ⟨⟨⟨⟨⟨⟨hH, hP⟩, hC⟩, hK0⟩, hB⟩, hB5⟩, h465, h466⟩ := hat
+  obtain ⟨⟨⟨⟨⟨⟨hH, hP⟩, hC⟩, hK0⟩, hB⟩, hB5⟩, h454, h455⟩ := hat
   rw [forall_mem_flatMap_range] at hP hB
   -- the header
   simp only [sdHdr, List.forall_mem_cons, Atom.Holds, List.not_mem_nil, IsEmpty.forall_iff,
@@ -187,6 +194,21 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     simp [C44, List.getD_eq_getElem?_getD, hm]
   let I : ℕ → Fin 13 → E := fun k c => σ (.n (sdIn k c))
   let O : ℕ → Fin 13 → E := fun k c => if k = 0 then 0 else σ (.n (sdOut (k - 1) c))
+  have hkk' : ∀ k ≤ 5, (sdKeccak k).Holds rd σ := fun k hk => by
+    rcases (show k = 0 ∨ (1 ≤ k ∧ k ≤ 4) ∨ k = 5 by omega) with rfl | ⟨hk1, hk4⟩ | rfl
+    · exact hK0
+    · exact hkk k hk1 hk4
+    · exact hk5
+  -- the true outputs: the state after block `k - 1`, whose cells the written values are
+  let O' : ℕ → Fin 13 → E := fun k c => if k = 0 then 0 else
+    cellsOfState (keccakF1600 (stateOfCells (I (k - 1)) (inLayout (k - 1)))) (outLayout 6 (k - 1)) c
+  have hOO : ∀ k ≤ 5, O' k = O k := fun k hk => by
+    funext c
+    rcases Nat.eq_zero_or_pos k with rfl | hk0
+    · rfl
+    · simp only [O', O, show k ≠ 0 by omega, ↓reduceIte]
+      exact ((keccak_holds (hkk' (k - 1) (by omega))).2 c
+        (by simp [sdOutN, show k - 1 < 5 by omega])).symm
   have hP44 : ∀ m < 44, (padCells C44 704).getD m 0 = σ (.n (sdCell m)) := fun m hm => by
     rw [padCells_getD_lt _ _ (by omega) (by rw [show (704 : ℕ) / 16 = 44 from rfl]; omega)
       (by rw [show rate * (704 / rate + 1) - 1 = 815 from rfl]; omega), hC44get m hm]
@@ -227,24 +249,23 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
         first | rw [c342, word_zero] | rw [c343, word_zero] | rw [c344, word_zero] |
           rw [c345, word_zero]
     · simp only [I, O, sdIn, show ¬ c.val < 9 by omega, ↓reduceIte, show k ≠ 0 by omega]
+  have hrate' : ∀ k < 704 / rate + 1, ∀ c : Fin 13, c.val < 9 →
+      I k c = O' k c + (padCells C44 704).getD (17 * k / 2 + c) 0 := fun k hk c hc => by
+    rw [hOO k (by rw [hB6] at hk; omega)]; exact hrate k hk c hc
+  have hcap' : ∀ k < 704 / rate + 1, ∀ c : Fin 13, 9 ≤ c.val → I k c = O' k c := fun k hk c hc => by
+    rw [hOO k (by rw [hB6] at hk; omega)]; exact hcap k hk c hc
   have hK : ∀ k < 704 / rate + 1,
-      KeccakCellsRelation (I k) (inLayout k) (O (k + 1)) (outLayout (704 / rate + 1) k) := by
+      KeccakCellsRelation (I k) (inLayout k) (O' (k + 1)) (outLayout (704 / rate + 1) k) .all := by
     intro k hk
     rw [hB6] at hk ⊢
-    have hO : O (k + 1) = fun c : Fin 13 => σ (.n (sdOut k c)) := by
-      funext c; simp [O]
-    rw [hO]
-    rcases (show k = 0 ∨ (1 ≤ k ∧ k ≤ 4) ∨ k = 5 by omega) with rfl | ⟨hk1, hk4⟩ | rfl
-    · exact keccak_holds hK0
-    · exact keccak_holds (hkk k hk1 hk4)
-    · exact keccak_holds hk5
-  have h0 : O 0 = cellsOfState (absorbChunks 0 zeroState []) false := by
+    exact ⟨(keccak_holds (hkk' k (by omega))).1, fun c _ => by simp [O']⟩
+  have h0 : O' 0 = cellsOfState (absorbChunks 0 zeroState []) false := by
     funext c
-    simp only [O, ↓reduceIte]
+    simp only [O', ↓reduceIte]
     exact (cellsOfState_zero false c).symm
   have hz : ∀ j, 704 ≤ j → (cellsBytes C44).getD j 0 = 0 := fun j hj =>
     getD_of_length_le (by rw [length_cellsBytes, hC44]; omega)
-  have hdig := keccak_final_digest (pre := []) (n := 0) rfl (by rw [hC44]) hz h0 hrate hcap hK
+  have hdig := keccak_final_digest (pre := []) (n := 0) rfl (by rw [hC44]) hz h0 hrate' hcap' hK
   rw [hB6, List.nil_append, List.take_of_length_le (by rw [length_cellsBytes, hC44])] at hdig
   -- the canonical header
   have hcan := (hK 0 (by rw [hB6]; omega)).1
@@ -299,9 +320,12 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     · rw [← h14]; exact can 5 (by omega)
     · rw [← h15]; exact can 6 (by omega)
     · rw [← h16]; exact can 7 (by omega)
-  · simp only [Atom.Holds] at h465 h466
+  · simp only [Atom.Holds] at h454 h455
+    have hO6 : ∀ c : Fin 13, c.val < 2 → O' 6 c = σ (.n (sdOut 5 c)) := fun c hc =>
+      ((keccak_holds hk5).2 c (by simpa [sdOutN] using hc)).symm
+    rw [hO6 0 (by decide), hO6 1 (by decide)] at hdig
     rw [← hbytes, digestCells, ← hdig, ← hr]
-    simp only [List.map_cons, List.map_nil, h465, h466]
+    simp only [List.map_cons, List.map_nil, h454, h455]
     rfl
 
 end

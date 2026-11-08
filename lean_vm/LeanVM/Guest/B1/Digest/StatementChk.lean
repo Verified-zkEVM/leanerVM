@@ -19,7 +19,7 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- `statement_digest`'s body, as its template. -/
-def sdBody : List Stmt := sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]]
+def sdBody : List Stmt := sdAtoms.map Stmt.atom ++ [.ret [.n 454, .n 455]]
 
 /-- The values known canonical: the header cells, the pairs' cells, the constants. -/
 def sdA : List ℕ :=
@@ -27,7 +27,7 @@ def sdA : List ℕ :=
     17 + 27 * p + 17, 17 + 27 * p + 26]) ++ [341, 342, 343, 344, 345, 450]
 
 set_option maxRecDepth 100000 in
-theorem sd_chk : chk 9 sdBody = some 467 := by decide +kernel
+theorem sd_chk : chk 9 sdBody = some 456 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem sd_stores : storesOf 9 sdBody = [] := by decide +kernel

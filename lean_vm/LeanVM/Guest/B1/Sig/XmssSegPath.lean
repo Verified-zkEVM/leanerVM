@@ -35,14 +35,14 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 /-! ## Layout -/
 
 /-- The values of a level of window `w` before the last. -/
-def lxStride (w : Nat) : Nat := if w + 1 = 4 then 16 else 18
+def lxStride (w : Nat) : Nat := if w + 1 = 4 then 4 else 6
 
 /-- The hinted sibling of level `r` of window `w` at base `b`. -/
 def lxSibCell (w r b : Nat) : Nat := if w + 1 = 4 then b else if r + 1 = 8 then b + 2 else b + 3
 
 /-- The base after the last level of window `w`, from its base: `out` numbered there in arm `0`. -/
 def lxLastNext (w : Nat) (outO : Option Nat) : Nat :=
-  if w + 1 = 4 then (if outO.isSome then 3 else 16) else (if outO.isSome then 4 else 17)
+  if w + 1 = 4 then (if outO.isSome then 3 else 4) else (if outO.isSome then 4 else 5)
 
 /-- Level `r`'s address in arm `k` of window `w`. -/
 def lxAtF (σ : Val) (w k r : Nat) : E := lxAt (σ (sHis (w + 1))) (σ (sPower (7 - r))) w r k
@@ -82,7 +82,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
     have hk := k64_sound hpad h.right
     have hc : σ (.n (b + 1)) = word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0 :=
       h.left.atom (a := .const (.n (b + 1)) _) (by simp [cst])
-    rw [show σ _ = _ from congrArg Prod.fst hk, hc]
+    rw [show σ _ = _ from hk, hc]
     simp only [lxAtF, lxAt, hw, ↓reduceIte, lxSibCell]
     by_cases hb : k / 2 ^ r % 2 = 0 <;> simp [hb]
   · by_cases hr : r + 1 = 8
@@ -93,7 +93,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
         h.left.atom (a := .const (.n b) _) (by simp [cst])
       have ha : σ (.n (b + 1)) = σ (sHis (w + 1)) + σ (.n b) :=
         h.left.atom (a := .add (.n (b + 1)) (sHis (w + 1)) (.n b)) (by simp [addS])
-      rw [show σ _ = _ from congrArg Prod.fst hk, ha, hc]
+      rw [show σ _ = _ from hk, ha, hc]
       simp only [lxAtF, lxAt, hw, ↓reduceIte, lxSibCell, show 7 + 1 = 8 from rfl]
       by_cases hb : k / 128 % 2 = 0 <;> simp [hb]
     · simp only [hw, hr, ↓reduceIte] at h ⊢
@@ -104,7 +104,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
         h.left.atom (a := .const (.n (b + 1)) _) (by simp [cst])
       have ha : σ (.n (b + 2)) = σ (.n b) + σ (.n (b + 1)) :=
         h.left.atom (a := .add (.n (b + 2)) (.n b) (.n (b + 1))) (by simp [addS])
-      rw [show σ _ = _ from congrArg Prod.fst hk, ha, hm, hc]
+      rw [show σ _ = _ from hk, ha, hm, hc]
       simp only [lxAtF, lxAt, hw, hr, ↓reduceIte, lxSibCell]
       by_cases hb : k / 2 ^ r % 2 = 0 <;> simp [hb]
 
