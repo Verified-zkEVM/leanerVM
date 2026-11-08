@@ -28,7 +28,7 @@ The honest direction of `MeaningTerminal`: `check_opening_terminal_completeAt`. 
 * `6 ≤ κ`: the memory is defined below `64`, where `eq_prefix_chain`'s range checks read.
 
 The proof (`completeAt_flatDepR`): the honest buffers (`termOwn`: the three prefix chains and the
-public input's chain), the 105 callees complete (`termKids_complete`, each column selector on
+public input's chain), the 107 callees complete (`termKids_complete`, each column selector on
 `selector_tables`' result), the honest valuation (`term_sigma`). The data that do not depend on the
 memory (the tables' point `chis`, the lengths) come from one memory holding `Lin`; without one the
 statement is empty.

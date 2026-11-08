@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmClaims
 
 For a bytecode of `2^23` words and a memory image of at most `2^32` words: the row counts are
 the ones `table_rows` holds, their heights the ones `dims_g` holds; from the carried capacity,
-the five framework words, the table sumcheck's `3n` words and the `157` evaluations at the
+the five framework words, the table sumcheck's `3n` words and the `159` evaluations at the
 cursor run `tablesSeg` to `vtBus` and the `165` column claims, the bus's and the public input's
 values in `claim_pool`, the tables' read in place (`col_eval_words`); `TCtx` holds of them; and
 the function returns the sponge's capacity after the public input's challenge, the cursor past
@@ -34,7 +34,7 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-/-- **`verify_tables` is sound** (G:2137-2563; TRIAGE #52), for a bytecode of `2^23` words. -/
+/-- **`verify_tables` is sound** (G:2153-2579; TRIAGE #52), for a bytecode of `2^23` words. -/
 theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     verify_tables_Spec bc Lm.read := by
   intro pi lm alphas point values args rets hpre hrel
@@ -43,8 +43,8 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   rw [show (List.range 20).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3),
     σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12),
     σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19)] from rfl] at hpre ⊢
-  rw [show vtRets.map σ = [σ (.n 6855), σ (.n 6856), σ (.n 6857), σ (.n 6858), σ (.n 6859),
-    σ (.n 6862), σ (.n 6863), σ (.n 6864), σ (.n 6865), σ (.n 6866)] from rfl]
+  rw [show vtRets.map σ = [σ (.n 6961), σ (.n 6962), σ (.n 6963), σ (.n 6964), σ (.n 6965),
+    σ (.n 6968), σ (.n 6969), σ (.n 6970), σ (.n 6971), σ (.n 6972)] from rfl]
   obtain ⟨hpi, hz, hmu, hml, hlm16, hlm, ⟨ds, hdsl, hdims⟩, hE, hal, hW, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
@@ -115,48 +115,48 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   simp only [Atom.Holds] at c5 c6 c7
   -- the forms
   have hforms : (vtBus (layoutOf bc lm rows) alphas (σ (.n 14)) point values
-      [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))).forms =
+      [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))).forms =
       (vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
-        [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+        [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
         (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1 := by
     simp only [vtBus, hvals, List.getD_cons_zero, List.getD_cons_succ, ← c5, ← c6, ← c7]
   set evs : List (List E) := vtEvsT σ with hevs
   have A_len : evs.length = (vtRows (tableHeightsOf rows) (vtBus (layoutOf bc lm rows) alphas
-      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890))
+      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898))
       (σ (.n 581))).forms point pts).length := by
     rw [hforms, vtEvsT_length]
     simp [vtRows, List.length_zip, vt_tableHeights_length hr,
       (vt_forms3_shape bc lm hr alphas _ point _ _ _ _ _ _ _).1, LeanVM.Protocol.EndToEnd.Complete.length_tableWeights, tables]
   have A_w : ∀ p ∈ List.zip (vtRows (tableHeightsOf rows) (vtBus (layoutOf bc lm rows) alphas
-      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890))
+      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898))
       (σ (.n 581))).forms point pts) evs, p.2.length = p.1.1.width :=
     vt_evsT_widths σ _
   have A_flat : evs.flatten = vtEvs σ := vt_evsT_flatten σ
-  have A_fin : (termsPure ((powers (σ (.n 2572)) 5).take 2) ((powers (σ (.n 2572)) 5).drop 2)
+  have A_fin : (termsPure ((powers (σ (.n 2588)) 5).take 2) ((powers (σ (.n 2588)) 5).drop 2)
       pts.reverse (List.zip (vtRows (tableHeightsOf rows) (vtBus (layoutOf bc lm rows) alphas
-      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890))
-      (σ (.n 581))).forms point pts) evs) 0 0 []).1 = σ (.n 2610) := by
+      (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898))
+      (σ (.n 581))).forms point pts) evs) 0 0 []).1 = σ (.n 2626) := by
     rw [hforms]
     exact vt_asm_final hμ Lm h bc hbc hz hmu hml hE hlm hr hτ hkb hal hW hgn hτn hnm hpl
       hcprod hpeq hchi
   -- the run
   set L := layoutOf bc lm rows with hL
   set bus := vtBus L alphas (σ (.n 14)) point values [σ (.n 830), σ (.n 843), σ (.n 856)]
-    (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581)) with hbus
+    (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581)) with hbus
   set s0 := vtFreshFs σ with hs0
-  have hξ : s0.squeeze.1 = σ (.n 2572) := hxi.symm
-  have htot : bus.totals = [σ (.n 1812), σ (.n 2057), σ (.n 2499)] := by
+  have hξ : s0.squeeze.1 = σ (.n 2588) := hxi.symm
+  have htot : bus.totals = [σ (.n 1820), σ (.n 2073), σ (.n 2515)] := by
     simp only [hbus, vtBus, hvals, List.getD_cons_zero, List.getD_cons_succ, ← c5, ← c6, ← c7]
     rw [T0, T1, T2]
   have htarget : dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum + 3)).drop
-      (tables.map Table.nConstraints).sum) bus.totals = σ (.n 2582) := by
+      (tables.map Table.nConstraints).sum) bus.totals = σ (.n 2598) := by
     rw [vt_nConstraints, hξ, vt_powers5, htot, hT]
     simp only [dot, List.drop_succ_cons, List.drop_zero, List.zipWith_cons_cons,
       List.zipWith_nil_left, List.foldl_cons, List.foldl_nil]
     ring
-  have hs0sq : s0.squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n (2561 + k)), []⟩ := by
+  have hs0sq : s0.squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n (2577 + k)), []⟩ := by
     rw [hcap]; rfl
-  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2604 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
+  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2620 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
   have hn : L.tableLogHeights.foldl max 0 = n := vt_foldl_max hr hτn hτex
   have hsc : RunsTo (sumcheck (dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum +
       3)).drop (tables.map Table.nConstraints).sum) bus.totals) 4 (List.replicate n none))
@@ -225,7 +225,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     have hbv : BytecodeAt ev L.bytecode (point.take L.logBytecode ++ alphas) (σ (.n 581)) := by
       rw [← h6864]; exact hev
     have hBR := vt_busRest_run ev L alphas (σ (.n 14)) point values
-      [σ (.n 830), σ (.n 843), σ (.n 856)] rfl (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581)) hbv
+      [σ (.n 830), σ (.n 843), σ (.n 856)] rfl (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581)) hbv
       ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩
     unfold tablesSeg
     exact RunsTo.of_eq (hBR.bind (hTP.bind (hPI.bind (runsTo_ret _ _)))) rfl

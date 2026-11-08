@@ -63,7 +63,7 @@ theorem vs_kecOut (hl : args.length = 6) {ins : List V} {o : ℕ}
   rw [fixNe_of_noNe (s := keccakA ins (vsRun o 13)) (by simp [keccakA, noNeB])] at hg
   simp only [keccakA, GoodS] at hg
   intro k hk13
-  have := hg.2.2 ⟨k, hk13⟩
+  have := (good_keccak13 hg (by simp [vsRun])).2.2 ⟨k, hk13⟩
   simp [cells13, vsRun, List.getD_eq_getElem?_getD, hk13] at this
   rw [this]
   exact canon_cellsOfState _ _ _

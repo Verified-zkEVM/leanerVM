@@ -27,7 +27,7 @@ challenges, `c_table`) and the exponent table at `sqE` (G:3346-3464, at 5e3ade21
 6. `verify_tables` (B1-c's `VtHonest.args`, `linL` at `vtB`), returning `vtRetsOf` (its ten
    returns, the last `col_eval_words`, the stream's cursor at the tables' evaluations);
 7. `verify_keccak` on the stream past the tables' words, `chi`, the output lanes (in the stream, at
-   `col_eval_words·g^105`), `z_vals`, `slices`;
+   `col_eval_words·g^107`), `z_vals`, `slices`;
 8. `ring_switch_target` on `slices` and the ring map's challenges;
 9. `certify_placement` on `kappa_base` and the exponent table;
 10. `log2_ceil_in_the_exponent__L15_L34` on `g^(stack total)`;
@@ -83,9 +83,9 @@ def cK : ℕ := S.cT bs + S.xsT.length
 /-- The opening's cursor. -/
 def cW : ℕ := S.cK bs + S.xsK.length
 
-/-- The output lanes' cursor: `col_eval_words·g^105`, the tables' evaluations past the five
+/-- The output lanes' cursor: `col_eval_words·g^107`, the tables' evaluations past the five
 framework words and the rounds' `3 n`. -/
-noncomputable def cL : ℕ := S.cT bs + 5 + 3 * S.H.n + 105
+noncomputable def cL : ℕ := S.cT bs + 5 + 3 * S.H.n + 107
 
 /-- `verify_tables`' buffers. -/
 def vtB (sqE : ℕ) : Tables.VtBases :=
@@ -94,7 +94,7 @@ def vtB (sqE : ℕ) : Tables.VtBases :=
 /-- `verify_tables`' honest returns: the capacity, the cursor past its words, `g^n`, the
 bytecode's value, the public input's point, `col_eval_words`. -/
 noncomputable def vtRetsOf : List E :=
-  S.H.s3.squeeze.2.cap ++ [ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 157,
+  S.H.s3.squeeze.2.cap ++ [ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 159,
     gen ^ S.H.n, S.H.bv, S.H.rm, ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n)]
 
 /-- `certify_placement`'s result among the results before. -/

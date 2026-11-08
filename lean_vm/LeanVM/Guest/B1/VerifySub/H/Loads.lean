@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.H.Calls
 
 `vs_loads_class` (by the kernel): `verify_sub`'s loads are through its own buffers' pointers within
 their sizes, through `out` (argument `5`) below `24`, through `col_eval_words` (`645`, `verify_tables`'
-return) below `157`, or through a push block's square pointer (`g_squares·kb[src]`, `vsPushM`) at
+return) below `159`, or through a push block's square pointer (`g_squares·kb[src]`, `vsPushM`) at
 the block's `adj`. `vs_push_ptr`: on the honest valuation a push block's square pointer is
 `g_squares·g^κ_src`. `vs_loads`: so every load's address lies in the caller's words or the own
 buffers.
@@ -31,8 +31,8 @@ open LeanVM.Node LeanVM.Protocol.Verifier
 def vsLoadOk (q : V × ℕ) : Bool :=
   (q.1 == .n 25 && q.2 < 10) || (q.1 == .n 26 && q.2 < 6) || (q.1 == .n 127 && q.2 < 7) ||
     (q.1 == .n 139 && q.2 < 8) || (q.1 == .n 427 && q.2 < 16) || (q.1 == .n 664 && q.2 < 6) ||
-    (q.1 == .n 665 && q.2 < 64) || (q.1 == .n 6 && q.2 < 165) || (q.1 == .n 310 && q.2 < 19) ||
-    (q.1 == .n 346 && q.2 < 4) || (q.1 == .n 5 && q.2 < 24) || (q.1 == .n 645 && q.2 < 157) ||
+    (q.1 == .n 665 && q.2 < 64) || (q.1 == .n 6 && q.2 < 167) || (q.1 == .n 310 && q.2 < 19) ||
+    (q.1 == .n 346 && q.2 < 4) || (q.1 == .n 5 && q.2 < 24) || (q.1 == .n 645 && q.2 < 159) ||
     ((List.range 54).map fun b ↦ (V.n (vsPushM b), Tables.blockKappaAdj b)).contains q
 
 theorem vs_loads_class : (vsCPre.filterMap Stmt.loadS).all vsLoadOk = true := by decide +kernel
@@ -62,7 +62,7 @@ theorem vs_push_ptr (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ}
 theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List (List E)}
     (hown : ∀ k < 13, (bs.getD k 0, ownW.getD k []) ∈ own)
     (hptr : ∀ k < 13, σ (.n (vsAllocVars.getD k 0)) = ofK (addressOfIndex (bs.getD k 0)))
-    (hlen : 165 ≤ (ownW.getD 0 []).length ∧ 10 ≤ (ownW.getD 1 []).length ∧
+    (hlen : 167 ≤ (ownW.getD 0 []).length ∧ 10 ≤ (ownW.getD 1 []).length ∧
       6 ≤ (ownW.getD 2 []).length ∧ 7 ≤ (ownW.getD 3 []).length ∧ 8 ≤ (ownW.getD 4 []).length ∧
       19 ≤ (ownW.getD 5 []).length ∧ 4 ≤ (ownW.getD 6 []).length ∧
       16 ≤ (ownW.getD 7 []).length ∧ 6 ≤ (ownW.getD 11 []).length ∧
@@ -71,7 +71,7 @@ theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List
     (h6 : σ (.n 5) = ofK (addressOfIndex outE))
     (hsqL : (sqE, expTableWords) ∈ Lin)
     (hcev : ∃ e, σ (.n 645) = ofK (addressOfIndex e) ∧
-      ∀ k < 157, Main.RegionL Lin (e + k) ∨ Main.RegionL own (e + k))
+      ∀ k < 159, Main.RegionL Lin (e + k) ∨ Main.RegionL own (e + k))
     (hpush : ∀ b < 54, ∃ κ, κ + Tables.blockKappaAdj b < 34 ∧
       σ (.n (vsPushM b)) = ofK (addressOfIndex (sqE + κ))) {X : ℕ → Prop} :
     ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i,

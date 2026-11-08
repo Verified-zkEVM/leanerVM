@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Interface
 # A side's block offsets (G:2158-2199)
 
 `vt_rank0`, `vt_rank`: what a rank's template gives (`VtRankFacts`). `vt_side_cert`: when every
-group's key is `g^(252 κ - b0)` and its size `g^(len·2^κ)`, the ranks of a side certify its groups'
+group's key is `g^(254 κ - b0)` and its size `g^(len·2^κ)`, the ranks of a side certify its groups'
 order strictly descending in the key (`tb_group_offsets`), so every block's offset is its
 `stackOffsets` offset. `vt_sort`: the push side's `54` blocks and the count side's `45`, their
 log-sizes `vtKap` of the memory's log-size and the tables' heights.
@@ -156,7 +156,7 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
     (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0))
     (hsideS : ∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) (hs : s < 3)
     (hkey : ∀ j < m, ∃ key, LoadHolds rd (σ (.n 36)) (G0 + j) key ∧
-      key * gen ^ (base + st j) = gen ^ (kg j * 252))
+      key * gen ^ (base + st j) = gen ^ (kg j * 254))
     (hsz : ∀ j < m, LoadHolds rd (σ (.n 37)) (G0 + j) (gen ^ ((st (j + 1) - st j) * 2 ^ kg j)))
     (hkg : ∀ j < m, kg j < 34) (hrun : ∀ j < m, st j < st (j + 1))
     (hgrp : ∀ x < n, grp x < m ∧ st (grp x) ≤ x ∧ x < st (grp x + 1))
@@ -180,7 +180,7 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
   have hoe : ∀ r < m, G0 + o r = e r := fun r hr => by have := hes r hr; simp only [ho_def]; omega
   have ho : ∀ r < m, o r < m := fun r hr => by have := hes r hr; simp only [ho_def]; omega
   -- the keys, in the exponent
-  set keyN : ℕ → ℕ := fun j => kg j * 252 + 153 - (base + st j) with hkeyN
+  set keyN : ℕ → ℕ := fun j => kg j * 254 + 153 - (base + st j) with hkeyN
   have hkv : ∀ r < m, σ (.n (vtRv v0 r + 8)) * gen ^ 153 = gen ^ keyN (o r) := fun r hr => by
     obtain ⟨key, hk1, hk2⟩ := hkey (o r) (ho r hr)
     have h4 := (hfacts r hr).2.2.1
@@ -300,7 +300,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
                               exact this k hk)
   -- the groups' keys and sizes
   have hG : ∀ k < 15, (∃ key, LoadHolds Lm.read (σ (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 252)) ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
       LoadHolds Lm.read (σ (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, hsz1, hsq1, hszv⟩ := vt_grps h k hk

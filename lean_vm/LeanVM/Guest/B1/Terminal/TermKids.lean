@@ -25,7 +25,7 @@ coefficients, the terminal point `x`, the committed columns' logs `KC` and offse
 log `m` and `KECCAK`'s `τ`.
 
 The honest buffers: `eqChain as bs`, the prefix products `eq_prefix_chain` writes; `piW`, the public
-input's chain. `termKids`: the 105 callees in order, each column selector reading the selector
+input's chain. `termKids`: the 107 callees in order, each column selector reading the selector
 tables' result (`selKid`); `termKids_complete`: each is complete, placed (`eqc_kid_complete`,
 `l15_kid_complete`, B1-c's `selector_tables_completeAt`, `cs_completeAt`, `rsw_completeAt`).
 -/
@@ -67,7 +67,7 @@ def termArgs (B : TermBases) (rm gmu gzcn glm gtau lamCl inner yr target : E) : 
 `z_vals·g^39`), the ring map's coefficients, the terminal point and its complements. -/
 def TermRegion (B : TermBases) (nz nc τ : ℕ) (i : ℕ) : Prop :=
   (B.zeta ≤ i ∧ i < B.zeta + nz) ∨ (B.chi ≤ i ∧ i < B.chi + nc) ∨
-    (B.kb ≤ i ∧ i < B.kb + 8) ∨ (B.off ≤ i ∧ i < B.off + 99) ∨
+    (B.kb ≤ i ∧ i < B.kb + 8) ∨ (B.off ≤ i ∧ i < B.off + 101) ∨
     (B.gsq + 34 ≤ i ∧ i < B.gsq + 34 + 112) ∨
     (B.zv ≤ i ∧ i < B.zv + (τ + 6)) ∨ (B.zv + 39 ≤ i ∧ i < B.zv + 39 + (τ + 6)) ∨
     (B.ct ≤ i ∧ i < B.ct + 64) ∨ (B.pt ≤ i ∧ i < B.pt + 40) ∨ (B.pt1 ≤ i ∧ i < B.pt1 + 40)
@@ -184,7 +184,7 @@ noncomputable def termKids (Lin : Main.Layout) (D : TermData) (b0 : ℕ) : List 
       Returns [ringWeight D.ringPoint (((p1Of D.x).take (D.τ + 6)).map (1 + ·)) D.coeffs]⟩]
 
 theorem termKids_length (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
-    (termKids Lin D b0).length = 105 := by
+    (termKids Lin D b0).length = 107 := by
   simp [termKids, Tables.nCommittedCols]
 
 /-! ## Each callee, complete -/

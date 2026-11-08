@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SGrpT
 # The block certification, honestly (G:2158-2199)
 
 The honest buffers, for the memory's log-size `lm` and the tables' heights `τ` (`vtKg`: a group's
-log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(252 κ - b0)`),
+log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(254 κ - b0)`),
 `vtGSizeW` (`group_size`), `vtGOrdW` (`group_order`: each side's groups sorted by `stackLe`,
 `vtOrd`, the push side's at `0 .. 8`, the count side's at `18 .. 23`), `vtGBaseW` (`group_base`:
 the prefix sums of the sizes in that order, `vtGP`).
@@ -62,7 +62,7 @@ def vtGP (lm : ℕ) (τ : ℕ → ℕ) (s r : ℕ) : ℕ :=
 
 /-- `group_key`'s honest words. -/
 noncomputable def vtGKeyW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun gi ↦
-  gen ^ (vtKg lm τ gi * 252) * (gen ^ blockGroupStart.getD gi 0)⁻¹
+  gen ^ (vtKg lm τ gi * 254) * (gen ^ blockGroupStart.getD gi 0)⁻¹
 
 /-- `group_size`'s honest words. -/
 noncomputable def vtGSizeW (lm : ℕ) (τ : ℕ → ℕ) : List E :=

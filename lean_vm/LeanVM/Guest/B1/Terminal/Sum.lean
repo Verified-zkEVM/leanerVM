@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Terminal.Interface
 
 `stackWeight_eq`: `dot (powers λ n)` over the ring switch's claim, the kept pooled claims and the
 outputs' claim is the ring claim's weight, plus `Σ_j λ^(1 + poolRank j)·w_j` over the pooled
-claims `j` not on an output lane, plus `λ^(1 + poolRank 165)` times the outputs' claim's weight.
+claims `j` not on an output lane, plus `λ^(1 + poolRank 167)` times the outputs' claim's weight.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

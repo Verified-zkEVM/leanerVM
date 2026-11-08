@@ -42,18 +42,18 @@ theorem dvd_stackOffset (sizes : List ℕ) {b : ℕ} (hb : b < sizes.length) :
   rw [e] at this
   exact this
 
-theorem kc_getD {kappas : List ℕ} (hk : kappas.length = 163) {cc : ℕ} (hcc : cc < 99) :
-    (Tables.committedKappas kappas).getD cc 0 = kappas.getD ((Tables.committedCols 163).getD cc 0) 0 := by
-  have hlen : cc < (Tables.committedCols 163).length := by
-    rw [Tables.committedCols_163_length]; exact hcc
+theorem kc_getD {kappas : List ℕ} (hk : kappas.length = 165) {cc : ℕ} (hcc : cc < 101) :
+    (Tables.committedKappas kappas).getD cc 0 = kappas.getD ((Tables.committedCols 165).getD cc 0) 0 := by
+  have hlen : cc < (Tables.committedCols 165).length := by
+    rw [Tables.committedCols_165_length]; exact hcc
   rw [Tables.committedKappas, hk, List.getD_eq_getElem _ _ (by simpa using hlen), List.getElem_map,
     ← List.getD_eq_getElem _ 0 hlen]
 
-theorem claimCol_committed_all : ∀ j < 165, (termKind j = 0 ∨ termKind j = 1 ∨ termKind j = 3) →
+theorem claimCol_committed_all : ∀ j < 167, (termKind j = 0 ∨ termKind j = 1 ∨ termKind j = 3) →
     claimColOf j = colOfCommitted (termCol j) := by decide +kernel
 
-theorem claimCol_committed {j : ℕ} (hj : j < 165) (hk : termKind j = 0 ∨ termKind j = 1 ∨ termKind j = 3) :
-    claimColOf j = (Tables.committedCols 163).getD (termCol j) 0 := by
+theorem claimCol_committed {j : ℕ} (hj : j < 167) (hk : termKind j = 0 ∨ termKind j = 1 ∨ termKind j = 3) :
+    claimColOf j = (Tables.committedCols 165).getD (termCol j) 0 := by
   rw [committedCols_getD (termCol_lt hj)]
   exact claimCol_committed_all j hj hk
 
@@ -66,9 +66,9 @@ def isAtomB : Stmt → Bool
 
 theorem claims_atoms : termClaims.1.all isAtomB = true := by decide +kernel
 
-theorem getD_seg {α : Type} (A M Z : List α) (d : α) (hA : A.length = 4) (hM : M.length = 99)
+theorem getD_seg {α : Type} (A M Z : List α) (d : α) (hA : A.length = 4) (hM : M.length = 101)
     (j : ℕ) : (A ++ M ++ Z).getD j d =
-      if j < 4 then A.getD j d else if j < 103 then M.getD (j - 4) d else Z.getD (j - 103) d := by
+      if j < 4 then A.getD j d else if j < 105 then M.getD (j - 4) d else Z.getD (j - 105) d := by
   simp only [List.getD_eq_getElem?_getD]
   split_ifs with h1 h2
   · rw [List.append_assoc, List.getElem?_append_left (by omega)]
@@ -102,14 +102,14 @@ def termD (B : TermBases) (layout : Layout) (bus : BusResult) (out : ColumnClaim
   m := layout.logMemory
   τ := layout.tableLogHeights.getD opKeccak 0
 
-theorem termKids_getD_sel (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {c : ℕ} (hc : c < 99) :
+theorem termKids_getD_sel (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {c : ℕ} (hc : c < 101) :
     (termKids Lin D b0).getD (4 + c) noKid = selKid D c := by
   rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
     ite_pos' (by omega), show 4 + c - 4 = c by omega, List.getD_eq_getElem _ _ (by simp [Tables.nCommittedCols]; omega),
     List.getElem_map, List.getElem_range]
 
 theorem termKids_getD_103 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
-    (termKids Lin D b0).getD 103 noKid = fun _ => ⟨"eq_prefix_chain", true,
+    (termKids Lin D b0).getD 105 noKid = fun _ => ⟨"eq_prefix_chain", true,
       [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0 0],
       (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length)) :: Lin, Returns []⟩ := by
   rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
@@ -117,7 +117,7 @@ theorem termKids_getD_103 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
   rfl
 
 theorem termKids_getD_104 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
-    (termKids Lin D b0).getD 104 noKid = fun _ => ⟨"ring_switch_weight", true,
+    (termKids Lin D b0).getD 106 noKid = fun _ => ⟨"ring_switch_weight", true,
       [ofK (addressOfIndex D.B.zv) * word 549755813888 0 0, ofK (addressOfIndex D.B.pt1), ofK
           (addressOfIndex D.B.ct),
         D.gtau * word 64 0 0],
@@ -131,9 +131,9 @@ theorem termKids_getD_104 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 
 /-- `termKind` by ranges, for `omega` (rather than splitting its `if`s in a large context). -/
 theorem termKind_spec (j : ℕ) : (termKind j = 0 ↔ j < 5) ∧
-    (termKind j = 1 ↔ 5 ≤ j ∧ j < 72 ∨ 135 < j ∧ j < 162) ∧
-    (termKind j = 2 ↔ 72 ≤ j ∧ j < 110 ∨ j = 135) ∧ (termKind j = 3 ↔ 162 ≤ j) ∧
-    (termKind j = 4 ↔ 110 ≤ j ∧ j < 135) := by
+    (termKind j = 1 ↔ 5 ≤ j ∧ j < 72 ∨ j = 86 ∨ 136 < j ∧ j < 164) ∧
+    (termKind j = 2 ↔ 72 ≤ j ∧ j < 86 ∨ 86 < j ∧ j < 112) ∧ (termKind j = 3 ↔ 164 ≤ j) ∧
+    (termKind j = 4 ↔ 112 ≤ j ∧ j < 137) := by
   refine ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩⟩ <;> intro h <;> unfold termKind at * <;>
     split_ifs at * <;> omega
 
@@ -163,7 +163,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     (hbus : bus.point.length ≤ 34)
     (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) * yr =
       target)
-    (hol : outs.length = 105)
+    (hol : outs.length = 107)
     (ho : OutsOk (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis rm gmu gzcn glm
       gtau) b0) [] outs) outs)
     (hB : MemL rd (bufL b0 [35, 35, 35, 41]
@@ -242,25 +242,25 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   have hxl40 : x.length ≤ termPointCap := by simp only [termPointCap]; omega
   have hpl40 : (p1Of x).length = 40 := p1Of_length hxl40
   have hpt40 : (padPoint x).length = 40 := padPoint_length hxl40
-  have hclen : claims.length = 165 := by
+  have hclen : claims.length = 167 := by
     rw [← List.length_map (f := (·.column)), hcols, claimColumns_eq]; simp
-  have hptj : ∀ j < 165, (claims.map (·.point))[j]? = some (claims.getD j default).point :=
+  have hptj : ∀ j < 167, (claims.map (·.point))[j]? = some (claims.getD j default).point :=
     fun j hj ↦ by
       rw [List.getElem?_map, List.getElem?_eq_getElem (by omega), List.getD_eq_getElem _ _ (by omega)]
       rfl
-  have hlow : ∀ j < 162, (claims.getD j default).point.length = claimLow layout j := fun j hj ↦
+  have hlow : ∀ j < 164, (claims.getD j default).point.length = claimLow layout j := fun j hj ↦
     (hpts j _ (hptj j (by omega))).1 hj
   have hpz' : ∀ j < 5, claimLow layout j ≤ bus.point.length := fun j hj ↦ by
     have := congrArg List.length ((hpts j _ (hptj j (by omega))).2.1 hj)
     rw [List.length_take, hlow j (by omega)] at this
     omega
-  have hpc' : ∀ j, 5 ≤ j → j < 162 → claimLow layout j ≤ chis'.length := fun j h1 h2 ↦ by
+  have hpc' : ∀ j, 5 ≤ j → j < 164 → claimLow layout j ≤ chis'.length := fun j h1 h2 ↦ by
     have := congrArg List.length ((hpts j _ (hptj j (by omega))).2.2.1 h1 h2)
     rw [List.length_take, hlow j h2] at this
     omega
   -- the valuation
   obtain ⟨σ, hσdef⟩ : ∃ σ, σ = B1.Val.ofArgs (ev rd (termW b0 outs) args termT) := ⟨_, rfl⟩
-  have hchk : chk args.length termT = some 1762 := term_chk
+  have hchk : chk args.length termT = some 1782 := term_chk
   have hgs : ∀ s ∈ termT, GoodS rd [.load (.n 25) (.n 24) 0, .load (.n 27) (.n 24) 1]
       (termW b0 outs) σ s := by
     have h := (ev_spec rd (termW b0 outs) termT args hchk).2.2
@@ -373,12 +373,12 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
       (hKC29 c hc) (by rw [e10]; exact hoff' c hc)
-      (by have hc' : c < 99 := hc; rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
+      (by have hc' : c < 101 := hc; rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
       (hkapc c hc)
   have hselv : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
       selProd ((stackOffsets KC).1.getD c 0) (KC.getD c 0) (layout.stackLog - KC.getD c 0) x := by
     intro c hc
-    have hc' : c < 99 := hc
+    have hc' : c < 101 := hc
     have ht : (kidAt (termKids Lin D b0) [] outs (4 + c)).taken = true := by
       unfold kidAt
       rw [List.nil_append, termKids_getD_sel Lin D b0 hc]
@@ -409,7 +409,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
         ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
   have hin : ∀ j ∈ List.range Tables.nClaims, ClaimIn rd σ R (kbExp layout) j := by
     intro j hj
-    have hj' : j < 165 := List.mem_range.mp hj
+    have hj' : j < 167 := List.mem_range.mp hj
     unfold ClaimIn
     rw [cLow_kbExp]
     split
@@ -424,7 +424,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           rB _ ⟨_, m0, by omega, by rw [eqChain_length]; omega⟩⟩
     all_goals first
       | (rename_i hk
-         have hj5 : 5 ≤ j ∧ j < 162 := by have := termKind_spec j; omega
+         have hj5 : 5 ≤ j ∧ j < 164 := by have := termKind_spec j; omega
          have hle := hpc' j hj5.1 hj5.2
          refine ⟨⟨_, by
            rw [e20, loadHolds_mul_gen_pow, Nat.add_zero]
@@ -450,9 +450,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     | _ => simp [isAtomB] at hat
   rw [termClaims, List.range_eq_range'] at hclH
   have h9 : σ (.n 9) = lam := by rw [e9, hlamC]
-  obtain ⟨hsum, hlamO, -⟩ := claimsT_sound (C := TrivC) hkb (rk := poolRank) h9 165 0 claimsStart
+  obtain ⟨hsum, hlamO, -⟩ := claimsT_sound (C := TrivC) hkb (rk := poolRank) h9 167 0 claimsStart
     15 9 (fun j hj ↦ poolRank_succ (by omega)) (by rw [h9]; simp [poolRank]) hclH
-  rw [show (claimsT (List.range' 0 165) claimsStart 15 9).2 = (1746, 1744, 1745) by
+  rw [show (claimsT (List.range' 0 167) claimsStart 15 9).2 = (1766, 1764, 1765) by
     rw [← termClaims_end, termClaims, List.range_eq_range']] at hsum hlamO
   -- the context of the claims' terms
   have hmem0 : (layout.placement memory0).variableCount = layout.logMemory := by
@@ -508,24 +508,24 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   -- the terminal check
   have hq5 := placement_committed hkap hP (cc := 5) (by decide)
   rw [committedCols_getD (by decide), show colOfCommitted 5 = 5 from rfl] at hq5
-  have hret : σ (.n 1754) = ringWeight ringPoint (x.take (τ + 6)) coeffs := by
-    have ht : (kidAt (termKids Lin D b0) [] outs 104).taken = true := by
+  have hret : σ (.n 1774) = ringWeight ringPoint (x.take (τ + 6)) coeffs := by
+    have ht : (kidAt (termKids Lin D b0) [] outs 106).taken = true := by
       unfold kidAt; rw [List.nil_append, termKids_getD_104]
-    have := outsOk_at ho 104 (by rw [termKids_length]; omega) (by omega) ht
+    have := outsOk_at ho 106 (by rw [termKids_length]; omega) (by omega) ht
     unfold kidAt at this
     rw [List.nil_append, termKids_getD_104] at this
     obtain ⟨h1, -⟩ := this
     rw [e1754, h1]
     show ringWeight ringPoint ((((padPoint x).map (1 + ·)).take (τ + 6)).map (1 + ·)) coeffs = _
     rw [map_one_take (by omega)]
-  have h1756 : σ (.n 1756) = eqEval out.point (x.take (τ + 6)) := by
+  have h1756 : σ (.n 1776) = eqEval out.point (x.take (τ + 6)) := by
     rw [e1756]
     simp only [eqChain]
     rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map, List.getElem_range, ← hoL,
       prefixProd_eq le_rfl (by simp [hpl40]; omega) (by omega)
         (fun i hi => htk _ i (by omega) (by omega)),
       List.take_of_length_le le_rfl]
-  have hfin' : σ (.n 1761) = σ (.n 17) := by
+  have hfin' : σ (.n 1781) = σ (.n 17) := by
     have e15 : σ (.n 15) = inner := ea 15 (by omega)
     have e16 : σ (.n 16) = yr := ea 16 (by omega)
     have e17 : σ (.n 17) = target := ea 17 (by omega)
@@ -569,7 +569,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   · rw [term_callSF σ]
     refine callsMatch_kidsAt _ _ _ _ (by simp [termKids_length, Tables.nCommittedCols])
       (by rw [termKids_length, hol]) fun j hj => ?_
-    have hj' : j < 105 := by simpa [Tables.nCommittedCols] using hj
+    have hj' : j < 107 := by simpa [Tables.nCommittedCols] using hj
     rw [getD_map_lt (Main.mkCall σ) (none, "", [], []) noCall (by simpa using hj),
       getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols])]
     have hOK := fun (ht : (kidAt (termKids Lin D b0) [] outs j).taken = true) =>
@@ -596,7 +596,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           show [σ (.n 41)] = (stRes outs).1
           rw [e41, h1]; rfl
     · obtain ⟨c, rfl⟩ : ∃ c, j = 4 + c := ⟨j - 4, by omega⟩
-      have hc : c < 99 := by omega
+      have hc : c < 101 := by omega
       rw [show 4 + c - 4 = c by omega, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map,
         List.getElem_range]
       rw [termKids_getD_sel Lin D b0 hc] at hOK ⊢
@@ -618,22 +618,22 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
         rw [stRes_take, ite_pos' (by omega), e36, e41, e38, e0, ofK_gpow_mul_gen]
       · show [σ (.n (selV c))] = _
         rw [esel, (hOK ht).1, List.getD_cons_zero]
-    · have : j = 103 ∨ j = 104 := by omega
+    · have : j = 105 ∨ j = 106 := by omega
       rcases this with rfl | rfl
       · rw [termKids_getD_103] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        show [σ (.n 1746), σ (.n 1747), σ (.n 11), σ (.n 14), σ (.n 1749)] =
+        show [σ (.n 1766), σ (.n 1767), σ (.n 11), σ (.n 14), σ (.n 1769)] =
           [ofK (addressOfIndex (b0 + 105)), word 1 0 0, ofK (addressOfIndex B.zv), ofK
               (addressOfIndex B.pt1), gtau * word 64 0 0]
         rw [e1746, e1747, e11, e14, e1749, hgtau]
       · rw [termKids_getD_104] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, ?_⟩⟩
-        · show [σ (.n 1751), σ (.n 14), σ (.n 12), σ (.n 1753)] =
+        · show [σ (.n 1771), σ (.n 14), σ (.n 12), σ (.n 1773)] =
             [ofK (addressOfIndex B.zv) * word 549755813888 0 0, ofK (addressOfIndex B.pt1), ofK
                 (addressOfIndex B.ct),
               gtau * word 64 0 0]
           rw [e1751, e11, e14, ea 12 (by omega), e1753, hgtau]; rfl
-        · show [σ (.n 1754)] = _
+        · show [σ (.n 1774)] = _
           rw [e1754, (hOK ht).1]; rfl
   · intro q hq
     simp only [termPre, List.filterMap_append, List.mem_append] at hq

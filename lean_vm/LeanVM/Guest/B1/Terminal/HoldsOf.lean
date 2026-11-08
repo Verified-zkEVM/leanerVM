@@ -76,12 +76,12 @@ theorem kb_loads {rd : Reader} {p : E} {σ : Val} (k0 : LoadHolds rd p 0 (σ (.n
   | _ + 8, h => absurd h (by omega)
 
 /-- The claims kept before `j + 1`. -/
-theorem poolRank_succ {j : ℕ} (hj : j < 165) :
+theorem poolRank_succ {j : ℕ} (hj : j < 167) :
     poolRank (j + 1) = poolRank j + if termKind j < 4 then 1 else 0 := by
   unfold poolRank
   rw [List.range_succ, List.filter_append, List.length_append]
   congr 1
-  by_cases h : 110 ≤ j ∧ j < 135
+  by_cases h : 112 ≤ j ∧ j < 137
   · have hm := (claimCol_out hj).mpr h
     have hk : ¬ termKind j < 4 := by unfold termKind; split_ifs <;> omega
     simp only [List.filter_cons, List.filter_nil, hm, not_true_eq_false, decide_false,
@@ -228,18 +228,18 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     refine congrArg (_ * ·) (prod_congr rfl fun i hi ↦ ?_)
     rw [x1_getD hxl40 (by have := (mem_Ico.mp hi).2; simp only [termPointCap]; omega)]
   -- the claims' points and the batching powers
-  have hclen : claims.length = 165 := by
+  have hclen : claims.length = 167 := by
     rw [← List.length_map (f := (·.column)), hcols, claimColumns_eq]; simp
-  have hptj : ∀ j < 165, (claims.map (·.point))[j]? = some (claims.getD j default).point :=
+  have hptj : ∀ j < 167, (claims.map (·.point))[j]? = some (claims.getD j default).point :=
     fun j hj ↦ by
       rw [List.getElem?_map, List.getElem?_eq_getElem (by omega),
         List.getD_eq_getElem _ _ (by omega)]
       rfl
   rw [termClaims, List.range_eq_range'] at hcl
   obtain ⟨hsum, hlamO, -⟩ := claimsT_sound (C := coreProgram.Rel Lm.read) hkb (rk := poolRank)
-    hlamC 165 0 claimsStart 15 9 (fun j hj ↦ poolRank_succ (by omega))
+    hlamC 167 0 claimsStart 15 9 (fun j hj ↦ poolRank_succ (by omega))
     (by rw [hlamC]; simp [poolRank]) hcl
-  rw [show (claimsT (List.range' 0 165) claimsStart 15 9).2 = (1746, 1744, 1745) by
+  rw [show (claimsT (List.range' 0 167) claimsStart 15 9).2 = (1766, 1764, 1765) by
     rw [← termClaims_end, termClaims, List.range_eq_range']] at hsum hlamO
   have hmem0 : (layout.placement memory0).variableCount = layout.logMemory := by
     have := placement_committed hkap hP (cc := 0) (by decide)
@@ -263,13 +263,13 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
   have hq5 := placement_committed hkap hP (cc := 5) (by decide)
   rw [committedCols_getD (by decide), show colOfCommitted 5 = 5 from rfl] at hq5
   have hw64 : word 64 0 0 = gen ^ 6 := word_two_pow (a := 6) (by decide)
-  have h1749 : σ (.n 1749) = gen ^ out.point.length := by
+  have h1749 : σ (.n 1769) = gen ^ out.point.length := by
     rw [e1749, e1748, hw64, hgtau, ← pow_add, hopl, Tables.qkeccakSlotBits_eq]
   rw [e1747, word_one, h1749] at hco
   have hoL : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
   have hoc' := chain_value ((hep _ _ _).mp hco) rfl (by omega) hoz hxl40 hpt1
   rw [e1755, hgtau, loadHolds_mul_gen_pow] at l1756
-  have h1756 : σ (.n 1756) = eqEval out.point (x.take (τ + 6)) := by
+  have h1756 : σ (.n 1776) = eqEval out.point (x.take (τ + 6)) := by
     rw [eq_valOf l1756, show τ + 6 = out.point.length from hoL.symm, hoc' _ le_rfl (by omega),
       List.take_of_length_le le_rfl]
   obtain ⟨n, hn, hng, rs, ps, cs, hrsl, hpsl, hcsl, hrsR, hpsR, hcsR, hret'⟩ :=
@@ -288,7 +288,7 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
   simp only [List.cons.injEq, and_true] at hret'
   rw [hrs, hps, hcs, map_one_take (by omega)] at hret'
   -- the terminal check
-  have hfin : σ (.n 1761) = σ (.n 17) := e_add_eq_zero_iff.mp afin
+  have hfin : σ (.n 1781) = σ (.n 17) := e_add_eq_zero_iff.mp afin
   rw [stackWeight_eq layout out ringPoint coeffs lam x hcols, ← hfin, e1761, e1760, hsum, e1759,
     e1758, e1757, hret', h1756, hlamO]
   simp only [zero_add]

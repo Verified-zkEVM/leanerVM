@@ -24,7 +24,7 @@ of its block groups (`busLayout`, V:548), certifies every table's log-height to 
 (`accumulateSide`, V:1452), reads the framework's five column claims, runs the one table sumcheck
 (`tableSumcheck`, V:1552) and the public input's binding (`publicInputPhase`, V:2198). The bus's
 five claim values and the public input's three are pooled (`claim_pool`, slots `0 .. 4` and
-`162 .. 164`); the tables' `157` column evaluations stay where the stream holds them, and the
+`164 .. 166`); the tables' `159` column evaluations stay where the stream holds them, and the
 function returns their address (`col_eval_words`).
 
 What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), `tablePhase`,
@@ -134,7 +134,7 @@ def tablesSeg (ev : (List K → List E → VerifierProgram E)) (layout : Layout)
 /-! ## The claims -/
 
 /-- `N_CLAIMS`: the column claims the pool holds. -/
-abbrev nClaims : ℕ := 165
+abbrev nClaims : ℕ := 167
 
 /-- The claims before the public input's: `N_CLAIMS - 3`. -/
 abbrev nPooled : ℕ := nClaims - 3
@@ -156,7 +156,7 @@ abbrev nColEvals : ℕ := nPooled - nBusClaims
 `kappa_base = [g^0, g^log_mem, g^τ_0, …, g^τ_5]` … -/
 def claimKappaSrc : List ℕ :=
   [1, 1, 1, 1, 0] ++ List.replicate 15 2 ++ List.replicate 15 3 ++ List.replicate 8 4 ++
-    List.replicate 15 5 ++ List.replicate 14 6 ++ List.replicate 90 7 ++ [1, 1, 1]
+    List.replicate 15 5 ++ List.replicate 14 6 ++ List.replicate 92 7 ++ [1, 1, 1]
 
 /-- … plus `CLAIM_KAPPA_ADJ` (G:342): the bytecode claim's `19`. -/
 def claimKappaAdj (j : ℕ) : ℕ := if j = 4 then 19 else 0
@@ -249,9 +249,9 @@ def TablesPre (pi : Digest) (logMem : ℕ) (alphas point values : List E) (rd : 
 /-- **`verify_tables`' outcome**: the row counts `rows` are integer words in `table_rows`, and
 their log-heights, below `29`, in `dims_g`; for the layout they give and every `ev` taking `bv`
 for the bytecode at `(point[..logBytecode], alphas)`, from the carried capacity the words `xs`
-at the cursor run `tablesSeg` to the bus result and the `165` column claims, the bus's five
+at the cursor run `tablesSeg` to the bus result and the `167` column claims, the bus's five
 values and the public input's three in `claim_pool` (slots `0 .. 4`, `162 .. 164`) and the
-tables' `157` at `col_eval_words`; `TCtx` holds of them; and the function returns the new
+tables' `159` at `col_eval_words`; `TCtx` holds of them; and the function returns the new
 capacity, the cursor past `xs`, `g^n` (the table sumcheck's rounds), `bv`, the public input's
 challenge and `col_eval_words`. -/
 def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point values : List E)

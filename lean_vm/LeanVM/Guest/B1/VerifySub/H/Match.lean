@@ -94,9 +94,9 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     exact Tables.tb_ofK_gpow_mul _ _
   have r641 : σ (.n 641) = ofK (addressOfIndex (S.cK bs)) := by
     rw [show σ (.n 641) = _ from r6 5 (by norm_num), O.o6]
-    show ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 157 = _
+    show ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 159 = _
     rw [Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, ChildSegs.cK,
-      (S.H_run hbl).2.2.2, show S.cT bs + 5 + 3 * S.H.n + 157 = S.cT bs + (5 + 3 * S.H.n + 157) by
+      (S.H_run hbl).2.2.2, show S.cT bs + 5 + 3 * S.H.n + 159 = S.cT bs + (5 + 3 * S.H.n + 159) by
         omega]
   have r642 : σ (.n 642) = gen ^ S.H.n := by
     rw [show σ (.n 642) = _ from r6 6 (by norm_num), O.o6]; rfl
@@ -105,8 +105,8 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
   have r656 : σ (.n 656) = ofK (addressOfIndex (S.cW bs)) := by
     rw [show σ (.n 656) = _ from R 7 (by norm_num) 5 (by decide), O.o7, hK7]
     exact Tables.tb_ofK_gpow_mul _ _
-  have r1674 : σ (.n 1674) = gen ^ Tables.stackTotal S.kappas := by
-    rw [show σ (.n 1674) = _ from R 9 (by norm_num) 0 (by decide), h9]; rfl
+  have r1674 : σ (.n 1682) = gen ^ Tables.stackTotal S.kappas := by
+    rw [show σ (.n 1682) = _ from R 9 (by norm_num) 0 (by decide), h9]; rfl
   have e6 : [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640)] = S.s6.cap := by
     rw [S.s6_capOf hbl, show σ (.n 636) = _ from r6 0 (by norm_num),
       show σ (.n 637) = _ from r6 1 (by norm_num), show σ (.n 638) = _ from r6 2 (by norm_num),
@@ -186,14 +186,14 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     rw [q139, a4]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 10 (by norm_num)
       (by rw [O.o10]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 1674), σ (.n 4)] = [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex sqE)]
+    show [σ (.n 1682), σ (.n 4)] = [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex sqE)]
     rw [r1674, a4]
   · refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets G 11 (by norm_num)
       (by rw [h11]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    · show vsOpenNames.getD (logG (σ (.n 1687))) "" = B1.Whir.openName S.μs S.rate
+    · show vsOpenNames.getD (logG (σ (.n 1695))) "" = B1.Whir.openName S.μs S.rate
       rw [G.e1901, logG_gen_pow (by omega), vsOpenNames_eq]
       rfl
-    · show [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1673),
+    · show [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681),
         σ (.n 324), σ (.n 334), σ (.n 656)] = capOf S.s8.perm ++ [S.target,
           (digestHalves S.root).1, (digestHalves S.root).2, ofK (addressOfIndex (S.cW bs))]
       rw [← G.e1312, G.e1886, G.e537, G.e547, r656, S.root_cells]
@@ -203,8 +203,8 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     · show true = @decide (S.termOk (outs.take 12)) (Classical.propDecidable _)
       exact (@decide_eq_true _ (Classical.propDecidable _) O.term).symm
     · show [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309), σ (.n 642), σ (.n 128),
-        σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1675), σ (.n 647), σ (.n 665),
-        σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696), σ (.n 1692)] =
+        σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1683), σ (.n 647), σ (.n 665),
+        σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704), σ (.n 1700)] =
         [ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 5)), ofK (addressOfIndex (vb bs 8)),
           S.H.rm, gen ^ S.μ, gen ^ S.H.n, gen ^ S.logMem, gen ^ S.τ,
           ofK (addressOfIndex (vb bs 4)), S.lam, ((outs.take 12).getD 9 ([], [])).1.getD 1 0,
@@ -214,16 +214,16 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
           ((outs.take 12).getD 11 ([], [])).1.getD 0 0]
       rw [take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12), a4, q310,
         q635, r644, r522, r642, r130, G.e858, q139, G.e1111,
-        show σ (.n 1675) = _ from R 9 (by norm_num) 1 (by decide), q647, q665,
-        show σ (.n 1692) = _ from R 11 (by norm_num) 0 (by decide),
-        show σ (.n 1693) = _ from R 11 (by norm_num) 1 (by decide),
-        show σ (.n 1694) = _ from R 11 (by norm_num) 2 (by decide),
-        show σ (.n 1695) = _ from R 11 (by norm_num) 3 (by decide),
-        show σ (.n 1696) = _ from R 11 (by norm_num) 4 (by decide)]
+        show σ (.n 1683) = _ from R 9 (by norm_num) 1 (by decide), q647, q665,
+        show σ (.n 1700) = _ from R 11 (by norm_num) 0 (by decide),
+        show σ (.n 1701) = _ from R 11 (by norm_num) 1 (by decide),
+        show σ (.n 1702) = _ from R 11 (by norm_num) 2 (by decide),
+        show σ (.n 1703) = _ from R 11 (by norm_num) 3 (by decide),
+        show σ (.n 1704) = _ from R 11 (by norm_num) 4 (by decide)]
 
 /-- **The dispatch's selector names one of its callees.** -/
 theorem vs_dispOk (S : ChildSegs bytecode seed c)
-    (h1901 : σ (.n 1687) = gen ^ B1.Whir.candidate S.μs S.rate) :
+    (h1901 : σ (.n 1695) = gen ^ B1.Whir.candidate S.μs S.rate) :
     ∀ s ∈ vsCPre, DispOk σ s := by
   intro s hs
   rw [vs_split_disp] at hs
@@ -251,7 +251,7 @@ theorem vs_alloc_sizes (hbl : bytecode.length = 2 ^ 23) (G : VsSig S bs sqE outs
     have := (S.μ_bounds hbl).2
     omega
   rw [vs_allocs]
-  show [165, 8192, 6, 7, 8, logG (σ (.n 309)), 4, 16, 34, 78, 64, 6, 64] = _
+  show [167, 8192, 6, 7, 8, logG (σ (.n 309)), 4, 16, 34, 78, 64, 6, 64] = _
   rw [r522, logG_gen_pow hμ]
   rfl
 
@@ -273,13 +273,13 @@ theorem vs_alloc_bases (G : VsSig S bs sqE outs args σ) {b : ℕ} (hbs : bs = b
 
 /-- **The own buffers' lengths** the loads need. -/
 theorem ChildSegs.ownW_lens (S : ChildSegs bytecode seed c) (hbl : bytecode.length = 2 ^ 23) :
-    165 ≤ (S.ownW.getD 0 []).length ∧ 10 ≤ (S.ownW.getD 1 []).length ∧
+    167 ≤ (S.ownW.getD 0 []).length ∧ 10 ≤ (S.ownW.getD 1 []).length ∧
       6 ≤ (S.ownW.getD 2 []).length ∧ 7 ≤ (S.ownW.getD 3 []).length ∧
       8 ≤ (S.ownW.getD 4 []).length ∧ 19 ≤ (S.ownW.getD 5 []).length ∧
       4 ≤ (S.ownW.getD 6 []).length ∧ 16 ≤ (S.ownW.getD 7 []).length ∧
       6 ≤ (S.ownW.getD 11 []).length ∧ 64 ≤ (S.ownW.getD 12 []).length := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · show 165 ≤ S.H.poolW.length
+  · show 167 ≤ S.H.poolW.length
     rw [S.poolW_length hbl]
   · show 10 ≤ (vsStreamW c.proof.stream).length
     have := S.stream_length

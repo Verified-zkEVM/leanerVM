@@ -72,7 +72,7 @@ theorem kappas_getD_eq {lm lb h0 h1 h2 h3 h4 h5 : ℕ} {g : ℕ} :
     (columnKappas lm lb [h0, h1, h2, h3, h4, h5]).getD g 0 =
       ([lm, lm, lm, lm, lb, h5 + 6] ++ List.replicate 15 h0 ++ List.replicate 15 h1 ++
         List.replicate 8 h2 ++ List.replicate 15 h3 ++ List.replicate 14 h4 ++
-        List.replicate 90 h5).getD g 0 := by
+        List.replicate 92 h5).getD g 0 := by
   rw [Tables.columnKappas_eq]
 
 theorem six_of_length {hs : List ℕ} (hl : hs.length = 6) :
@@ -80,9 +80,9 @@ theorem six_of_length {hs : List ℕ} (hl : hs.length = 6) :
   match hs, hl with
   | [h0, h1, h2, h3, h4, h5], _ => exact ⟨h0, h1, h2, h3, h4, h5, rfl⟩
 
-/-- `KECCAK`'s columns (global `73 .. 162`) have its log-height. -/
+/-- `KECCAK`'s columns (global `73 .. 164`) have its log-height. -/
 theorem kappas_keccak {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) {g : ℕ} (h1 : 73 ≤ g)
-    (h2 : g < 163) : (columnKappas lm lb hs).getD g 0 = hs.getD 5 0 := by
+    (h2 : g < 165) : (columnKappas lm lb hs).getD g 0 = hs.getD 5 0 := by
   obtain ⟨a0, a1, a2, a3, a4, a5, rfl⟩ := six_of_length hl
   rw [kappas_getD_eq, List.getD_eq_getElem?_getD,
     List.getElem?_append_right (by simp only [List.length_append, List.length_cons,
@@ -98,12 +98,12 @@ theorem kappas_small {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
   rw [Tables.columnKappas_eq]
   rfl
 
-theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 163) {c : ℕ} (hc : c < 73) :
+theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 165) {c : ℕ} (hc : c < 73) :
     (Tables.committedKappas kappas).getD c 0 = kappas.getD c 0 := by
-  have hlen : c < (Tables.committedCols 163).length := by
-    rw [Tables.committedCols_163_length]; show c < 99; omega
+  have hlen : c < (Tables.committedCols 165).length := by
+    rw [Tables.committedCols_165_length]; show c < 101; omega
   rw [Tables.committedKappas, hl, List.getD_eq_getElem _ _ (by simpa using hlen), List.getElem_map,
-    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 99 by omega)]
+    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 101 by omega)]
   simp [colOfCommitted, hc]
 
 theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by

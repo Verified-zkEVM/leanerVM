@@ -30,24 +30,24 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 @[expose] public section
 
-/-- The claims' global columns: the bus's `0 .. 4`, the tables' `6 .. 162`, the public input's
+/-- The claims' global columns: the bus's `0 .. 4`, the tables' `6 .. 164`, the public input's
 `0 .. 2`. -/
-def claimColOf (j : ℕ) : ℕ := if j < 5 then j else if j < 162 then j + 1 else j - 162
+def claimColOf (j : ℕ) : ℕ := if j < 5 then j else if j < 164 then j + 1 else j - 164
 
-theorem claimColumns_eq : Tables.claimColumns = (List.range 165).map claimColOf := by
+theorem claimColumns_eq : Tables.claimColumns = (List.range 167).map claimColOf := by
   decide +kernel
 
-theorem claimColumns_getD {j : ℕ} (hj : j < 165) : Tables.claimColumns.getD j 0 = claimColOf j := by
+theorem claimColumns_getD {j : ℕ} (hj : j < 167) : Tables.claimColumns.getD j 0 = claimColOf j := by
   rw [claimColumns_eq, List.getD_eq_getElem _ _ (by simpa using hj), List.getElem_map,
     List.getElem_range]
 
-theorem claimCol_out {j : ℕ} (hj : j < 165) :
-    Tables.claimColumns.getD j 0 ∈ keccakOutputColumns ↔ 110 ≤ j ∧ j < 135 := by
+theorem claimCol_out {j : ℕ} (hj : j < 167) :
+    Tables.claimColumns.getD j 0 ∈ keccakOutputColumns ↔ 112 ≤ j ∧ j < 137 := by
   rw [claimColumns_getD hj, keccakOutputColumns_eq, claimColOf]
   simp only [List.mem_map, List.mem_range]
   constructor
   · rintro ⟨a, ha, he⟩; split at he <;> [omega; split at he <;> omega]
-  · rintro ⟨h1, h2⟩; exact ⟨j - 110, by omega, by split <;> [omega; split <;> omega]⟩
+  · rintro ⟨h1, h2⟩; exact ⟨j - 112, by omega, by split <;> [omega; split <;> omega]⟩
 
 theorem gen_pow_inj_le {a b : ℕ} (ha : a ≤ 64) (hb : b ≤ 64) (h : gen ^ a = gen ^ b) : a = b :=
   gen_pow_inj (lt_of_le_of_lt ha (by norm_num)) (lt_of_le_of_lt hb (by norm_num)) h
@@ -81,7 +81,7 @@ theorem claimKappa_lane {j : ℕ} (hk : termKind j = 2) :
 /-- What the head and the precondition give the claims' blocks. -/
 structure ClaimsCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List ℕ)
     (claims : List ColumnClaim) (zs chis x : List E) (rm : E) : Prop where
-  hkap : kappas.length = 163
+  hkap : kappas.length = 165
   hKC : Tables.committedKappas kappas = (List.range Tables.nCommittedCols).map fun c ↦
     (0 :: layout.logMemory :: layout.tableLogHeights).getD (Tables.colKappaSrc c) 0 +
       Tables.colKappaAdj c
@@ -92,7 +92,7 @@ structure ClaimsCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List �
   hq : 2 ^ (Tables.committedKappas kappas).getD 5 0 ∣
     (stackOffsets (Tables.committedKappas kappas)).1.getD 5 0
   hK5 : (Tables.committedKappas kappas).getD 5 0 = layout.tableLogHeights.getD opKeccak 0 + 6
-  hlane : ∀ g, 73 ≤ g → g < 163 → kappas.getD g 0 = layout.tableLogHeights.getD opKeccak 0
+  hlane : ∀ g, 73 ≤ g → g < 165 → kappas.getD g 0 = layout.tableLogHeights.getD opKeccak 0
   hmem : ∀ c < 3, (Tables.committedKappas kappas).getD c 0 = layout.logMemory
   hlm : 1 ≤ layout.logMemory
   hmem0 : (layout.placement memory0).variableCount = layout.logMemory
@@ -100,11 +100,11 @@ structure ClaimsCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List �
   hzs : zs.length ≤ 40
   hchis : chis.length ≤ zs.length
   hpz : ∀ j < 5, (claims.getD j default).point = zs.take (claims.getD j default).point.length
-  hpc : ∀ j, 5 ≤ j → j < 162 →
+  hpc : ∀ j, 5 ≤ j → j < 164 →
     (claims.getD j default).point = chis.take (claims.getD j default).point.length
-  hpp : ∀ j, 162 ≤ j → j < 165 → (claims.getD j default).point =
+  hpp : ∀ j, 164 ≤ j → j < 167 → (claims.getD j default).point =
     rm :: List.replicate ((layout.placement memory0).variableCount - 1) 0
-  hlen : ∀ j < 162, (claims.getD j default).point.length = claimLow layout j
+  hlen : ∀ j < 164, (claims.getD j default).point.length = claimLow layout j
   hsel : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
     selProd ((stackOffsets (Tables.committedKappas kappas)).1.getD c 0)
       ((Tables.committedKappas kappas).getD c 0)
@@ -127,17 +127,17 @@ theorem ClaimsCtx.kappa_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : 
   rw [T.hKC, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]
 
 theorem claim_column {claims : List ColumnClaim} (hcols : claims.map (·.column) = Tables.claimColumns)
-    {j : ℕ} (hj : j < 165) : (claims.getD j default).column = claimColOf j := by
-  have hl : claims.length = 165 := by
+    {j : ℕ} (hj : j < 167) : (claims.getD j default).column = claimColOf j := by
+  have hl : claims.length = 167 := by
     rw [← List.length_map (f := (·.column)), hcols, claimColumns_eq]; simp
   rw [← claimColumns_getD hj, ← hcols, List.getD_eq_getElem _ _ (by omega),
     List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map]
 
 /-- A pooled claim on a committed column, its point a prefix of `A` read by the chain `ch`. -/
 theorem term_committed {layout : Layout} {kappas : List ℕ} {x : List E} {c : ColumnClaim}
-    {cc : ℕ} (hcc : cc < Tables.nCommittedCols) (hkap : kappas.length = 163)
+    {cc : ℕ} (hcc : cc < Tables.nCommittedCols) (hkap : kappas.length = 165)
     (hP : layout.placements = (placementsOf kappas).1)
-    (hcol : c.column = (Tables.committedCols 163).getD cc 0)
+    (hcol : c.column = (Tables.committedCols 165).getD cc 0)
     (hx : x.length = layout.stackLog) (hK : (Tables.committedKappas kappas).getD cc 0 ≤ layout.stackLog)
     (hlen : c.point.length = (Tables.committedKappas kappas).getD cc 0) {L chainV sel : E}
     (hch : chainV = eqEval c.point (x.take c.point.length))
@@ -166,13 +166,13 @@ theorem slotProd_eq {τ s : ℕ} {x : List E} {s1 s0 : ℕ → E} (h1 : ∀ k < 
 /-- **Claim `j`'s term** is its batched weight on the stack, `0` on an output lane. -/
 theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List ℕ}
     {claims : List ColumnClaim} {zs chis x : List E} {lam rm : E}
-    (T : ClaimsCtx rd σ layout kappas claims zs chis x rm) {j : ℕ} (hj : j < 165) :
+    (T : ClaimsCtx rd σ layout kappas claims zs chis x rm) {j : ℕ} (hj : j < 167) :
     claimTerm rd σ (kbExp layout) (lam ^ (1 + poolRank j)) j =
       if Tables.claimColumns.getD j 0 ∉ keccakOutputColumns then
         lam ^ (1 + poolRank j) * wOf layout x (claims.getD j default) else 0 := by
   have hcolj := claim_column T.hcols hj
   have hout := claimCol_out hj
-  by_cases h4 : 110 ≤ j ∧ j < 135
+  by_cases h4 : 112 ≤ j ∧ j < 137
   · have hk : termKind j = 4 := by unfold termKind; split_ifs <;> omega
     simp only [claimTerm, hk, hout.mpr h4, not_true_eq_false, ↓reduceIte]
   have hnot : Tables.claimColumns.getD j 0 ∉ keccakOutputColumns := fun h ↦ h4 (hout.mp h)
@@ -186,7 +186,7 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
       (claims.getD j default).point.length =
         (Tables.committedKappas kappas).getD (termCol j) 0 := by
     intro hk hcc
-    have hj162 : j < 162 := by unfold termKind at hk; split_ifs at hk <;> omega
+    have hj162 : j < 164 := by unfold termKind at hk; split_ifs at hk <;> omega
     obtain ⟨e1, e2⟩ := claimKappa_col hj hk
     rw [T.hlen j hj162, T.kappa_eq hcc, claimLow, e1, e2]
     rfl
@@ -204,21 +204,21 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
       (T.hsel j (by omega))
     · rw [hcolj, committedCols_getD (by omega)]; simp [claimColOf, colOfCommitted, h0]; omega
     · rw [cLow_kbExp, ← T.hlen j (by omega), T.hzc _ hpl (by rw [hκ]; exact hKj), ← hp]
-  by_cases h1 : j < 72 ∨ (136 ≤ j ∧ j < 162)
+  by_cases h1 : j < 72 ∨ j = 86 ∨ (137 ≤ j ∧ j < 164)
   · have hk : termKind j = 1 := by unfold termKind; split_ifs <;> omega
-    have ht : termCol j = if j < 72 then j + 1 else j - 63 := by
+    have ht : termCol j = if j < 72 then j + 1 else if j = 86 then 73 else j - 63 := by
       unfold termCol; split_ifs <;> omega
     simp only [claimTerm, hk]
     have hp := T.hpc j (by omega) (by omega)
     have hpl : (claims.getD j default).point.length ≤ chis.length := by
       have := congrArg List.length hp; rw [List.length_take] at this; omega
-    have hcc : termCol j < Tables.nCommittedCols := by rw [ht]; split <;> omega
+    have hcc : termCol j < Tables.nCommittedCols := by rw [ht]; split_ifs <;> omega
     have hκ := hlenK (by omega) hcc
     have hKj := T.hK _ hcc
     refine term_committed (cc := termCol j) hcc T.hkap T.hP ?_ T.hx hKj hκ ?_ (T.hsel _ hcc)
     · rw [hcolj, committedCols_getD hcc, ht, claimColOf, colOfCommitted]; split_ifs <;> omega
     · rw [cLow_kbExp, ← T.hlen j (by omega), T.hrc _ hpl (by rw [hκ]; exact hKj), ← hp]
-  by_cases h2 : (72 ≤ j ∧ j < 110) ∨ j = 135
+  by_cases h2 : (72 ≤ j ∧ j < 86) ∨ (87 ≤ j ∧ j < 112)
   · have hk : termKind j = 2 := by unfold termKind; split_ifs <;> omega
     simp only [claimTerm, hk]
     have hp := T.hpc j (by omega) (by omega)
@@ -234,7 +234,7 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
         Placement.mk (layout.tableLogHeights.getD opKeccak 0)
           ((stackOffsets (Tables.committedKappas kappas)).1.getD 5 0 +
             termSlot j * 2 ^ layout.tableLogHeights.getD opKeccak 0) := by
-      have e1 : claimColOf j = j + 1 := by simp [claimColOf, show ¬ j < 5 by omega, show j < 162 by omega]
+      have e1 : claimColOf j = j + 1 := by simp [claimColOf, show ¬ j < 5 by omega, show j < 164 by omega]
       have es : slotOfCol (j + 1) = some (termSlot j) := by
         unfold slotOfCol termSlot; split_ifs <;> first | rfl | omega
       rw [hcolj, e1, placement_slot T.hkap T.hP (by omega) es, T.hlane _ (by omega) (by omega)]
@@ -247,20 +247,20 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
       cLow_kbExp, ← T.hlen j (by omega), T.hrc _ hpl (by omega), ← hp, hκ]
     ring
   -- the public input's claims
-  have h3 : 162 ≤ j := by omega
+  have h3 : 164 ≤ j := by omega
   have hk : termKind j = 3 := by unfold termKind; split_ifs <;> omega
-  have ht : termCol j = j - 162 := by unfold termCol; split_ifs <;> omega
+  have ht : termCol j = j - 164 := by unfold termCol; split_ifs <;> omega
   simp only [claimTerm, hk, ht]
   have hp := T.hpp j h3 hj
   rw [T.hmem0] at hp
   have hlen : (claims.getD j default).point.length =
-      (Tables.committedKappas kappas).getD (j - 162) 0 := by
+      (Tables.committedKappas kappas).getD (j - 164) 0 := by
     rw [hp, T.hmem _ (by omega)]; simp; have := T.hlm; omega
-  refine term_committed (cc := j - 162) (by omega) T.hkap T.hP ?_ T.hx (T.hK _ (by omega)) hlen ?_
+  refine term_committed (cc := j - 164) (by omega) T.hkap T.hP ?_ T.hx (T.hK _ (by omega)) hlen ?_
     (T.hsel _ (by omega))
   · rw [hcolj, committedCols_getD (by omega)]
-    simp [claimColOf, colOfCommitted, show ¬ j < 5 by omega, show ¬ j < 162 by omega,
-      show j - 162 < 73 by omega]
+    simp [claimColOf, colOfCommitted, show ¬ j < 5 by omega, show ¬ j < 164 by omega,
+      show j - 164 < 73 by omega]
   · rw [T.hpi, hlen, T.hmem _ (by omega), hp]
 
 end

@@ -54,7 +54,7 @@ its ranks' facts, the groups' keys and sizes, the bases and steps, every block's
 theorem vtc_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
     (hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34)
     (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 252)) ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
       LoadHolds rd (σ (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
     (hB : ∀ k < 15, LoadHolds rd (σ (.n 38)) (vtGi k)
         (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
@@ -232,7 +232,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rw [vtKv, hkb _ (hsrc k hk), ← pow_add, vtKap, vtAdj]
   have hb153 : ∀ k < 15, vtB0 k < 153 := by decide +kernel
   have hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34 := fun k hk ↦ vt_kap_lt lm τ hlm hτ (hb153 k hk)
-  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 252)) := by
+  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)) := by
     intro κ hκ
     have r1 := hrk κ (by simp [rankKeysList]; exact hκ)
     rw [tb_loadHolds_mul_gen_pow] at r1 ⊢
@@ -253,7 +253,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   rw [← e39] at hordW
   have hgi24 : ∀ k < 15, vtGi k < 24 := by decide +kernel
   have hkeyG : ∀ k < 15, LoadHolds rd (σv (.n 36)) (vtGi k)
-      (gen ^ (vtKap lm τ (vtB0 k) * 252) * (gen ^ vtB0 k)⁻¹) := by
+      (gen ^ (vtKap lm τ (vtB0 k) * 254) * (gen ^ vtB0 k)⁻¹) := by
     intro k hk
     have := hkeyW (vtGi k) (by simp [vtGKeyW]; exact hgi24 k hk)
     simp only [vtGKeyW, List.getElem_map, List.getElem_range] at this
@@ -296,7 +296,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rcases hs0 with rfl | rfl <;> simp [vtG0, vtGm, vtGroupSide] at hp ⊢ <;> omega
   have hkeyR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
       (σv (.n 36) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
-      (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 252) *
+      (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 254) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -344,9 +344,9 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       rw [hrho, vtGP] at this
       simpa only [vtG0, show (2 : ℕ) ≠ 0 by norm_num, ↓reduceIte] using this
   have hstepR : ∀ s0 ∈ [0, 2], ∀ r, r + 1 < vtGm s0 → ∃ d ≤ 8635,
-      gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 252) *
+      gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 254) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹ =
-      gen ^ (d + 1) * (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) * 252) *
+      gen ^ (d + 1) * (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) * 254) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 (r + 1)) 0)⁻¹) := by
     intro s0 hs0 r hr
     have hp1 := vtPi_lt (lm := lm) (τ := τ) (s := s0) (r := r) (by omega)
@@ -379,16 +379,16 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     generalize vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) = B at *
     generalize blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0 = a at *
     generalize blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 (r + 1)) 0 = b at *
-    refine ⟨A * 252 + b - (B * 252 + a) - 1, ?_, gpow_inv_step ?_⟩
+    refine ⟨A * 254 + b - (B * 254 + a) - 1, ?_, gpow_inv_step ?_⟩
     · rcases hcase with h | h
       · omega
-      · have : (B + 1) * 252 ≤ A * 252 := Nat.mul_le_mul_right _ h
+      · have : (B + 1) * 254 ≤ A * 254 := Nat.mul_le_mul_right _ h
         omega
     · rcases hcase with h | h
       · omega
-      · have : (B + 1) * 252 ≤ A * 252 := Nat.mul_le_mul_right _ h
+      · have : (B + 1) * 254 ≤ A * 254 := Nat.mul_le_mul_right _ h
         omega
-  have hk0 : ∀ gi : ℕ, gen ^ (vtKg lm τ gi * 252) * (gen ^ blockGroupStart.getD gi 0)⁻¹ ≠ 0 :=
+  have hk0 : ∀ gi : ℕ, gen ^ (vtKg lm τ gi * 254) * (gen ^ blockGroupStart.getD gi 0)⁻¹ ≠ 0 :=
     fun gi ↦ mul_ne_zero (gen_pow_ne_zero _) (inv_ne_zero (gen_pow_ne_zero _))
   have hordP : ∀ r < 9, LoadHolds rd (σv (.n 39)) (0 + r) (gen ^ (vtG0 0 + vtPi lm τ 0 r)) := by
     intro r hr
@@ -412,14 +412,14 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   obtain ⟨rP, fP⟩ := side_ok (m := 9) hl hlow (by norm_num) (by norm_num) vtPush0_check
     vtPush_check (by decide +kernel) (by decide +kernel)
     (fun r ↦ vtG0 0 + vtPi lm τ 0 r)
-    (fun r ↦ gen ^ (vtKg lm τ (vtG0 0 + vtPi lm τ 0 r) * 252) *
+    (fun r ↦ gen ^ (vtKg lm τ (vtG0 0 + vtPi lm τ 0 r) * 254) *
       (gen ^ blockGroupStart.getD (vtG0 0 + vtPi lm τ 0 r) 0)⁻¹)
     (fun r ↦ vtGsz lm τ (vtG0 0 + vtPi lm τ 0 r)) hordP (hgiR 0 m0) (hside 0 m0) (hkeyR 0 m0)
     (hszR 0 m0) (hbaseR 0 m0) (hstepR 0 m0) (fun _ _ ↦ hk0 _)
   obtain ⟨rC, fC⟩ := side_ok (m := 6) hl hlow (by norm_num) (by norm_num) vtCount0_check
     vtCount_check (by decide +kernel) (by decide +kernel)
     (fun r ↦ vtG0 2 + vtPi lm τ 2 r)
-    (fun r ↦ gen ^ (vtKg lm τ (vtG0 2 + vtPi lm τ 2 r) * 252) *
+    (fun r ↦ gen ^ (vtKg lm τ (vtG0 2 + vtPi lm τ 2 r) * 254) *
       (gen ^ blockGroupStart.getD (vtG0 2 + vtPi lm τ 2 r) 0)⁻¹)
     (fun r ↦ vtGsz lm τ (vtG0 2 + vtPi lm τ 2 r)) hordC (hgiR 2 m2) (hside 2 m2) (hkeyR 2 m2)
     (hszR 2 m2) (hbaseR 2 m2) (hstepR 2 m2) (fun _ _ ↦ hk0 _)
@@ -473,7 +473,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       show ∑ k ∈ range 6, (vtLen (9 + k) + 2) = 57 by decide +kernel] at this
   -- the offsets
   have hG : ∀ k < 15, (∃ key, LoadHolds rd (σv (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 252)) ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
       LoadHolds rd (σv (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := fun k hk ↦
     ⟨⟨_, hkeyG k hk, by rw [mul_assoc, inv_mul_cancel₀ (gen_pow_ne_zero _), mul_one]⟩, hszG k hk⟩
   have hB : ∀ k < 15, LoadHolds rd (σv (.n 38)) (vtGi k)

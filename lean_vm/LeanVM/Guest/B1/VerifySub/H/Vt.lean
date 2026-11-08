@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmForms
 `runsTo_len`: a run of a program that runs on every `k` words reads `k` words. `chunks`: a list cut
 in pieces of given lengths. `vtHOf`: B1-c's `VtHonest` of a run of `tablesSeg` on the words `xs`
 (the five framework words, the `3 n` rounds' words, the tables' evaluations, `vtW6` words each).
-`vtH_run`: such a run makes it `Ok`, the words are cut in place (`5 + 3 n + 157` of them), and the
+`vtH_run`: such a run makes it `Ok`, the words are cut in place (`5 + 3 n + 159` of them), and the
 run ends with nothing waiting.
 -/
 
@@ -98,9 +98,9 @@ theorem chunks_getElem_length : ∀ (ks : List ℕ) (l : List E), l.length = ks.
     simp only [chunks, List.getElem_cons_succ, List.getD_cons_succ]
     exact chunks_getElem_length ks (l.drop k) (by simp; omega) i (by simpa [chunks] using hi)
 
-/-- **Rows of the tables, with their evaluations cut from `157` words.** -/
+/-- **Rows of the tables, with their evaluations cut from `159` words.** -/
 theorem zip_chunks {X : Type} (rows : List (Table × X)) (hrows : rows.map (·.1) = tables)
-    (ys : List E) (hy : ys.length = 157) :
+    (ys : List E) (hy : ys.length = 159) :
     (List.zip rows (chunks vtW6 ys)).map (·.1) = rows ∧
       (List.zip rows (chunks vtW6 ys)).flatMap (·.2) = ys ∧
       ∀ p ∈ List.zip rows (chunks vtW6 ys), p.2.length = p.1.1.width := by
@@ -122,10 +122,10 @@ theorem zip_chunks {X : Type} (rows : List (Table × X)) (hrows : rows.map (·.1
       simpa using this
     rw [h1, ← List.getD_eq_getElem _ default, vtH_tables_widths i (by omega)]
 
-/-- The table loop runs on every `157` words. -/
+/-- The table loop runs on every `159` words. -/
 theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List Form)) (ws : List E)
     (h1 : 6 ≤ hs.length) (h2 : 6 ≤ fs.length) (h3 : 6 ≤ ws.length) (u : Fs) (ys : List E)
-    (hy : ys.length = 157) :
+    (hy : ys.length = 159) :
     ∃ (b : E × List ColumnClaim) (v : Fs),
       RunsTo (tableTermsClaims cp fp point (List.zip tables (List.zip hs (List.zip fs ws))) 0 0 []) u ys
         b v := by
@@ -169,11 +169,11 @@ theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : Li
         (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).xsR ++
         (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).evsT.flatten ∧
       s' = ⟨s'.cap, []⟩ ∧
-      xs.length = 5 + 3 * (tableHeightsOf rows).foldl max 0 + 157 := by
+      xs.length = 5 + 3 * (tableHeightsOf rows).foldl max 0 + 159 := by
   set n := (tableHeightsOf rows).foldl max 0 with hn
   -- the words, cut
   have key : ∃ x1 x2 x3 : List E, xs = x1 ++ x2 ++ x3 ∧ x1.length = 5 ∧ x2.length = 3 * n ∧
-      x3.length = 157 ∧ s'.pend = [] := by
+      x3.length = 159 ∧ s'.pend = [] := by
     have h0 := h
     unfold tablesSeg at h0
     obtain ⟨a1, xs1, xs2, t1, he1, r1, k1⟩ := RunsTo.unbind h0 hcar
@@ -225,7 +225,7 @@ theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : Li
       exact (vt_forms3_shape bc lm hr alphas beta point (xs1.take 3) (xs1.getD 3 0)
         (xs1.getD 4 0) bv (values.getD 0 0) (values.getD 1 0) (values.getD 2 0)).1
     have hh : (layoutOf bc lm rows).tableLogHeights.length = 6 := vt_tableHeights_length hr
-    have l3 : x1.length = 157 := runsTo_len m1 c3 fun ys hy ↦ tableTerms_any _ _ _ _ _ _
+    have l3 : x1.length = 159 := runsTo_len m1 c3 fun ys hy ↦ tableTerms_any _ _ _ _ _ _
       (by rw [hh]) (by rw [hf])
       (by rw [LeanVM.Protocol.EndToEnd.Complete.length_tableWeights, hh]) _ ys hy
     refine ⟨xs1, v1s, x1, ?_, l1, l2, l3, ?_⟩

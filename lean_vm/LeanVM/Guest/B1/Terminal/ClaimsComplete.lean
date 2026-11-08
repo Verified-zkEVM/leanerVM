@@ -206,19 +206,19 @@ def ClaimIn (rd : Reader) (σ : Val) (R : ℕ → Prop) (e : ℕ → ℕ) (j : �
       AddrIn R (σ (.n 20) * gen ^ cLow e j) 0
   | _ => True
 
-theorem termCol_lt {j : ℕ} (hj : j < 165) : termCol j < 99 := by
+theorem termCol_lt {j : ℕ} (hj : j < 167) : termCol j < 101 := by
   unfold termCol; split_ifs <;> omega
 
-theorem selV_lt_all : ∀ c < 99, selV c < claimsStart := by decide
+theorem selV_lt_all : ∀ c < 101, selV c < claimsStart := by decide
 
-theorem selV_lt {c : ℕ} (hc : c < 99) : selV c < claimsStart := selV_lt_all c hc
+theorem selV_lt {c : ℕ} (hc : c < 101) : selV c < claimsStart := selV_lt_all c hc
 
 /-- **The claims' blocks, completely.** -/
 theorem claimsT_complete (hS : StoresAt24 S) {e : ℕ → ℕ}
     (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ e i)
     (hslot : ∀ k < 6, ∀ t, (t = 22 ∨ t = 23) →
       (∃ v, LoadHolds rd (σ (.n t)) k v) ∧ AddrIn R (σ (.n t)) k) :
-    ∀ (js : List ℕ) (r acc lr : ℕ), claimsStart ≤ r → acc < r → lr < r → (∀ j ∈ js, j < 165) →
+    ∀ (js : List ℕ) (r acc lr : ℕ), claimsStart ≤ r → acc < r → lr < r → (∀ j ∈ js, j < 167) →
       (∀ j ∈ js, ClaimIn rd σ R e j) →
       (∀ s ∈ (claimsT js r acc lr).1, GoodS rd S w σ s) →
       (∀ s ∈ (claimsT js r acc lr).1, Fwd.SHolds C rd σ s) ∧
@@ -227,7 +227,7 @@ theorem claimsT_complete (hS : StoresAt24 S) {e : ℕ → ℕ}
     ⟨fun s hs => by simp [claimsT] at hs, fun q hq => by simp [claimsT] at hq⟩
   | j :: js, r, acc, lr, hr, hacc, hlr, hjs, hin, hg => by
     have hj := hjs j List.mem_cons_self
-    have hjs' : ∀ j' ∈ js, j' < 165 := fun j' h => hjs j' (List.mem_cons_of_mem _ h)
+    have hjs' : ∀ j' ∈ js, j' < 167 := fun j' h => hjs j' (List.mem_cons_of_mem _ h)
     have hin' : ∀ j' ∈ js, ClaimIn rd σ R e j' := fun j' h => hin j' (List.mem_cons_of_mem _ h)
     have hij := hin j List.mem_cons_self
     have hsel : selV (termCol j) < r := lt_of_lt_of_le (selV_lt (termCol_lt hj)) hr

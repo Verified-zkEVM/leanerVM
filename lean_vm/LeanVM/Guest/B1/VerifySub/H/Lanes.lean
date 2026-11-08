@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.Lanes
 
-  The output lanes of `verify_tables`' honest claims: `claim_pool`'s words `110 .. 134`, on the
+  The output lanes of `verify_tables`' honest claims: `claim_pool`'s words `112 .. 136`, on the
   `KECCAK` output columns, at `chi` cut to the `KECCAK` table's height.
 -/
 
@@ -17,17 +17,17 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vsEvTab_lanes : ∀ i < 25, Tables.vsEvTab (105 + i) = 5 := by decide +kernel
+theorem vsEvTab_lanes : ∀ i < 25, Tables.vsEvTab (107 + i) = 5 := by decide +kernel
 
 /-- **The honest output lanes.** -/
 theorem vtH_lanes {H : Tables.VtHonest} (h : H.Ok) (hr : H.rows.length = 6)
     (hbc : H.bc.length = 2 ^ 23) :
-    (lanesOf H.claims).map (·.value) = (H.poolW.drop 110).take 25 ∧
+    (lanesOf H.claims).map (·.value) = (H.poolW.drop 112).take 25 ∧
       (lanesOf H.claims).length = 25 ∧
       (lanesOf H.claims).map (·.column) = keccakOutputColumns ∧
       ∀ c ∈ lanesOf H.claims, c.point = H.chiW.take (Tables.vtHt H.rows 5) := by
   have hcol := Tables.VtHonest.vtH_columns h hr
-  have hl : H.claims.length = 165 := by
+  have hl : H.claims.length = 167 := by
     rw [← List.length_map (f := (·.column)), hcol]; exact claimColumns_length
   rw [(lanes_eq hcol).1]
   refine ⟨?_, by simp [hl], ?_, fun c hc ↦ ?_⟩
@@ -38,15 +38,15 @@ theorem vtH_lanes {H : Tables.VtHonest} (h : H.Ok) (hr : H.rows.length = 6)
     have hj25 : j < 25 := by omega
     simp only [List.getElem_take, List.getElem_drop]
     have hp := Tables.VtHonest.vtH_points h hr hbc
-    have e := congrArg (fun l ↦ l[110 + j]?) hp
-    simp only [List.getElem?_map, List.getElem?_eq_getElem (show 110 + j < H.claims.length by omega),
+    have e := congrArg (fun l ↦ l[112 + j]?) hp
+    simp only [List.getElem?_map, List.getElem?_eq_getElem (show 112 + j < H.claims.length by omega),
       Option.map_some] at e
     rw [List.append_assoc, List.append_assoc, List.getElem?_append_right (by simp; omega),
       List.getElem?_append_right (by simp; omega), List.getElem?_append_left (by simp; omega)] at e
     simp only [List.length_replicate, List.length_cons, List.length_nil, List.getElem?_map,
-      List.getElem?_range (show 110 + j - 4 - 1 < 157 by omega), Option.map_some,
+      List.getElem?_range (show 112 + j - 4 - 1 < 159 by omega), Option.map_some,
       Option.some.injEq] at e
-    rw [e, show 110 + j - 4 - 1 = 105 + j by omega, vsEvTab_lanes j hj25]
+    rw [e, show 112 + j - 4 - 1 = 107 + j by omega, vsEvTab_lanes j hj25]
 
 end
 end LeanVM.Guest.B1.VerifySub

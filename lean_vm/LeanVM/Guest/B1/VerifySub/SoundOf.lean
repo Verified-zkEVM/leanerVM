@@ -136,7 +136,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   obtain ⟨xsK, op, point, slices, capK, word, m0, hxsK, hrunK, hop, hpoint, hsl, hopL, hpointL,
     hslL, hretK⟩ :=
     hk (vsTau F.rowsN) chis ((lanesOf F.claims).map (·.value)) hτ9 hτ28 htg hτc hchiR
-      (by simp [hl25]) (by rw [F.e862, word_g105]; exact hout)
+      (by simp [hl25]) (by rw [F.e862, word_g107]; exact hout)
   have hretK' : [σ (.n 651), σ (.n 652), σ (.n 653), σ (.n 654), σ (.n 655)] ++
       [σ (.n 656), σ (.n 657), σ (.n 658)] = capK ++ [σ (.n 641) * gen ^ xsK.length, word, m0] :=
     hretK
@@ -189,7 +189,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
     exact hacc
   -- the batched target
   have es' : s' = slices := readsAt_ext (by rw [hs'L, hslL]; rfl) hs'R hsl
-  have htarget : σ (.n 1673) = dot (powers (σ (.n 1111))
+  have htarget : σ (.n 1681) = dot (powers (σ (.n 1111))
       (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) F.claims [⟨qkeccak, op, word⟩] point
         slices (m0 :: vsChs σ)).length)
       ((stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) F.claims [⟨qkeccak, op, word⟩] point
@@ -244,7 +244,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   -- the decoded proof
   have hcand28 : B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir < 28 := by
     unfold B1.Whir.candidate; have := F.hl4; omega
-  have hidx : dispatchIdx (σ (.n 1687)) =
+  have hidx : dispatchIdx (σ (.n 1695)) =
       B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir :=
     dispatchIdx_eq hcand28 (by rw [hcand, gen_pow_eq_ofK])
   have hπ : vsPiOf L.read σ V = ⟨vsWords σ ++ [σ (.n 324), σ (.n 334)] ++ F.xsG ++ F.xsT ++ xsK ++

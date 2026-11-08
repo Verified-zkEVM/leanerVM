@@ -52,13 +52,13 @@ theorem alphas_length : S.alphas.length = 4 := by
 /-- **The opening's target** is the batch `verify_sub` computes. -/
 theorem target_eq (hbl : bytecode.length = 2 ^ 23) :
     S.target = polyEval (S.slices.map (phiMap · S.rchs)) gen +
-      ∑ i ∈ Finset.range 140, S.lam ^ (i + 1) * S.H.poolW.getD (vsKept i) 0 +
-        S.lam ^ 141 * S.word := by
+      ∑ i ∈ Finset.range 142, S.lam ^ (i + 1) * S.H.poolW.getD (vsKept i) 0 +
+        S.lam ^ 143 * S.word := by
   have hok := (S.H_run hbl).1
   have hr : S.H.rows.length = 6 := S.hrowsL
   have hk := kept_values (Tables.VtHonest.vtH_columns hok hr)
   rw [Tables.VtHonest.vtH_values hok hr, S.H_claims] at hk
-  have hn : (notLanes S.claims).length = 140 := by
+  have hn : (notLanes S.claims).length = 142 := by
     have := congrArg List.length hk
     simpa [notLanes] using this
   unfold ChildSegs.target batchTarget
@@ -70,7 +70,7 @@ theorem target_eq (hbl : bytecode.length = 2 ^ 23) :
         ((notLanes S.claims).map (·.value) ++ [S.word]) := by
     simp [stackClaims, ringSwitchClaim, ColumnClaim.stackClaim, notLanes]
   have hl : (stackClaims S.layout S.claims [⟨qkeccak, S.op, S.word⟩] S.kpt S.slices
-      (S.m0 :: S.chs)).length = 140 + 2 := by
+      (S.m0 :: S.chs)).length = 142 + 2 := by
     rw [← hn]; simp [stackClaims, notLanes]
   rw [show (notLanes S.claims).map (·.value) = _ from hk] at hv
   rw [hl, hv, dot_powers_batch]
@@ -99,8 +99,8 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
   e862 : σ (.n 650) = ofK (addressOfIndex (S.cL bs))
   e1312 : [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)] = capOf S.s8.perm
   e1111 : σ (.n 1111) = S.lam
-  e1886 : σ (.n 1673) = S.target
-  e1901 : σ (.n 1687) = gen ^ B1.Whir.candidate S.μs S.rate
+  e1886 : σ (.n 1681) = S.target
+  e1901 : σ (.n 1695) = gen ^ B1.Whir.candidate S.μs S.rate
   push : ∀ b < 54, ∃ κ, κ + Tables.blockKappaAdj b < 34 ∧
     σ (.n (vsPushM b)) = ofK (addressOfIndex (sqE + κ))
 

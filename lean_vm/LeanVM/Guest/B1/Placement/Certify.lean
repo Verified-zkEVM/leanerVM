@@ -112,7 +112,7 @@ def cpCh (gi : ℕ) : List Bool :=
   [[true, true], [], [], [true, false, true, false, true, false],
     [true, false, true, false, true, false], [true, true, true],
     [true, false, true, false, true, false], [true, false, true, false, true],
-    [true, false, true, true, false, true]].getD gi []
+    [true, false, true, false, true, true]].getD gi []
 
 /-- An addition chain from value `v0`. -/
 def cpChain (v0 : ℕ) (bs : List Bool) : List Stmt :=
@@ -207,19 +207,19 @@ def cpPre : List Stmt :=
       .atom (.hint (.alloc (.n 139) 9))] ++
     cpRank0 ++ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ++
     [.atom (.hint (.alloc (.n 295) 101))] ++ ((List.range 9).map cpCols).flatten ++
-    [.atom (.copy (.n 413) (.n 294)), .atom (.copy (.n 414) (.n 295))]
+    [.atom (.copy (.n 415) (.n 294)), .atom (.copy (.n 416) (.n 295))]
 
 /-- The function found by name is the template. -/
 noncomputable def cpCheck : Bool :=
   match coreProgram.find? "certify_placement" with
   | some fn => decide (fn.params = [.n 0, .n 1]) &&
-      tbStmtsEqb fn.body (cpPre ++ [.ret [.n 413, .n 414]])
+      tbStmtsEqb fn.body (cpPre ++ [.ret [.n 415, .n 416]])
   | none => false
 
 theorem cpCheck_eq : cpCheck = true := by decide +kernel
 
 theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn ∧
-    fn.params = [.n 0, .n 1] ∧ fn.body = cpPre ++ [.ret [.n 413, .n 414]] := by
+    fn.params = [.n 0, .n 1] ∧ fn.body = cpPre ++ [.ret [.n 415, .n 416]] := by
   have h := cpCheck_eq
   unfold cpCheck at h
   split at h
@@ -603,7 +603,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
   -- the statement's sizes
   have hκ : committedKappas (columnKappas logMem guestLogBytecode hs) = (List.range 101).map κc :=
     committedKappas_columnKappas logMem hs hl
-  refine ⟨σ (.n 414), ?_, columnKappas_length _ _ _, ?_⟩
+  refine ⟨σ (.n 416), ?_, columnKappas_length _ _ _, ?_⟩
   · rw [← hret, e413, e414, stackTotal, hκ, List.map_map]
     have := (hT 8 (by omega)).2
     rw [show cpRT 8 = 294 from rfl] at this

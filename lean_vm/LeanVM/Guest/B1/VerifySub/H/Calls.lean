@@ -30,16 +30,16 @@ def vsCallsA : List (Option V × String × List V × List V) :=
     vcs "verify_keccak" [636, 637, 638, 639, 640, 641, 646, 635, 650, 647, 648]
       ((List.range 8).map (651 + ·)),
     vcs "ring_switch_target" [648, 664] [1091],
-    vcs "certify_placement" [139, 4] [1674, 1675],
-    vcs "log2_ceil_in_the_exponent__L15_L34" [1674, 4] [1676]]
+    vcs "certify_placement" [139, 4] [1682, 1683],
+    vcs "log2_ceil_in_the_exponent__L15_L34" [1682, 4] [1684]]
 
 /-- The dispatch's arguments and returns. -/
-def vsDispArgs : List V := [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1673, .n 324, .n 334, .n 656]
+def vsDispArgs : List V := [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656]
 
 /-- The calls after the dispatch. -/
 def vsCallsB : List (Option V × String × List V × List V) :=
-  [vcs "check_opening_terminal" [4, 310, 635, 644, 309, 642, 128, 646, 139, 1111, 1675, 647, 665,
-    1693, 1694, 1695, 1696, 1692] []]
+  [vcs "check_opening_terminal" [4, 310, 635, 644, 309, 642, 128, 646, 139, 1111, 1683, 647, 665,
+    1701, 1702, 1703, 1704, 1700] []]
 
 /-- No dispatch. -/
 def noDispatchB : Stmt → Bool
@@ -47,8 +47,8 @@ def noDispatchB : Stmt → Bool
   | _ => true
 
 theorem vs_split_disp : vsCPre = vsCPre.take 1591 ++
-    [.dispatch (.n 1687) vsOpenNames vsDispArgs (vsRun 1692 5)] ++ vsCPre.drop 1592 := by
-  have h : (vsCPre.drop 1591).take 1 = [.dispatch (.n 1687) vsOpenNames vsDispArgs (vsRun 1692 5)] :=
+    [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] ++ vsCPre.drop 1592 := by
+  have h : (vsCPre.drop 1591).take 1 = [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] :=
     (Tables.tbStmtsEqb_sound (by decide +kernel)).symm
   have e : vsCPre.drop 1591 = (vsCPre.drop 1591).take 1 ++ vsCPre.drop 1592 := by
     rw [show vsCPre.drop 1592 = (vsCPre.drop 1591).drop 1 by simp [List.drop_drop],
@@ -74,7 +74,7 @@ theorem callSF_noDisp (σ : Val) : ∀ (l : List Stmt), l.all noDispatchB = true
 
 /-- **`verify_sub`'s frames**, the dispatch's callee named by the candidate. -/
 theorem vs_calls (σ : Val) : (vsCPre.filterMap (Core.Stmt.callSF σ)).map (mkCall σ) =
-    (vsCallsA ++ [(none, vsOpenNames.getD (logG (σ (.n 1687))) "", vsDispArgs, vsRun 1692 5)] ++
+    (vsCallsA ++ [(none, vsOpenNames.getD (logG (σ (.n 1695))) "", vsDispArgs, vsRun 1700 5)] ++
       vsCallsB).map (mkCall σ) := by
   rw [vs_split_disp, List.filterMap_append, List.filterMap_append,
     callSF_noDisp σ _ vs_noDisp.1, callSF_noDisp σ _ vs_noDisp.2, vs_callsA, vs_callsB]

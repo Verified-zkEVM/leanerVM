@@ -36,11 +36,11 @@ theorem dimsW_eq (hbl : bytecode.length = 2 ^ 23) : S.H.dimsW = vsDimsW S.logMem
 
 theorem curW_eq (hbl : bytecode.length = 2 ^ 23) : S.H.curW = S.xsT := (S.H_run hbl).2.1.symm
 
-/-- **The output lanes in the stream**, at `col_eval_words·g^105`. -/
+/-- **The output lanes in the stream**, at `col_eval_words·g^107`. -/
 theorem lanes_stream (hbl : bytecode.length = 2 ^ 23) :
-    ((vsStreamW c.proof.stream).drop (10 + S.xsG.length + (5 + 3 * S.H.n + 105))).take
+    ((vsStreamW c.proof.stream).drop (10 + S.xsG.length + (5 + 3 * S.H.n + 107))).take
       S.outs.length = S.outs ∧
-      10 + S.xsG.length + (5 + 3 * S.H.n + 105) + S.outs.length ≤ (vsStreamW c.proof.stream).length := by
+      10 + S.xsG.length + (5 + 3 * S.H.n + 107) + S.outs.length ≤ (vsStreamW c.proof.stream).length := by
   have hol := (S.lanes hbl).2.2
   have hpl := S.poolW_length hbl
   have hlt := S.stream_pool_lt hbl (j := 161) (by norm_num)
@@ -50,8 +50,8 @@ theorem lanes_stream (hbl : bytecode.length = 2 ^ 23) :
   simp only [List.length_take, List.length_drop] at h1
   have hk : k < 25 := by rw [hol] at h2; exact h2
   rw [List.getElem_take, List.getElem_drop, ← List.getD_eq_getElem _ 0,
-    show 10 + S.xsG.length + (5 + 3 * S.H.n + 105) + k =
-      10 + S.xsG.length + (5 + (3 * S.H.n + (110 + k - 5))) by omega,
+    show 10 + S.xsG.length + (5 + 3 * S.H.n + 107) + k =
+      10 + S.xsG.length + (5 + (3 * S.H.n + (112 + k - 5))) by omega,
     S.stream_pool hbl (by omega) (by omega)]
   simp only [ChildSegs.outs, List.getElem_take, List.getElem_drop]
   rw [List.getD_eq_getElem _ _ (by omega)]
@@ -134,9 +134,9 @@ theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
       simp only [← Nat.add_assoc] at this
       exact Or.inr this
     · exact Or.inr (own 8 (by norm_num))
-    · have := slice 1 (by norm_num) (10 + S.xsG.length + (5 + 3 * S.H.n + 105)) S.outs
+    · have := slice 1 (by norm_num) (10 + S.xsG.length + (5 + 3 * S.H.n + 107)) S.outs
         (by rw [hl1]; exact hLl) (by rw [hl1, hLs])
-      rw [show vb bs 1 + (10 + S.xsG.length + (5 + 3 * S.H.n + 105)) = S.cL bs by
+      rw [show vb bs 1 + (10 + S.xsG.length + (5 + 3 * S.H.n + 107)) = S.cL bs by
         simp only [ChildSegs.cL, ChildSegs.cT, vcG]; omega] at this
       exact Or.inr this
     · have := slice 9 (by norm_num) 0 S.op (by show 0 + _ ≤ (zvW S.op S.kpt).length; rw [hzl]; omega)

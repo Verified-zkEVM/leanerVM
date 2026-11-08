@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Gw
 
-  The constant `g^105` of `verify_sub`'s call of `verify_keccak`, as a word.
+  The constant `g^107` of `verify_sub`'s call of `verify_keccak`, as a word.
 -/
 
 module
@@ -9,10 +9,10 @@ module
 public import LeanVM.Guest.B1.Common.Basic
 
 /-!
-# `g^105`
+# `g^107`
 
-`word_g105`: the word `59373627899904` is `g^105`, the offset of the output lanes' values in
-`col_eval_words` (claims `110 .. 134`, the buffer starting at claim `5`; G:3463).
+`word_g107`: the word `237494511599616` is `g^107`, the offset of the output lanes' values in
+`col_eval_words` (claims `112 .. 136`, the buffer starting at claim `5`; G:3463).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -23,9 +23,9 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem word_g105 : word 59373627899904 0 0 = gen ^ 105 := by
+theorem word_g107 : word 237494511599616 0 0 = gen ^ 107 := by
   rw [word_eOfNat, gen_pow_eq_ofK, ← gpowK_eq (by unfold u128Bound; omega)]
-  show ofK (K.ofBits 59373627899904) = ofK (gpowK 105)
+  show ofK (K.ofBits 237494511599616) = ofK (gpowK 107)
   congr 1
 
 end

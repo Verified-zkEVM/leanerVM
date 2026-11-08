@@ -79,7 +79,7 @@ def vsSqzT (capb o : ℕ) : List Stmt :=
 
 /-- The pool, the seed, the stream (G:3359-3368). -/
 def vsHeadT : List Stmt :=
-  [vsAlloc 6 165, vsConst 7 (word 1 0 0), vsConst 8 (word 0 0 0),
+  [vsAlloc 6 167, vsConst 7 (word 1 0 0), vsConst 8 (word 0 0 0),
     vsConst 9 (word 0 0 0), vsConst 10 (word 0 0 0), vsConst 11 (word 0 0 0),
     keccakA [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]
       (vsRun 12 13),
@@ -174,7 +174,7 @@ def vsCallsT : List Stmt :=
     vsAlloc 635 34,
     vsCall "verify_tables" [626, 627, 628, 629, 630, 631, 0, 1, 310, 309, 127, 26, 4, 427, 623, 6,
       635, 632, 633, 634] ((List.range 10).map (636 + ·)),
-    vsLd 646 127 6, vsAlloc 647 78, vsAlloc 648 64, vsConst 649 (word 59373627899904 0 0),
+    vsLd 646 127 6, vsAlloc 647 78, vsAlloc 648 64, vsConst 649 (word 237494511599616 0 0),
     vsMul 650 645 649,
     vsCall "verify_keccak" [636, 637, 638, 639, 640, 641, 646, 635, 650, 647, 648]
       ((List.range 8).map (651 + ·))] ++
@@ -206,12 +206,12 @@ def vsCtabT : List Stmt :=
     vsStageT 2 8 839 ++ vsStageT 3 4 880 ++ vsStageT 4 2 929 ++ vsStageT 5 1 994 ++
     [vsCall "ring_switch_target" [648, 664] [1091]]
 
-/-- The pooled claim of the `i`-th batched one: the output lanes' `110 .. 134` are left out. -/
-def vsKept (i : ℕ) : ℕ := if i < 110 then i else i + 25
+/-- The pooled claim of the `i`-th batched one: the output lanes' `112 .. 136` are left out. -/
+def vsKept (i : ℕ) : ℕ := if i < 112 then i else i + 25
 
 /-- Where pooled claim `j`'s value is: the bus's `5` and the public input's `3` in `claim_pool`
-(`6`), the tables' `157` column evaluations in `col_eval_words` (`645`), from `j - 5`. -/
-def vsClaimAt (j : ℕ) : ℕ × ℕ := if 5 ≤ j ∧ j < 162 then (645, j - 5) else (6, j)
+(`6`), the tables' `159` column evaluations in `col_eval_words` (`645`), from `j - 5`. -/
+def vsClaimAt (j : ℕ) : ℕ × ℕ := if 5 ≤ j ∧ j < 164 then (645, j - 5) else (6, j)
 
 /-- The power of `λ` before batched claim `i`. -/
 def vsPw (i : ℕ) : ℕ := if i = 0 then 1111 else 1111 + 4 * i
@@ -227,8 +227,8 @@ def vsLamStep (i : ℕ) : List Stmt :=
 
 /-- The batching challenge, the target (G:3500-3513). -/
 def vsLamT : List Stmt :=
-  vsSqzT 754 1092 ++ (List.range 140).flatMap vsLamStep ++
-    [vsMul 1672 1671 657, vsAdd 1673 1670 1672]
+  vsSqzT 754 1092 ++ (List.range 142).flatMap vsLamStep ++
+    [vsMul 1680 1679 657, vsAdd 1681 1678 1680]
 
 /-- `open_stacked`'s specializations, named by `natStr` (which the kernel evaluates). -/
 def vsOpenNames : List String := (List.range 28).map fun m ↦ "open_stacked__L" ++ B1.Whir.natStr m
@@ -239,18 +239,18 @@ theorem vsOpenNames_eq : vsOpenNames = B1.Whir.openNames := by
 /-- The placement, the stack's log, the dispatch, the terminal, the deferred claim
 (G:3515-3541). -/
 def vsTailT : List Stmt :=
-  [vsCall "certify_placement" [139, 4] [1674, 1675],
-    vsCall "log2_ceil_in_the_exponent__L15_L34" [1674, 4] [1676],
-    vsConst 1677 (word 8198552432976855044 0 0), vsMul 1678 1676 1677, vsConst 1679 (word 64 0 0),
-    vsRange 1678 1680 1681 1682 1679, vsMul 1683 122 122, vsMul 1684 1683 122,
-    vsMul 1685 1684 1684, vsMul 1686 1685 122, vsMul 1687 1678 1686,
-    vsConst 1688 (word 134217728 0 0), vsRange 1687 1689 1690 1691 1688,
-    .dispatch (.n 1687) vsOpenNames
-      [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1673, .n 324, .n 334, .n 656] (vsRun 1692 5),
-    vsCall "check_opening_terminal" [4, 310, 635, 644, 309, 642, 128, 646, 139, 1111, 1675, 647,
-      665, 1693, 1694, 1695, 1696, 1692] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1697 + k) 310 k, vsLd (1697 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1716 + k) 346 k, vsLd (1716 + k) 5 (19 + k)]) ++
+  [vsCall "certify_placement" [139, 4] [1682, 1683],
+    vsCall "log2_ceil_in_the_exponent__L15_L34" [1682, 4] [1684],
+    vsConst 1685 (word 8198552432976855044 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 64 0 0),
+    vsRange 1686 1688 1689 1690 1687, vsMul 1691 122 122, vsMul 1692 1691 122,
+    vsMul 1693 1692 1692, vsMul 1694 1693 122, vsMul 1695 1686 1694,
+    vsConst 1696 (word 134217728 0 0), vsRange 1695 1697 1698 1699 1696,
+    .dispatch (.n 1695) vsOpenNames
+      [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656] (vsRun 1700 5),
+    vsCall "check_opening_terminal" [4, 310, 635, 644, 309, 642, 128, 646, 139, 1111, 1683, 647,
+      665, 1701, 1702, 1703, 1704, 1700] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1705 + k) 310 k, vsLd (1705 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1724 + k) 346 k, vsLd (1724 + k) 5 (19 + k)]) ++
   [vsLd 643 5 23, .ret []]
 
 /-- **`verify_sub`'s body as a template.** -/

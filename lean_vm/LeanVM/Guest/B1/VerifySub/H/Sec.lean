@@ -38,7 +38,7 @@ variable {rd : Reader} {args : List E}
 theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 626 + i) ∧
     (∀ i < 10, (vsRetVars.getD 6 []).getD i 0 = 636 + i) ∧
     (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 651 + i) ∧
-    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1692 + i) := by decide
+    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1700 + i) := by decide
 
 theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 10 ∧
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
@@ -80,11 +80,11 @@ theorem words_getD_rows {i : ℕ} (hi : i < 6) :
   obtain ⟨a, b, c, d, e, f, hr⟩ := S.rows_eq
   interval_cases i <;> simp [ChildSegs.words, hr]
 
-theorem poolW_length (hbl : bytecode.length = 2 ^ 23) : S.H.poolW.length = 165 := by
+theorem poolW_length (hbl : bytecode.length = 2 ^ 23) : S.H.poolW.length = 167 := by
   obtain ⟨hok, hx, -, hlen⟩ := S.H_run hbl
   have h1 := hok.hx5
   have h2 := hok.hxR
-  have hf : S.H.evsT.flatten.length = 157 := by
+  have hf : S.H.evsT.flatten.length = 159 := by
     have := congrArg List.length hx
     simp only [List.length_append, h1, h2] at this
     omega
@@ -104,7 +104,7 @@ theorem s7_eta (hbl : bytecode.length = 2 ^ 23) : S.s7 = ⟨S.s7.cap, []⟩ := b
 theorem vs_ofK_add (a b : ℕ) : ofK (addressOfIndex (a + b)) = ofK (addressOfIndex a) * gen ^ b := by
   rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
 
-theorem stream_pool_lt (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h162 : j < 162) :
+theorem stream_pool_lt (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h162 : j < 164) :
     10 + S.xsG.length + (5 + (3 * S.H.n + (j - 5))) < c.proof.stream.length := by
   obtain ⟨hok, hx, -, hlen⟩ := S.H_run hbl
   have := S.hstream
@@ -113,14 +113,14 @@ theorem stream_pool_lt (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h162 : j < 16
   omega
 
 /-- **The tables' evaluations in the stream**: past the announced words, the root, the GKR's words,
-the five framework words and the rounds', the evaluations are `claim_pool`'s words `5 ..< 162`. -/
-theorem stream_pool (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h5 : 5 ≤ j) (h162 : j < 162) :
+the five framework words and the rounds', the evaluations are `claim_pool`'s words `5 ..< 164`. -/
+theorem stream_pool (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h5 : 5 ≤ j) (h162 : j < 164) :
     (vsStreamW c.proof.stream).getD (10 + S.xsG.length + (5 + (3 * S.H.n + (j - 5)))) 0 =
       S.H.poolW.getD j 0 := by
   obtain ⟨hok, hx, -, -⟩ := S.H_run hbl
   have h1 := hok.hx5
   have h2 := hok.hxR
-  have hf : S.H.evsT.flatten.length = 157 := by
+  have hf : S.H.evsT.flatten.length = 159 := by
     have := congrArg List.length hx
     simp only [List.length_append, h1, h2] at this
     have := (S.H_run hbl).2.2.2
@@ -218,7 +218,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     have := ret 6 (by norm_num) 7 (by decide)
     rw [vsRetVars_runs.2.1 7 (by norm_num), o6] at this
     exact this
-  have e1890 : σ (.n 1676) = gen ^ S.μs := by
+  have e1890 : σ (.n 1684) = gen ^ S.μs := by
     have := ret 10 (by norm_num) 0 (by decide)
     rw [o10] at this
     simp only [vsRetVars, List.getD_cons_zero, List.getD_cons_succ] at this
