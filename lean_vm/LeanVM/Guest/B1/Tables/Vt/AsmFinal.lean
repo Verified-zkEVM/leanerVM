@@ -31,13 +31,13 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure length_tableWeights jumpConstr
 /-- **A table's weight**, the guest's way. -/
 theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
     (hpl : pts.length = n) (hnp : n ≤ point.length)
-    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2592)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2613)) 1 (σ (.n 16)) (σ (.n 703)) n)
+    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2608)) j (pts.take j).prod)
+    (hpe : EqPrefix rd (σ (.n 2629)) 1 (σ (.n 16)) (σ (.n 703)) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0))
-    (hz1 : TbReadsAt rd (σ (.n 703)) (point.map (1 + ·))) (hgn : σ (.n 2500) = gen ^ n)
+    (hz1 : TbReadsAt rd (σ (.n 703)) (point.map (1 + ·))) (hgn : σ (.n 2516) = gen ^ n)
     {heights : List ℕ} {t : ℕ} (ht : t < heights.length) (hh : heights.getD t 0 ≤ n)
-    {x τv cp pe : E} (hx : σ (.n 2500) = x * τv) (hτv : τv = gen ^ heights.getD t 0)
-    (hcpL : LoadHolds rd (σ (.n 2592) * x) 0 cp) (hpeL : LoadHolds rd (σ (.n 2613) * τv) 0 pe) :
+    {x τv cp pe : E} (hx : σ (.n 2516) = x * τv) (hτv : τv = gen ^ heights.getD t 0)
+    (hcpL : LoadHolds rd (σ (.n 2608) * x) 0 cp) (hpeL : LoadHolds rd (σ (.n 2629) * τv) 0 pe) :
     (tableWeights heights point pts.reverse).getD t 0 = cp * pe := by
   set hg := heights.getD t 0
   have hxv : x = gen ^ (n - hg) := by
@@ -63,13 +63,13 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
 
 /-- The batching challenge's powers. -/
 theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 2573) = 1 ∧ σ (.n 2574) = σ (.n 2572) ∧ σ (.n 2575) = σ (.n 2572) ^ 2 ∧
-      σ (.n 2576) = σ (.n 2572) ^ 3 ∧ σ (.n 2577) = σ (.n 2572) ^ 4 := by
-  have a0 := h.atomAt 2620 (.const (.n 2573) (word 1 0 0)) (by decide +kernel)
-  have a1 := h.atomAt 2621 (.mul (.n 2574) (.n 2573) (.n 2572)) (by decide +kernel)
-  have a2 := h.atomAt 2622 (.mul (.n 2575) (.n 2574) (.n 2572)) (by decide +kernel)
-  have a3 := h.atomAt 2623 (.mul (.n 2576) (.n 2575) (.n 2572)) (by decide +kernel)
-  have a4 := h.atomAt 2624 (.mul (.n 2577) (.n 2576) (.n 2572)) (by decide +kernel)
+    σ (.n 2589) = 1 ∧ σ (.n 2590) = σ (.n 2588) ∧ σ (.n 2591) = σ (.n 2588) ^ 2 ∧
+      σ (.n 2592) = σ (.n 2588) ^ 3 ∧ σ (.n 2593) = σ (.n 2588) ^ 4 := by
+  have a0 := h.atomAt 2636 (.const (.n 2589) (word 1 0 0)) (by decide +kernel)
+  have a1 := h.atomAt 2637 (.mul (.n 2590) (.n 2589) (.n 2588)) (by decide +kernel)
+  have a2 := h.atomAt 2638 (.mul (.n 2591) (.n 2590) (.n 2588)) (by decide +kernel)
+  have a3 := h.atomAt 2639 (.mul (.n 2592) (.n 2591) (.n 2588)) (by decide +kernel)
+  have a4 := h.atomAt 2640 (.mul (.n 2593) (.n 2592) (.n 2588)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at a0 a1 a2 a3 a4
   refine ⟨a0, by rw [a1, a0, one_mul], by rw [a2, a1, a0]; ring, by rw [a3, a2, a1, a0]; ring,
     by rw [a4, a3, a2, a1, a0]; ring⟩
@@ -103,26 +103,26 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {alphas : List E} (hal : alphas.length = 4)
     (hW : TbReadsAt Lm.read (σ (.n 13)) (eqKernel alphas)) {n : ℕ}
-    (hgn : σ (.n 2500) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
+    (hgn : σ (.n 2516) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
-    (hcp : ∀ j ≤ n, LoadHolds Lm.read (σ (.n 2592)) j (pts.take j).prod)
-    (hpe : EqPrefix Lm.read (σ (.n 2613)) 1 (σ (.n 16)) (σ (.n 703)) n)
+    (hcp : ∀ j ≤ n, LoadHolds Lm.read (σ (.n 2608)) j (pts.take j).prod)
+    (hpe : EqPrefix Lm.read (σ (.n 2629)) 1 (σ (.n 16)) (σ (.n 703)) n)
     (hchi : ∀ i < n, LoadHolds Lm.read (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
-    (termsPure ((powers (σ (.n 2572)) 5).take 2) ((powers (σ (.n 2572)) 5).drop 2) pts.reverse
+    (termsPure ((powers (σ (.n 2588)) 5).take 2) ((powers (σ (.n 2588)) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
-          [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+          [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
           (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 2610) := by
+      σ (.n 2626) := by
   have hz1 := vt_zeta1 h hz hmu (by omega)
   set F := (vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
-    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
     (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1 with hF
   have hFv : ∀ t < 6, (F.getD t []).map (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := fun t ht ↦
     vt_forms_val hμ Lm h bc hbc hz hmu hml hE hlm hr hτ hkb hal hW ht
   have hF6 := (vt_forms3_shape bc lm hr alphas (σ (.n 14)) point
-    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
     (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1
   have hH6 : (tableHeightsOf rows).length = 6 := vt_tableHeightsOf_length hr
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
@@ -131,9 +131,9 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
   have hkbt : ∀ t < 6, σ (.n (30 + t)) = gen ^ vtHt rows t := fun t ht => by
     have := hkb (2 + t) (by omega)
     rwa [show 28 + (2 + t) = 30 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2500) = x * σ (.n (30 + t)) →
-      LoadHolds Lm.read (σ (.n 2592) * x) 0 cp →
-      LoadHolds Lm.read (σ (.n 2613) * σ (.n (30 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2516) = x * σ (.n (30 + t)) →
+      LoadHolds Lm.read (σ (.n 2608) * x) 0 cp →
+      LoadHolds Lm.read (σ (.n 2629) * σ (.n (30 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Tables.Vt.PullSels
 # The evaluations and the forms' values (V:664-673)
 
 `vtEvT σ t`: table `t`'s `width_t` evaluations, the guest's values at `vtEvB (base_t + c)`;
-`vtEvsT σ`: the six lists, whose concatenation is the `157` words read (`vt_evsT_flatten`).
+`vtEvsT σ`: the six lists, whose concatenation is the `159` words read (`vt_evsT_flatten`).
 `vt_forms_val`: table `t`'s three bus forms, evaluated at its evaluations, are the guest's form
 values `vtFV[t]` (push, pull, count).
 -/
@@ -34,7 +34,7 @@ open LeanVM.Protocol.EndToEnd.Complete (accFold_spec accumulateSide_fst blockSel
 @[expose] public section
 
 /-- The tables' widths. -/
-def vtW6 : List ℕ := [15, 15, 8, 15, 14, 90]
+def vtW6 : List ℕ := [15, 15, 8, 15, 14, 92]
 
 /-- The tables' first evaluations. -/
 def vtB6 : List ℕ := [0, 15, 30, 38, 53, 67]
@@ -57,9 +57,9 @@ theorem vt_range_add_map (f : ℕ → E) (a b : ℕ) :
   rw [List.range_add, List.map_append, List.map_map]
   rfl
 
-/-- The six lists are the `157` words. -/
+/-- The six lists are the `159` words. -/
 theorem vt_evsT_flatten (σ : Val) : (vtEvsT σ).flatten = vtEvs σ := by
-  rw [vtEvs, show (157 : ℕ) = 15 + 15 + 8 + 15 + 14 + 90 from rfl, vt_range_add_map,
+  rw [vtEvs, show (159 : ℕ) = 15 + 15 + 8 + 15 + 14 + 92 from rfl, vt_range_add_map,
     vt_range_add_map, vt_range_add_map, vt_range_add_map, vt_range_add_map]
   simp only [vtEvsT, vtEvT, vtW6, vtB6, List.flatten_cons, List.flatten_nil, List.append_nil,
     List.append_assoc, List.getD_cons_zero, List.getD_cons_succ, Nat.zero_add]
@@ -106,8 +106,8 @@ theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.le
 
 /-- The guest's form values: table `t`'s push, pull and count forms. -/
 def vtFV : List (List ℕ) :=
-  [[2937, 2968, 2977], [3342, 3373, 3382], [3575, 3594, 3599], [3962, 3993, 4002],
-    [4347, 4391, 4400], [6583, 6752, 6807]]
+  [[2953, 2984, 2993], [3358, 3389, 3398], [3591, 3610, 3615], [3978, 4009, 4018],
+    [4363, 4407, 4416], [6675, 6856, 6911]]
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -123,7 +123,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     {alphas : List E} (hal : alphas.length = 4)
     (hW : TbReadsAt Lm.read (σ (.n 13)) (eqKernel alphas)) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
-        [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+        [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
         (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
@@ -137,7 +137,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
       have := hW i (by omega)
       rwa [← List.getD_eq_getElem _ 0] at this
   obtain ⟨e0, e1, e2⟩ := vt_forms hbc alphas (σ (.n 14)) point
-    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843)) (σ (.n 1898)) (σ (.n 581))
     (σ (.n 25)) (σ (.n 26)) (σ (.n 27)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]

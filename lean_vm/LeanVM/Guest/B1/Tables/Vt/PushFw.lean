@@ -28,7 +28,7 @@ set_option maxRecDepth 100000 in
 /-- **The push side's framework accumulator.** -/
 theorem vt_push_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i)) :
-    σ (.n 947) = σ (.n 794) * (σ (.n 14) + (W 0 + W 1 + W 2)) +
+    σ (.n 955) = σ (.n 794) * (σ (.n 14) + (W 0 + W 1 + W 2)) +
       σ (.n 817) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 824) + W 2 + W 3 * σ (.n 830) +
         W 4 * σ (.n 843) + W 5 * σ (.n 856))) +
       σ (.n 887) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 894) + W 2 + σ (.n 581))) := by
@@ -117,10 +117,16 @@ theorem vt_push_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
   have a2579 := h.atomAt 928 (.const (.n 941) (word 0 0 0)) (by decide +kernel)
   have a2580 := h.atomAt 929 (.mul (.n 942) (.n 940) (.n 941)) (by decide +kernel)
   have a2581 := h.atomAt 930 (.add (.n 943) (.n 939) (.n 942)) (by decide +kernel)
-  have a2582 := h.atomAt 931 (.add (.n 944) (.n 943) (.n 581)) (by decide +kernel)
-  have a2583 := h.atomAt 932 (.add (.n 945) (.n 14) (.n 944)) (by decide +kernel)
-  have a2584 := h.atomAt 933 (.mul (.n 946) (.n 887) (.n 945)) (by decide +kernel)
-  have a2585 := h.atomAt 934 (.add (.n 947) (.n 874) (.n 946)) (by decide +kernel)
+  have b932 := h.atomAt 932 (.const (.n 945) (word 0 0 0)) (by decide +kernel)
+  have b933 := h.atomAt 933 (.mul (.n 946) (.n 944) (.n 945)) (by decide +kernel)
+  have b934 := h.atomAt 934 (.add (.n 947) (.n 943) (.n 946)) (by decide +kernel)
+  have b936 := h.atomAt 936 (.const (.n 949) (word 0 0 0)) (by decide +kernel)
+  have b937 := h.atomAt 937 (.mul (.n 950) (.n 948) (.n 949)) (by decide +kernel)
+  have b938 := h.atomAt 938 (.add (.n 951) (.n 947) (.n 950)) (by decide +kernel)
+  have a2582 := h.atomAt 939 (.add (.n 952) (.n 951) (.n 581)) (by decide +kernel)
+  have a2583 := h.atomAt 940 (.add (.n 953) (.n 14) (.n 952)) (by decide +kernel)
+  have a2584 := h.atomAt 941 (.mul (.n 954) (.n 887) (.n 953)) (by decide +kernel)
+  have a2585 := h.atomAt 942 (.add (.n 955) (.n 874) (.n 954)) (by decide +kernel)
   have e2424 := tb_loadHolds_unique a2424 (hw 0 (by norm_num))
   have e2425 := tb_loadHolds_unique a2425 (hw 1 (by norm_num))
   have e2427 := tb_loadHolds_unique a2427 (hw 2 (by norm_num))
@@ -150,14 +156,15 @@ theorem vt_push_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
   simp only [Atom.Holds] at a2540 a2541 a2543 a2544 a2545 a2547 a2548 a2549 a2551 a2552
   simp only [Atom.Holds] at a2553 a2555 a2556 a2557 a2559 a2560 a2561 a2563 a2564 a2565
   simp only [Atom.Holds] at a2567 a2568 a2569 a2571 a2572 a2573 a2575 a2576 a2577 a2579
-  simp only [Atom.Holds] at a2580 a2581 a2582 a2583 a2584 a2585
+  simp only [Atom.Holds] at a2580 a2581 a2582 a2583 a2584 a2585 b932 b933 b934 b936 b937 b938
   simp only [e2424, e2425, a2426, e2427, a2428, a2429, a2430, a2431, a2432, a2433, e2452, a2453, a2454,
     e2457, a2458, a2459, e2460, a2461, e2473, a2474, a2475, e2487, a2488, a2489, e2501, a2502,
     a2503, a2504, a2505, a2506, a2507, a2508, a2509, e2528, a2529, a2530, e2533, a2534, a2535,
     e2536, a2537, e2538, a2539, a2540, a2541, e2542, a2543, a2544, a2545, e2546, a2547, a2548,
     a2549, e2550, a2551, a2552, a2553, e2554, a2555, a2556, a2557, e2558, a2559, a2560, a2561,
     e2562, a2563, a2564, a2565, e2566, a2567, a2568, a2569, e2570, a2571, a2572, a2573, e2574,
-    a2575, a2576, a2577, e2578, a2579, a2580, a2581, a2582, a2583, a2584, a2585]
+    a2575, a2576, a2577, e2578, a2579, a2580, a2581, a2582, a2583, a2584, a2585, b938, b937, b936,
+    b934, b933, b932]
   rw [tb_word_zero, tb_word_gen, show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]
   ring
 
