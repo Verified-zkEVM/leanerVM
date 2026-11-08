@@ -170,14 +170,14 @@ theorem sDigest0_sound (h : AtomsHold rd σ (sDigest0 88)) :
   simp only [↓reduceIte, word_zero, one_ne_zero, OfNat.ofNat_ne_zero] at p0 p1 p2 p3 p4
   refine ⟨ld2, ld3, ⟨p0, p1, p2, p3, p4⟩, by rw [ad, c89], ?_⟩
   have hk : AtomsHold rd σ [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97,
-      .n 99, .n 100, .n 101, .n 102] (runV 103 13) false false] :=
+      .n 99, .n 100, .n 101, .n 102] (runV 103 1) false false] :=
     h.sub fun x hx => by
       simp only [List.mem_singleton] at hx
       subst hx
       simp [sDigest0]
   have := kec80_sound hk c94 c95 c96 c97 p1 p2 p3 p4
   rw [← cp]
-  exact congrArg Prod.fst this
+  exact this
 
 theorem sDigest1_atoms (b : Nat) (root : V) : atomsOnly (sDigest1 b root) = true := rfl
 
