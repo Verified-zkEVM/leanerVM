@@ -132,7 +132,7 @@ theorem cpBx_eq : ∀ gi < 9, cpBx gi = cpB gi := by decide +kernel
 theorem cpGOf_eq : ∀ gi < 9, ∀ v < 138, cpB gi ≤ v → v < cpBx (gi + 1) → cpGOf v = gi := by
   decide +kernel
 
-theorem cpCOf_eq : ∀ gi < 9, ∀ v < 413, cpD gi ≤ v → v < cpD (gi + 1) → cpCOf v = gi := by
+theorem cpCOf_eq : ∀ gi < 9, ∀ v < 415, cpD gi ≤ v → v < cpD (gi + 1) → cpCOf v = gi := by
   decide +kernel
 
 theorem cpCGrp_eq : ∀ gi < 9, ∀ c < 101, cpC0 gi ≤ c → c < cpC0 (gi + 1) → cpCGrp c = gi := by
@@ -144,7 +144,7 @@ theorem cp_grp_geom : ∀ gi < 9, 12 ≤ cpB gi ∧ cpZ gi + 1 + (cpCh gi).lengt
 
 /-- The columns' values lie in `296 .. 412`, in order. -/
 theorem cp_col_geom : ∀ gi < 9, 296 ≤ cpD gi ∧ cpD (gi + 1) = cpD gi + 2 + cpLen gi ∧
-    cpD (gi + 1) ≤ 413 := by decide +kernel
+    cpD (gi + 1) ≤ 415 := by decide +kernel
 
 theorem cpC0_lt99 : ∀ gi < 9, cpC0 gi ≤ 73 := by decide +kernel
 
@@ -235,8 +235,8 @@ noncomputable def cpF (v : ℕ) : E :=
   else if v < 151 then cpRank0V lm hs e10 e11 e139 rd (v - 140)
   else if v < 295 then cpRankV lm hs e10 e11 e139 rd ((v - 133) / 18) ((v - 133) % 18)
   else if v = 295 then ofK (addressOfIndex e295)
-  else if v < 413 then cpColV lm hs esq (cpCOf v) v
-  else if v = 413 then gen ^ cpGP lm hs 9
+  else if v < 415 then cpColV lm hs esq (cpCOf v) v
+  else if v = 415 then gen ^ cpGP lm hs 9
   else ofK (addressOfIndex e295)
 
 /-- **The honest valuation.** -/
@@ -853,7 +853,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hm : MemLay rd (cpOwn lm hs e10 e11 e138 e139 e295 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e10 e11 e138 e139 e295 rd)
-      (cpPre ++ [.ret [.n 413, .n 414]]) False
+      (cpPre ++ [.ret [.n 415, .n 416]]) False
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
         ofK (addressOfIndex e295)]) := by
   have R := cp_reads hl hm
@@ -864,7 +864,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   obtain ⟨-, htot⟩ := cp_offsets (lm := lm) hl
   obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpPi lm hs 0) (K := 8) (by omega) (by norm_num)
   have s140 : σ (.n 140) = gen ^ cpPi lm hs 0 := r0 0 (by norm_num)
-  have s413 : σ (.n 413) = gen ^ cpGP lm hs 9 := rfl
+  have s415 : σ (.n 415) = gen ^ cpGP lm hs 9 := rfl
   have s294 : σ (.n 294) = gen ^ cpGP lm hs 9 :=
     (cp_rankKey (lm := lm) (hs := hs) (ekb := ekb) (esq := esq) (e10 := e10) (e11 := e11)
       (e138 := e138) (e139 := e139) (e295 := e295) (rd := rd) (r := 8) (by norm_num)).2
@@ -880,7 +880,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     refine ⟨fun i hi ↦ ?_, fun gi hgi ↦ cp_group_holds hl hlm hhs h5 hlow R hgi, ?_, r0 1 (by norm_num),
       ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_, r0 7 (by norm_num), r0 8 (by norm_num), ?_,
       r0 9 (by norm_num), ?_, fun r hr ↦ cp_rank hl hlm hhs h5 hlow R hr,
-      fun gi hgi ↦ cp_cols_holds hl hlm hhs h5 R hgi, by rw [s413, s294], rfl⟩
+      fun gi hgi ↦ cp_cols_holds hl hlm hhs h5 R hgi, by rw [s415, s294], rfl⟩
     · have vkb : σ (.n (2 + i)) = gen ^ cpEb lm hs i :=
         cpσ_kb lm hs ekb esq e10 e11 e138 e139 e295 rd hi
       rw [vkb]; exact R.kb i hi
@@ -905,8 +905,8 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
         show σ (.n 150) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
         Nat.add_zero, cpGP_succ, cpGP_zero, Nat.zero_add]
       exact R.size _ hp0
-  · show [σ (.n 413), σ (.n 414)] = _
-    rw [s413, htot, show σ (.n 414) = ofK (addressOfIndex e295) from rfl]
+  · show [σ (.n 415), σ (.n 416)] = _
+    rw [s415, htot, show σ (.n 416) = ofK (addressOfIndex e295) from rfl]
 
 /-- **The offsets' buffer satisfies `PCtx`** on any memory holding the buffers. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e10 e11 e138 e139 e295 : ℕ} {rd : Reader}

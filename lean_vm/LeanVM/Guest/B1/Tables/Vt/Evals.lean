@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Evals
 
-  `verify_tables`' table evaluations: the 157 words read after the table sumcheck, their pooled
+  `verify_tables`' table evaluations: the 159 words read after the table sumcheck, their pooled
   claims, and the carried sponge after them, from which the public input's challenge is squeezed.
 -/
 
@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 /-!
 # The table evaluations (G:2464-2472, 2548)
 
-`vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2609`), packing and copy.
-`vt_evals_fs`: from the last round's sponge, the 157 words absorbed leave the sponge whose
+`vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2625`), packing and copy.
+`vt_evals_fs`: from the last round's sponge, the 159 words absorbed leave the sponge whose
 capacity permutation `j` reads; `vt_evals`: the public input's challenge `rm` is the squeeze after
 them, the returned capacity the sponge after it.
 -/
@@ -25,20 +25,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The 157 evaluations' values. -/
-def vtEvs (σ : Val) : List E := (List.range 157).map fun k ↦ σ (.n (vtEvB k))
+/-- The 159 evaluations' values. -/
+def vtEvs (σ : Val) : List E := (List.range 159).map fun k ↦ σ (.n (vtEvB k))
 
 /-- The capacity before permutation `j`. -/
 def vtCapV (σ : Val) (j : ℕ) : List E := (vtPermCap j).map σ
 
-theorem vtEvs_length (σ : Val) : (vtEvs σ).length = 157 := by simp [vtEvs]
+theorem vtEvs_length (σ : Val) : (vtEvs σ).length = 159 := by simp [vtEvs]
 
-theorem vtEvs_getD (σ : Val) {k : ℕ} (hk : k < 157) : (vtEvs σ).getD k 0 = σ (.n (vtEvB k)) := by
+theorem vtEvs_getD (σ : Val) {k : ℕ} (hk : k < 159) : (vtEvs σ).getD k 0 = σ (.n (vtEvB k)) := by
   simp [vtEvs, List.getD_eq_getElem?_getD, hk]
 
 /-- **Evaluation `k`.** -/
-theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 157) :
-    LoadHolds rd (σ (.n 2609)) k (σ (.n (vtEvB k))) ∧
+theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 159) :
+    LoadHolds rd (σ (.n 2625)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
       σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)

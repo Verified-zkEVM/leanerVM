@@ -61,7 +61,7 @@ def vtPads04 : List (List ℕ) :=
     [2, 0, 0, 0, 0, 0]]
 
 def vtPads05 : List (List ℕ) :=
-  [[1, 0, 0], [4, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0],
+  [[1, 0, 0], [4, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0],
     [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0],
     [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0],
     [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0],
@@ -136,7 +136,7 @@ theorem vtPadTie15 : vtPadTieCheck (pySideC 5 .pull) vtPads05
 /-- The tables' count columns (`pyCountColumns`). -/
 def vtCountCols : List (List ℕ) :=
   [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
-    (List.range 27).map (63 + ·)]
+    (List.range 27).map (65 + ·)]
 
 /-- The count columns are zero on their table's padding row. -/
 theorem vtPadCount : (List.range 6).all (fun t ↦ (vtCountCols.getD t []).all fun l ↦

@@ -1,5 +1,5 @@
 # usage: python3 -I dump.py <lean_vm>/LeanVM/Guest/Data/Core00.lean vt_ir.txt
-# Writes verify_tables' body (namespace core11, chunks c0..c15, at 5e3ade21) one statement a line, indexed.
+# Writes verify_tables' body (namespace core11, its chunks c0, c1, …) one statement a line, indexed.
 import re, sys
 src = open(sys.argv[1]).read()
 i = src.index('namespace core11\n')
