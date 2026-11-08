@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsHtComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3965-3976` at leanVM
-  5e3ade21) is complete: its counter hinted as `BE_32(N)`'s marks and read, then the layer.
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3937-3948` at leanVM PR #724
+  head 873ee6d8) is complete: its counter hinted as `BE_32(N)`'s marks and read, then the layer.
 -/
 
 module

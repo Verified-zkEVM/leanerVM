@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundDigest
 
-  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-4052` at leanVM 5e3ade21)
+  The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4024` at leanVM PR #724 head 873ee6d8)
   is sound: `H_msg`'s two calls hash `R | PK.seed | PK.root | M | BE_32(i)`, `M` the claim's two
   message cells, and whatever bits are hinted, they are the digest's, each field's values theirs.
 -/
@@ -287,7 +287,7 @@ def sCheckA : List Stmt :=
   [cst 1277 (word 256 0 0), mulS (.n 1278) (sLVal 24) (.n 1277), addS sTreeMid (sLVal 16) (.n 1278)] ++
     sPadBits
 
-/-- `d0[0] = md0 + corr0` and `md1 + corr1` (`G:4046-4047`): the places `vals` carries taken out. -/
+/-- `d0[0] = md0 + corr0` and `md1 + corr1` (`G:4018-4019`): the places `vals` carries taken out. -/
 def sCheckCorr : List Stmt :=
   [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n 1295), cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)]
 
