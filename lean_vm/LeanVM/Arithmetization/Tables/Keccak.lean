@@ -461,17 +461,17 @@ theorem keccakRowOf_relation {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om :
   rw [hin, laneState_stateLanes]
   funext l; simp [keccakRowOf, KeccakRow.outLanes]
 
-/-- A valid execution of `KECCAK` is represented by `keccakRowOf`, with any counts: its input
-cells are canonical, so they are the cells of the lanes they hold, and its written output cells
-are the cells of Keccak-f[1600] of those lanes. -/
-theorem keccakRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
+/-- A valid execution of `KECCAK` binds `keccakRowOf`, with any counts: its input cells are
+canonical, so they are the cells of the lanes they hold, and its written output cells are the cells
+of Keccak-f[1600] of those lanes. -/
+theorem keccakRowOf_bindings {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
     {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {outCells : KeccakOutputCells}
     {next : Registers K}
     (hexec : execute mem ⟨pc, fp⟩ (.keccak om otail ob8 ocap oout inOdd outOdd outCells) =
       some next)
     (cnt : Vector K 26) (rbc : K) :
-    KeccakRefines mem (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd outCells cnt rbc)
-      next := by
+    KeccakBindings mem (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd outCells cnt rbc)
+      inOdd outOdd outCells := by
   obtain ⟨input, output, hin, hout, hcells, -⟩ :=
     (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
   have hinput : keccakInputCells mem fp om otail ob8 ocap = input := by
@@ -483,12 +483,24 @@ theorem keccakRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : 
     funext l; simp [hR, keccakRowOf, KeccakRow.outLanes, hinput]
   have hfree : R.free = freeLimb input inOdd := by
     simp [hR, keccakRowOf, hinput]
-  refine ⟨inOdd, outOdd, outCells, ⟨rfl, rfl, rfl, rfl⟩, ⟨fun c ↦ ?_, fun c hc ↦ ?_⟩, ?_⟩
+  refine ⟨fun c ↦ ?_, fun c hc ↦ ?_⟩
   · rw [hlanes, hfree, laneCells_stateOfCells hcells.1, hR, keccakRowOf_oms]
     exact hin c
   · rw [hlout, ← cellsOfState_eq_laneCells, ← hcells.2 c hc]
     exact hout c hc
-  · rw [hR, keccakRowOf_oms]; exact hexec
+
+/-- A valid execution of `KECCAK` is represented by `keccakRowOf`, with any counts
+(`keccakRowOf_bindings`); its flags are the instruction's. -/
+theorem keccakRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
+    {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {outCells : KeccakOutputCells}
+    {next : Registers K}
+    (hexec : execute mem ⟨pc, fp⟩ (.keccak om otail ob8 ocap oout inOdd outOdd outCells) =
+      some next)
+    (cnt : Vector K 26) (rbc : K) :
+    KeccakRefines mem (keccakRowOf mem pc fp om otail ob8 ocap oout inOdd outOdd outCells cnt rbc)
+      next :=
+  ⟨inOdd, outOdd, outCells, ⟨rfl, rfl, rfl, rfl⟩, keccakRowOf_bindings hexec cnt rbc, by
+    rw [keccakRowOf_oms]; exact hexec⟩
 
 /-- Every valid `KECCAK` execution has a satisfying row, from the execution alone. -/
 theorem keccak_exec_complete {data : ProverData K} {pc fp : K} {om : Fin 4 → K}
