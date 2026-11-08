@@ -33,7 +33,7 @@ theorem sizeOf_le_pow {w : ℕ} {i : Opcode → ℕ} (k : Opcode → ℕ) (hw : 
     (hi : ∀ op, i op ≤ 2 ^ k op) :
     End.sizeOf w i ≤ 4 * 2 ^ 24 + 2 ^ 19 + 15 * 2 ^ k .xor + 15 * 2 ^ k .mulNative +
       8 * 2 ^ k .setConstant + 15 * 2 ^ k .deref + 14 * 2 ^ k .jump +
-      26 * 2 ^ max (k .keccak) 9 + 2 ^ 6 * 2 ^ max (k .keccak) 9 := by
+      28 * 2 ^ max (k .keccak) 9 + 2 ^ 6 * 2 ^ max (k .keccak) 9 := by
   have hh : ∀ op, 2 ^ Nat.clog 2 (i op) ≤ 2 ^ k op := fun op ↦
     Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow (hi op))
   have hk : 2 ^ max (Nat.clog 2 (i .keccak)) 9 ≤ 2 ^ max (k .keccak) 9 :=

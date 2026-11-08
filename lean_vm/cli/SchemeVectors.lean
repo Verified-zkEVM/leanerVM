@@ -6,22 +6,23 @@ import Statement.Fast.Keccak
 /-!
 # `scheme-vectors`: EthLib's test vectors on the statement's signature schemes, compiled
 
-`lake exe scheme-vectors` runs the statement's leanSPHINCS and leanXMSS (`Statement/LeanSphincs.lean`,
-`Statement/LeanXmss.lean`, over Keccak-f[1600] in `Id`) on leanXMSS's EthLib test vectors as leanVM
-vendors them at the pin (`crates/signatures/tests/signatures/ethlib/xmss` of `../.leanvm`, the
-checkout `../leanvm-tree.sh` makes; the first argument overrides the directory) and on
-leanSPHINCS's known answer (`crates/signatures/src/lean_sphincs/known_answer.hex`, three
-directories above it; leanVM `5e3ade21` has no EthLib leanSPHINCS vectors):
+`lake exe scheme-vectors` runs the statement's leanSPHINCS and leanXMSS
+(`Statement/LeanSphincs.lean`, `Statement/LeanXmss.lean`, over Keccak-f[1600] in `Id`) on their
+EthLib test vectors as leanVM vendors them at the pin (`crates/signatures/tests/signatures/ethlib/{sphincs,xmss}` of
+`../.leanvm`, the checkout `../leanvm-tree.sh` makes; the first argument overrides the directory)
+and on leanSPHINCS's known answer (`crates/signatures/src/lean_sphincs/known_answer.hex`, three
+directories above it):
 
-* by default, leanXMSS's verification (`verify`) and its signature's leaf index
-  (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept, and
-  of the same signature with one byte flipped, which must reject;
+* by default, leanSPHINCS's and leanXMSS's verification (`verify`), leanXMSS's signature's leaf
+  index (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept,
+  and of the same signature with one byte flipped, which must reject;
 * with `--xmss-sign`, leanXMSS's key generation and signing (`key_gen`, `sign`): slow (the
   statement's hashes go through its byte and bit-vector conversions, and a key builds a tree of
   `2^16` one-time keys), so run by hand.
 
-leanSPHINCS's key generation and signing on the known answer are `lean_sphincs`'s
-`signature-kat`, which compiles the statement's signer with the `@[csimp]` restatements it needs.
+leanSPHINCS's key generation and signing (its EthLib `key_gen` and `sign` cases, and the known
+answer) are `lean_sphincs`'s `signature-kat`, which compiles the statement's signer with the
+`@[csimp]` restatements it needs.
 
 A case whose output is `null` is an input the crate rejects for its length: the statement's
 schemes take values of fixed sizes, so it is skipped. The exit code is `0` when every case passes.
@@ -63,13 +64,14 @@ def field (text : String) (key : String) : Option String :=
 /-- A leanXMSS public key: the root, then the parameter. -/
 def publicKeyOf (bytes : List Nat) : PublicKey := ⟨digestAt bytes 0, digestAt bytes 16⟩
 
-/-- A leanSPHINCS public key: `PK.seed`, then `PK.root` (`from_bytes`, `scheme.rs:38-43`). -/
+/-- A leanSPHINCS public key: `PK.seed`, then `PK.root` (`from_bytes`,
+`lean_sphincs/scheme.rs:36-41`). -/
 def sphincsPublicKeyOf (bytes : List Nat) : Sphincs.PublicKey :=
   ⟨digestAt bytes 0, digestAt bytes 16⟩
 
-/-- A leanSPHINCS signature (`from_bytes`, `scheme.rs:148-176`): the randomizer, 24 FORS openings
-of a secret and 10 path nodes, then the bottom, middle and top layers, each a 4-byte big-endian
-counter, 64 chain values and its tree's siblings. -/
+/-- A leanSPHINCS signature (`from_bytes`, `lean_sphincs/scheme.rs:146-173`): the randomizer, 24
+FORS openings of a secret and 10 path nodes, then the bottom, middle and top layers, each a 4-byte
+big-endian counter, 64 chain values and its tree's siblings. -/
 def sphincsSignatureOf (bytes : List Nat) : Sphincs.Signature :=
   let layerStart (layer : Sphincs.Layer) : Nat := 16 + 24 * 176 + 1156 * layer.val
   ⟨digestAt bytes 0,
@@ -114,15 +116,19 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     let ok := LeanXmss.verifyWithKeccak (publicKeyOf (bytes "public_key"))
       (le 256 (bytes "message")) (xmssSignatureOf (bytes "signature"))
     return if ok == (output == "true") then .pass else .fail
+  | "sphincs/verify" =>
+    let ok := Sphincs.verifyWithKeccak (sphincsPublicKeyOf (bytes "public_key"))
+      (le 256 (bytes "message")) (sphincsSignatureOf (bytes "signature"))
+    return if ok == (output == "true") then .pass else .fail
   | "xmss/signature_index" =>
     let sig := bytes "signature"
     if sig.length != 2404 then return .skip
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:394-414`; its key's
-`SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not evaluate it as
-a closed term at start-up. -/
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `lean_sphincs/scheme.rs:370-390`;
+its key's `SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not
+evaluate it as a closed term at start-up. -/
 def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=
   let b := if lineCount = 2 then 7 else 0
   le 256 ((List.range 32).map fun i => (b * i + 3) % 256)
@@ -150,7 +156,7 @@ open SchemeVectors in
 def main (args : List String) : IO UInt32 := do
   let root : System.FilePath := (args.filter (!·.startsWith "--")).headD
     "../.leanvm/crates/signatures/tests/signatures/ethlib"
-  let kinds := ["xmss/verify", "xmss/signature_index"] ++
+  let kinds := ["sphincs/verify", "xmss/verify", "xmss/signature_index"] ++
     (if args.contains "--xmss-sign" then ["xmss/key_gen", "xmss/sign"] else [])
   let mut failed := 0
   let mut passed := 0

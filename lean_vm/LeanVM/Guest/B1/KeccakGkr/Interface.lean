@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Tables.Base
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
-`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `5e3ade21`, G
-below, G:2951-3117) runs the specification's `verifyKeccak` (V:2061), then draws the first
+`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `873ee6d8`, G
+below, G:2923-3089) runs the specification's `verifyKeccak` (V:2061), then draws the first
 challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 
 | function | G | meaning |
@@ -27,7 +27,7 @@ challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 The pack rounds of a layer run in two loops (`__loop37` .. `__loop40`, `PackLoop`): eight
 equality-mode rounds an iteration, then one an iteration. The inline helpers (`carry_step`,
 `carry_wrap`, `keccak_shifts_eq`, `fold_node`, `fold_shifts`, `keccak_form`, `slice_weight`,
-`keccak_slot_lanes`, G:2566-2719, 2934-2948, TRIAGE #53-58, #62) have no core function of their
+`keccak_slot_lanes`, G:2538-2691, 2906-2920, TRIAGE #53-58, #62) have no core function of their
 own: they are lemmas of `B1/KeccakGkr/`.
 
 **Records.** A round record (`KR_*`, G:246-256) holds a sponge's capacity, a cursor, a claim
@@ -80,7 +80,7 @@ def RoundRec (rd : Reader) (rec : E) (k : ℕ) (cap : List E) (cur claim scale :
   CapAt rd rec k krCap cap ∧ LoadHolds rd rec (k + 5 * krCap) cur ∧
     LoadHolds rd rec (k + 6 * krCap) claim ∧ LoadHolds rd rec (k + 7 * krCap) scale
 
-/-- **One equality-mode round of degree two** (a pack round of `keccak_layer`, G:2793-2809): `g₁`,
+/-- **One equality-mode round of degree two** (a pack round of `keccak_layer`, G:2765-2781): `g₁`,
 `g₂` absorbed,
 the challenge `c` squeezed; with `r` the round's coordinate, the claim becomes
 `(1 + r + c)·(claim + (r + c)·g₁ + (r + c²)·g₂)` (`(1 + r + c)·polyEval message c` of
@@ -109,7 +109,7 @@ scalar `w` waiting, its rate cells `p0`, `p1`. -/
 def plainStart (k0 : ℕ) (cap : List E) (w : E) : Fs :=
   ⟨cap, if k0 = 1 then [(w, dsObserve)] else []⟩
 
-/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2906-2931;
+/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2878-2903;
 TRIAGE #61): the capacity is canonical; the `2n` stream words at the cursor are the rounds' `c₀`,
 `c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
 (`Keccak.scalarCells w dsObserve`, the scalar waiting), the rounds (`plainRun`) store their
@@ -201,7 +201,7 @@ def layerName : ℕ → String
 abbrev krStep : ℕ := 8
 
 /-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, first)`**
-(G:2722-2903; TRIAGE #60): for every reading of its arguments as the claim `c` on points of
+(G:2694-2875; TRIAGE #60): for every reading of its arguments as the claim `c` on points of
 `y = 8·⌊y/8⌋ + y % 8` coordinates (`y_g = g^y`, `step_g = g^⌊y/8⌋`, `rem_g = g^(y % 8)`) whose
 record is at `claim`, the step `step`'s `ι` term (`keccakIota`), and with `first = 1` the
 committed outputs' word `w` waiting in the sponge (rate cells `p0`, `p1`): from the carried
@@ -236,7 +236,7 @@ def keccakSeg (logSteps : ℕ) (inst output : List E) :
   return (r, m)
 
 /-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices)`**
-(G:2951-3117; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
+(G:2923-3089; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
 which `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
 coordinates) and the table's twenty-five output lane values `outs` at `output_lanes`: from the
 carried capacity, the stream words `xs` at the cursor run `keccakSeg τ (chis.take τ) outs` to the

@@ -1094,11 +1094,11 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
     machineCost P Decoder.vsPiOfNC.costIdx [encodeValue T, rdV, σV, VnV, clV] ≤
       vsPiPrice R S F C L := by
   rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
-  have := hS (.n 1687)
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1687)) 28 (by norm_num)
-  have := logGTWith_le T.lanes (σ (.n 1687)) 28
+  have := hS (.n 1695)
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1695)) 28 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n 1695)) 28
   have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
-    (logGTWith T.lanes (σ (.n 1687)) 28) (by omega)
+    (logGTWith T.lanes (σ (.n 1695)) 28) (by omega)
   unfold vsPiPrice
   omega
 

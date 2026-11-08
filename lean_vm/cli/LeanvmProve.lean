@@ -25,7 +25,7 @@ the forms of the Rust prover's fixtures, which `leanvm-verify` and the Rust veri
   little-endian: the `u32` phase count; per phase its `u32` path count; per path its `u64` position,
   its `u32` leaf length and that many `u64` words, its `u32` sibling count and that many 32-byte
   digests;
-* `lean_merkle_openings.bin`: the Python's form (`verifier.py:433-445`), every phase's openings in
+* `lean_merkle_openings.bin`: the Python's form (`verifier.py:428-440`), every phase's openings in
   order, each its position as eight little-endian bytes, its leaf's words and its siblings;
 * `lean_proof.wire`: the proof's one wire encoding, `Proof.toBytes` (`Proof::to_bytes`,
   `crates/fiat_shamir/src/wire.rs`).

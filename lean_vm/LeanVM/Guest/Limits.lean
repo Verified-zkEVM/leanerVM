@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 # The limits of the guest's completeness
 
 `NodeRelation bytecode seed s w` (`Statement/LeanVmGuest.lean`) admits witnesses on which the deployed guest
-(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `5e3ade21`, `G:N` its lines) does
+(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM PR #724 head `873ee6d8`, `G:N` its lines) does
 not run to completion. Completeness assumes two hypotheses beside `NodeRelation`, each a precise
 predicate on the witness:
 
@@ -32,8 +32,8 @@ predicate on the witness:
   cap once, so two openings of one query step meeting at a node of the tree must give it one
   digest; one tree's openings agree; two that disagree at a node give a Keccak-256 collision, an
   argument in prose, not proved here); and no zero challenge where the guest divides (the guest
-  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1428, and the basis
-  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1737, G:1742).
+  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1400, and the basis
+  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1709, G:1714).
 
 The coverage table's size (`coverageSlotsBelow2Pow16`) is the number of claims made; an honest run lays it out by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s `planSlots_eq`).
 -/

@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{5e3ade21}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{873ee6d8}}
 \date{7 November 2026}
 \begin{document}
 \maketitle
@@ -26,9 +26,9 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{5e3ade21} of its \texttt{main} branch, with pull request \#662 squash-merged
-(leanSPHINCS on FIPS 205's layout, its guest check hashing each tree node's children in place, on
-top of the proof's wire encoding).
+leanVM at commit \texttt{873ee6d8}, the head of its pull request \#724 (\texttt{KECCAK} writes
+only the output cells its bytecode requests, one, two or all thirteen, and the guest program writes
+each digest as one or two cells), on top of \texttt{main}'s \texttt{8577d1e2}.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements ($7188$ lines with their documentation), which import Mathlib,
@@ -133,7 +133,7 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
 program $P$, of size at most $14500$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $14109$ and a slack of about one leanXMSS signature's encoding), run on the encoded
+extractor's $14242$ and a slack of $258$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
 $2^{81} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
@@ -401,7 +401,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{5e3ade21}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{873ee6d8}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -409,7 +409,7 @@ $\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \em
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
-(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{verifier.py:684, 1464}), the hash of the
+(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{verifier.py:679, 1477}), the hash of the
 proof system's $9$-byte version tag and the bytecode's words as $8$-byte little-endian strings, is
 the Fiat--Shamir initial value prover and verifier derive from the bytecode; a test run by the gate
 (\texttt{lake exe node-vectors}) checks it against leanVM's \texttt{fs\_seed}.
@@ -495,7 +495,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:195-212})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
@@ -602,10 +602,10 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1130000$)
-limits any program; it is the compiled decoder's size at leanVM \texttt{5e3ade21}, $1129545$ (proved
-at most that, measured exactly; the guest's frame-cell table is $1088689$ of it), and a slack of
-$455$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $628800$)
+limits any program; it is the compiled decoder's size at leanVM \texttt{873ee6d8}, $628372$ (proved
+at most that, measured exactly; the guest's frame-cell table is $587459$ of it), and a slack of
+$428$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
 (cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its

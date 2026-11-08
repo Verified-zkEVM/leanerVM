@@ -106,16 +106,27 @@ cost_rewrite keccakRound_shared
     let f ← read (r.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
-  | .keccak om otail ob8 ocap oout inOdd outOdd => do
+  | .keccak om otail ob8 ocap oout inOdd outOdd outCells => do
     let input ← readCells read r.fp (keccakInputCellOffset om otail ob8 ocap)
-    let output ← readCells read r.fp fun c ↦ LeanVM.Parameters.g ^ c.val * oout
+    let output ← readFirstCells read r.fp (fun c ↦ LeanVM.Parameters.g ^ c.val * oout)
+      outCells.cellCount
     let s := keccakF1600 (stateOfCells input inOdd)
-    guard ((∀ c, IsCanonical128 (input c)) ∧ ∀ c, output c = cellsOfState s outOdd c)
+    guard ((∀ c, IsCanonical128 (input c)) ∧
+      ∀ c : Fin 13, outCells.cellCount ≤ c.val ∨ output c = cellsOfState s outOdd c)
     pure r.next
 
 theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : LeanIsaInstruction) :
     executeWith read r i = executeWithShared read r i := by
-  cases i <;> rfl
+  cases i with
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
+    have h : ∀ (input output : Fin 13 → E), KeccakCellsRelation input inOdd output outOdd outCells =
+        ((∀ c, IsCanonical128 (input c)) ∧ ∀ c : Fin 13, outCells.cellCount ≤ c.val ∨
+          output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c) := by
+      intro input output
+      refine propext (and_congr Iff.rfl (forall_congr' fun c ↦ ?_))
+      rw [imp_iff_not_or, Nat.not_lt]
+    simp only [executeWith, executeWithShared, h]
+  | _ => rfl
 
 cost_rewrite executeWith_shared
 

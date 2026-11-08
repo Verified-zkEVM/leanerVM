@@ -78,13 +78,27 @@ cost_rewrite decideIsCanonical128
 open LeanVM.Semantics in
 /-- The Keccak relation: its two conditions. -/
 theorem decideKeccakCells (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
-    {inst : Decidable (KeccakCellsRelation input inOdd output outOdd)} :
-    @decide (KeccakCellsRelation input inOdd output outOdd) inst =
+    (outCells : KeccakOutputCells)
+    {inst : Decidable (KeccakCellsRelation input inOdd output outOdd outCells)} :
+    @decide (KeccakCellsRelation input inOdd output outOdd outCells) inst =
       decide ((∀ c, IsCanonical128 (input c)) ∧
-        ∀ c, output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c) :=
-  decide_eq_decide.2 Iff.rfl
+        ∀ c : Fin 13, outCells.cellCount ≤ c.val ∨
+          output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c) :=
+  decide_eq_decide.2 (and_congr Iff.rfl (forall_congr' fun _ ↦ by rw [imp_iff_not_or, Nat.not_lt]))
 
 cost_rewrite decideKeccakCells
+
+open LeanVM.Semantics LeanVM.Arithmetization in
+/-- `KECCAK`'s output flags by cases on the cells written (the derived equality of
+`KeccakOutputCells` has no machine encoding). -/
+theorem keccakOutputFlagsCases (outCells : KeccakOutputCells) :
+    keccakOutputFlags outCells = match outCells with
+      | .one => (layoutFlagWord false, layoutFlagWord false)
+      | .two => (layoutFlagWord true, layoutFlagWord false)
+      | .all => (layoutFlagWord true, layoutFlagWord true) := by
+  cases outCells <;> rfl
+
+cost_rewrite keccakOutputFlagsCases
 
 /-- `kToNat`: the word's number. -/
 theorem kToNatLane (a : K) : LeanVM.Protocol.Verifier.kToNat a = (K.lane a).toNat := rfl
@@ -100,7 +114,7 @@ cost_rewrite tablesLength
 literals. -/
 
 open LeanVM.Protocol.Verifier in
-theorem tableWidthsLit : tableWidths = [15, 15, 8, 15, 14, 90] := rfl
+theorem tableWidthsLit : tableWidths = [15, 15, 8, 15, 14, 92] := rfl
 
 cost_rewrite tableWidthsLit
 
@@ -110,7 +124,7 @@ theorem globalColumnBasesLit : globalColumnBases = [6, 21, 36, 44, 59, 73] := rf
 cost_rewrite globalColumnBasesLit
 
 open LeanVM.Protocol.Verifier in
-theorem keccakOutputColumnsLit : keccakOutputColumns = (List.range 25).map (111 + ·) := rfl
+theorem keccakOutputColumnsLit : keccakOutputColumns = (List.range 25).map (113 + ·) := rfl
 
 cost_rewrite keccakOutputColumnsLit
 
@@ -119,15 +133,15 @@ theorem columnKappasLit (logMemory logBytecode : ℕ) (tableLogHeights : List �
     columnKappas logMemory logBytecode tableLogHeights =
       [logMemory, logMemory, logMemory, logMemory, logBytecode,
           tableLogHeights.getD opKeccak 0 + qkeccakSlotBits] ++
-        [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)].flatMap fun p ↦
+        [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (92, 5)].flatMap fun p ↦
           List.replicate p.1 (tableLogHeights.getD p.2 0) := rfl
 
 cost_rewrite columnKappasLit
 
 open LeanVM.Protocol.Verifier in
 theorem keccakSlotOfLit (l : ℕ) : keccakSlotOf l =
-    if 13 ≤ l ∧ l < 13 + 25 then some (l - 13)
-    else ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 63].idxOf? l).map (50 + ·) := rfl
+    if 15 ≤ l ∧ l < 15 + 25 then some (l - 15)
+    else ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].idxOf? l).map (50 + ·) := rfl
 
 cost_rewrite keccakSlotOfLit
 

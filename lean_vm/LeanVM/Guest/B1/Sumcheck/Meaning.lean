@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `5e3ade21`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `873ee6d8`, G below) its meaning
 on its argument and return words, the Fiat-Shamir sponge as the guest carries it (`Fs`,
 `B1/Common/Sponge.lean`), and `…_Spec`, the statement that its core IR relation is that meaning
 (proved as `…_holds`).
@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-! ## `sumcheck_round4` (G:1103-1119, TRIAGE #30) -/
+/-! ## `sumcheck_round4` (G:1102-1118, TRIAGE #30) -/
 
 /-- **`sumcheck_round4(rd, msg_cursor, claim)`**: the record at `rd` carries the sponge's
 capacity (canonical cells); the three stream words at the cursor are the round polynomial's
@@ -60,7 +60,7 @@ def sumcheck_round4_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "sumcheck_round4" args rets ↔ MeaningSumcheckRound4 rd args rets
 
-/-! ## `gkr_rounds` (G:1122-1145, TRIAGE #31) -/
+/-! ## `gkr_rounds` (G:1121-1144, TRIAGE #31) -/
 
 /-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
 abbrev gkrRoundsCap : ℕ := 862
@@ -98,12 +98,12 @@ def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
         LoadHolds rd rec (n + 6 * gkrRoundsCap) res.2.1
   | _, _ => False
 
-/-- `gkr_rounds__L0` (G:1127, `if const(n != 0)` false): it returns `0` and does nothing else. -/
+/-- `gkr_rounds__L0` (G:1126, `if const(n != 0)` false): it returns `0` and does nothing else. -/
 def MeaningGkrRounds0 : List E → List E → Prop
   | [_, _], rets => rets = [0]
   | _, _ => False
 
-/-- The rounds' counts with a specialization of their own, `gkr_rounds__L{n}` (G:1122-1145: the
+/-- The rounds' counts with a specialization of their own, `gkr_rounds__L{n}` (G:1121-1144: the
 odd round, and `2 r`, `r < 4`, after the loop's eight-round steps). -/
 def gkrRoundsCounts : List ℕ := [1, 2, 4, 6]
 
@@ -124,7 +124,7 @@ def gkr_rounds_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "gkr_rounds__L0" args rets ↔ MeaningGkrRounds0 args rets
 
-/-! ## `batch_sumcheck` (G:1148-1162, TRIAGE #32) -/
+/-! ## `batch_sumcheck` (G:1147-1161, TRIAGE #32) -/
 
 /-- `Node.batchRounds` on the carried sponge: per round `g(1)`, `g(∞)` absorbed, the challenge
 squeezed, the degree-2 round folded. The challenges, the final claim, the final sponge. -/

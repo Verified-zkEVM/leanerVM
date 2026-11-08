@@ -7,17 +7,18 @@ public import LeanVM.Cost.Bounds.FastPath
 
 The price of one step of the halting loop (`stepVec.c258`): the code table's lookup, the
 instruction (`executeWithShared.c260`, `executeWith` as compiled), its memory reads, each a binary
-search in the memory table (`gLogTable.c314`, `findLane.c315`), and Keccak-f for `KECCAK`.
+search in the memory table (`gLogTable.c317`, `findLane.c318`), and Keccak-f for `KECCAK`.
 
 * **`keccakRound_cost`**: one Keccak round (`keccakRoundShared.c281`) at most `13955`;
   **`keccakF_cost`**: Keccak-f[1600], `24` rounds, at most `335259` (≈ `2^18.35`);
-* `readCells_cost`: thirteen reads and offsets, `13·(O + R) + 6466`;
+* `readCells_cost`: thirteen reads and offsets, `13·(O + R) + 6466`; `readFirstCells_cost`, the
+  first `count ≤ 13` of them (`KECCAK`'s written cells), `13·(O + R) + 6640`;
 * `executeXor_cost` … `executeKeccak_cost`, **`executeWith_cost`**: one instruction with reads of
-  price at most `R`, at most `26R + 362367` (`KECCAK` the worst; `MUL` `3R + 1117`);
+  price at most `R`, at most `26R + 362900` (`KECCAK` the worst; `MUL` `3R + 1117`);
 * `findLane_cost` (`28 + 36·(log₂(hi − lo) + 1)`), `gLogTable_cost` (`81 + 36·log₂|t|`),
   `memRead_cost` (`111 + 36·log₂|memT|`), on tables of word-sized pairs (`WordTable`);
-* **`stepVec_cost`**: one step at most `365466 + 36·log₂|codeT| + 936·log₂|memT|`; at
-  `|memT| = |codeT| = 2^32`, `396570 ≈ 2^18.60`.
+* **`stepVec_cost`**: one step at most `366000 + 36·log₂|codeT| + 936·log₂|memT|`; at
+  `|memT| = |codeT| = 2^32`, `397104 ≈ 2^18.60`.
 
 Library: `listFoldl_le_sum` (a closure's price depending on the element), `bind_cost`,
 `finRangeFrom_cost` (the others: `Bounds/ListLib.lean`, `Bounds/FieldLib.lean`).
@@ -173,26 +174,26 @@ theorem WordTable.getD_fst {t : Array (ℕ × ℕ)} (ht : WordTable t) (i : ℕ)
       simp [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none (by omega : t.size ≤ i)]
     rw [this]; norm_num
 
-/-- **The binary search** (`findLane.c315`) over `[lo, hi)`: `36` per halving, `28` at most at
+/-- **The binary search** (`findLane.c318`) over `[lo, hi)`: `36` per halving, `28` at most at
 the end. -/
-theorem findLane_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.findLane.c315.costDeps)
+theorem findLane_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.findLane.c318.costDeps)
     (t : Array (ℕ × ℕ)) (ht : WordTable t) (key : ℕ) (hkey : key < 2 ^ 64) (lo hi : ℕ)
     (hlo : lo ≤ hi) (hhi : hi ≤ t.size) :
-    machineCost P Auto.LeanVM.Extraction.Fast.findLane.c315.costIdx [encodeValue t, encodeValue key, encodeValue lo, encodeValue hi] ≤
+    machineCost P Auto.LeanVM.Extraction.Fast.findLane.c318.costIdx [encodeValue t, encodeValue key, encodeValue lo, encodeValue hi] ≤
       28 + 36 * (Nat.log2 (hi - lo) + 1) := by
   have hs := ht.1
   have := le_of_halving (fun x : ℕ × ℕ ↦ x.1 ≤ x.2 ∧ x.2 ≤ t.size) (fun x ↦ x.2 - x.1)
-    (fun x ↦ machineCost P Auto.LeanVM.Extraction.Fast.findLane.c315.costIdx
+    (fun x ↦ machineCost P Auto.LeanVM.Extraction.Fast.findLane.c318.costIdx
       [encodeValue t, encodeValue key, encodeValue x.1, encodeValue x.2]) 36 28
     (fun x hx h0 ↦ by
       try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Extraction.Fast.findLane.c315.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
+      rw [Auto.LeanVM.Extraction.Fast.findLane.c318.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
         limbs_of_lt (by omega : x.2 < 2 ^ 64)]
       simp only [show ¬ x.1 < x.2 by omega, ↓reduceDIte]
       omega)
     (fun x hx hpos ↦ by
       try dsimp only at hx hpos ⊢
-      rw [Auto.LeanVM.Extraction.Fast.findLane.c315.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
+      rw [Auto.LeanVM.Extraction.Fast.findLane.c318.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
         limbs_of_lt (by omega : x.2 < 2 ^ 64), limbs_of_lt (by omega : x.1 + x.2 < 2 ^ 64),
         limbs_of_lt (ht.getD_fst _), limbs_of_lt hkey,
         limbs_of_lt (by omega : (x.1 + x.2) / 2 < 2 ^ 64),
@@ -250,55 +251,113 @@ variable (read : K → Option E) (readVal : MachineValue) (hread : ∀ a, RunsAp
   (R : ℕ) (hR : ∀ a : K, appCost P readVal [encodeValue a] ≤ R)
 
 include hread hR in
-/-- **`readCells`** (`readCells.c301`): thirteen reads and offsets (at most `R`, `O` each), the
+/-- **`readCells`** (`readCells.c309`): thirteen reads and offsets (at most `R`, `O` each), the
 cells' function rebuilt per cell: at most `13·(O + R) + 6466`. -/
-theorem readCells_cost (hP : Includes P readCells.c301.costDeps) (fp : K) (offset : Fin 13 → K)
+theorem readCells_cost (hP : Includes P readCells.c309.costDeps) (fp : K) (offset : Fin 13 → K)
     (offsetVal : MachineValue) (hoff : ∀ a, RunsApp P offsetVal [encodeValue a] (encodeValue (offset a))) (O : ℕ)
     (hO : ∀ a : Fin 13, appCost P offsetVal [encodeValue a] ≤ O) :
-    machineCost P readCells.c301.costIdx [readVal, encodeValue fp, offsetVal] ≤ 13 * (O + R) + 6466 := by
-  rw [readCells.c301.costEq P hP read readVal hread fp offset offsetVal hoff]
-  have h1 := ofFnFrom_cost P (by includes) (by norm_num) _ (.closure readCells.c301.lam1.costIdx [])
-    (fun x ↦ RunsApp.of_spec (readCells.c301.lam1.costSpec P (by includes) x)) 7
+    machineCost P readCells.c309.costIdx [readVal, encodeValue fp, offsetVal] ≤ 13 * (O + R) + 6466 := by
+  rw [readCells.c309.costEq P hP read readVal hread fp offset offsetVal hoff]
+  have h1 := ofFnFrom_cost P (by includes) (by norm_num) _ (.closure readFirstCells.c302.lam1.costIdx [])
+    (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam1.costSpec P (by includes) x)) 7
     (fun x ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [readCells.c301.lam1.costEq P (by includes)]) 0 (by omega)
+      rw [readFirstCells.c302.lam1.costEq P (by includes)]) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
   -- one cell: the inner function rebuilt
   have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
-      appCost P (.closure readCells.c301.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
+      appCost P (.closure readFirstCells.c302.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
     intro c v rest
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readCells.c301.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
+    rw [readFirstCells.c302.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
     have := ofFnFrom_cost P (by includes) (by norm_num) _
-      (.closure readCells.c301.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
-      (fun x ↦ RunsApp.of_spec (readCells.c301.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
+      (.closure readFirstCells.c302.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
+      (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
       11 (fun x ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readCells.c301.lam0.lam0.lam0.lam0.costEq P (by includes),
+        rw [readFirstCells.c302.lam0.lam0.lam0.lam0.costEq P (by includes),
           limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
         split_ifs <;> omega) 0 (by omega)
     omega
   have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
-      appCost P (.closure readCells.c301.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
+      appCost P (.closure readFirstCells.c302.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
     intro c acc v
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readCells.c301.lam0.lam0.costEq P (by includes)]
-    have := bind_cost P (by includes) _ (.closure readCells.c301.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
-      (fun x ↦ RunsApp.of_spec (readCells.c301.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
+    rw [readFirstCells.c302.lam0.lam0.costEq P (by includes)]
+    have := bind_cost P (by includes) _ (.closure readFirstCells.c302.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
+      (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
       (hin c v) acc
     omega
-  have h3 := foldr_cost P (by includes) _ (.closure readCells.c301.lam0.costIdx [readVal, encodeValue fp, offsetVal])
-    (fun x y ↦ RunsApp.of_spec (readCells.c301.lam0.costSpec P (by includes) read readVal hread fp offset
+  have h3 := foldr_cost P (by includes) _ (.closure readCells.c309.lam0.costIdx [readVal, encodeValue fp, offsetVal])
+    (fun x y ↦ RunsApp.of_spec (readCells.c309.lam0.costSpec P (by includes) read readVal hread fp offset
       offsetVal hoff x y)) (O + R + 447) (some fun _ ↦ 0) (List.finRange 13)
     (fun c _ acc ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [readCells.c301.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff]
-      have := bind_cost P (by includes) _ (.closure readCells.c301.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
-        (fun x ↦ RunsApp.of_spec (readCells.c301.lam0.lam0.costSpec P (by includes) c acc x)) 399
+      rw [readCells.c309.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff]
+      have := bind_cost P (by includes) _ (.closure readFirstCells.c302.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
+        (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.costSpec P (by includes) c acc x)) 399
         (hmid c acc) (read (fp * offset c))
       have := hO c
       have := hR (fp * offset c)
       omega)
+  rw [ofFnFrom_length]
+  simp only [List.length_finRange] at h3
+  omega
+
+include hread hR in
+/-- **`readFirstCells`** (`readFirstCells.c302`): of the thirteen cells, the first `count ≤ 13`
+read as `readCells` reads them, each test of a cell's index one more step: at most
+`13·(O + R) + 6640`. -/
+theorem readFirstCells_cost (hP : Includes P readFirstCells.c302.costDeps) (fp : K) (offset : Fin 13 → K)
+    (offsetVal : MachineValue) (hoff : ∀ a, RunsApp P offsetVal [encodeValue a] (encodeValue (offset a))) (O : ℕ)
+    (hO : ∀ a : Fin 13, appCost P offsetVal [encodeValue a] ≤ O) (count : ℕ) (hcount : count ≤ 13) :
+    machineCost P readFirstCells.c302.costIdx [readVal, encodeValue fp, offsetVal, encodeValue count] ≤
+      13 * (O + R) + 6640 := by
+  rw [readFirstCells.c302.costEq P hP read readVal hread fp offset offsetVal hoff]
+  have h1 := ofFnFrom_cost P (by includes) (by norm_num) _ (.closure readFirstCells.c302.lam1.costIdx [])
+    (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam1.costSpec P (by includes) x)) 7
+    (fun x ↦ by
+      simp only [appCost_fn, List.nil_append, List.length_nil]
+      rw [readFirstCells.c302.lam1.costEq P (by includes)]) 0 (by omega)
+  have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
+  -- one cell: the inner function rebuilt
+  have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
+      appCost P (.closure readFirstCells.c302.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
+    intro c v rest
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+    rw [readFirstCells.c302.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
+    have := ofFnFrom_cost P (by includes) (by norm_num) _
+      (.closure readFirstCells.c302.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
+      (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
+      11 (fun x ↦ by
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+        rw [readFirstCells.c302.lam0.lam0.lam0.lam0.costEq P (by includes),
+          limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
+        split_ifs <;> omega) 0 (by omega)
+    omega
+  have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
+      appCost P (.closure readFirstCells.c302.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
+    intro c acc v
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+    rw [readFirstCells.c302.lam0.lam0.costEq P (by includes)]
+    have := bind_cost P (by includes) _ (.closure readFirstCells.c302.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
+      (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
+      (hin c v) acc
+    omega
+  have h3 := foldr_cost P (by includes) _
+    (.closure readFirstCells.c302.lam0.costIdx [readVal, encodeValue fp, offsetVal, encodeValue count])
+    (fun x y ↦ RunsApp.of_spec (readFirstCells.c302.lam0.costSpec P (by includes) read readVal hread fp
+      offset offsetVal hoff count x y)) (O + R + 460) (some fun _ ↦ 0) (List.finRange 13)
+    (fun c _ acc ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [readFirstCells.c302.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff,
+        limbs_of_lt (by have := c.isLt; omega), limbs_of_lt (by omega : count < 2 ^ 64)]
+      have := bind_cost P (by includes) _ (.closure readFirstCells.c302.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
+        (fun x ↦ RunsApp.of_spec (readFirstCells.c302.lam0.lam0.costSpec P (by includes) c acc x)) 399
+        (hmid c acc) (read (fp * offset c))
+      have := hO c
+      have := hR (fp * offset c)
+      split_ifs <;> omega)
   rw [ofFnFrom_length]
   simp only [List.length_finRange] at h3
   omega
@@ -318,10 +377,10 @@ theorem cellLanes_cost (hP : Includes P cellLanes.c292.costDeps) (odd : Bool) (c
   simp only [max_self]
   split_ifs <;> omega
 
-/-- A cell of a state (`cellsOfState.c300`): at most `87`. -/
-theorem cellsOfState_cost (hP : Includes P cellsOfState.c300.costDeps) (s : KeccakState) (odd : Bool)
-    (c : Fin 13) : machineCost P cellsOfState.c300.costIdx [encodeValue s, encodeValue odd, encodeValue c] ≤ 87 := by
-  rw [cellsOfState.c300.costEq P hP]
+/-- A cell of a state (`cellsOfState.c301`): at most `87`. -/
+theorem cellsOfState_cost (hP : Includes P cellsOfState.c301.costDeps) (s : KeccakState) (odd : Bool)
+    (c : Fin 13) : machineCost P cellsOfState.c301.costIdx [encodeValue s, encodeValue odd, encodeValue c] ≤ 87 := by
+  rw [cellsOfState.c301.costEq P hP]
   have := cellLanes_cost P (by includes) odd c c.isLt
   generalize (cellLanes odd ↑c).1 = o1
   generalize (cellLanes odd ↑c).2 = o2
@@ -597,12 +656,23 @@ theorem executeJump_cost (hP : Includes P executeWithShared.c260.costDeps) (r : 
   have := hR (r.fp * oc)
   omega
 
+/-- `KeccakOutputCells.cellCount` (`cellCount.c300`): `3`. -/
+theorem cellCount_cost (hP : Includes P KeccakOutputCells.cellCount.c300.costDeps)
+    (outCells : KeccakOutputCells) :
+    machineCost P KeccakOutputCells.cellCount.c300.costIdx [encodeValue outCells] = 3 := by
+  rw [KeccakOutputCells.cellCount.c300.costEq P hP]
+  cases outCells <;> rfl
+
+theorem cellCount_le (outCells : KeccakOutputCells) : outCells.cellCount ≤ 13 := by
+  cases outCells <;> decide
+
 /-- The Keccak check after the reads (`lam5.lam0`): the state of the input cells, Keccak-f once,
-the two `∀ c` over the thirteen cells: at most `342330`. -/
+the two `∀ c` over the thirteen cells: at most `342500`. -/
 theorem keccakCheck_cost (hP : Includes P executeWithShared.c260.costDeps) (inOdd outOdd : Bool)
-    (r : Registers K) (input output : Fin 13 → E) :
+    (outCells : KeccakOutputCells) (r : Registers K) (input output : Fin 13 → E) :
     machineCost P executeWithShared.c260.lam5.lam0.costIdx
-      [encodeValue inOdd, encodeValue outOdd, encodeValue r, encodeValue input, encodeValue output] ≤ 342330 := by
+      [encodeValue inOdd, encodeValue outOdd, encodeValue outCells, encodeValue r, encodeValue input,
+        encodeValue output] ≤ 342500 := by
   rw [executeWithShared.c260.lam5.lam0.costEq P (by includes)]
   have hst := stateOfCells_cost P (by includes) input
     (.closure executeWithShared.c260.lam5.lam0.lam1.costIdx [encodeValue input])
@@ -627,12 +697,15 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.c260.costDeps) (inOd
       rw [executeWithShared.c260.lam5.lam0.lam2.costEq P (by includes)])
   have ha2 := all_cost P (by includes) _
     (.closure executeWithShared.c260.lam5.lam0.lam4.costIdx
-      [encodeValue outOdd, encodeValue output, encodeValue (keccakF1600 (stateOfCells input inOdd))])
+      [encodeValue outOdd, encodeValue outCells, encodeValue output,
+        encodeValue (keccakF1600 (stateOfCells input inOdd))])
     (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam5.lam0.lam4.costSpec P (by includes) outOdd
-      output _ a)) 299 (Array.ofFn (id : Fin 13 → Fin 13)).toList
+      outCells output _ a)) 310 (Array.ofFn (id : Fin 13 → Fin 13)).toList
     (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.c260.lam5.lam0.lam4.costEq P (by includes)]
+      rw [executeWithShared.c260.lam5.lam0.lam4.costEq P (by includes),
+        cellCount_cost P (by includes), limbs_of_lt (by have := cellCount_le outCells; omega),
+        limbs_of_lt (by have := a.isLt; omega)]
       have := cellsOfState_cost P (by includes) (keccakF1600 (stateOfCells input inOdd)) outOdd a
       split_ifs <;> omega)
   rw [hlen] at ha1 ha2
@@ -642,30 +715,33 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.c260.costDeps) (inOd
   split_ifs <;> omega
 
 include hread hR in
-/-- After the input cells (`lam5`): the thirteen output cells read at offsets `g^c·o` (at most
-`331` each), then the check: at most `13R + 353126`. -/
+/-- After the input cells (`lam5`): the first `outCells.cellCount` output cells read at offsets
+`g^c·o` (at most `331` each), then the check: at most `13R + 353600`. -/
 theorem keccakOutput_cost (hP : Includes P executeWithShared.c260.costDeps) (oout : K)
-    (inOdd outOdd : Bool) (r : Registers K) (input : Fin 13 → E) :
+    (inOdd outOdd : Bool) (outCells : KeccakOutputCells) (r : Registers K) (input : Fin 13 → E) :
     machineCost P executeWithShared.c260.lam5.costIdx
-      [encodeValue oout, encodeValue inOdd, encodeValue outOdd, readVal, encodeValue r, encodeValue input] ≤ 13 * R + 353126 := by
-  rw [executeWithShared.c260.lam5.costEq P (by includes) oout inOdd outOdd read readVal hread]
-  have h1 := readCells_cost P read readVal hread R hR (by includes) r.fp _
+      [encodeValue oout, encodeValue inOdd, encodeValue outOdd, encodeValue outCells, readVal,
+        encodeValue r, encodeValue input] ≤ 13 * R + 353600 := by
+  rw [executeWithShared.c260.lam5.costEq P (by includes) oout inOdd outOdd outCells read readVal hread,
+    cellCount_cost P (by includes)]
+  have h1 := readFirstCells_cost P read readVal hread R hR (by includes) r.fp _
     (.closure executeWithShared.c260.lam5.lam1.costIdx [encodeValue oout])
     (fun c ↦ RunsApp.of_spec (executeWithShared.c260.lam5.lam1.costSpec P (by includes) oout c)) 331
     (fun c ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [executeWithShared.c260.lam5.lam1.costEq P (by includes)]
       have := powSq_cost_le' P (by includes) LeanVM.Parameters.g c (by have := c.isLt; omega)
-      omega)
+      omega) outCells.cellCount (cellCount_le outCells)
   have h2 := bind_cost P (by includes) _
-    (.closure executeWithShared.c260.lam5.lam0.costIdx [encodeValue inOdd, encodeValue outOdd, encodeValue r, encodeValue input])
+    (.closure executeWithShared.c260.lam5.lam0.costIdx
+      [encodeValue inOdd, encodeValue outOdd, encodeValue outCells, encodeValue r, encodeValue input])
     (fun output ↦ RunsApp.of_spec
-    (executeWithShared.c260.lam5.lam0.costSpec P (by includes) inOdd outOdd r input output)) 342334
+    (executeWithShared.c260.lam5.lam0.costSpec P (by includes) inOdd outOdd outCells r input output)) 342505
     (fun output ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      have := keccakCheck_cost P hP inOdd outOdd r input output
+      have := keccakCheck_cost P hP inOdd outOdd outCells r input output
       omega)
-    (readCells read r.fp fun c ↦ LeanVM.Parameters.g ^ c.val * oout)
+    (readFirstCells read r.fp (fun c ↦ LeanVM.Parameters.g ^ c.val * oout) outCells.cellCount)
   omega
 
 /-- The input cells' offsets (`keccakInOffset.c309` through `lam6`): at most `206`. -/
@@ -674,7 +750,7 @@ theorem keccakInOffset_cost (hP : Includes P executeWithShared.c260.costDeps) (o
     machineCost P executeWithShared.c260.lam6.costIdx [encodeValue om, encodeValue otail, encodeValue ob8, encodeValue ocap, encodeValue c] ≤
       206 := by
   rw [executeWithShared.c260.lam6.costEq P (by includes),
-    keccakInputCellOffset.c309.costEq P (by includes) om _
+    keccakInputCellOffset.c312.costEq P (by includes) om _
       (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam6.lam0.costSpec P (by includes) om a))]
   have hc := c.isLt
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil,
@@ -689,11 +765,13 @@ theorem keccakInOffset_cost (hP : Includes P executeWithShared.c260.costDeps) (o
     omega
 
 include hread hR in
-/-- `KECCAK`: twenty-six reads, Keccak-f once: at most `26R + 362367`. -/
+/-- `KECCAK`: at most twenty-six reads, Keccak-f once: at most `26R + 362900`. -/
 theorem executeKeccak_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
-    (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool) :
+    (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (outCells : KeccakOutputCells) :
     machineCost P executeWithShared.c260.costIdx
-      [readVal, encodeValue r, encodeValue (LeanIsaInstruction.keccak om otail ob8 ocap oout inOdd outOdd)] ≤ 26 * R + 362367 := by
+      [readVal, encodeValue r,
+        encodeValue (LeanIsaInstruction.keccak om otail ob8 ocap oout inOdd outOdd outCells)] ≤
+      26 * R + 362900 := by
   rw [executeWithShared.c260.costEq_keccak P hP read readVal hread]
   have h1 := readCells_cost P read readVal hread R hR (by includes) r.fp _
     (.closure executeWithShared.c260.lam6.costIdx [encodeValue om, encodeValue otail, encodeValue ob8, encodeValue ocap])
@@ -703,31 +781,33 @@ theorem executeKeccak_cost (hP : Includes P executeWithShared.c260.costDeps) (r 
       have := keccakInOffset_cost P hP om otail ob8 ocap c
       omega)
   have h2 := bind_cost P (by includes) _
-    (.closure executeWithShared.c260.lam5.costIdx [encodeValue oout, encodeValue inOdd, encodeValue outOdd, readVal, encodeValue r])
+    (.closure executeWithShared.c260.lam5.costIdx
+      [encodeValue oout, encodeValue inOdd, encodeValue outOdd, encodeValue outCells, readVal, encodeValue r])
     (fun input ↦ RunsApp.of_spec
-    (executeWithShared.c260.lam5.costSpec P (by includes) oout inOdd outOdd read readVal hread r input))
-    (13 * R + 353131)
+    (executeWithShared.c260.lam5.costSpec P (by includes) oout inOdd outOdd outCells read readVal hread r
+      input))
+    (13 * R + 353607)
     (fun input ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      have := keccakOutput_cost P read readVal hread R hR hP oout inOdd outOdd r input
+      have := keccakOutput_cost P read readVal hread R hR hP oout inOdd outOdd outCells r input
       omega)
     (readCells read r.fp (keccakInputCellOffset om otail ob8 ocap))
   omega
 
 include hread hR in
 /-- **One instruction** (`executeWithShared.c260`, `executeWith` as compiled), each read at most
-`R`: at most `26R + 362367` (`KECCAK` the worst). -/
+`R`: at most `26R + 362900` (`KECCAK` the worst). -/
 theorem executeWith_cost (hP : Includes P executeWithShared.c260.costDeps) (r : Registers K)
     (i : LeanIsaInstruction) :
-    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue i] ≤ 26 * R + 362367 := by
+    machineCost P executeWithShared.c260.costIdx [readVal, encodeValue r, encodeValue i] ≤ 26 * R + 362900 := by
   cases i with
   | xor oA oB oC => have := executeXor_cost P read readVal hread R hR hP r oA oB oC; omega
   | mulNative oA oB oC => have := executeMul_cost P read readVal hread R hR hP r oA oB oC; omega
   | setConstant o k => have := executeSet_cost P read readVal hread R hR hP r o k; omega
   | deref o1 o2 o3 mode => have := executeDeref_cost P read readVal hread R hR hP r o1 o2 o3 mode; omega
   | jump oc od of => have := executeJump_cost P read readVal hread R hR hP r oc od of; omega
-  | keccak om otail ob8 ocap oout inOdd outOdd =>
-    exact executeKeccak_cost P read readVal hread R hR hP r om otail ob8 ocap oout inOdd outOdd
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
+    exact executeKeccak_cost P read readVal hread R hR hP r om otail ob8 ocap oout inOdd outOdd outCells
 
 end Execute
 
@@ -736,12 +816,12 @@ end Execute
 section Step
 open Auto.LeanVM.Extraction.Fast
 
-/-- **An address lookup** (`gLogTable.c314`): a binary search over the table, at most
+/-- **An address lookup** (`gLogTable.c317`): a binary search over the table, at most
 `81 + 36·log₂|t|`. -/
-theorem gLogTable_cost (hP : Includes P gLogTable.c314.costDeps) (t : Array (ℕ × ℕ)) (ht : WordTable t)
+theorem gLogTable_cost (hP : Includes P gLogTable.c317.costDeps) (t : Array (ℕ × ℕ)) (ht : WordTable t)
     (κ : ℕ) (hκ : κ < 64) (a : K) :
-    machineCost P gLogTable.c314.costIdx [encodeValue t, encodeValue κ, encodeValue a] ≤ 81 + 36 * Nat.log2 t.size := by
-  rw [gLogTable.c314.costEq P hP]
+    machineCost P gLogTable.c317.costIdx [encodeValue t, encodeValue κ, encodeValue a] ≤ 81 + 36 * Nat.log2 t.size := by
+  rw [gLogTable.c317.costEq P hP]
   have hkey : a.lane.toNat < 2 ^ 64 := UInt64.toNat_lt _
   have := findLane_cost P (by includes) t ht _ hkey 0 t.size (by omega) le_rfl
   rw [Nat.sub_zero] at this
@@ -767,18 +847,18 @@ theorem memRead_cost (hP : Includes P stepVec.c258.lam0.lam0.costDeps) (memT : A
     (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [stepVec.c258.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c313.costEq P (by includes)]
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c316.costEq P (by includes)]
       omega)
   omega
 
 /-- **One step** (`stepVec.c258`): the code table's lookup, the instruction, its reads (each a
-lookup in the memory table): at most `365466 + 36·log₂|codeT| + 936·log₂|memT|`. -/
+lookup in the memory table): at most `366000 + 36·log₂|codeT| + 936·log₂|memT|`. -/
 theorem stepVec_cost (hP : Includes P stepVec.c258.costDeps) (memT codeT : Array (ℕ × ℕ))
     (hm : WordTable memT) (hc : WordTable codeT) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (hκ :
         κ < 64)
     (mem : Vector E (2 ^ κ)) (r : Registers K) :
     machineCost P stepVec.c258.costIdx [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem, encodeValue r] ≤
-      365466 + 36 * Nat.log2 codeT.size + 936 * Nat.log2 memT.size := by
+      366000 + 36 * Nat.log2 codeT.size + 936 * Nat.log2 memT.size := by
   rw [stepVec.c258.costEq P hP]
   have hls : prog.logSize < 64 := by have := prog.logSize_le; unfold maxLogBytecode at this; omega
   have h1 := gLogTable_cost P (by includes) codeT hc prog.logSize hls r.pc
@@ -789,7 +869,7 @@ theorem stepVec_cost (hP : Includes P stepVec.c258.costDeps) (memT codeT : Array
       rw [stepVec.c258.lam1.costEq P (by includes)])
   have h3 := bind_cost P (by includes) _ (.closure stepVec.c258.lam0.costIdx [encodeValue memT, encodeValue κ, encodeValue mem, encodeValue r])
     (fun i ↦ RunsApp.of_spec (stepVec.c258.lam0.costSpec P (by includes) memT mem r i))
-    (26 * (114 + 36 * Nat.log2 memT.size) + 362381)
+    (26 * (114 + 36 * Nat.log2 memT.size) + 362914)
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [stepVec.c258.lam0.costEq P (by includes)]

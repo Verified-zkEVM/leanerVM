@@ -29,7 +29,7 @@ there is a valid execution of the guest on the statement's digest whose committe
 honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
 here: the memory's four committed columns alone stack `2^22` cells, `placementsOf`), and
 completeness chains (the memory padded to `2^20` words at least, `padLog`, `Guest/Pad.lean`;
-leanVM grows the `SET` table instead, `aggregation/node.rs:320-324`). The three hypotheses are `Guest/Limits.lean`'s; the budget
+leanVM grows the `SET` table instead, `aggregation/node.rs:321-325`). The three hypotheses are `Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
 linear in the node's work (`Budget`: the words a run allocates and the instructions of each
 opcode it executes, each a constant plus a coefficient per declared claim, coverage slot, raw
@@ -112,7 +112,7 @@ def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (instrs .keccak)) 9
   4 * 2 ^ padLog words + 2 ^ guestProgram.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
-    14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
+    14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- The committed size of a run within the budget at the work `u`. -/
 def Budget.size (b : Budget) (u : Work) : ℕ := sizeOf (b.words.eval u) fun op ↦ (b.instrs op).eval u

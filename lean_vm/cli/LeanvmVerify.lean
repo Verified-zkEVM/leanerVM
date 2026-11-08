@@ -22,7 +22,7 @@ verifier on mutated proofs.
 * `lake exe leanvm-verify --flat <bytecode> <public input> <stream> <merkle openings>`:
   `LeanVM.Protocol.Verifier.verifyFiles`, the Lean transcription of `python-verifier/verifier.py`,
   on the Python's four files (`merkle_openings.bin`: every opening, its eight-byte position, its
-  leaf and its siblings, `verifier.py:433-445`).
+  leaf and its siblings, `verifier.py:428-440`).
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier

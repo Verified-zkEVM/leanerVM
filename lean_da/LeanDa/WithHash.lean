@@ -35,7 +35,7 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 /-! ## The challenge's sponge as the proofs read it
 
 `lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:26-74` at
-leanVM `5e3ade21`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
+leanVM PR #724 head `873ee6d8`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
 symbols of its bytes. The challenge needs only the sponge's seeding and one sample: the root is
 its public input, and no scalar is observed. The statement draws the challenge with the leanVM
 verifier's sponge (`Field.lean`'s `Sponge`, `seedInput`, `squeeze`);
@@ -173,7 +173,7 @@ def listBlobRootWithHash (row : List K) : DigestBytes :=
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap K.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs:66-74`). -/
+(`padding_root`, `commit.rs:70-78`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
@@ -186,7 +186,7 @@ def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
 end Pure
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
-`commit.rs:48-121`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
+`commit.rs:52-125`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
 fast. -/

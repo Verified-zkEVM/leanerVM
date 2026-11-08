@@ -24,7 +24,7 @@ the same words, so it steps to the same registers and executes the same instruct
 execution (`validExecution_pad`) of the same counts, its committed size the original's but for
 the memory's `4 · 2^κ'` cells (`committedSize_pad`). The aggregation guest pads its runs to a
 committed size of at least `2^22` this way, so its proofs have a stack log at least `MU_MIN`,
-the least the guest has an opening arm for (`aggregation/node.rs:320-324` grows the `SET` table
+the least the guest has an opening arm for (`aggregation/node.rs:321-325` grows the `SET` table
 instead; the committed size is what both secure).
 -/
 
@@ -57,6 +57,12 @@ theorem readCells_ext {read read' : K → Option E} (h : ReadExt read read') (fp
   (readCells_eq_some_iff read' fp offset x).mpr fun c ↦
     h _ _ ((readCells_eq_some_iff read fp offset x).mp hx c)
 
+theorem readFirstCells_ext {read read' : K → Option E} (h : ReadExt read read') (fp : K)
+    (offset : Fin 13 → K) (n : ℕ) {x : Fin 13 → E} (hx : readFirstCells read fp offset n = some x) :
+    readFirstCells read' fp offset n = some x := by
+  obtain ⟨hr, hz⟩ := (readFirstCells_eq_some_iff read fp offset n x).mp hx
+  exact (readFirstCells_eq_some_iff read' fp offset n x).mpr ⟨fun c hc ↦ h _ _ (hr c hc), hz⟩
+
 /-- **An instruction executes alike on an extending reader.** -/
 theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (r : Registers K)
     (ins : LeanIsaInstruction) {r' : Registers K} (hx : executeWith read r ins = some r') :
@@ -82,10 +88,10 @@ theorem executeWith_ext {read read' : K → Option E} (h : ReadExt read read') (
     simp only [executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at hx ⊢
     obtain ⟨c, hc, d, hd, f, hf, rest⟩ := hx
     exact ⟨c, h _ _ hc, d, h _ _ hd, f, h _ _ hf, rest⟩
-  | keccak om otail ob8 ocap oout inOdd outOdd =>
+  | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     simp only [executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at hx ⊢
     obtain ⟨i, hi, o, ho, rest⟩ := hx
-    exact ⟨i, readCells_ext h _ _ hi, o, readCells_ext h _ _ ho, rest⟩
+    exact ⟨i, readCells_ext h _ _ hi, o, readFirstCells_ext h _ _ _ ho, rest⟩
 
 variable {prog : LeanIsaProgram} {κ κ' : ℕ} {L : MemoryImage κ} {L' : MemoryImage κ'}
 

@@ -16,7 +16,7 @@ priced in `Bounds/Step.lean`'s `stepVec_cost`), not compiled again.
   fuel at most `2^128`, three limbs): `(S + 46)·|states|`;
 * **`replayStatesOf_cost`**: on the address tables `powTable κ`, `powTable ℓ` (`κ ≤ 62`, `ℓ` the
   bytecode's `logSize`), at most `(runnerStepPrice κ ℓ + 46)·|states| + 2456`, `runnerStepPrice κ
-  ℓ = 365466 + 36ℓ + 936κ` (`Cost/Prices.lean`) and `2456` the final registers (a
+  ℓ = 366000 + 36ℓ + 936κ` (`Cost/Prices.lean`) and `2456` the final registers (a
   power of `g`), the fuel and the initial registers, once. On a valid execution of `T` steps
   `|states| = T + 1` (the replay stops at the final state, `T < replayFuel`,
   `Located.steps_lt_replayFuel`).

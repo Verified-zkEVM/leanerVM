@@ -69,7 +69,7 @@ def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/
 def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  let m := logGT (σ (.n 1687)) 28
+  let m := logGT (σ (.n 1695)) 28
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 656))) ++
       readN rd (fr (.n 8)) (osWordsTab.getD m 0),
@@ -140,10 +140,10 @@ theorem map_zip_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
 
 theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
     vsPiOfN rd σ (fun k ↦ Fm (decoderFunctionName k)) cursorLen = vsPiOf rd σ Fm := by
-  have hm := logG_lt (σ (.n 1687)) (bound := 28) (by norm_num)
+  have hm := logG_lt (σ (.n 1695)) (bound := 28) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at hm
-  have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1687)) 28)) =
-      openNames.getD (logGT (σ (.n 1687)) 28) "" := by
+  have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1695)) 28)) =
+      openNames.getD (logGT (σ (.n 1695)) 28) "" := by
     rw [openNames_eq, getD_map_range hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hm
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
@@ -374,7 +374,7 @@ def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E
 
 /-- **The child proof `verify_sub` checks, off the tables `T`** (`vsPiOfN`). -/
 def vsPiOfA (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  vsPiOfM T rd σ Vn cl (logGTWith T.lanes (σ (.n 1687)) 28)
+  vsPiOfM T rd σ Vn cl (logGTWith T.lanes (σ (.n 1695)) 28)
 
 /-- **Off the tables built, the reader is `vsPiOfN`.** -/
 theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) :

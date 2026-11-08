@@ -4,7 +4,7 @@ import FORS.Crate
 /-!
 # The crate's key generation and signer: FORS's copy is the statement's
 
-`FORS/Crate.lean` writes the crate's `key_gen_from_seed` and `sign` (leanVM `5e3ade21`,
+`FORS/Crate.lean` writes the crate's `key_gen_from_seed` and `sign` (leanVM PR #724 head `873ee6d8`,
 `crates/signatures/src/lean_sphincs/scheme.rs`) in FORS's primitives and types, function for
 function as `Statement/LeanSphincs.lean` transcribes them (`KeyGenerationAndSigning`). Here, their
 queries answered by Keccak-256 over `π` (`schemeHashOverPermutation`), they are the statement's

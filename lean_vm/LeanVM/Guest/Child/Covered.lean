@@ -71,7 +71,7 @@ theorem size_le_of (u : End.Work) (k : Opcode → ℕ)
     (hi : ∀ op, (Count.deployedInstrs op).eval u ≤ 2 ^ k op)
     (hk : 4 * 2 ^ 24 + 2 ^ 19 + 15 * 2 ^ k .xor + 15 * 2 ^ k .mulNative +
       8 * 2 ^ k .setConstant + 15 * 2 ^ k .deref + 14 * 2 ^ k .jump +
-      26 * 2 ^ max (k .keccak) 9 + 2 ^ 6 * 2 ^ max (k .keccak) 9 ≤ 2 ^ 28) :
+      28 * 2 ^ max (k .keccak) 9 + 2 ^ 6 * 2 ^ max (k .keccak) 9 ≤ 2 ^ 28) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
   unfold End.Budget.size
   rw [Count.deployedBudget_words]

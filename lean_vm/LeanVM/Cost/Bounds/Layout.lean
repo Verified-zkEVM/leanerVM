@@ -15,9 +15,9 @@ layout `afterRootLite` returns:
 
 * `stackOffsets_le`: blocks of log-size at most `s`: every offset at most `2^s·n`, `n` blocks
   (the running total; `stackOffsets_bounds`' `2^63` was the word room left for the sum);
-* `placementsOf_index_lt`: at most `163` columns of log-size at most `40` (`columnKappas`: `32`
+* `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `32`
   but `q_keccak`'s `38`): every placement's offset below `2^48`: a block's offset is at most
-  `163·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
+  `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
 * **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
   stack's log-size in `[15, 28]` and the rate's in `[1, 4]`;
 * **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
@@ -76,16 +76,16 @@ theorem stackOffsets_le (sizes : List ℕ) (s : ℕ) (hs : ∀ x ∈ sizes, x �
   simp only [List.length_mergeSort, List.length_range, Nat.zero_add] at h2
   omega
 
-/-- **The placements' offsets**: at most `163` columns of log-size at most `40`: every placement's
+/-- **The placements' offsets**: at most `165` columns of log-size at most `40`: every placement's
 offset below `2^48`. -/
-theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 163)
+theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
     (hk : ∀ x ∈ kappas, x ≤ 40) :
     ∀ o ∈ (placementsOf kappas).1, ∀ p : Placement, o = some p → p.index < 2 ^ 48 := by
   unfold placementsOf
   dsimp only
   set cols := (List.range kappas.length).filter fun c ↦
     decide ((keccakSlot c).isNone = true ∧ c ∉ keccakOutputColumns)
-  have hcl : cols.length ≤ 163 := (List.length_filter_le _ _).trans (by simp; omega)
+  have hcl : cols.length ≤ 165 := (List.length_filter_le _ _).trans (by simp; omega)
   have hoff := stackOffsets_le (cols.map (kappas.getD · 0)) 40 (fun x hx ↦ by
     obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
     rcases getD_mem_or kappas i 0 with h | h
@@ -94,8 +94,8 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 163)
   generalize stackOffsets (cols.map (kappas.getD · 0)) = so at hoff
   obtain ⟨offs, tl⟩ := so
   simp only [List.length_map] at hoff
-  have hT : 2 ^ 40 * cols.length ≤ 163 * 2 ^ 40 := by omega
-  have hget : ∀ c, offs.getD (cols.idxOf c) 0 ≤ 163 * 2 ^ 40 := fun c ↦ by
+  have hT : 2 ^ 40 * cols.length ≤ 165 * 2 ^ 40 := by omega
+  have hget : ∀ c, offs.getD (cols.idxOf c) 0 ≤ 165 * 2 ^ 40 := fun c ↦ by
     rcases getD_mem_or offs (cols.idxOf c) 0 with h | h
     · have := hoff _ h; omega
     · rw [h]; omega
