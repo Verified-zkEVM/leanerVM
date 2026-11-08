@@ -7,7 +7,7 @@ Six tables of log-heights `2, 1, 0, 3, 2, 1` (so three rounds), pseudo-random co
 and degree-two forms. The round messages are consistent (each round's values at `0` and `1` sum to
 the previous round's value at its challenge), the first round's sum is the summand summed over the
 cube, the last round's value at its challenge is the terminal value the verifier computes from the
-final evaluations, and the evaluations sent are the `157` columns'.
+final evaluations, and the evaluations sent are the `159` columns'.
 -/
 
 namespace LeanVMTests.Prover.Table
@@ -26,7 +26,7 @@ def el (n : ℕ) : E :=
   E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5)) (K.ofBits (n + 77))
 
 /-- Every global column, `2^τ_t` pseudo-random cells. -/
-def cols : Array (Array K) := Array.ofFn (n := 163) fun c ↦
+def cols : Array (Array K) := Array.ofFn (n := 165) fun c ↦
   Array.ofFn (n := 2 ^ logs.getD (tableOf c.val) 0) fun j ↦
     K.ofBits (c.val * 1000003 + j.val * 7919 + 17)
 
@@ -79,7 +79,7 @@ def terminal : E :=
 #guard polyEval (round (st 1)) 0 + polyEval (round (st 1)) 1 == polyEval (round (st 0)) (chal 0)
 #guard polyEval (round (st 2)) 0 + polyEval (round (st 2)) 1 == polyEval (round (st 1)) (chal 1)
 #guard polyEval (round (st 2)) (chal 2) == terminal
-#guard (tableEvals (st 3)).length == 157
+#guard (tableEvals (st 3)).length == 159
 #guard (st 3).free == 0
 
 end LeanVMTests.Prover.Table

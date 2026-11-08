@@ -425,11 +425,11 @@ example (next : Registers K) : ¬ DerefSpec invalidDeref next tabData := by
 this counter or any other and over any data. -/
 example (pc : K) (data : ProverData K) :
     ¬ BytecodePull.Guarantees ⟨pc, 1, Opcode.deref.busCode, #v[addressOfIndex 7, 1, addressOfIndex
-        9, 1, 1, 0, 0, 0, 0, 0]⟩
+        9, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩
       data := by
   rintro ⟨ins, hdec⟩
   have h : decode (#v[Opcode.deref.busCode] ++ #v[addressOfIndex 7, 1, addressOfIndex 9, 1, 1, 0, 0,
-      0, 0, 0]) = none := by
+      0, 0, 0, 0, 0]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 
@@ -558,10 +558,11 @@ def kMemOf (L : Vector K 25) : Array (Vector K 3) :=
 def kMem : Array (Vector K 3) := kMemOf kLout
 
 /-- The honest `KECCAK` row at `pc = g^5`, `fp = 1`: `m = [2, 3, 2, 3]`, `tail = 4`, `b8 = 8`,
-`cap = 9`, `out = 13`, even in, odd out, the free limb `0x5555`, every count `1`. -/
+`cap = 9`, `out = 13`, even in, odd out, all thirteen output cells written, the free limb
+`0x5555`, every count `1`. -/
 def keccakRow : KeccakRow K :=
   ⟨addressOfIndex 5, 1, #v[addressOfIndex 2, addressOfIndex 3, addressOfIndex 2, addressOfIndex 3],
-      addressOfIndex 4, addressOfIndex 8, addressOfIndex 9, addressOfIndex 13, 0, 1,
+      addressOfIndex 4, addressOfIndex 8, addressOfIndex 9, addressOfIndex 13, 0, 1, 1, 1,
     K.ofBits 0x5555, kLin, kLout, Vector.replicate 26 1, 1⟩
 
 /-- The word at `g^k` of a thirty-two-word image, as a value `e` of its limbs. -/
@@ -585,8 +586,8 @@ theorem keccakRow_outOffset : ∀ c : Fin 13,
   decide +kernel
 
 /-- The honest row is bound to the image. -/
-theorem keccak_bindings : KeccakBindings (imageOf (dataOf kMem)).2 keccakRow false true := by
-  refine ⟨fun c ↦ ?_, fun c ↦ ?_⟩
+theorem keccak_bindings : KeccakBindings (imageOf (dataOf kMem)).2 keccakRow false true .all := by
+  refine ⟨fun c ↦ ?_, fun c _ ↦ ?_⟩
   · refine (congrArg (imageOf (dataOf kMem)).2.read (keccakRow_inOffset c)).trans ?_
     fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
   · refine (congrArg (imageOf (dataOf kMem)).2.read (keccakRow_outOffset c)).trans ?_
@@ -603,21 +604,27 @@ theorem keccak_relation : KeccakRelation keccakRow := by
   funext l
   exact (keccak_lanes l).symm
 
-/-- `KeccakSpec` on the honest row, through `keccak_refines_iff`: bound, permuting, and the
+/-- The honest row's flags: even in, odd out, all thirteen cells. -/
+theorem keccak_flags : KeccakFlags keccakRow false true .all := ⟨rfl, rfl, rfl, rfl⟩
+
+/-- `KeccakSpec` on the honest row, through `keccak_refines_of`: bound, permuting, and the
 successor is `(g · g^5, 1)`. -/
 theorem keccak_spec : KeccakSpec keccakRow ⟨g * addressOfIndex 5, 1⟩ (dataOf kMem) :=
-  (keccak_refines_iff _ _ _).mpr ⟨⟨false, true, rfl, rfl, keccak_bindings⟩, keccak_relation, rfl⟩
+  keccak_refines_of ⟨false, true, .all, keccak_flags, keccak_bindings⟩ keccak_relation
 
 /-- The valid execution alone yields a satisfying row, with any counts. -/
 example : ConstraintsHold.Completeness (rowEnv (dataOf kMem))
     ((keccakTable.main (const (keccakRowOf (imageOf (dataOf kMem)).2 (addressOfIndex 5) 1
         keccakRow.oms
-      (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true (Vector.replicate 26 1) 1))).operations 0) := by
-  obtain ⟨i, o, hi, ho, -, hexec⟩ := keccak_spec
-  cases i <;> cases o <;>
+      (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false true .all
+        (Vector.replicate 26 1) 1))).operations 0) := by
+  obtain ⟨i, o, oc, ⟨hi, ho, ht, ha⟩, -, hexec⟩ := keccak_spec
+  cases i <;> cases o <;> cases oc <;>
     first
     | exact absurd hi (by decide +kernel)
     | exact absurd ho (by decide +kernel)
+    | exact absurd ht (by decide +kernel)
+    | exact absurd ha (by decide +kernel)
     | exact keccak_exec_complete hexec _ _
 
 /-- A non-canonical cell is rejected: an image whose first output cell has a nonzero top limb
@@ -632,8 +639,8 @@ example (get : ℕ → K) :
   have hs : KeccakSpec keccakRow _ (dataOf badMem) :=
     (keccakTable.soundness 0 ⟨get, dataOf badMem⟩ (const keccakRow) keccakRow
       ProvableType.eval_const keccak_relation h).1
-  obtain ⟨i, o, -, ho, hb, -⟩ := hs
-  have h0 := hb.out_eq 0
+  obtain ⟨i, o, oc, ⟨-, ho, -, -⟩, hb, -⟩ := hs
+  have h0 := hb.out_eq 0 (by cases oc <;> decide)
   rw [keccakRow_outOffset 0] at h0
   change (imageOf (dataOf badMem)).2.read (addressOfIndex 13) = _ at h0
   rw [readMem badMem (by decide +kernel) 13 (by decide) _ rfl] at h0
@@ -651,8 +658,8 @@ def keccakRow' : KeccakRow K := { keccakRow with lout := wrongLout }
 
 /-- The wrong row is bound to the image holding its output lanes. -/
 theorem keccak'_bindings :
-    KeccakBindings (imageOf (dataOf (kMemOf wrongLout))).2 keccakRow' false true := by
-  refine ⟨fun c ↦ ?_, fun c ↦ ?_⟩
+    KeccakBindings (imageOf (dataOf (kMemOf wrongLout))).2 keccakRow' false true .all := by
+  refine ⟨fun c ↦ ?_, fun c _ ↦ ?_⟩
   · refine (congrArg (imageOf (dataOf (kMemOf wrongLout))).2.read (keccakRow_inOffset c)).trans ?_
     fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
   · refine (congrArg (imageOf (dataOf (kMemOf wrongLout))).2.read (keccakRow_outOffset c)).trans ?_
@@ -661,14 +668,40 @@ theorem keccak'_bindings :
 example : ConstraintsHold.Completeness (rowEnv (dataOf (kMemOf wrongLout)))
     ((keccakTable.main (const keccakRow')).operations 0) :=
   (keccakTable.completeness 0 (rowEnv (dataOf (kMemOf wrongLout))) (const _)
-    (by simp only [circuit_norm, keccakTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
-    ProvableType.eval_const_prover ⟨false, true, rfl, rfl, keccak'_bindings⟩).1
+    (by simp only [circuit_norm, keccakTable, memRead, memReadIf, bytecodeRead, -BitVec.reduceNeg])
+    _ ProvableType.eval_const_prover ⟨false, true, .all, ⟨rfl, rfl, rfl, rfl⟩, keccak'_bindings⟩).1
 
 theorem keccak'_no_relation : ¬ KeccakRelation keccakRow' := by
   intro h
   exact absurd ((congrFun h 0).trans (keccak_lanes 0)) (by decide +kernel)
 
+/-- Writing all thirteen cells, the wrong row fails the functional specification: every output lane
+is bound to a written cell, which the execution checks against Keccak-f[1600]. -/
 example (next : Registers K) : ¬ KeccakSpec keccakRow' next (dataOf (kMemOf wrongLout)) := fun h ↦
-  keccak'_no_relation ((keccak_refines_iff _ _ _).mp h).2.1
+  keccak'_no_relation (KeccakRefines.relation_of_all h rfl)
+
+/-- The same wrong lanes in a row writing output cell `0` alone (`out_cells = One`): lane `0` is
+in cell `0` (odd layout), so the row still fails; a wrong lane the row writes to no cell would not
+be seen by memory at all, and is the Keccak reduction's to reject (`KeccakRelation`). -/
+def keccakRowOne : KeccakRow K := { keccakRow' with outTwo := 0, outAll := 0 }
+
+example (next : Registers K) : ¬ KeccakSpec keccakRowOne next (dataOf (kMemOf wrongLout)) := by
+  rintro ⟨i, o, oc, ⟨-, ho, -, -⟩, hb, hexec⟩
+  obtain ⟨input, output, hin, hout, hcells, -⟩ :=
+    (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
+  have h0 : output 0 = laneCells keccakRowOne.outLanes o 0 0 :=
+    Option.some.inj ((hout 0 (by cases oc <;> decide)).symm.trans (hb.out_eq 0 (by cases oc <;> decide)))
+  have hc := hcells.2 0 (by cases oc <;> decide)
+  have hinput : input = laneCells keccakRowOne.inLanes i keccakRowOne.free := by
+    funext c; exact Option.some.inj ((hin c).symm.trans (hb.in_eq c))
+  rw [h0, hinput, stateOfCells_laneCells, cellsOfState_eq_laneCells] at hc
+  cases o
+  · exact absurd ho (by decide +kernel)
+  · revert hc
+    show ¬ laneCells wrongLout.get true 0 0 =
+      laneCells (stateLanes (keccakF1600 (laneState keccakRow.inLanes))) true 0 0
+    rw [show stateLanes (keccakF1600 (laneState keccakRow.inLanes)) = kLout.get from
+      funext keccak_lanes]
+    decide +kernel
 
 end LeanVMTests.Arithmetization.Tables

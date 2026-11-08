@@ -81,20 +81,6 @@ def sendsOf (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
   reads.flatMap fun x ↦
     [(MemPull.name, memMsgOf x.1 x.2.1 x.2.2), (MemPush.name, memMsgOf x.1 (g * x.2.1) x.2.2)]
 
-/-- The push counter of a gated read (`memReadIf`; `memory_coords_if`, `tables.rs:132-147` at
-leanVM PR #724 head `873ee6d8`): `count + g·(flag·count) + flag·count`, which is `g·count` at
-`flag = 1` (`gatedCount_one`) and `count` at `flag = 0` (`gatedCount_zero`). -/
-def gatedCount (flag c : K) : K := c + g * (flag * c) + flag * c
-
-/-- At flag `1` a gated read pushes `g·count`: it is a read. -/
-theorem gatedCount_one (c : K) : gatedCount 1 c = g * c := by
-  unfold gatedCount
-  rw [one_mul, add_comm c, add_assoc, CharTwo.add_self_eq_zero, add_zero]
-
-/-- At flag `0` a gated read pushes the pull's own count: the pair cancels. -/
-theorem gatedCount_zero (c : K) : gatedCount 0 c = c := by
-  simp [gatedCount]
-
 /-- What gated reads send: for each `(flag, addr, count, v)` the memory pull of `(addr, count, v)`
 and the memory push of `(addr, gatedCount flag count, v)`, in the circuit's order. -/
 def gatedSends (l : List (K × K × K × Vector K 3)) : List (String × Array K) :=

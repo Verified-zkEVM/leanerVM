@@ -157,6 +157,32 @@ theorem KeccakRefines.bindings {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow 
     (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
   exact ⟨⟨inOdd, outOdd, outCells, hf, hb⟩, hnext⟩
 
+/-- A row writing all thirteen output cells (`out_all = 1`) binds every output lane, so
+`KeccakRefines` gives the permutation on its lanes; a row writing one or two cells does not, and
+there the permutation is the Keccak reduction's alone. -/
+theorem KeccakRefines.relation_of_all {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K}
+    {next : Registers K} (h : KeccakRefines mem r next) (hall : r.outAll = 1) :
+    KeccakRelation r := by
+  obtain ⟨inOdd, outOdd, oc, ⟨-, -, -, ha⟩, hb, hexec⟩ := h
+  have hoc : oc = .all := by
+    cases oc
+    · exact absurd (ha.symm.trans hall) (by simp [keccakOutputFlags, layoutFlagWord])
+    · exact absurd (ha.symm.trans hall) (by simp [keccakOutputFlags, layoutFlagWord])
+    · rfl
+  subst hoc
+  obtain ⟨input, output, hin, hout, hcells, -⟩ :=
+    (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
+  have hinput : input = laneCells r.inLanes inOdd r.free := by
+    funext c; exact Option.some.inj ((hin c).symm.trans (hb.in_eq c))
+  have houtput : output = laneCells r.outLanes outOdd 0 := by
+    funext c; exact Option.some.inj ((hout c c.isLt).symm.trans (hb.out_eq c c.isLt))
+  have h2 := hcells.2
+  rw [hinput, houtput, stateOfCells_laneCells] at h2
+  have h3 : laneCells r.outLanes outOdd 0 =
+      laneCells (stateLanes (keccakF1600 (laneState r.inLanes))) outOdd 0 := by
+    funext c; rw [h2 c c.isLt, cellsOfState_eq_laneCells]
+  exact laneCells_eq_iff.mp h3
+
 /-- **A bound row whose lanes permute refines `KECCAK`**, to the successor `(g·pc, fp)`. -/
 theorem keccak_refines_of {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K}
     (hb : ∃ inOdd outOdd outCells, KeccakFlags r inOdd outOdd outCells ∧
