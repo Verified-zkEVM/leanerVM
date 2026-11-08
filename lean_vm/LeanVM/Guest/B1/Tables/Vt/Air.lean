@@ -21,181 +21,181 @@ set_option maxRecDepth 10000 in
 /-- Table 0's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[2]`), times
 its form value. -/
 theorem vtAir0 {rd : Reader} {σ : Val} (h : VtH rd σ)
-    : σ (.n 2500) = σ (.n 2980) * σ (.n 30) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 2980)) 0 (σ (.n 2982)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 30)) 0 (σ (.n 2984)) ∧
-      σ (.n 2986) = σ (.n 2982) * σ (.n 2984) *
-        (((σ (.n 2575) * σ (.n 2937)) + (σ (.n 2576) * σ (.n 2968))) + (σ (.n 2577) * σ (.n 2977))) := by
-  have a2986 := h.atomAt 2986 (.mul (.n 2500) (.n 2980) (.n 30)) (by decide +kernel)
-  have a2987 := h.atomAt 2987 (.mul (.n 2981) (.n 2592) (.n 2980)) (by decide +kernel)
-  have a2988 := h.atomAt 2988 (.load (.n 2982) (.n 2981) 0) (by decide +kernel)
-  have a2989 := h.atomAt 2989 (.mul (.n 2983) (.n 2613) (.n 30)) (by decide +kernel)
-  have a2990 := h.atomAt 2990 (.load (.n 2984) (.n 2983) 0) (by decide +kernel)
-  have a2991 := h.atomAt 2991 (.mul (.n 2985) (.n 2982) (.n 2984)) (by decide +kernel)
-  have a2992 := h.atomAt 2992 (.mul (.n 2986) (.n 2985) (.n 2979)) (by decide +kernel)
-  have a2944 := h.atomAt 2944 (.mul (.n 2938) (.n 2575) (.n 2937)) (by decide +kernel)
-  have a2975 := h.atomAt 2975 (.mul (.n 2969) (.n 2576) (.n 2968)) (by decide +kernel)
-  have a2976 := h.atomAt 2976 (.add (.n 2970) (.n 2938) (.n 2969)) (by decide +kernel)
-  have a2984 := h.atomAt 2984 (.mul (.n 2978) (.n 2577) (.n 2977)) (by decide +kernel)
-  have a2985 := h.atomAt 2985 (.add (.n 2979) (.n 2970) (.n 2978)) (by decide +kernel)
-  simp only [Atom.Holds] at a2986 a2987 a2988 a2989 a2990 a2991 a2992 a2944 a2975 a2976 a2984 a2985
-  refine ⟨a2986, by rw [← a2987]; exact a2988, by rw [← a2989]; exact a2990, ?_⟩
-  rw [a2992, a2991, a2985, a2984, a2976, a2975, a2944]
+    : σ (.n 2516) = σ (.n 2996) * σ (.n 30) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 2996)) 0 (σ (.n 2998)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 30)) 0 (σ (.n 3000)) ∧
+      σ (.n 3002) = σ (.n 2998) * σ (.n 3000) *
+        (((σ (.n 2591) * σ (.n 2953)) + (σ (.n 2592) * σ (.n 2984))) + (σ (.n 2593) * σ (.n 2993))) := by
+  have a3002 := h.atomAt 3002 (.mul (.n 2516) (.n 2996) (.n 30)) (by decide +kernel)
+  have a3003 := h.atomAt 3003 (.mul (.n 2997) (.n 2608) (.n 2996)) (by decide +kernel)
+  have a3004 := h.atomAt 3004 (.load (.n 2998) (.n 2997) 0) (by decide +kernel)
+  have a3005 := h.atomAt 3005 (.mul (.n 2999) (.n 2629) (.n 30)) (by decide +kernel)
+  have a3006 := h.atomAt 3006 (.load (.n 3000) (.n 2999) 0) (by decide +kernel)
+  have a3007 := h.atomAt 3007 (.mul (.n 3001) (.n 2998) (.n 3000)) (by decide +kernel)
+  have a3008 := h.atomAt 3008 (.mul (.n 3002) (.n 3001) (.n 2995)) (by decide +kernel)
+  have a2960 := h.atomAt 2960 (.mul (.n 2954) (.n 2591) (.n 2953)) (by decide +kernel)
+  have a2991 := h.atomAt 2991 (.mul (.n 2985) (.n 2592) (.n 2984)) (by decide +kernel)
+  have a2992 := h.atomAt 2992 (.add (.n 2986) (.n 2954) (.n 2985)) (by decide +kernel)
+  have a3000 := h.atomAt 3000 (.mul (.n 2994) (.n 2593) (.n 2993)) (by decide +kernel)
+  have a3001 := h.atomAt 3001 (.add (.n 2995) (.n 2986) (.n 2994)) (by decide +kernel)
+  simp only [Atom.Holds] at a3002 a3003 a3004 a3005 a3006 a3007 a3008 a2960 a2991 a2992 a3000 a3001
+  refine ⟨a3002, by rw [← a3003]; exact a3004, by rw [← a3005]; exact a3006, ?_⟩
+  rw [a3008, a3007, a3001, a3000, a2992, a2991, a2960]
 
 set_option maxRecDepth 10000 in
 /-- Table 1's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[3]`), times
 its form value. -/
 theorem vtAir1 {rd : Reader} {σ : Val} (h : VtH rd σ)
-    : σ (.n 2500) = σ (.n 3385) * σ (.n 31) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 3385)) 0 (σ (.n 3387)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 31)) 0 (σ (.n 3389)) ∧
-      σ (.n 3391) = σ (.n 3387) * σ (.n 3389) *
-        (((σ (.n 2575) * σ (.n 3342)) + (σ (.n 2576) * σ (.n 3373))) + (σ (.n 2577) * σ (.n 3382))) := by
-  have a3328 := h.atomAt 3328 (.mul (.n 2500) (.n 3385) (.n 31)) (by decide +kernel)
-  have a3329 := h.atomAt 3329 (.mul (.n 3386) (.n 2592) (.n 3385)) (by decide +kernel)
-  have a3330 := h.atomAt 3330 (.load (.n 3387) (.n 3386) 0) (by decide +kernel)
-  have a3331 := h.atomAt 3331 (.mul (.n 3388) (.n 2613) (.n 31)) (by decide +kernel)
-  have a3332 := h.atomAt 3332 (.load (.n 3389) (.n 3388) 0) (by decide +kernel)
-  have a3333 := h.atomAt 3333 (.mul (.n 3390) (.n 3387) (.n 3389)) (by decide +kernel)
-  have a3334 := h.atomAt 3334 (.mul (.n 3391) (.n 3390) (.n 3384)) (by decide +kernel)
-  have a3286 := h.atomAt 3286 (.mul (.n 3343) (.n 2575) (.n 3342)) (by decide +kernel)
-  have a3317 := h.atomAt 3317 (.mul (.n 3374) (.n 2576) (.n 3373)) (by decide +kernel)
-  have a3318 := h.atomAt 3318 (.add (.n 3375) (.n 3343) (.n 3374)) (by decide +kernel)
-  have a3326 := h.atomAt 3326 (.mul (.n 3383) (.n 2577) (.n 3382)) (by decide +kernel)
-  have a3327 := h.atomAt 3327 (.add (.n 3384) (.n 3375) (.n 3383)) (by decide +kernel)
-  simp only [Atom.Holds] at a3328 a3329 a3330 a3331 a3332 a3333 a3334 a3286 a3317 a3318 a3326 a3327
-  refine ⟨a3328, by rw [← a3329]; exact a3330, by rw [← a3331]; exact a3332, ?_⟩
-  rw [a3334, a3333, a3327, a3326, a3318, a3317, a3286]
+    : σ (.n 2516) = σ (.n 3401) * σ (.n 31) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 3401)) 0 (σ (.n 3403)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 31)) 0 (σ (.n 3405)) ∧
+      σ (.n 3407) = σ (.n 3403) * σ (.n 3405) *
+        (((σ (.n 2591) * σ (.n 3358)) + (σ (.n 2592) * σ (.n 3389))) + (σ (.n 2593) * σ (.n 3398))) := by
+  have a3344 := h.atomAt 3344 (.mul (.n 2516) (.n 3401) (.n 31)) (by decide +kernel)
+  have a3345 := h.atomAt 3345 (.mul (.n 3402) (.n 2608) (.n 3401)) (by decide +kernel)
+  have a3346 := h.atomAt 3346 (.load (.n 3403) (.n 3402) 0) (by decide +kernel)
+  have a3347 := h.atomAt 3347 (.mul (.n 3404) (.n 2629) (.n 31)) (by decide +kernel)
+  have a3348 := h.atomAt 3348 (.load (.n 3405) (.n 3404) 0) (by decide +kernel)
+  have a3349 := h.atomAt 3349 (.mul (.n 3406) (.n 3403) (.n 3405)) (by decide +kernel)
+  have a3350 := h.atomAt 3350 (.mul (.n 3407) (.n 3406) (.n 3400)) (by decide +kernel)
+  have a3302 := h.atomAt 3302 (.mul (.n 3359) (.n 2591) (.n 3358)) (by decide +kernel)
+  have a3333 := h.atomAt 3333 (.mul (.n 3390) (.n 2592) (.n 3389)) (by decide +kernel)
+  have a3334 := h.atomAt 3334 (.add (.n 3391) (.n 3359) (.n 3390)) (by decide +kernel)
+  have a3342 := h.atomAt 3342 (.mul (.n 3399) (.n 2593) (.n 3398)) (by decide +kernel)
+  have a3343 := h.atomAt 3343 (.add (.n 3400) (.n 3391) (.n 3399)) (by decide +kernel)
+  simp only [Atom.Holds] at a3344 a3345 a3346 a3347 a3348 a3349 a3350 a3302 a3333 a3334 a3342 a3343
+  refine ⟨a3344, by rw [← a3345]; exact a3346, by rw [← a3347]; exact a3348, ?_⟩
+  rw [a3350, a3349, a3343, a3342, a3334, a3333, a3302]
 
 set_option maxRecDepth 10000 in
 /-- Table 2's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[4]`), times
 its form value. -/
 theorem vtAir2 {rd : Reader} {σ : Val} (h : VtH rd σ)
-    : σ (.n 2500) = σ (.n 3602) * σ (.n 32) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 3602)) 0 (σ (.n 3604)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 32)) 0 (σ (.n 3606)) ∧
-      σ (.n 3608) = σ (.n 3604) * σ (.n 3606) *
-        (((σ (.n 2575) * σ (.n 3575)) + (σ (.n 2576) * σ (.n 3594))) + (σ (.n 2577) * σ (.n 3599))) := by
-  have a3513 := h.atomAt 3513 (.mul (.n 2500) (.n 3602) (.n 32)) (by decide +kernel)
-  have a3514 := h.atomAt 3514 (.mul (.n 3603) (.n 2592) (.n 3602)) (by decide +kernel)
-  have a3515 := h.atomAt 3515 (.load (.n 3604) (.n 3603) 0) (by decide +kernel)
-  have a3516 := h.atomAt 3516 (.mul (.n 3605) (.n 2613) (.n 32)) (by decide +kernel)
-  have a3517 := h.atomAt 3517 (.load (.n 3606) (.n 3605) 0) (by decide +kernel)
-  have a3518 := h.atomAt 3518 (.mul (.n 3607) (.n 3604) (.n 3606)) (by decide +kernel)
-  have a3519 := h.atomAt 3519 (.mul (.n 3608) (.n 3607) (.n 3601)) (by decide +kernel)
-  have a3487 := h.atomAt 3487 (.mul (.n 3576) (.n 2575) (.n 3575)) (by decide +kernel)
-  have a3506 := h.atomAt 3506 (.mul (.n 3595) (.n 2576) (.n 3594)) (by decide +kernel)
-  have a3507 := h.atomAt 3507 (.add (.n 3596) (.n 3576) (.n 3595)) (by decide +kernel)
-  have a3511 := h.atomAt 3511 (.mul (.n 3600) (.n 2577) (.n 3599)) (by decide +kernel)
-  have a3512 := h.atomAt 3512 (.add (.n 3601) (.n 3596) (.n 3600)) (by decide +kernel)
-  simp only [Atom.Holds] at a3513 a3514 a3515 a3516 a3517 a3518 a3519 a3487 a3506 a3507 a3511 a3512
-  refine ⟨a3513, by rw [← a3514]; exact a3515, by rw [← a3516]; exact a3517, ?_⟩
-  rw [a3519, a3518, a3512, a3511, a3507, a3506, a3487]
+    : σ (.n 2516) = σ (.n 3618) * σ (.n 32) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 3618)) 0 (σ (.n 3620)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 32)) 0 (σ (.n 3622)) ∧
+      σ (.n 3624) = σ (.n 3620) * σ (.n 3622) *
+        (((σ (.n 2591) * σ (.n 3591)) + (σ (.n 2592) * σ (.n 3610))) + (σ (.n 2593) * σ (.n 3615))) := by
+  have a3529 := h.atomAt 3529 (.mul (.n 2516) (.n 3618) (.n 32)) (by decide +kernel)
+  have a3530 := h.atomAt 3530 (.mul (.n 3619) (.n 2608) (.n 3618)) (by decide +kernel)
+  have a3531 := h.atomAt 3531 (.load (.n 3620) (.n 3619) 0) (by decide +kernel)
+  have a3532 := h.atomAt 3532 (.mul (.n 3621) (.n 2629) (.n 32)) (by decide +kernel)
+  have a3533 := h.atomAt 3533 (.load (.n 3622) (.n 3621) 0) (by decide +kernel)
+  have a3534 := h.atomAt 3534 (.mul (.n 3623) (.n 3620) (.n 3622)) (by decide +kernel)
+  have a3535 := h.atomAt 3535 (.mul (.n 3624) (.n 3623) (.n 3617)) (by decide +kernel)
+  have a3503 := h.atomAt 3503 (.mul (.n 3592) (.n 2591) (.n 3591)) (by decide +kernel)
+  have a3522 := h.atomAt 3522 (.mul (.n 3611) (.n 2592) (.n 3610)) (by decide +kernel)
+  have a3523 := h.atomAt 3523 (.add (.n 3612) (.n 3592) (.n 3611)) (by decide +kernel)
+  have a3527 := h.atomAt 3527 (.mul (.n 3616) (.n 2593) (.n 3615)) (by decide +kernel)
+  have a3528 := h.atomAt 3528 (.add (.n 3617) (.n 3612) (.n 3616)) (by decide +kernel)
+  simp only [Atom.Holds] at a3529 a3530 a3531 a3532 a3533 a3534 a3535 a3503 a3522 a3523 a3527 a3528
+  refine ⟨a3529, by rw [← a3530]; exact a3531, by rw [← a3532]; exact a3533, ?_⟩
+  rw [a3535, a3534, a3528, a3527, a3523, a3522, a3503]
 
 set_option maxRecDepth 10000 in
 /-- Table 3's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[5]`), times
 its form value. -/
 theorem vtAir3 {rd : Reader} {σ : Val} (h : VtH rd σ)
-    : σ (.n 2500) = σ (.n 4005) * σ (.n 33) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 4005)) 0 (σ (.n 4007)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 33)) 0 (σ (.n 4009)) ∧
-      σ (.n 4011) = σ (.n 4007) * σ (.n 4009) *
-        (((σ (.n 2575) * σ (.n 3962)) + (σ (.n 2576) * σ (.n 3993))) + (σ (.n 2577) * σ (.n 4002))) := by
-  have a3853 := h.atomAt 3853 (.mul (.n 2500) (.n 4005) (.n 33)) (by decide +kernel)
-  have a3854 := h.atomAt 3854 (.mul (.n 4006) (.n 2592) (.n 4005)) (by decide +kernel)
-  have a3855 := h.atomAt 3855 (.load (.n 4007) (.n 4006) 0) (by decide +kernel)
-  have a3856 := h.atomAt 3856 (.mul (.n 4008) (.n 2613) (.n 33)) (by decide +kernel)
-  have a3857 := h.atomAt 3857 (.load (.n 4009) (.n 4008) 0) (by decide +kernel)
-  have a3858 := h.atomAt 3858 (.mul (.n 4010) (.n 4007) (.n 4009)) (by decide +kernel)
-  have a3859 := h.atomAt 3859 (.mul (.n 4011) (.n 4010) (.n 4004)) (by decide +kernel)
-  have a3811 := h.atomAt 3811 (.mul (.n 3963) (.n 2575) (.n 3962)) (by decide +kernel)
-  have a3842 := h.atomAt 3842 (.mul (.n 3994) (.n 2576) (.n 3993)) (by decide +kernel)
-  have a3843 := h.atomAt 3843 (.add (.n 3995) (.n 3963) (.n 3994)) (by decide +kernel)
-  have a3851 := h.atomAt 3851 (.mul (.n 4003) (.n 2577) (.n 4002)) (by decide +kernel)
-  have a3852 := h.atomAt 3852 (.add (.n 4004) (.n 3995) (.n 4003)) (by decide +kernel)
-  simp only [Atom.Holds] at a3853 a3854 a3855 a3856 a3857 a3858 a3859 a3811 a3842 a3843 a3851 a3852
-  refine ⟨a3853, by rw [← a3854]; exact a3855, by rw [← a3856]; exact a3857, ?_⟩
-  rw [a3859, a3858, a3852, a3851, a3843, a3842, a3811]
+    : σ (.n 2516) = σ (.n 4021) * σ (.n 33) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 4021)) 0 (σ (.n 4023)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 33)) 0 (σ (.n 4025)) ∧
+      σ (.n 4027) = σ (.n 4023) * σ (.n 4025) *
+        (((σ (.n 2591) * σ (.n 3978)) + (σ (.n 2592) * σ (.n 4009))) + (σ (.n 2593) * σ (.n 4018))) := by
+  have a3869 := h.atomAt 3869 (.mul (.n 2516) (.n 4021) (.n 33)) (by decide +kernel)
+  have a3870 := h.atomAt 3870 (.mul (.n 4022) (.n 2608) (.n 4021)) (by decide +kernel)
+  have a3871 := h.atomAt 3871 (.load (.n 4023) (.n 4022) 0) (by decide +kernel)
+  have a3872 := h.atomAt 3872 (.mul (.n 4024) (.n 2629) (.n 33)) (by decide +kernel)
+  have a3873 := h.atomAt 3873 (.load (.n 4025) (.n 4024) 0) (by decide +kernel)
+  have a3874 := h.atomAt 3874 (.mul (.n 4026) (.n 4023) (.n 4025)) (by decide +kernel)
+  have a3875 := h.atomAt 3875 (.mul (.n 4027) (.n 4026) (.n 4020)) (by decide +kernel)
+  have a3827 := h.atomAt 3827 (.mul (.n 3979) (.n 2591) (.n 3978)) (by decide +kernel)
+  have a3858 := h.atomAt 3858 (.mul (.n 4010) (.n 2592) (.n 4009)) (by decide +kernel)
+  have a3859 := h.atomAt 3859 (.add (.n 4011) (.n 3979) (.n 4010)) (by decide +kernel)
+  have a3867 := h.atomAt 3867 (.mul (.n 4019) (.n 2593) (.n 4018)) (by decide +kernel)
+  have a3868 := h.atomAt 3868 (.add (.n 4020) (.n 4011) (.n 4019)) (by decide +kernel)
+  simp only [Atom.Holds] at a3869 a3870 a3871 a3872 a3873 a3874 a3875 a3827 a3858 a3859 a3867 a3868
+  refine ⟨a3869, by rw [← a3870]; exact a3871, by rw [← a3872]; exact a3873, ?_⟩
+  rw [a3875, a3874, a3868, a3867, a3859, a3858, a3827]
 
 set_option maxRecDepth 10000 in
 /-- Table 4's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[6]`), times
 its form value. -/
 theorem vtAir4 {rd : Reader} {σ : Val} (h : VtH rd σ) {ev : ℕ → E}
     (hev : ∀ c < 14, σ (.n (vtEvB (53 + c))) = ev c)
-    : σ (.n 2500) = σ (.n 4403) * σ (.n 34) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 4403)) 0 (σ (.n 4405)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 34)) 0 (σ (.n 4407)) ∧
-      σ (.n 4409) = σ (.n 4405) * σ (.n 4407) *
-        (((((σ (.n 2573) * (ev 13 + (ev 5 * ev 12))) + (σ (.n 2574) * (ev 5 * (ev 13 + word 1 0 0)))) + (σ (.n 2575) * σ (.n 4347))) + (σ (.n 2576) * σ (.n 4391))) + (σ (.n 2577) * σ (.n 4400))) := by
-  have a4201 := h.atomAt 4201 (.mul (.n 2500) (.n 4403) (.n 34)) (by decide +kernel)
-  have a4202 := h.atomAt 4202 (.mul (.n 4404) (.n 2592) (.n 4403)) (by decide +kernel)
-  have a4203 := h.atomAt 4203 (.load (.n 4405) (.n 4404) 0) (by decide +kernel)
-  have a4204 := h.atomAt 4204 (.mul (.n 4406) (.n 2613) (.n 34)) (by decide +kernel)
-  have a4205 := h.atomAt 4205 (.load (.n 4407) (.n 4406) 0) (by decide +kernel)
-  have a4206 := h.atomAt 4206 (.mul (.n 4408) (.n 4405) (.n 4407)) (by decide +kernel)
-  have a4207 := h.atomAt 4207 (.mul (.n 4409) (.n 4408) (.n 4402)) (by decide +kernel)
-  have a4004 := h.atomAt 4004 (.mul (.n 4206) (.n 4091) (.n 4194)) (by decide +kernel)
-  have a4005 := h.atomAt 4005 (.add (.n 4207) (.n 4205) (.n 4206)) (by decide +kernel)
-  have a4006 := h.atomAt 4006 (.mul (.n 4208) (.n 2573) (.n 4207)) (by decide +kernel)
-  have a4007 := h.atomAt 4007 (.const (.n 4209) (word 1 0 0)) (by decide +kernel)
-  have a4008 := h.atomAt 4008 (.add (.n 4210) (.n 4205) (.n 4209)) (by decide +kernel)
-  have a4009 := h.atomAt 4009 (.mul (.n 4211) (.n 4091) (.n 4210)) (by decide +kernel)
-  have a4010 := h.atomAt 4010 (.mul (.n 4212) (.n 2574) (.n 4211)) (by decide +kernel)
-  have a4011 := h.atomAt 4011 (.add (.n 4213) (.n 4208) (.n 4212)) (by decide +kernel)
-  have a4146 := h.atomAt 4146 (.mul (.n 4348) (.n 2575) (.n 4347)) (by decide +kernel)
-  have a4147 := h.atomAt 4147 (.add (.n 4349) (.n 4213) (.n 4348)) (by decide +kernel)
-  have a4190 := h.atomAt 4190 (.mul (.n 4392) (.n 2576) (.n 4391)) (by decide +kernel)
-  have a4191 := h.atomAt 4191 (.add (.n 4393) (.n 4349) (.n 4392)) (by decide +kernel)
-  have a4199 := h.atomAt 4199 (.mul (.n 4401) (.n 2577) (.n 4400)) (by decide +kernel)
-  have a4200 := h.atomAt 4200 (.add (.n 4402) (.n 4393) (.n 4401)) (by decide +kernel)
-  simp only [Atom.Holds] at a4201 a4202 a4203 a4204 a4205 a4206 a4207 a4004 a4005 a4006 a4007 a4008 a4009 a4010 a4011 a4146 a4147 a4190 a4191 a4199 a4200
-  have v4091 : σ (.n 4091) = ev 5 := by
+    : σ (.n 2516) = σ (.n 4419) * σ (.n 34) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 4419)) 0 (σ (.n 4421)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 34)) 0 (σ (.n 4423)) ∧
+      σ (.n 4425) = σ (.n 4421) * σ (.n 4423) *
+        (((((σ (.n 2589) * (ev 13 + (ev 5 * ev 12))) + (σ (.n 2590) * (ev 5 * (ev 13 + word 1 0 0)))) + (σ (.n 2591) * σ (.n 4363))) + (σ (.n 2592) * σ (.n 4407))) + (σ (.n 2593) * σ (.n 4416))) := by
+  have a4217 := h.atomAt 4217 (.mul (.n 2516) (.n 4419) (.n 34)) (by decide +kernel)
+  have a4218 := h.atomAt 4218 (.mul (.n 4420) (.n 2608) (.n 4419)) (by decide +kernel)
+  have a4219 := h.atomAt 4219 (.load (.n 4421) (.n 4420) 0) (by decide +kernel)
+  have a4220 := h.atomAt 4220 (.mul (.n 4422) (.n 2629) (.n 34)) (by decide +kernel)
+  have a4221 := h.atomAt 4221 (.load (.n 4423) (.n 4422) 0) (by decide +kernel)
+  have a4222 := h.atomAt 4222 (.mul (.n 4424) (.n 4421) (.n 4423)) (by decide +kernel)
+  have a4223 := h.atomAt 4223 (.mul (.n 4425) (.n 4424) (.n 4418)) (by decide +kernel)
+  have a4020 := h.atomAt 4020 (.mul (.n 4222) (.n 4107) (.n 4210)) (by decide +kernel)
+  have a4021 := h.atomAt 4021 (.add (.n 4223) (.n 4221) (.n 4222)) (by decide +kernel)
+  have a4022 := h.atomAt 4022 (.mul (.n 4224) (.n 2589) (.n 4223)) (by decide +kernel)
+  have a4023 := h.atomAt 4023 (.const (.n 4225) (word 1 0 0)) (by decide +kernel)
+  have a4024 := h.atomAt 4024 (.add (.n 4226) (.n 4221) (.n 4225)) (by decide +kernel)
+  have a4025 := h.atomAt 4025 (.mul (.n 4227) (.n 4107) (.n 4226)) (by decide +kernel)
+  have a4026 := h.atomAt 4026 (.mul (.n 4228) (.n 2590) (.n 4227)) (by decide +kernel)
+  have a4027 := h.atomAt 4027 (.add (.n 4229) (.n 4224) (.n 4228)) (by decide +kernel)
+  have a4162 := h.atomAt 4162 (.mul (.n 4364) (.n 2591) (.n 4363)) (by decide +kernel)
+  have a4163 := h.atomAt 4163 (.add (.n 4365) (.n 4229) (.n 4364)) (by decide +kernel)
+  have a4206 := h.atomAt 4206 (.mul (.n 4408) (.n 2592) (.n 4407)) (by decide +kernel)
+  have a4207 := h.atomAt 4207 (.add (.n 4409) (.n 4365) (.n 4408)) (by decide +kernel)
+  have a4215 := h.atomAt 4215 (.mul (.n 4417) (.n 2593) (.n 4416)) (by decide +kernel)
+  have a4216 := h.atomAt 4216 (.add (.n 4418) (.n 4409) (.n 4417)) (by decide +kernel)
+  simp only [Atom.Holds] at a4217 a4218 a4219 a4220 a4221 a4222 a4223 a4020 a4021 a4022 a4023 a4024 a4025 a4026 a4027 a4162 a4163 a4206 a4207 a4215 a4216
+  have v4107 : σ (.n 4107) = ev 5 := by
     rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 58) (by norm_num)).2.2
-  have v4194 : σ (.n 4194) = ev 12 := by
+  have v4210 : σ (.n 4210) = ev 12 := by
     rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 65) (by norm_num)).2.2
-  have v4205 : σ (.n 4205) = ev 13 := by
+  have v4221 : σ (.n 4221) = ev 13 := by
     rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 66) (by norm_num)).2.2
-  refine ⟨a4201, by rw [← a4202]; exact a4203, by rw [← a4204]; exact a4205, ?_⟩
-  rw [a4207, a4206, a4200, a4199, a4191, a4190, a4147, a4146, a4011, a4010, a4009, a4008, a4007, a4006, a4005,
-    a4004, v4091, v4194, v4205]
+  refine ⟨a4217, by rw [← a4218]; exact a4219, by rw [← a4220]; exact a4221, ?_⟩
+  rw [a4223, a4222, a4216, a4215, a4207, a4206, a4163, a4162, a4027, a4026, a4025, a4024, a4023, a4022, a4021,
+    a4020, v4107, v4210, v4221]
 
 set_option maxRecDepth 10000 in
 /-- Table 5's air term: its weight `cprod[x]·peq[τ]` with `g^n = x·τ` (`τ = kb[7]`), times
 its form value. -/
 theorem vtAir5 {rd : Reader} {σ : Val} (h : VtH rd σ)
-    : σ (.n 2500) = σ (.n 6810) * σ (.n 35) ∧
-      LoadHolds rd (σ (.n 2592) * σ (.n 6810)) 0 (σ (.n 6812)) ∧
-      LoadHolds rd (σ (.n 2613) * σ (.n 35)) 0 (σ (.n 6814)) ∧
-      σ (.n 6816) = σ (.n 6812) * σ (.n 6814) *
-        (((σ (.n 2575) * σ (.n 6583)) + (σ (.n 2576) * σ (.n 6752))) + (σ (.n 2577) * σ (.n 6807))) := by
-  have a6242 := h.atomAt 6242 (.mul (.n 2500) (.n 6810) (.n 35)) (by decide +kernel)
-  have a6243 := h.atomAt 6243 (.mul (.n 6811) (.n 2592) (.n 6810)) (by decide +kernel)
-  have a6244 := h.atomAt 6244 (.load (.n 6812) (.n 6811) 0) (by decide +kernel)
-  have a6245 := h.atomAt 6245 (.mul (.n 6813) (.n 2613) (.n 35)) (by decide +kernel)
-  have a6246 := h.atomAt 6246 (.load (.n 6814) (.n 6813) 0) (by decide +kernel)
-  have a6247 := h.atomAt 6247 (.mul (.n 6815) (.n 6812) (.n 6814)) (by decide +kernel)
-  have a6248 := h.atomAt 6248 (.mul (.n 6816) (.n 6815) (.n 6809)) (by decide +kernel)
-  have a6016 := h.atomAt 6016 (.mul (.n 6584) (.n 2575) (.n 6583)) (by decide +kernel)
-  have a6185 := h.atomAt 6185 (.mul (.n 6753) (.n 2576) (.n 6752)) (by decide +kernel)
-  have a6186 := h.atomAt 6186 (.add (.n 6754) (.n 6584) (.n 6753)) (by decide +kernel)
-  have a6240 := h.atomAt 6240 (.mul (.n 6808) (.n 2577) (.n 6807)) (by decide +kernel)
-  have a6241 := h.atomAt 6241 (.add (.n 6809) (.n 6754) (.n 6808)) (by decide +kernel)
-  simp only [Atom.Holds] at a6242 a6243 a6244 a6245 a6246 a6247 a6248 a6016 a6185 a6186 a6240 a6241
-  refine ⟨a6242, by rw [← a6243]; exact a6244, by rw [← a6245]; exact a6246, ?_⟩
-  rw [a6248, a6247, a6241, a6240, a6186, a6185, a6016]
+    : σ (.n 2516) = σ (.n 6914) * σ (.n 35) ∧
+      LoadHolds rd (σ (.n 2608) * σ (.n 6914)) 0 (σ (.n 6916)) ∧
+      LoadHolds rd (σ (.n 2629) * σ (.n 35)) 0 (σ (.n 6918)) ∧
+      σ (.n 6920) = σ (.n 6916) * σ (.n 6918) *
+        (((σ (.n 2591) * σ (.n 6675)) + (σ (.n 2592) * σ (.n 6856))) + (σ (.n 2593) * σ (.n 6911))) := by
+  have a6344 := h.atomAt 6344 (.mul (.n 2516) (.n 6914) (.n 35)) (by decide +kernel)
+  have a6345 := h.atomAt 6345 (.mul (.n 6915) (.n 2608) (.n 6914)) (by decide +kernel)
+  have a6346 := h.atomAt 6346 (.load (.n 6916) (.n 6915) 0) (by decide +kernel)
+  have a6347 := h.atomAt 6347 (.mul (.n 6917) (.n 2629) (.n 35)) (by decide +kernel)
+  have a6348 := h.atomAt 6348 (.load (.n 6918) (.n 6917) 0) (by decide +kernel)
+  have a6349 := h.atomAt 6349 (.mul (.n 6919) (.n 6916) (.n 6918)) (by decide +kernel)
+  have a6350 := h.atomAt 6350 (.mul (.n 6920) (.n 6919) (.n 6913)) (by decide +kernel)
+  have a6106 := h.atomAt 6106 (.mul (.n 6676) (.n 2591) (.n 6675)) (by decide +kernel)
+  have a6287 := h.atomAt 6287 (.mul (.n 6857) (.n 2592) (.n 6856)) (by decide +kernel)
+  have a6288 := h.atomAt 6288 (.add (.n 6858) (.n 6676) (.n 6857)) (by decide +kernel)
+  have a6342 := h.atomAt 6342 (.mul (.n 6912) (.n 2593) (.n 6911)) (by decide +kernel)
+  have a6343 := h.atomAt 6343 (.add (.n 6913) (.n 6858) (.n 6912)) (by decide +kernel)
+  simp only [Atom.Holds] at a6344 a6345 a6346 a6347 a6348 a6349 a6350 a6106 a6287 a6288 a6342 a6343
+  refine ⟨a6344, by rw [← a6345]; exact a6346, by rw [← a6347]; exact a6348, ?_⟩
+  rw [a6350, a6349, a6343, a6342, a6288, a6287, a6106]
 
 set_option maxRecDepth 10000 in
 /-- **The air check**: the sumcheck's final claim is the six tables' air terms' sum. -/
 theorem vt_air_total {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 2610) = σ (.n 2986) + σ (.n 3391) + σ (.n 3608) + σ (.n 4011) + σ (.n 4409) + σ (.n 6816) := by
-  have a6249 := h.atomAt 6249 (.add (.n 6817) (.n 4410) (.n 6816)) (by decide +kernel)
-  have a4208 := h.atomAt 4208 (.add (.n 4410) (.n 4012) (.n 4409)) (by decide +kernel)
-  have a3860 := h.atomAt 3860 (.add (.n 4012) (.n 3609) (.n 4011)) (by decide +kernel)
-  have a3520 := h.atomAt 3520 (.add (.n 3609) (.n 3392) (.n 3608)) (by decide +kernel)
-  have a3335 := h.atomAt 3335 (.add (.n 3392) (.n 2986) (.n 3391)) (by decide +kernel)
-  have a6250 := h.atomAt 6250 (.assertEq (.n 6817) (.n 2610)) (by decide +kernel)
-  simp only [Atom.Holds] at a6249 a4208 a3860 a3520 a3335 a6250
-  rw [eq_neg_of_add_eq_zero_right a6250, CharTwo.neg_eq, a6249, a4208, a3860, a3520, a3335]
+    σ (.n 2626) = σ (.n 3002) + σ (.n 3407) + σ (.n 3624) + σ (.n 4027) + σ (.n 4425) + σ (.n 6920) := by
+  have a6351 := h.atomAt 6351 (.add (.n 6921) (.n 4426) (.n 6920)) (by decide +kernel)
+  have a4224 := h.atomAt 4224 (.add (.n 4426) (.n 4028) (.n 4425)) (by decide +kernel)
+  have a3876 := h.atomAt 3876 (.add (.n 4028) (.n 3625) (.n 4027)) (by decide +kernel)
+  have a3536 := h.atomAt 3536 (.add (.n 3625) (.n 3408) (.n 3624)) (by decide +kernel)
+  have a3351 := h.atomAt 3351 (.add (.n 3408) (.n 3002) (.n 3407)) (by decide +kernel)
+  have a6352 := h.atomAt 6352 (.assertEq (.n 6921) (.n 2626)) (by decide +kernel)
+  simp only [Atom.Holds] at a6351 a4224 a3876 a3536 a3351 a6352
+  rw [eq_neg_of_add_eq_zero_right a6352, CharTwo.neg_eq, a6351, a4224, a3876, a3536, a3351]
 
 end
 end LeanVM.Guest.B1.Tables

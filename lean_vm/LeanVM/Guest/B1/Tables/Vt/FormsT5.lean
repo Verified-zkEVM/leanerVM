@@ -19,13 +19,13 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 set_option maxRecDepth 10000 in
 theorem vtSide05 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
-    (hev : ∀ c < 90, σ (.n (vtEvB (67 + c))) = ev c) :
-    σ (.n 6583) =
-      vtSideVal [σ (.n 1143), σ (.n 1152), σ (.n 1161), σ (.n 1170), σ (.n 1179), σ (.n 1188), σ (.n 1197),
-        σ (.n 1206), σ (.n 1215), σ (.n 1224), σ (.n 1233), σ (.n 1242), σ (.n 1251),
-        σ (.n 1260), σ (.n 1269), σ (.n 1278), σ (.n 1287), σ (.n 1296), σ (.n 1305),
-        σ (.n 1314), σ (.n 1323), σ (.n 1332), σ (.n 1341), σ (.n 1350), σ (.n 1359),
-        σ (.n 1368), σ (.n 1377), σ (.n 1386)]
+    (hev : ∀ c < 92, σ (.n (vtEvB (67 + c))) = ev c) :
+    σ (.n 6675) =
+      vtSideVal [σ (.n 1151), σ (.n 1160), σ (.n 1169), σ (.n 1178), σ (.n 1187), σ (.n 1196), σ (.n 1205),
+        σ (.n 1214), σ (.n 1223), σ (.n 1232), σ (.n 1241), σ (.n 1250), σ (.n 1259),
+        σ (.n 1268), σ (.n 1277), σ (.n 1286), σ (.n 1295), σ (.n 1304), σ (.n 1313),
+        σ (.n 1322), σ (.n 1331), σ (.n 1340), σ (.n 1349), σ (.n 1358), σ (.n 1367),
+        σ (.n 1376), σ (.n 1385), σ (.n 1394)]
         (σ (.n 14)) W ev vtBTerms05 := by
   rw [vtB05_27 h hw hev, vtB05_26 h hw hev, vtB05_25 h hw hev, vtB05_24 h hw hev, vtB05_23 h hw hev,
     vtB05_22 h hw hev, vtB05_21 h hw hev, vtB05_20 h hw hev, vtB05_19 h hw hev,
@@ -40,25 +40,25 @@ theorem vtSide05 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
 set_option maxRecDepth 10000 in
 theorem vtSide15 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
-    (hev : ∀ c < 90, σ (.n (vtEvB (67 + c))) = ev c) :
-    σ (.n 6752) =
-      vtSideVal [σ (.n 1998), σ (.n 2000), σ (.n 2002), σ (.n 2004), σ (.n 2006), σ (.n 2008), σ (.n 2010),
-        σ (.n 2012), σ (.n 2014), σ (.n 2016), σ (.n 2018), σ (.n 2020), σ (.n 2022),
-        σ (.n 2024), σ (.n 2026), σ (.n 2028), σ (.n 2030), σ (.n 2032), σ (.n 2034),
-        σ (.n 2036), σ (.n 2038), σ (.n 2040), σ (.n 2042), σ (.n 2044), σ (.n 2046),
-        σ (.n 2048), σ (.n 2050), σ (.n 2052)]
+    (hev : ∀ c < 92, σ (.n (vtEvB (67 + c))) = ev c) :
+    σ (.n 6856) =
+      vtSideVal [σ (.n 2014), σ (.n 2016), σ (.n 2018), σ (.n 2020), σ (.n 2022), σ (.n 2024), σ (.n 2026),
+        σ (.n 2028), σ (.n 2030), σ (.n 2032), σ (.n 2034), σ (.n 2036), σ (.n 2038),
+        σ (.n 2040), σ (.n 2042), σ (.n 2044), σ (.n 2046), σ (.n 2048), σ (.n 2050),
+        σ (.n 2052), σ (.n 2054), σ (.n 2056), σ (.n 2058), σ (.n 2060), σ (.n 2062),
+        σ (.n 2064), σ (.n 2066), σ (.n 2068)]
         (σ (.n 14)) W ev vtBTerms15 := by
-  have hF0 : σ (.n 6583) =
-      vtSideVal [σ (.n 1998), σ (.n 2000), σ (.n 2002), σ (.n 2004), σ (.n 2006), σ (.n 2008), σ (.n 2010),
-        σ (.n 2012), σ (.n 2014), σ (.n 2016), σ (.n 2018), σ (.n 2020), σ (.n 2022),
-        σ (.n 2024), σ (.n 2026), σ (.n 2028), σ (.n 2030), σ (.n 2032), σ (.n 2034),
-        σ (.n 2036), σ (.n 2038), σ (.n 2040), σ (.n 2042), σ (.n 2044), σ (.n 2046),
-        σ (.n 2048), σ (.n 2050), σ (.n 2052)]
+  have hF0 : σ (.n 6675) =
+      vtSideVal [σ (.n 2014), σ (.n 2016), σ (.n 2018), σ (.n 2020), σ (.n 2022), σ (.n 2024), σ (.n 2026),
+        σ (.n 2028), σ (.n 2030), σ (.n 2032), σ (.n 2034), σ (.n 2036), σ (.n 2038),
+        σ (.n 2040), σ (.n 2042), σ (.n 2044), σ (.n 2046), σ (.n 2048), σ (.n 2050),
+        σ (.n 2052), σ (.n 2054), σ (.n 2056), σ (.n 2058), σ (.n 2060), σ (.n 2062),
+        σ (.n 2064), σ (.n 2066), σ (.n 2068)]
         (σ (.n 14)) W ev vtBTerms05 := by
     rw [vtPullSels5 h]; exact vtSide05 h hw hev
-  have a6184 := h.atomAt 6184 (.add (.n 6752) (.n 6583) (.n 6751)) (by decide +kernel)
-  simp only [Atom.Holds] at a6184
-  rw [vtSideVal_pull _ _ _ _ _ _ _ vtPull5, ← hF0, a6184, vtD5_27 h hw hev, vtD5_26 h hw hev, vtD5_25 h hw hev, vtD5_24 h hw hev, vtD5_23 h hw hev,
+  have a6286 := h.atomAt 6286 (.add (.n 6856) (.n 6675) (.n 6855)) (by decide +kernel)
+  simp only [Atom.Holds] at a6286
+  rw [vtSideVal_pull _ _ _ _ _ _ _ vtPull5, ← hF0, a6286, vtD5_27 h hw hev, vtD5_26 h hw hev, vtD5_25 h hw hev, vtD5_24 h hw hev, vtD5_23 h hw hev,
     vtD5_22 h hw hev, vtD5_21 h hw hev, vtD5_20 h hw hev, vtD5_19 h hw hev, vtD5_18 h hw hev,
     vtD5_17 h hw hev, vtD5_16 h hw hev, vtD5_15 h hw hev, vtD5_14 h hw hev, vtD5_13 h hw hev,
     vtD5_12 h hw hev, vtD5_11 h hw hev, vtD5_10 h hw hev, vtD5_9 h hw hev, vtD5_8 h hw hev,
@@ -69,134 +69,134 @@ theorem vtSide15 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
 
 set_option maxRecDepth 10000 in
 theorem vtSide25 {rd : Reader} {σ : Val} (h : VtH rd σ) {ev : ℕ → E}
-    (hev : ∀ c < 90, σ (.n (vtEvB (67 + c))) = ev c) :
-    σ (.n 6807) =
-      vtSideVal [σ (.n 2211), σ (.n 2220), σ (.n 2229), σ (.n 2238), σ (.n 2247), σ (.n 2256), σ (.n 2265),
-        σ (.n 2274), σ (.n 2283), σ (.n 2292), σ (.n 2301), σ (.n 2310), σ (.n 2319),
-        σ (.n 2328), σ (.n 2337), σ (.n 2346), σ (.n 2355), σ (.n 2364), σ (.n 2373),
-        σ (.n 2382), σ (.n 2391), σ (.n 2400), σ (.n 2409), σ (.n 2418), σ (.n 2427),
-        σ (.n 2436), σ (.n 2445)]
+    (hev : ∀ c < 92, σ (.n (vtEvB (67 + c))) = ev c) :
+    σ (.n 6911) =
+      vtSideVal [σ (.n 2227), σ (.n 2236), σ (.n 2245), σ (.n 2254), σ (.n 2263), σ (.n 2272), σ (.n 2281),
+        σ (.n 2290), σ (.n 2299), σ (.n 2308), σ (.n 2317), σ (.n 2326), σ (.n 2335),
+        σ (.n 2344), σ (.n 2353), σ (.n 2362), σ (.n 2371), σ (.n 2380), σ (.n 2389),
+        σ (.n 2398), σ (.n 2407), σ (.n 2416), σ (.n 2425), σ (.n 2434), σ (.n 2443),
+        σ (.n 2452), σ (.n 2461)]
         (0) (fun _ ↦ 1) ev vtBTerms25 := by
-  obtain ⟨_, hs⟩ := h.sliceAt 6187 [
-    .atom (.mul (.n 6755) (.n 2211) (.n 5322)),
-    .atom (.mul (.n 6756) (.n 2220) (.n 5333)),
-    .atom (.add (.n 6757) (.n 6755) (.n 6756)),
-    .atom (.mul (.n 6758) (.n 2229) (.n 5357)),
-    .atom (.add (.n 6759) (.n 6757) (.n 6758)),
-    .atom (.mul (.n 6760) (.n 2238) (.n 5368)),
-    .atom (.add (.n 6761) (.n 6759) (.n 6760)),
-    .atom (.mul (.n 6762) (.n 2247) (.n 5379)),
-    .atom (.add (.n 6763) (.n 6761) (.n 6762)),
-    .atom (.mul (.n 6764) (.n 2256) (.n 5390)),
-    .atom (.add (.n 6765) (.n 6763) (.n 6764)),
-    .atom (.mul (.n 6766) (.n 2265) (.n 5414)),
-    .atom (.add (.n 6767) (.n 6765) (.n 6766)),
-    .atom (.mul (.n 6768) (.n 2274) (.n 5425)),
-    .atom (.add (.n 6769) (.n 6767) (.n 6768)),
-    .atom (.mul (.n 6770) (.n 2283) (.n 5436)),
-    .atom (.add (.n 6771) (.n 6769) (.n 6770)),
-    .atom (.mul (.n 6772) (.n 2292) (.n 5447)),
-    .atom (.add (.n 6773) (.n 6771) (.n 6772)),
-    .atom (.mul (.n 6774) (.n 2301) (.n 5471)),
-    .atom (.add (.n 6775) (.n 6773) (.n 6774)),
-    .atom (.mul (.n 6776) (.n 2310) (.n 5482)),
-    .atom (.add (.n 6777) (.n 6775) (.n 6776)),
-    .atom (.mul (.n 6778) (.n 2319) (.n 5493)),
-    .atom (.add (.n 6779) (.n 6777) (.n 6778)),
-    .atom (.mul (.n 6780) (.n 2328) (.n 5504)),
-    .atom (.add (.n 6781) (.n 6779) (.n 6780)),
-    .atom (.mul (.n 6782) (.n 2337) (.n 5528)),
-    .atom (.add (.n 6783) (.n 6781) (.n 6782)),
-    .atom (.mul (.n 6784) (.n 2346) (.n 5539)),
-    .atom (.add (.n 6785) (.n 6783) (.n 6784)),
-    .atom (.mul (.n 6786) (.n 2355) (.n 5550)),
-    .atom (.add (.n 6787) (.n 6785) (.n 6786)),
-    .atom (.mul (.n 6788) (.n 2364) (.n 5561)),
-    .atom (.add (.n 6789) (.n 6787) (.n 6788)),
-    .atom (.mul (.n 6790) (.n 2373) (.n 5585)),
-    .atom (.add (.n 6791) (.n 6789) (.n 6790)),
-    .atom (.mul (.n 6792) (.n 2382) (.n 5596)),
-    .atom (.add (.n 6793) (.n 6791) (.n 6792)),
-    .atom (.mul (.n 6794) (.n 2391) (.n 5607)),
-    .atom (.add (.n 6795) (.n 6793) (.n 6794)),
-    .atom (.mul (.n 6796) (.n 2400) (.n 5618)),
-    .atom (.add (.n 6797) (.n 6795) (.n 6796)),
-    .atom (.mul (.n 6798) (.n 2409) (.n 5642)),
-    .atom (.add (.n 6799) (.n 6797) (.n 6798)),
-    .atom (.mul (.n 6800) (.n 2418) (.n 5653)),
-    .atom (.add (.n 6801) (.n 6799) (.n 6800)),
-    .atom (.mul (.n 6802) (.n 2427) (.n 5664)),
-    .atom (.add (.n 6803) (.n 6801) (.n 6802)),
-    .atom (.mul (.n 6804) (.n 2436) (.n 5675)),
-    .atom (.add (.n 6805) (.n 6803) (.n 6804)),
-    .atom (.mul (.n 6806) (.n 2445) (.n 5699)),
-    .atom (.add (.n 6807) (.n 6805) (.n 6806))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 6289 [
+    .atom (.mul (.n 6859) (.n 2227) (.n 5373)),
+    .atom (.mul (.n 6860) (.n 2236) (.n 5384)),
+    .atom (.add (.n 6861) (.n 6859) (.n 6860)),
+    .atom (.mul (.n 6862) (.n 2245) (.n 5395)),
+    .atom (.add (.n 6863) (.n 6861) (.n 6862)),
+    .atom (.mul (.n 6864) (.n 2254) (.n 5406)),
+    .atom (.add (.n 6865) (.n 6863) (.n 6864)),
+    .atom (.mul (.n 6866) (.n 2263) (.n 5430)),
+    .atom (.add (.n 6867) (.n 6865) (.n 6866)),
+    .atom (.mul (.n 6868) (.n 2272) (.n 5441)),
+    .atom (.add (.n 6869) (.n 6867) (.n 6868)),
+    .atom (.mul (.n 6870) (.n 2281) (.n 5452)),
+    .atom (.add (.n 6871) (.n 6869) (.n 6870)),
+    .atom (.mul (.n 6872) (.n 2290) (.n 5463)),
+    .atom (.add (.n 6873) (.n 6871) (.n 6872)),
+    .atom (.mul (.n 6874) (.n 2299) (.n 5487)),
+    .atom (.add (.n 6875) (.n 6873) (.n 6874)),
+    .atom (.mul (.n 6876) (.n 2308) (.n 5498)),
+    .atom (.add (.n 6877) (.n 6875) (.n 6876)),
+    .atom (.mul (.n 6878) (.n 2317) (.n 5509)),
+    .atom (.add (.n 6879) (.n 6877) (.n 6878)),
+    .atom (.mul (.n 6880) (.n 2326) (.n 5520)),
+    .atom (.add (.n 6881) (.n 6879) (.n 6880)),
+    .atom (.mul (.n 6882) (.n 2335) (.n 5544)),
+    .atom (.add (.n 6883) (.n 6881) (.n 6882)),
+    .atom (.mul (.n 6884) (.n 2344) (.n 5555)),
+    .atom (.add (.n 6885) (.n 6883) (.n 6884)),
+    .atom (.mul (.n 6886) (.n 2353) (.n 5566)),
+    .atom (.add (.n 6887) (.n 6885) (.n 6886)),
+    .atom (.mul (.n 6888) (.n 2362) (.n 5577)),
+    .atom (.add (.n 6889) (.n 6887) (.n 6888)),
+    .atom (.mul (.n 6890) (.n 2371) (.n 5601)),
+    .atom (.add (.n 6891) (.n 6889) (.n 6890)),
+    .atom (.mul (.n 6892) (.n 2380) (.n 5612)),
+    .atom (.add (.n 6893) (.n 6891) (.n 6892)),
+    .atom (.mul (.n 6894) (.n 2389) (.n 5623)),
+    .atom (.add (.n 6895) (.n 6893) (.n 6894)),
+    .atom (.mul (.n 6896) (.n 2398) (.n 5634)),
+    .atom (.add (.n 6897) (.n 6895) (.n 6896)),
+    .atom (.mul (.n 6898) (.n 2407) (.n 5658)),
+    .atom (.add (.n 6899) (.n 6897) (.n 6898)),
+    .atom (.mul (.n 6900) (.n 2416) (.n 5669)),
+    .atom (.add (.n 6901) (.n 6899) (.n 6900)),
+    .atom (.mul (.n 6902) (.n 2425) (.n 5680)),
+    .atom (.add (.n 6903) (.n 6901) (.n 6902)),
+    .atom (.mul (.n 6904) (.n 2434) (.n 5691)),
+    .atom (.add (.n 6905) (.n 6903) (.n 6904)),
+    .atom (.mul (.n 6906) (.n 2443) (.n 5715)),
+    .atom (.add (.n 6907) (.n 6905) (.n 6906)),
+    .atom (.mul (.n 6908) (.n 2452) (.n 5726)),
+    .atom (.add (.n 6909) (.n 6907) (.n 6908)),
+    .atom (.mul (.n 6910) (.n 2461) (.n 5737)),
+    .atom (.add (.n 6911) (.n 6909) (.n 6910))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6187, a6188, a6189, a6190, a6191, a6192, a6193, a6194, a6195, a6196, a6197, a6198, a6199, a6200,
-    a6201, a6202, a6203, a6204, a6205, a6206, a6207, a6208, a6209, a6210, a6211, a6212, a6213,
-    a6214, a6215, a6216, a6217, a6218, a6219, a6220, a6221, a6222, a6223, a6224, a6225, a6226,
-    a6227, a6228, a6229, a6230, a6231, a6232, a6233, a6234, a6235, a6236, a6237, a6238, a6239, -⟩ := hs
-  have v5322 : σ (.n 5322) = ev 63 := by
-    rw [← hev 63 (by norm_num)]; exact (vt_eval h (k := 130) (by norm_num)).2.2
-  have v5333 : σ (.n 5333) = ev 64 := by
-    rw [← hev 64 (by norm_num)]; exact (vt_eval h (k := 131) (by norm_num)).2.2
-  have v5357 : σ (.n 5357) = ev 65 := by
+  obtain ⟨a6289, a6290, a6291, a6292, a6293, a6294, a6295, a6296, a6297, a6298, a6299, a6300, a6301, a6302,
+    a6303, a6304, a6305, a6306, a6307, a6308, a6309, a6310, a6311, a6312, a6313, a6314, a6315,
+    a6316, a6317, a6318, a6319, a6320, a6321, a6322, a6323, a6324, a6325, a6326, a6327, a6328,
+    a6329, a6330, a6331, a6332, a6333, a6334, a6335, a6336, a6337, a6338, a6339, a6340, a6341, -⟩ := hs
+  have v5373 : σ (.n 5373) = ev 65 := by
     rw [← hev 65 (by norm_num)]; exact (vt_eval h (k := 132) (by norm_num)).2.2
-  have v5368 : σ (.n 5368) = ev 66 := by
+  have v5384 : σ (.n 5384) = ev 66 := by
     rw [← hev 66 (by norm_num)]; exact (vt_eval h (k := 133) (by norm_num)).2.2
-  have v5379 : σ (.n 5379) = ev 67 := by
+  have v5395 : σ (.n 5395) = ev 67 := by
     rw [← hev 67 (by norm_num)]; exact (vt_eval h (k := 134) (by norm_num)).2.2
-  have v5390 : σ (.n 5390) = ev 68 := by
+  have v5406 : σ (.n 5406) = ev 68 := by
     rw [← hev 68 (by norm_num)]; exact (vt_eval h (k := 135) (by norm_num)).2.2
-  have v5414 : σ (.n 5414) = ev 69 := by
+  have v5430 : σ (.n 5430) = ev 69 := by
     rw [← hev 69 (by norm_num)]; exact (vt_eval h (k := 136) (by norm_num)).2.2
-  have v5425 : σ (.n 5425) = ev 70 := by
+  have v5441 : σ (.n 5441) = ev 70 := by
     rw [← hev 70 (by norm_num)]; exact (vt_eval h (k := 137) (by norm_num)).2.2
-  have v5436 : σ (.n 5436) = ev 71 := by
+  have v5452 : σ (.n 5452) = ev 71 := by
     rw [← hev 71 (by norm_num)]; exact (vt_eval h (k := 138) (by norm_num)).2.2
-  have v5447 : σ (.n 5447) = ev 72 := by
+  have v5463 : σ (.n 5463) = ev 72 := by
     rw [← hev 72 (by norm_num)]; exact (vt_eval h (k := 139) (by norm_num)).2.2
-  have v5471 : σ (.n 5471) = ev 73 := by
+  have v5487 : σ (.n 5487) = ev 73 := by
     rw [← hev 73 (by norm_num)]; exact (vt_eval h (k := 140) (by norm_num)).2.2
-  have v5482 : σ (.n 5482) = ev 74 := by
+  have v5498 : σ (.n 5498) = ev 74 := by
     rw [← hev 74 (by norm_num)]; exact (vt_eval h (k := 141) (by norm_num)).2.2
-  have v5493 : σ (.n 5493) = ev 75 := by
+  have v5509 : σ (.n 5509) = ev 75 := by
     rw [← hev 75 (by norm_num)]; exact (vt_eval h (k := 142) (by norm_num)).2.2
-  have v5504 : σ (.n 5504) = ev 76 := by
+  have v5520 : σ (.n 5520) = ev 76 := by
     rw [← hev 76 (by norm_num)]; exact (vt_eval h (k := 143) (by norm_num)).2.2
-  have v5528 : σ (.n 5528) = ev 77 := by
+  have v5544 : σ (.n 5544) = ev 77 := by
     rw [← hev 77 (by norm_num)]; exact (vt_eval h (k := 144) (by norm_num)).2.2
-  have v5539 : σ (.n 5539) = ev 78 := by
+  have v5555 : σ (.n 5555) = ev 78 := by
     rw [← hev 78 (by norm_num)]; exact (vt_eval h (k := 145) (by norm_num)).2.2
-  have v5550 : σ (.n 5550) = ev 79 := by
+  have v5566 : σ (.n 5566) = ev 79 := by
     rw [← hev 79 (by norm_num)]; exact (vt_eval h (k := 146) (by norm_num)).2.2
-  have v5561 : σ (.n 5561) = ev 80 := by
+  have v5577 : σ (.n 5577) = ev 80 := by
     rw [← hev 80 (by norm_num)]; exact (vt_eval h (k := 147) (by norm_num)).2.2
-  have v5585 : σ (.n 5585) = ev 81 := by
+  have v5601 : σ (.n 5601) = ev 81 := by
     rw [← hev 81 (by norm_num)]; exact (vt_eval h (k := 148) (by norm_num)).2.2
-  have v5596 : σ (.n 5596) = ev 82 := by
+  have v5612 : σ (.n 5612) = ev 82 := by
     rw [← hev 82 (by norm_num)]; exact (vt_eval h (k := 149) (by norm_num)).2.2
-  have v5607 : σ (.n 5607) = ev 83 := by
+  have v5623 : σ (.n 5623) = ev 83 := by
     rw [← hev 83 (by norm_num)]; exact (vt_eval h (k := 150) (by norm_num)).2.2
-  have v5618 : σ (.n 5618) = ev 84 := by
+  have v5634 : σ (.n 5634) = ev 84 := by
     rw [← hev 84 (by norm_num)]; exact (vt_eval h (k := 151) (by norm_num)).2.2
-  have v5642 : σ (.n 5642) = ev 85 := by
+  have v5658 : σ (.n 5658) = ev 85 := by
     rw [← hev 85 (by norm_num)]; exact (vt_eval h (k := 152) (by norm_num)).2.2
-  have v5653 : σ (.n 5653) = ev 86 := by
+  have v5669 : σ (.n 5669) = ev 86 := by
     rw [← hev 86 (by norm_num)]; exact (vt_eval h (k := 153) (by norm_num)).2.2
-  have v5664 : σ (.n 5664) = ev 87 := by
+  have v5680 : σ (.n 5680) = ev 87 := by
     rw [← hev 87 (by norm_num)]; exact (vt_eval h (k := 154) (by norm_num)).2.2
-  have v5675 : σ (.n 5675) = ev 88 := by
+  have v5691 : σ (.n 5691) = ev 88 := by
     rw [← hev 88 (by norm_num)]; exact (vt_eval h (k := 155) (by norm_num)).2.2
-  have v5699 : σ (.n 5699) = ev 89 := by
+  have v5715 : σ (.n 5715) = ev 89 := by
     rw [← hev 89 (by norm_num)]; exact (vt_eval h (k := 156) (by norm_num)).2.2
-  rw [a6239, a6237, a6235, a6233, a6231, a6229, a6227, a6225, a6223, a6221, a6219, a6217, a6215, a6213,
-    a6211, a6209, a6207, a6205, a6203, a6201, a6199, a6197, a6195, a6193, a6191, a6189, a6187,
-    a6188, a6190, a6192, a6194, a6196, a6198, a6200, a6202, a6204, a6206, a6208, a6210, a6212,
-    a6214, a6216, a6218, a6220, a6222, a6224, a6226, a6228, a6230, a6232, a6234, a6236, a6238,
-    v5322, v5333, v5357, v5368, v5379, v5390, v5414, v5425, v5436, v5447, v5471, v5482, v5493,
-    v5504, v5528, v5539, v5550, v5561, v5585, v5596, v5607, v5618, v5642, v5653, v5664, v5675,
-    v5699]
+  have v5726 : σ (.n 5726) = ev 90 := by
+    rw [← hev 90 (by norm_num)]; exact (vt_eval h (k := 157) (by norm_num)).2.2
+  have v5737 : σ (.n 5737) = ev 91 := by
+    rw [← hev 91 (by norm_num)]; exact (vt_eval h (k := 158) (by norm_num)).2.2
+  rw [a6341, a6339, a6337, a6335, a6333, a6331, a6329, a6327, a6325, a6323, a6321, a6319, a6317, a6315,
+    a6313, a6311, a6309, a6307, a6305, a6303, a6301, a6299, a6297, a6295, a6293, a6291, a6289,
+    a6290, a6292, a6294, a6296, a6298, a6300, a6302, a6304, a6306, a6308, a6310, a6312, a6314,
+    a6316, a6318, a6320, a6322, a6324, a6326, a6328, a6330, a6332, a6334, a6336, a6338, a6340,
+    v5373, v5384, v5395, v5406, v5430, v5441, v5452, v5463, v5487, v5498, v5509, v5520, v5544,
+    v5555, v5566, v5577, v5601, v5612, v5623, v5634, v5658, v5669, v5680, v5691, v5715, v5726,
+    v5737]
   simp only [vtSideVal, vtBTerms25, List.zipWith_cons_cons, List.zipWith_nil_left,
     List.sum_cons, List.sum_nil, vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil,
     List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, vt_ofK_ofBits_one, zero_add,
