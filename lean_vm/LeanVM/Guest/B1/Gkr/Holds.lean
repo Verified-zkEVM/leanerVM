@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.RoundsHolds
 public import LeanVM.Guest.B1.Placement.Common
 
 /-!
-# `verify_bus_gkr` is sound (G:1796-1968)
+# `verify_bus_gkr` is sound (G:1768-1940)
 
 The body (`vbgPre`, checked against the core IR by kernel evaluation): the range check of
 `g_bus_mu = g^depth` (`depth ≤ 32`), the two roots read and the count asserted nonzero, the root
@@ -238,7 +238,7 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
 
 end Sem
 
-/-- **The table `k_mod_next`** (G:1830-1833) at `σ 56`. -/
+/-- **The table `k_mod_next`** (G:1802-1805) at `σ 56`. -/
 theorem vbg_kmn {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vbgPre True kret) : KModNext rd (σ (.n 56)) := by
   have hs := tb_holds_slice vbgPre_noRet h 62 ((List.range 4).map fun r ↦
