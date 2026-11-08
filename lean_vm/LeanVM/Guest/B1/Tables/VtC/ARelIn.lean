@@ -115,10 +115,10 @@ def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) : 
 
 /-- The `__loop9` call. -/
 def loopCall : Stmt :=
-  .callIf (.n 2597) "__loop9" [.n 2598, .n 2500, .n 2589, .n 16, .n 2500, .n 2592]
+  .callIf (.n 2613) "__loop9" [.n 2614, .n 2516, .n 2605, .n 16, .n 2516, .n 2608]
 
 /-- The `eq_prefix_chain` call. -/
-def epcCall : Stmt := .call "eq_prefix_chain" [.n 2613, .n 2614, .n 16, .n 703, .n 2500] []
+def epcCall : Stmt := .call "eq_prefix_chain" [.n 2629, .n 2630, .n 16, .n 703, .n 2516] []
 
 /-- `verify_tables`' calls, in order. -/
 def vtCalls : List Stmt :=
@@ -282,11 +282,11 @@ theorem vt_nμ (I : VtIn H B w rd) : H.n ≤ H.μ := by
   obtain ⟨t, ht, e⟩ := vt_n_ex I.hs.hr
   rw [← e]; exact I.hs.hτμ t ht
 
-theorem vt_e2500 (I : VtIn H B w rd) : σv (.n 2500) = gen ^ H.n := by
+theorem vt_e2500 (I : VtIn H B w rd) : σv (.n 2516) = gen ^ H.n := by
   have g : GoodS rd vtSL w σv
-      (fixNe (.atom (.hint (.witness "zc_tau_max" (.stack [.n 2500]))))) :=
-    vt_goodS rfl (vt_mem_at 2571 _ (by decide +kernel))
-  have := g (.n 2500) (by simp)
+      (fixNe (.atom (.hint (.witness "zc_tau_max" (.stack [.n 2516]))))) :=
+    vt_goodS rfl (vt_mem_at 2587 _ (by decide +kernel))
+  have := g (.n 2516) (by simp)
   rw [this]; exact I.hw.w2500
 
 /-! ## Each family -/
@@ -343,7 +343,7 @@ theorem vt_sh_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
   refine shared_selector_tables_relIn (by omega) ?_ ?_ ?_ ?_ ?_ h
   · rw [ep, e705]
     exact ptr_own I.hw (j := 6) (by norm_num) rfl (by
-      show 288 * t + 32 * ((H.μ - H.τ t + 3) / 4) ≤ 1728; omega)
+      show 288 * t + 32 * ((H.μ - H.τ t + 3) / 4) ≤ 1736; omega)
   · rw [eg, e706]
     exact ptr_own I.hw (j := 7) (by norm_num) rfl (by
       show 144 * t + 16 * ((H.μ - H.τ t + 3) / 4) ≤ 864; omega)
@@ -512,7 +512,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
       hdig
   · rw [eqt]
     exact ptr_own I.hw (j := 6) (by norm_num) rfl (by
-      show 288 * t + 32 * btN (H.μ - H.τ t) ≤ 1728; simp only [btN]; omega)
+      show 288 * t + 32 * btN (H.μ - H.τ t) ≤ 1736; simp only [btN]; omega)
   · rw [egt]
     exact ptr_own I.hw (j := 7) (by norm_num) rfl (by
       show 144 * t + 16 * btN (H.μ - H.τ t) ≤ 864; simp only [btN]; omega)
@@ -523,30 +523,30 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   refine ⟨h.1, fun hne ↦ ?_⟩
   have hc := h.2 hne
   have e2500 := vt_e2500 I
-  have e2597 : σv (.n 2597) = 1 + gen ^ H.n := by
-    rw [vt_add (d := 2597) (x := 2596) (y := 2500) (vt_mem_at 2652 _ (by decide +kernel)),
-      vt_const (vt_mem_at 2651 (.atom (.const (.n 2596) (word 1 0 0))) (by decide +kernel)),
+  have e2597 : σv (.n 2613) = 1 + gen ^ H.n := by
+    rw [vt_add (d := 2613) (x := 2612) (y := 2516) (vt_mem_at 2668 _ (by decide +kernel)),
+      vt_const (vt_mem_at 2667 (.atom (.const (.n 2612) (word 1 0 0))) (by decide +kernel)),
       tb_word_one, e2500]
-  have e2598 : σv (.n 2598) = gen ^ 0 := by
-    rw [vt_const (vt_mem_at 2653 (.atom (.const (.n 2598) (word 1 0 0))) (by decide +kernel)),
+  have e2598 : σv (.n 2614) = gen ^ 0 := by
+    rw [vt_const (vt_mem_at 2669 (.atom (.const (.n 2614) (word 1 0 0))) (by decide +kernel)),
       tb_word_one, pow_zero]
   have hK : 0 < H.n := by
     rcases Nat.eq_zero_or_pos H.n with h0 | h0
     · exact absurd (by rw [e2597, h0, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
     · exact h0
-  have a2589 : σv (.n 2589) = w 2589 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2592 : σv (.n 2592) = w 2592 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2589 : σv (.n 2605) = w 2605 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2592 : σv (.n 2608) = w 2608 := vt_alloc' (by unfold vtAllocVars; simp)
   simp only [List.map_cons, List.map_nil] at hc ⊢
   rw [e2598, e2500, a2589, a2592, vt_s16] at hc ⊢
   obtain ⟨d, hd⟩ := hc
   -- the rounds' cursor words
-  have hR : TbReadsAt rd (w 2589)
+  have hR : TbReadsAt rd (w 2605)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 5) H.xsR H.n) := by
     have := vt_own_reads I.hm I.hw (j := 108 + 0) (by norm_num)
-    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2589 by decide]
+    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2605 by decide]
       at this
     exact this
-  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2589 * gen ^ (7 * k)) 5 c →
+  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2605 * gen ^ (7 * k)) 5 c →
       PtrIn (H.reg B) c 3 := by
     intro k hk c hcl
     have r := zcRoundsW_reads (cap0_length H) hR k hk.le
@@ -569,7 +569,7 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
   have e2500 := vt_e2500 I
-  have a2613 : σv (.n 2613) = w 2613 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2613 : σv (.n 2629) = w 2629 := vt_alloc' (by unfold vtAllocVars; simp)
   have a703 : σv (.n 703) = w 703 := vt_alloc' (by unfold vtAllocVars; simp)
   have hnμ := vt_nμ I
   have hμ : H.μ < 33 := I.hs.hμ33
