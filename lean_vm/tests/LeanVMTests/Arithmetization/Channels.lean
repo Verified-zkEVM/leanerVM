@@ -74,14 +74,14 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide
 def st : Registers K := ⟨addressOfIndex 3, addressOfIndex 5⟩
 def mm : MemMsg K := ⟨addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, #v[K.ofBits 7, K.ofBits
     8, K.ofBits 9]⟩
-def bm : BytecodeMsg K := ⟨addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, #v[addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 0, 0, 0, 0]⟩
+def bm : BytecodeMsg K := ⟨addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, #v[addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 0, 0, 0, 0, 0, 0]⟩
 
 #guard (toElements st).toList = [addressOfIndex 3, addressOfIndex 5]
 #guard (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7,
     K.ofBits 8, K.ofBits 9]
 #guard (toElements bm).toList =
   [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5,
-      1, 0, 0, 0, 0, 0, 0]
+      1, 0, 0, 0, 0, 0, 0, 0, 0]
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
 example : (toElements st).toList = [addressOfIndex 3, addressOfIndex 5] := regs_toElements st
@@ -89,13 +89,14 @@ example : (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, address
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
     [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex
-        5, 1, 0, 0, 0, 0, 0, 0] := by
+        5, 1, 0, 0, 0, 0, 0, 0, 0, 0] := by
   rw [bytecodeMsg_toElements]; rfl
 
--- Sizes: two, five, and thirteen coordinates after the separator.
+-- Sizes: two, five, and fifteen coordinates after the separator: the bytecode message fills the
+-- sixteen slots.
 example : size Registers = 2 := rfl
 example : size MemMsg = 5 := rfl
-example : size BytecodeMsg = 13 := rfl
+example : size BytecodeMsg = 15 := rfl
 
 /-- The state message is the machine's register pair: `Registers.initial` is a message. -/
 example : (toElements Registers.initial).toList = [1, 1] := by
@@ -130,8 +131,36 @@ example (a c : Expression K) (v : Vector (Expression K) 3) :
          toElements (⟨a, Expression.const g * c, v⟩ : MemMsg (Expression K)), false⟩] :=
   rfl
 
+/-- `memReadIf` is a `pullIf` of multiplicity `-flag` then a `push` of the gated counter
+`count + g·(flag·count) + flag·count` (`memory_coords_if`, leanVM PR #724 head `873ee6d8`). -/
+example (f a c : Expression K) (v : Vector (Expression K) 3) :
+    (memReadIf f a c v).operations 0 =
+      [.interact ⟨MemPull.toRaw, -f, toElements (⟨a, c, v⟩ : MemMsg (Expression K)), true⟩,
+       .interact ⟨MemPush.toRaw, 1,
+         toElements (⟨a, c + Expression.const g * (f * c) + f * c, v⟩ : MemMsg (Expression K)),
+         false⟩] :=
+  rfl
+
+/-- At flag `1` the gated counter is `g·count`, a read; at flag `0` it is the pull's `count`, and
+the push is the pull's own tuple: the pair cancels. -/
+example (c : K) : gatedCount 1 c = g * c ∧ gatedCount 0 c = c :=
+  ⟨gatedCount_one c, gatedCount_zero c⟩
+
+/-- A flag other than `0` and `1` would push a counter that is neither: the gates are bits only
+because the bytecode is the program's (`decode` rejects any other output flag). -/
+example : gatedCount (g : K) 1 ≠ g * 1 ∧ gatedCount (g : K) 1 ≠ 1 := by
+  unfold gatedCount
+  decide +kernel
+
+/-- The gated pull's guarantee is granted at flag `1` (multiplicity `-1`) and not at flag `0`. -/
+example (m : MemMsg K) (data : ProverData K) :
+    (MemPull.toRaw.Guarantees (-1) (toElements m) data ↔ MemPull.Guarantees m data) ∧
+      MemPull.toRaw.Guarantees (-0) (toElements m) data := by
+  refine ⟨?_, fun h ↦ absurd h (by decide)⟩
+  simp [Channel.toRaw, ProvableType.fromElements_toElements]
+
 /-- `bytecodeRead` likewise. -/
-example (pc c o : Expression K) (op : Vector (Expression K) 10) :
+example (pc c o : Expression K) (op : Vector (Expression K) 12) :
     (bytecodeRead pc c o op).operations 0 =
       [.interact ⟨BytecodePull.toRaw, -1,
          toElements (⟨pc, c, o, op⟩ : BytecodeMsg (Expression K)), true⟩,
@@ -244,24 +273,24 @@ example : ¬ MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBi
 /-- The bytecode guarantee is decodability alone: an instruction's entry passes, at any counter
 and with any count, over every data (the guarantee reads no data). -/
 example (pc c : K) (data : ProverData K) :
-    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ data :=
+    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]⟩ data :=
   ⟨_, decode_entry (.jump 1 1 1)⟩
 
 /-- An entry that decodes to nothing is no bytecode read at any counter: the flag pair `(1, 1)`
 is no store mode. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.busCode, #v[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]⟩ data := by
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.busCode, #v[1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.deref.busCode] ++ #v[(1: K), 1, 1, 1, 1, 0, 0, 0, 0, 0]) = none := by
+  have h : decode (#v[Opcode.deref.busCode] ++ #v[(1: K), 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 
 /-- Nor is a nonzero spare slot. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 1]⟩
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.busCode, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]⟩
         data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.xor.busCode] ++ #v[(1: K), 1, 1, 0, 0, 0, 0, 0, 0, 1]) = none := by
+  have h : decode (#v[Opcode.xor.busCode] ++ #v[(1: K), 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 

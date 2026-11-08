@@ -48,15 +48,15 @@ open Air.Flat (Component EnsembleWitness)
 
 @[expose] public section
 
-/-- Input lane `l` of a raw `KECCAK` row is its cell `13 + l`. -/
+/-- Input lane `l` of a raw `KECCAK` row is its cell `15 + l`. -/
 theorem keccakRowAt_lin {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
-    (l : Fin 25) : (keccakRowAt w row).lin[l] = row[13 + l.val]?.getD 0 := by
+    (l : Fin 25) : (keccakRowAt w row).lin[l] = row[15 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
   fin_cases l <;> simp
 
-/-- Output lane `l` of a raw `KECCAK` row is its cell `38 + l`. -/
+/-- Output lane `l` of a raw `KECCAK` row is its cell `40 + l`. -/
 theorem keccakRowAt_lout {prog : LeanIsaProgram} (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K)
-    (l : Fin 25) : (keccakRowAt w row).lout[l] = row[38 + l.val]?.getD 0 := by
+    (l : Fin 25) : (keccakRowAt w row).lout[l] = row[40 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
   fin_cases l <;> simp
 
@@ -75,7 +75,7 @@ theorem keccakRowsValid_witnessOf (h : (leanIsaInstance prog s).aux q) :
   intro row hrow
   rw [keccakRows_witnessOf, opcodeRows, List.mem_ofFn] at hrow
   obtain ⟨x, rfl⟩ := hrow
-  have hw : (90 : ℕ) ≤ (leanIsaInstance prog s).width (opIdx 5) := width_keccak.ge
+  have hw : (92 : ℕ) ≤ (leanIsaInstance prog s).width (opIdx 5) := width_keccak.ge
   unfold KeccakRelation KeccakRow.outLanes KeccakRow.inLanes
   funext l
   rw [keccakRowAt_lout, getElem?_pos _ _ (by rw [Array.size_ofFn]; omega), Array.getElem_ofFn,

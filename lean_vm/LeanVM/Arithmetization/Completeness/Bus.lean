@@ -131,9 +131,30 @@ theorem skipSends_memPush (l : List (K × K × Vector K 3)) :
   simp only [skipSends, List.filter_flatMap]
   simp [MemPull, MemPush, map_flatMap_singleton]
 
+/-- Gated reads send nothing on a channel other than the memory pair. -/
+theorem gatedSends_filter_eq_nil (l : List (K × K × K × Vector K 3)) {n : String}
+    (h1 : n ≠ MemPull.name) (h2 : n ≠ MemPush.name) :
+    ((gatedSends l).filter (·.1 = n)).map (·.2) = [] := by
+  simp only [gatedSends, List.filter_flatMap]
+  simp [Ne.symm h1, Ne.symm h2]
+
+/-- Gated reads pull their tuples. -/
+theorem gatedSends_memPull (l : List (K × K × K × Vector K 3)) :
+    ((gatedSends l).filter (·.1 = MemPull.name)).map (·.2) =
+      l.map fun y ↦ memMsgOf y.2.1 y.2.2.1 y.2.2.2 := by
+  simp only [gatedSends, List.filter_flatMap]
+  simp [MemPull, MemPush, map_flatMap_singleton]
+
+/-- … and push them with the gated counter. -/
+theorem gatedSends_memPush (l : List (K × K × K × Vector K 3)) :
+    ((gatedSends l).filter (·.1 = MemPush.name)).map (·.2) =
+      l.map fun y ↦ memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2 := by
+  simp only [gatedSends, List.filter_flatMap]
+  simp [MemPull, MemPush, map_flatMap_singleton]
+
 /-- A list of rows each sending `A r ++ C r` sends all the `A`s and then all the `C`s, up to
 order. -/
-theorem flatMap_append_perm {α β : Type} (l : List α) (A C : α → List β) :
+theorem flatMap_append_perm {α : Type*} {β : Type*} (l : List α) (A C : α → List β) :
     (l.flatMap fun r ↦ A r ++ C r).Perm (l.flatMap A ++ l.flatMap C) := by
   induction l with
   | nil => simp

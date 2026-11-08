@@ -203,16 +203,16 @@ private theorem cellOf_eq (t : Air.Flat.Table K) {x : ℕ} (hx : x < t.table.len
   rw [cellOf, List.getElem?_eq_getElem hx]
   rfl
 
-/-- The input lanes of an executed `KECCAK` row of a witness are its cells `13 … 37`. -/
+/-- The input lanes of an executed `KECCAK` row of a witness are its cells `15 … 39`. -/
 private theorem inLaneOf_executed (x : ℕ) (hx : x < s.rows 5) (l : Fin 25) :
-    inLaneOf prog s w x l = cellOf (tableAt w 5) x (13 + l) := by
+    inLaneOf prog s w x l = cellOf (tableAt w 5) x (15 + l) := by
   simp [inLaneOf, hx]
 
 /-- Every executed `KECCAK` row of a witness satisfying the constraint system permutes: its
 output lane `l` is lane `l` of Keccak-f[1600] of its input lanes. -/
 theorem outLane_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) (x : ℕ) (hx : x < s.rows 5) (l : Fin 25) :
-    cellOf (tableAt w 5) x (38 + l) =
+    cellOf (tableAt w 5) x (40 + l) =
       stateLanes (keccakF1600 (laneState (inLaneOf prog s w x))) l := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
   have hx' : x < (tableAt w 5).table.length := hx
@@ -239,15 +239,15 @@ private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input 
   by_cases hl : IsLane ⟨opIdx j, i⟩
   · have hj : j = 5 := Fin.ext (by have := congrArg Fin.val hl.1; simp [opIdx] at this; omega)
     subst hj
-    have h1 : 13 ≤ i.val := hl.2.1
-    have h2 : i.val < 63 := hl.2.2
+    have h1 : 15 ≤ i.val := hl.2.1
+    have h2 : i.val < 65 := hl.2.2
     have hx : (Fin.castLE ((witnessSizes w hp).rows_le 5) x).val < (witnessSizes w hp).rows 5 :=
       x.isLt
-    have hw : (opcodeComponent 5).width = 90 := width_keccak
-    by_cases ho : 38 ≤ i.val
+    have hw : (opcodeComponent 5).width = 92 := width_keccak
+    by_cases ho : 40 ≤ i.val
     · obtain ⟨l, rfl⟩ : ∃ l : Fin 25,
-          i = ⟨38 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
-        ⟨⟨i.val - 38, by omega⟩, Fin.ext (by simp only; omega)⟩
+          i = ⟨40 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
+        ⟨⟨i.val - 40, by omega⟩, Fin.ext (by simp only; omega)⟩
       refine Eq.trans ?_ (column_outCol_of_aux prog _ _ (aux_stackOf prog _ w) l _).symm
       refine (outLane_of_satisfiedBy h hs x x.isLt l).trans ?_
       simp only [KeccakRegion.state, Nat.zero_add]
@@ -258,8 +258,8 @@ private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input 
         (lt_of_lt_of_le x.isLt ((witnessSizes w hp).rows_le 5)) _).symm
       rw [dite_eq_left l'.isLt]
     · obtain ⟨l, rfl⟩ : ∃ l : Fin 25,
-          i = ⟨13 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
-        ⟨⟨i.val - 13, by omega⟩, Fin.ext (by simp only; omega)⟩
+          i = ⟨15 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
+        ⟨⟨i.val - 15, by omega⟩, Fin.ext (by simp only; omega)⟩
       refine Eq.trans ?_ (column_inCol prog _ _ l _).symm
       refine Eq.trans ?_ (word_stackOf prog _ w l (by omega) _).symm
       refine Eq.trans ?_ (keccakWitness_getElem prog _ w l (by omega) x.val
@@ -438,19 +438,19 @@ theorem paddingHonest_stackOf (hs : Sizes.ofWitness w = some s) :
     by_cases hl : IsLane ⟨⟨j + 3, hj⟩, i⟩
     · have hj5 : j = 5 := by have := congrArg Fin.val hl.1; simp [opIdx] at this; omega
       subst hj5
-      have h1 : 13 ≤ i.val := hl.2.1
-      have h2 : i.val < 63 := hl.2.2
-      have hw : (leanIsaInstance prog (witnessSizes w hp)).width ⟨5 + 3, hj⟩ = 90 :=
+      have h1 : 15 ≤ i.val := hl.2.1
+      have h2 : i.val < 65 := hl.2.2
+      have hw : (leanIsaInstance prog (witnessSizes w hp)).width ⟨5 + 3, hj⟩ = 92 :=
         width_keccak
       let x' : Fin (2 ^ (witnessSizes w hp).τ 5) := x
       have hx' : (witnessSizes w hp).rows 5 ≤ x'.val := hx
       have hzero : inLaneOf prog (witnessSizes w hp) w x' = fun _ ↦ 0 := by
         funext l
         simp [inLaneOf, Nat.not_lt.mpr hx']
-      by_cases ho : 38 ≤ i.val
+      by_cases ho : 40 ≤ i.val
       · obtain ⟨l, rfl⟩ : ∃ l : Fin 25,
-            i = ⟨38 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
-          ⟨⟨i.val - 38, by omega⟩, Fin.ext (by simp only; omega)⟩
+            i = ⟨40 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
+          ⟨⟨i.val - 40, by omega⟩, Fin.ext (by simp only; omega)⟩
         refine (column_outCol_of_aux prog _ _ (aux_stackOf prog _ w) l x').trans ?_
         refine Eq.trans ?_ (padRow_outCol l).symm
         simp only [KeccakRegion.state, Nat.zero_add]
@@ -459,8 +459,8 @@ theorem paddingHonest_stackOf (hs : Sizes.ofWitness w = some s) :
         refine (word_stackOf prog _ w l' (by omega) _).trans ?_
         rw [keccakWitness_getElem prog _ w l' (by omega) _ x'.isLt, dite_eq_left l'.isLt, hzero]
       · obtain ⟨l, rfl⟩ : ∃ l : Fin 25,
-            i = ⟨13 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
-          ⟨⟨i.val - 13, by omega⟩, Fin.ext (by simp only; omega)⟩
+            i = ⟨15 + l.val, by clear hl h1 h2 ho; have := l.isLt; rw [hw]; omega⟩ :=
+          ⟨⟨i.val - 15, by omega⟩, Fin.ext (by simp only; omega)⟩
         refine (column_inCol prog _ _ l x').trans ?_
         refine (word_stackOf prog _ w l (by omega) _).trans ?_
         rw [keccakWitness_getElem prog _ w l (by omega) _ x'.isLt, dite_eq_left l.isLt, hzero]
