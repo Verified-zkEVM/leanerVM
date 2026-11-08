@@ -5,7 +5,7 @@ public import Statement.Prover.KeccakLayer
 /-!
 # The Keccak prover
 
-The honest prover of `verifyKeccak` (`verifier.py:1373-1406`) and of the Keccak phase of
+The honest prover of `verifyKeccak` (`verifier.py:1386-1419`) and of the Keccak phase of
 `verify_execution` (`keccakPhase`): the column's `64` slots at the steps' point (`slotWords`), the
 twelve layers (`KeccakLayer.lean`), and the openings' sumchecks, sums over the remaining cube of
 products of two folded tables (`openRound`, `openFold`).
@@ -111,7 +111,7 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
   (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `verifier.py:1503-1507`): the
+/-- **The honest prover of the Keccak phase** (`keccakPhase`, `verifier.py:1516-1520`): the
 reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of log-height
 `τ`, at its point and output lanes (`evaluations`). -/
 def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :

@@ -30,7 +30,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
-`publicInput`: the eight moves of `verify_execution` (`verifier.py:1463-1516`), each phase's
+`publicInput`: the eight moves of `verify_execution` (`verifier.py:1476-1529`), each phase's
 executable prover beside the verifier's phase (`Script.alongside`), which hands the next phase its
 result. The public-input phase sends nothing; the output lanes' claims, on no committed column, do
 not reach the stack (`ColumnClaim.onStack`). -/

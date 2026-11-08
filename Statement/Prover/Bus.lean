@@ -6,7 +6,7 @@ public import Statement.Prover.Columns
 /-!
 # The bus phase, executable
 
-The prover of `verifyBusBalance` (`verifier.py:581-643`) from the instance's columns `cols` (by
+The prover of `verifyBusBalance` (`verifier.py:576-638`) from the instance's columns `cols` (by
 global column number): the three sides' leaves filled straight into arrays, each side's blocks
 end to end in `stack_offsets`' order (`stackA`) and padded with ones; the batched GKR over the three
 trees (`gkrA`); the framework columns' extensions at the point (`mleK`).
@@ -20,7 +20,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier
 
 /-! ## Stacking -/
 
-/-- `stack_offsets`' order of blocks of the given log-sizes (`verifier.py:320-326`): the stable
+/-- `stack_offsets`' order of blocks of the given log-sizes (`verifier.py:315-321`): the stable
 sort of the indices by size, larger first. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
   (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)

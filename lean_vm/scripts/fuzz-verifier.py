@@ -86,8 +86,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-PIN = "5e3ade21d339a45e1b3b0dba97ad9300ab50e49b"
-VERIFIER_SHA256 = "67a58e965ee5932da225670ab47dc5cb15e0c68fda6b7b7ffff37659c58eb1d4"
+PIN = "873ee6d8a57428e33908ecf1608a7bdd43bf832e"
+VERIFIER_SHA256 = "7195c0db8c69b15339f9d754908334a2956ccf0906371026330ce8b31e47bae0"
 FLAT = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")  # the Python verifier's
 ROOT = Path(__file__).resolve().parent.parent
 TREE = ROOT.parent / ".leanvm"

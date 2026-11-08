@@ -325,16 +325,24 @@ def stateStep (f : FlushesC) (pc fp : ℕ) : FlushesC :=
   f.stateDerived pc fp (FormC.col pc 1) (FormC.col fp)
 
 /-- `Flushes._counted`. -/
-def counted (f : FlushesC) (pre : List FormC) (count : ℕ) (suffix : List FormC) : FlushesC :=
-  f.pair (pre ++ [FormC.col count 1] ++ suffix) (pre ++ [FormC.col count] ++ suffix)
+def counted (f : FlushesC) (pre : List FormC) (counter : FormC) (count : ℕ)
+    (suffix : List FormC) : FlushesC :=
+  f.pair (pre ++ [counter] ++ suffix) (pre ++ [FormC.col count] ++ suffix)
 
 /-- `Flushes.bytecode`. -/
 def bytecode (f : FlushesC) (pc count opcode : ℕ) (operands : List FormC) : FlushesC :=
-  f.counted [FormC.const (.genPow 2), FormC.col pc] count (FormC.const (.gpow opcode) :: operands)
+  f.counted [FormC.const (.genPow 2), FormC.col pc] (FormC.col count 1) count
+    (FormC.const (.gpow opcode) :: operands)
 
 /-- `Flushes.memory`. -/
 def memory (f : FlushesC) (address : FormC) (count : ℕ) (values : List FormC) : FlushesC :=
-  f.counted [FormC.const .gen, address] count values
+  f.counted [FormC.const .gen, address] (FormC.col count 1) count values
+
+/-- `Flushes.memory_if`. -/
+def memoryIf (f : FlushesC) (flag : ℕ) (address : FormC) (count : ℕ) (values : List FormC) :
+    FlushesC :=
+  f.counted [FormC.const .gen, address]
+    (FormC.sum [FormC.col count, FormC.prod flag count 1, FormC.prod flag count]) count values
 
 /-- `Flushes.memory_cols`. -/
 def memoryCols (f : FlushesC) (address : FormC) (count : ℕ) (columns : List ℕ) : FlushesC :=
@@ -433,7 +441,8 @@ def flushesKeccakC : FlushesC :=
   let f : FlushesC := {}
   let f := f.stateStep (c "pc") fp
   let f := f.bytecode (c "pc") (c "cnt_bc") opKeccak
-    ((oM ++ ["o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out"].map c).map (FormC.col ·))
+    ((oM ++ ["o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two",
+      "out_all"].map c).map (FormC.col ·))
   let address := fun (cell : ℕ) ↦
     if cell < 4 then FormC.prod fp (oM.getD cell 0)
     else if cell < 8 then FormC.prod fp (c "o_tail") (cell - 4)
@@ -448,8 +457,11 @@ def flushesKeccakC : FlushesC :=
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimbC (lane (pick (LeanVM.Semantics.cellLanes false cell)))
           (lane (pick (LeanVM.Semantics.cellLanes true cell))) flag missing) ++ [FormC.const .zero]
-      f.memory (if side = 0 then address cell else FormC.prod fp (c "o_out") cell)
-        (keccakCnt + 13 * side + cell) values) f) f
+      let count := keccakCnt + 13 * side + cell
+      if side = 0 then f.memory (address cell) count values
+      else if cell = 0 then f.memory (FormC.prod fp (c "o_out")) count values
+      else f.memoryIf (if cell = 1 then c "out_two" else c "out_all")
+        (FormC.prod fp (c "o_out") cell) count values) f) f
 
 /-- The tables' flushes, symbolically, in opcode order. -/
 def flushesC : Fin 6 → FlushesC
