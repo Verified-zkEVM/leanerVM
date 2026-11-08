@@ -24,7 +24,7 @@ loads, which changes no relation).
 (`XOR`), `*` (`MUL`), copies (`MUL` by the frame's one cell), memory words through a pointer
 (`DEREF`, a heap read and a heap store being the same relation), the three assertions,
 `assert_in_k` (an untaken `JUMP`), `KECCAK` (one atom per instruction, its thirteen read and
-thirteen written cells as values), the address of a frame run (`addr`) and hints. A
+one, two or thirteen written cells as values), the address of a frame run (`addr`) and hints. A
 `Stmt` adds the control flow: a forward branch on a `K` word, a `match` whose arms run inline in
 the frame, a call, the conditional call that ends a loop helper, and a fused `match` of calls.
 
@@ -143,11 +143,13 @@ inductive Atom where
   /-- `assert_in_k(a, b)`: a `JUMP` on the zero cell, to `a`, with frame `b`. -/
   | assertInK (a b : V)
   /-- `KECCAK`, one instruction: the thirteen values `ins` hold a Keccak state in the layout
-  `inOdd`, and the thirteen values `outs` hold its Keccak-f[1600] in the layout `outOdd`
-  (`KeccakCellsRelation`). `ins` lists the cells the instruction reads in its order (`keccakInputCellOffset`,
-  `LeanVM.Guest.keccakIns`): `m0, m1, m2, m3`, the four cells of the run from `tail`, `b8`, the
-  four of the run from `cap`; `outs[k]` is the cell `out + k` (`LeanVM.Guest.keccakOuts`). An
-  atom whose lists are not thirteen long holds of no valuation. -/
+  `inOdd`, and the one, two or thirteen values `outs` hold the first cells of its Keccak-f[1600]
+  in the layout `outOdd` (`KeccakCellsRelation` at the `KeccakOutputCells` of `outs.length`,
+  `Op::Keccak`'s `out_cells`). `ins` lists the cells the instruction reads in its order
+  (`keccakInputCellOffset`, `LeanVM.Guest.keccakIns`): `m0, m1, m2, m3`, the four cells of the
+  run from `tail`, `b8`, the four of the run from `cap`; `outs[k]` is the cell `out + k`
+  (`LeanVM.Guest.keccakOuts`). An atom with `ins` not thirteen long, or `outs` not one, two or
+  thirteen long, holds of no valuation. -/
   | keccak (ins outs : List V) (inOdd outOdd : Bool)
   /-- `addr(run)`: `p` is the address of the frame run. -/
   | frameAddr (p : V) (run : List V)
@@ -219,8 +221,8 @@ def Atom.Holds (rd : Reader) (σ : Val) : Atom → Prop
       LoadHolds rd (σ x) 0 (σ t1) ∧ σ k = σ x * σ y ∧ LoadHolds rd (σ y) 0 (σ t2)
   | .assertInK a b => IsInK (σ a) ∧ IsInK (σ b)
   | .keccak ins outs inOdd outOdd =>
-      ins.length = 13 ∧ outs.length = 13 ∧
-        KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd
+      ins.length = 13 ∧ ∃ outCells : KeccakOutputCells, outs.length = outCells.cellCount ∧
+        KeccakCellsRelation (cells13 (ins.map σ)) inOdd (cells13 (outs.map σ)) outOdd outCells
   | .frameAddr p run =>
       IsInK (σ p) ∧ ∀ (k : Nat) (hk : k < run.length) (w : E),
         rd ((σ p).limb 0 * addressOfIndex k) = some w → w = σ run[k]
