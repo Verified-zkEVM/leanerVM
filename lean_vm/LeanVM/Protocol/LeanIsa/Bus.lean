@@ -298,10 +298,10 @@ private theorem tuplesOn_eq (l : List (Interaction K)) (side : Side) :
   rw [tuplesOn, List.map_map]
   rfl
 
-/-- Ten coordinates written as one vector. -/
-private theorem vec_thirteen {α : Type} (a b c d e f g h i j k l m : α) :
-    #v[a] ++ (#v[b] ++ (#v[c] ++ #v[d, e, f, g, h, i, j, k, l, m])) =
-      #v[a, b, c, d, e, f, g, h, i, j, k, l, m] := by
+/-- Fifteen coordinates written as one vector. -/
+private theorem vec_fifteen {α : Type} (a b c d e f g h i j k l m n o : α) :
+    #v[a] ++ (#v[b] ++ (#v[c] ++ #v[d, e, f, g, h, i, j, k, l, m, n, o])) =
+      #v[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o] := by
   apply Vector.toArray_inj.mp
   simp only [Vector.toArray_append]
   simp
@@ -323,12 +323,15 @@ theorem memTable_messages (idx cnt a b c : K) (data : ProverData K) :
 
 /-- The bytecode block's two messages on a row: the seed push `(idx, 1, opcode, op)` and the
 finalize pull `(idx, cntFin, opcode, op)`. -/
-theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ o₈ o₉ o₁₀ : K) (data : ProverData K) :
+theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ o₈ o₉ o₁₀ o₁₁ o₁₂ : K)
+    (data : ProverData K) :
     ((⟨bytecodeTable⟩ : Component K).operations.interactionValues
-      (Environment.fromArray (toElements (⟨idx, cnt, opc, #v[o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀]⟩ :
-        BytecodeRow K)).toArray data)).map (fun i ↦ (i.channel.name, i.msg)) =
-      [(BytecodePush.name, #[idx, 1, opc, o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀]),
-        (BytecodePull.name, #[idx, cnt, opc, o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀])] := by
+      (Environment.fromArray (toElements (⟨idx, cnt, opc,
+        #v[o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀, o₁₁, o₁₂]⟩ : BytecodeRow K)).toArray data)).map
+          (fun i ↦ (i.channel.name, i.msg)) =
+      [(BytecodePush.name, #[idx, 1, opc, o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀, o₁₁, o₁₂]),
+        (BytecodePull.name, #[idx, cnt, opc, o₁, o₂, o₃, o₄, o₅, o₆, o₇, o₈, o₉, o₁₀, o₁₁, o₁₂])] :=
+    by
   rw [Air.Flat.Component.interactionsValues_eq]
   simp only [Operations.interactionValues, Air.Flat.Component.rowOperations, bytecodeTable,
     circuit_norm, -BitVec.reduceNeg]
@@ -341,7 +344,7 @@ theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ o
     ProvableStruct.componentsToElements, Vector.append_empty, Vector.cast_rfl,
     Vector.getElem?_toArray, ChannelInteraction.toRaw_msg, List.push_toArray, List.cons_append,
     List.nil_append, pushed_msg, Vector.toArray_map, pulled_msg]
-  rw [vec_thirteen, vec_thirteen, vec_thirteen]
+  rw [vec_fifteen, vec_fifteen, vec_fifteen]
   simp [Expression.eval]
 
 /-- The verifier's two messages, on any row: the initial state pushed, the final state pulled. -/
@@ -511,9 +514,9 @@ variable (s : Sizes) (q : Column (leanIsaμ prog s))
 abbrev memLimbs (x : Fin (2 ^ s.logMem)) : List K :=
   [cell prog s q (memCol 0) x, cell prog s q (memCol 1) x, cell prog s q (memCol 2) x]
 
-/-- The program's entry at slot `i`, its eleven coordinates. -/
+/-- The program's entry at slot `i`, its thirteen coordinates. -/
 abbrev entryList (i : Fin (2 ^ prog.logSize)) : List K :=
-  (List.finRange 11).map fun k ↦ (busEntry (prog.instructions i))[k]
+  (List.finRange 13).map fun k ↦ (busEntry (prog.instructions i))[k]
 
 /-- The push side's boundary tuples: the initial state, the memory seed, the bytecode seed. -/
 theorem boundaryTuples_push :
@@ -538,7 +541,7 @@ theorem boundaryTuples_push :
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance prog s) _ _ q
         i).trans ?_
     have hl : ((Coord.known (idxColumn prog.logSize) :: Coord.const 1 ::
-        (List.finRange 11).map fun k ↦ (Coord.known (entryColumn prog k) :
+        (List.finRange 13).map fun k ↦ (Coord.known (entryColumn prog k) :
           Coord (shape prog s) prog.logSize)).map
         fun co ↦ (leanIsaInstance prog s).coordCell q co i) = addressOfIndex i :: 1 :: entryList
             i := by
@@ -572,7 +575,7 @@ theorem boundaryTuples_pull :
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance prog s) _ _ q
         i).trans ?_
     have hl : ((Coord.known (idxColumn prog.logSize) :: Coord.committed bfcntCol rfl ::
-        (List.finRange 11).map fun k ↦ (Coord.known (entryColumn prog k) :
+        (List.finRange 13).map fun k ↦ (Coord.known (entryColumn prog k) :
           Coord (shape prog s) prog.logSize)).map
         fun co ↦ (leanIsaInstance prog s).coordCell q co i) =
           addressOfIndex i :: cell prog s q bfcntCol i :: entryList i := by
@@ -631,7 +634,7 @@ theorem tuplesOn_bytecodeBlock {w : EnsembleWitness (leanIsaEnsemble prog)} (h :
     bytecodeBlockRowsOf, List.ofFn_eq_map, List.flatMap_map, tableAt_component]
   rw [← List.flatMap_pure_eq_map]
   refine List.flatMap_congr fun i _ ↦ ?_
-  refine (tuplesOn_pair (bytecodeTable_messages _ _ _ _ _ _ _ _ _ _ _ _ _ (tableAt w 7).data)
+  refine (tuplesOn_pair (bytecodeTable_messages _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (tableAt w 7).data)
     (nameView_six _).2.2.2.2.1 (nameView_six _).2.2.2.2.2 side).trans ?_
   cases side <;> simp [entryList, List.finRange_succ]
 

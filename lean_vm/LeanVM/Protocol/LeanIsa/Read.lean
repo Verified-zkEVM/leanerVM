@@ -38,7 +38,7 @@ theorem IsOut.isVirtual {c : Col} (h : IsOut c) : IsVirtual c := h.isLane.isVirt
 
 /-- A spare column is not an output lane. -/
 theorem IsSpare.not_isOut {c : Col} (h : IsSpare c) : ¬ IsOut c := fun ho ↦ by
-  have := ho.2.1; have := ho.2.2; rcases h.2 with h' | h' <;> omega
+  have := ho.2.1; have := h.2; omega
 
 /-- Only the output lanes are derived. -/
 theorem derived_eq_none {c : Col} (h : ¬ IsOut c) : derived prog s c = none := by
@@ -224,7 +224,7 @@ theorem column_outCol (l : Fin 25) (x : Fin (2 ^ s.τ 5)) :
   show (outColumn prog s q (outCol l) ho).values.get x = _
   simp only [outColumn]
   refine (Vector.get_ofFn _ _).trans ?_
-  have hl : (⟨(outCol l).2.val - 38, by have := ho.2.2; omega⟩ : Fin 25) = l := by
+  have hl : (⟨(outCol l).2.val - 40, by have := ho.2.2; omega⟩ : Fin 25) = l := by
     ext
     simp [outCol]
   rw [hl, keccakColumn_eq]

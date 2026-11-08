@@ -642,8 +642,9 @@ theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog
     rw [h]
     simp [CMlPolynomialEval.map, entryColumn]
   · intro s _ hs
-    have hs' : ¬ (3 ≤ s.val ∧ s.val < 16) := by
-      rintro ⟨h1, h2⟩
+    have hs' : ¬ 3 ≤ s.val := by
+      intro h1
+      have h2 := s.isLt
       exact hs (Finset.mem_image.mpr ⟨⟨s.val - 3, by omega⟩, Finset.mem_univ _,
         Fin.ext (by simp only [e]; omega)⟩)
     simp [encodeSlots_getElem _ _ s.isLt, hs']
