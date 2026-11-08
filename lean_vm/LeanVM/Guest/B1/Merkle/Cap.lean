@@ -18,7 +18,7 @@ With `L = 2^D` leaves, the expansion of `verify_merkle_cap__L{D}` is `mcBody L`:
   the values `2k`, `2k + 1`);
 * the padding run at `P = 4L`: `0x01` at `P`, zeros at `P + 1 .. P + 4`, `0x80 << 56` at `P + 5`;
 * the root's `KECCAK` (`mcIns`, `mcOuts`): the children's four cells, the padding, writing the
-  root's two cells and eleven fresh ones;
+  root's two cells (`out_cells` two, the run packed at stride 2);
 * node `k = 2 .. L - 1` (`mcNode`, its values from `mcBase L k`): its flag loaded, then on a zero
   flag its children's flags pinned to zero (when its children are internal, `2k < L`), else the
   `0x80` constant and the `KECCAK` of its children;
@@ -52,10 +52,8 @@ def mcIns (L k c : ℕ) : List V :=
     .n (mcP L + 2), .n (mcP L + 3), .n c, .n (mcP L + 1), .n (mcP L + 2), .n (mcP L + 3),
     .n (mcP L + 4)]
 
-/-- Node `k`'s `KECCAK` outputs: its two cells, then eleven values from `c + 1`. -/
-def mcOuts (k c : ℕ) : List V :=
-  [.n (2 * k), .n (2 * k + 1), .n (c + 1), .n (c + 2), .n (c + 3), .n (c + 4), .n (c + 5),
-    .n (c + 6), .n (c + 7), .n (c + 8), .n (c + 9), .n (c + 10), .n (c + 11)]
+/-- Node `k`'s `KECCAK` outputs: its two cells. -/
+def mcOuts (k : ℕ) : List V := [.n (2 * k), .n (2 * k + 1)]
 
 /-- Node `k`'s constant's offset from its first value: after the two pins, or right after the
 flag. -/
@@ -63,8 +61,8 @@ def mcOc (L k : ℕ) : ℕ := if 2 * k < L then 3 else 1
 
 /-- Node `k`'s first value (`2 ≤ k ≤ L`; at `k = L`, the return's). -/
 def mcBase (L k : ℕ) : ℕ :=
-  if 2 * k < L then 4 * L + 17 + 15 * (k - 2)
-  else 4 * L + 17 + 15 * (L / 2 - 2) + 13 * (k - L / 2)
+  if 2 * k < L then 4 * L + 6 + 4 * (k - 2)
+  else 4 * L + 6 + 4 * (L / 2 - 2) + 2 * (k - L / 2)
 
 /-- Node `k`'s atoms from the value `b`. -/
 def mcNode (L k b : ℕ) : List Stmt :=
@@ -75,7 +73,7 @@ def mcNode (L k b : ℕ) : List Stmt :=
           .atom (.const (.n (b + 2)) (word 0 0 0)), .atom (.load (.n (b + 2)) (.n 1) (2 * k + 1))]
       else [])
       [.atom (.const (.n (b + mcOc L k)) w63),
-        keccakA (mcIns L k (b + mcOc L k)) (mcOuts k (b + mcOc L k))]]
+        keccakA (mcIns L k (b + mcOc L k)) (mcOuts k)]]
 
 /-- The expansion of `verify_merkle_cap` at `L` leaves. -/
 def mcBody (L : ℕ) : List Stmt :=
@@ -83,7 +81,7 @@ def mcBody (L : ℕ) : List Stmt :=
   [.atom (.const (.n (mcP L)) (word 1 0 0)), .atom (.const (.n (mcP L + 1)) (word 0 0 0)),
     .atom (.const (.n (mcP L + 2)) (word 0 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0 0)),
     .atom (.const (.n (mcP L + 4)) (word 0 0 0)), .atom (.const (.n (mcP L + 5)) w63),
-    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1 (mcP L + 5))] ++
+    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
   ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
   [.atom (.copy (.n (mcBase L L)) (.n 2)), .atom (.copy (.n (mcBase L L + 1)) (.n 3)),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
@@ -93,14 +91,10 @@ theorem noRet_mcNode (L k b : ℕ) : Stmt.noRetList (mcNode L k b) = true := by
 
 /-! ## One node's hash -/
 
-/-- The state a node's `KECCAK` writes, from its children's cells. -/
-def mcState (a0 a1 b0 b1 : E) : KeccakState :=
-  keccakF1600 (stateOfCells (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false)
-
 /-- The digest of 64 bytes: `keccak([a0, a1], [b0, b1], out)` (`keccak_one`). -/
 theorem pair_digest (a0 a1 b0 b1 : E) (O : Fin 13 → E)
     (hK : KeccakCellsRelation (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
-      false) :
+      false .all) :
     (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
     (getD_cellsBytes_of_le (by simp))
@@ -131,10 +125,10 @@ theorem mcIns_map {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
 theorem mc_keccak_hash {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
     (h1 : σ (.n (mcP L + 1)) = word 0 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0 0)
     (h3 : σ (.n (mcP L + 3)) = word 0 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0 0)
-    (hc : σ (.n c) = w63) (hK : (Atom.keccak (mcIns L k c) (mcOuts k c) false false).Holds rd σ) :
+    (hc : σ (.n c) = w63) (hK : (Atom.keccak (mcIns L k c) (mcOuts k) false false).Holds rd σ) :
     HashesPair (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2))) (σ (.n (4 * k + 3)))
       (σ (.n (2 * k))) (σ (.n (2 * k + 1))) := by
-  obtain ⟨-, -, hKC⟩ := hK
+  obtain ⟨-, -, O, hKC, hw⟩ := keccak_holds_full hK
   rw [mcIns_map hP h1 h2 h3 h4 hc] at hKC
   refine ⟨fun x hx ↦ ?_, ?_⟩
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
@@ -143,22 +137,20 @@ theorem mc_keccak_hash {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
     · exact hKC.1 1
     · exact hKC.1 2
     · exact hKC.1 3
-  · exact pair_digest _ _ _ _ _ hKC
+  · have e0 : σ (.n (2 * k)) = O 0 := hw 0 (by simp [mcOuts])
+    have e1 : σ (.n (2 * k + 1)) = O 1 := hw 1 (by simp [mcOuts])
+    rw [e0, e1]
+    exact pair_digest _ _ _ _ _ hKC
 
 /-- The converse: children's canonical cells and the parent's cells their digest make a node's
-`KECCAK` hold, its fresh outputs the state's cells. -/
+`KECCAK` hold. -/
 theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
     (h1 : σ (.n (mcP L + 1)) = word 0 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0 0)
     (h3 : σ (.n (mcP L + 3)) = word 0 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0 0)
     (hc : σ (.n c) = w63)
     (hH : HashesPair (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
-      (σ (.n (4 * k + 3))) (σ (.n (2 * k))) (σ (.n (2 * k + 1))))
-    (hout : ∀ m : Fin 13, 2 ≤ m.val → σ (.n (c + m.val - 1)) =
-      cellsOfState (mcState (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
-        (σ (.n (4 * k + 3)))) false m) :
-    (Atom.keccak (mcIns L k c) (mcOuts k c) false false).Holds rd σ := by
-  refine ⟨rfl, rfl, ?_⟩
-  rw [mcIns_map hP h1 h2 h3 h4 hc]
+      (σ (.n (4 * k + 3))) (σ (.n (2 * k))) (σ (.n (2 * k + 1)))) :
+    (Atom.keccak (mcIns L k c) (mcOuts k) false false).Holds rd σ := by
   obtain ⟨hcan, hd⟩ := hH
   have hcanI : ∀ x, IsCanonical128 (cells13 [σ (.n (4 * k)), σ (.n (4 * k + 1)),
       σ (.n (4 * k + 2)), σ (.n (4 * k + 3)), word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0] x) := by
@@ -170,13 +162,12 @@ theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
     · exact hcan _ (by simp [cells13])
     all_goals exact canonical_pad _ (by simp [cells13])
   have hS := pair_digest (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
-    (σ (.n (4 * k + 3))) _ ⟨hcanI, fun _ ↦ rfl⟩
+    (σ (.n (4 * k + 3))) _ ⟨hcanI, fun _ _ ↦ rfl⟩
   rw [← hd, Prod.mk.injEq] at hS
-  refine ⟨hcanI, fun m ↦ ?_⟩
-  fin_cases m
-  · exact hS.1.symm
-  · exact hS.2.symm
-  all_goals (refine Eq.trans ?_ (hout _ ?_) <;> [rfl; decide])
+  refine keccak_holds_two.mpr ⟨rfl, ?_, ?_, ?_⟩
+  · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hcanI
+  · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.1.symm
+  · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.2.symm
 
 /-! ## One node -/
 
@@ -187,7 +178,7 @@ def McNodeOk (rd : Reader) (σ : Val) (L k b : ℕ) : Prop :=
       LoadHolds rd (σ (.n 1)) (2 * k) (σ (.n (b + 1))) ∧ σ (.n (b + 2)) = word 0 0 0 ∧
       LoadHolds rd (σ (.n 1)) (2 * k + 1) (σ (.n (b + 2)))) ∧
     (σ (.n b) ≠ 0 → σ (.n (b + mcOc L k)) = w63 ∧
-      (Atom.keccak (mcIns L k (b + mcOc L k)) (mcOuts k (b + mcOc L k)) false false).Holds rd σ)
+      (Atom.keccak (mcIns L k (b + mcOc L k)) (mcOuts k) false false).Holds rd σ)
 
 theorem holds_mcNode (L k b : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (mcNode L k b) True kret ↔ McNodeOk rd σ L k b := by
@@ -207,7 +198,7 @@ theorem holds_mcBody (L : ℕ) (kret : List E → Prop) :
       σ (.n (mcP L)) = word 1 0 0 ∧ σ (.n (mcP L + 1)) = word 0 0 0 ∧
       σ (.n (mcP L + 2)) = word 0 0 0 ∧ σ (.n (mcP L + 3)) = word 0 0 0 ∧
       σ (.n (mcP L + 4)) = word 0 0 0 ∧ σ (.n (mcP L + 5)) = w63 ∧
-      (Atom.keccak (mcIns L 1 (mcP L + 5)) (mcOuts 1 (mcP L + 5)) false false).Holds rd σ ∧
+      (Atom.keccak (mcIns L 1 (mcP L + 5)) (mcOuts 1) false false).Holds rd σ ∧
       (∀ j < L - 2, McNodeOk rd σ L (j + 2) (mcBase L (j + 2))) ∧
       σ (.n (mcBase L L)) = σ (.n 2) ∧ σ (.n (mcBase L L + 1)) = σ (.n 3) ∧
       kret [σ (.n (mcBase L L)), σ (.n (mcBase L L + 1))] := by
@@ -216,14 +207,10 @@ theorem holds_mcBody (L : ℕ) (kret : List E → Prop) :
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, keccakA, holds_mcNode, and_true,
     List.map_cons, List.map_nil]
 
-/-- The state node `k` hashes into, from the cap's cells. -/
-def mcSt (cell : ℕ → E) (k : ℕ) : KeccakState :=
-  mcState (cell (4 * k)) (cell (4 * k + 1)) (cell (4 * k + 2)) (cell (4 * k + 3))
-
-/-- The honest value at offset `o` of node `k`'s values. -/
-def nodeVal (L : ℕ) (cell fl : ℕ → E) (k o : ℕ) : E :=
-  if o = 0 then fl k else if o < mcOc L k then 0 else if o = mcOc L k then w63
-  else cellsOfState (mcSt cell k) false (Fin.ofNat 13 (o - mcOc L k + 1))
+/-- The honest value at offset `o` of node `k`'s values: its flag, the pins' zeros, the
+`0x80` constant. -/
+def nodeVal (L : ℕ) (fl : ℕ → E) (k o : ℕ) : E :=
+  if o = 0 then fl k else if o < mcOc L k then 0 else w63
 
 /-- The honest valuation of `verify_merkle_cap`, by index. -/
 def mcVal (L : ℕ) (cap flags : E) (cell fl : ℕ → E) (i : ℕ) : E :=
@@ -232,19 +219,18 @@ def mcVal (L : ℕ) (cap flags : E) (cell fl : ℕ → E) (i : ℕ) : E :=
   else if i = 4 * L then word 1 0 0
   else if i < 4 * L + 5 then 0
   else if i = 4 * L + 5 then w63
-  else if i < 4 * L + 17 then cellsOfState (mcSt cell 1) false (Fin.ofNat 13 (i - (4 * L + 4)))
   else if i < mcBase L (L / 2) then
-    nodeVal L cell fl (2 + (i - (4 * L + 17)) / 15) ((i - (4 * L + 17)) % 15)
+    nodeVal L fl (2 + (i - (4 * L + 6)) / 4) ((i - (4 * L + 6)) % 4)
   else if i < mcBase L L then
-    nodeVal L cell fl (L / 2 + (i - mcBase L (L / 2)) / 13) ((i - mcBase L (L / 2)) % 13)
+    nodeVal L fl (L / 2 + (i - mcBase L (L / 2)) / 2) ((i - mcBase L (L / 2)) % 2)
   else cell (i - mcBase L L + 2)
 
 theorem mcVal_node (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (cell fl : ℕ → E)
-    {k o : ℕ} (hk : 2 ≤ k) (hkL : k < L) (ho : o < mcOc L k + 12) :
-    mcVal L cap flags cell fl (mcBase L k + o) = nodeVal L cell fl k o := by
-  have hb2 : mcBase L (L / 2) = 4 * L + 17 + 15 * (L / 2 - 2) := by
+    {k o : ℕ} (hk : 2 ≤ k) (hkL : k < L) (ho : o < mcOc L k + 1) :
+    mcVal L cap flags cell fl (mcBase L k + o) = nodeVal L fl k o := by
+  have hb2 : mcBase L (L / 2) = 4 * L + 6 + 4 * (L / 2 - 2) := by
     unfold mcBase; split_ifs <;> omega
-  have hbL : mcBase L L = 4 * L + 17 + 15 * (L / 2 - 2) + 13 * (L - L / 2) := by
+  have hbL : mcBase L L = 4 * L + 6 + 4 * (L / 2 - 2) + 2 * (L - L / 2) := by
     unfold mcBase; split_ifs <;> omega
   unfold mcVal
   rw [hb2, hbL]
@@ -252,15 +238,12 @@ theorem mcVal_node (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (
   by_cases h : 2 * k < L
   · simp only [h, ↓reduceIte] at ho ⊢
     rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-      ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
+      ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
     congr 1 <;> omega
   · simp only [h, ↓reduceIte] at ho ⊢
     rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-      ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-      ite_pos' (by omega)]
+      ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
     congr 1 <;> omega
-
-theorem fin_ofNat_val {m : Fin 13} : Fin.ofNat 13 m.val = m := Fin.ext (Nat.mod_eq_of_lt m.isLt)
 
 /-- `MeaningVerifyMerkleCap` at `L = 2^D` leaves. -/
 def MeaningCapL (L : ℕ) (rd : Reader) : List E → List E → Prop
@@ -340,29 +323,22 @@ theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 
       rw [ev]; unfold mcVal mcP
       rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
         ite_neg' (by omega), ite_pos' rfl]
-    have enode : ∀ k, 2 ≤ k → k < L → ∀ o < mcOc L k + 12,
-        σ (.n (mcBase L k + o)) = nodeVal L cell fl k o :=
+    have enode : ∀ k, 2 ≤ k → k < L → ∀ o < mcOc L k + 1,
+        σ (.n (mcBase L k + o)) = nodeVal L fl k o :=
       fun k h1 h2 o ho ↦ mcVal_node L hL hL2 cap flags cell fl h1 h2 ho
-    have hbL : mcBase L L = 4 * L + 17 + 15 * (L / 2 - 2) +
-        13 * (L - L / 2) := by
+    have hbL : mcBase L L = 4 * L + 6 + 4 * (L / 2 - 2) +
+        2 * (L - L / 2) := by
       unfold mcBase; split_ifs <;> omega
-    have hb2 : mcBase L (L / 2) = 4 * L + 17 + 15 * (L / 2 - 2) := by
+    have hb2 : mcBase L (L / 2) = 4 * L + 6 + 4 * (L / 2 - 2) := by
       unfold mcBase; split_ifs <;> omega
     have eR : ∀ i < 2, σ (.n (mcBase L L + i)) = cell (i + 2) := fun i hi ↦ by
       rw [ev]; unfold mcVal
       rw [hb2, hbL]
       rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-        ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-        ite_neg' (by omega)]
+        ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega)]
       congr 1; omega
     have eR0 : σ (.n (mcBase L L)) = cell 2 := eR 0 (by omega)
     have eR1 : σ (.n (mcBase L L + 1)) = cell 3 := eR 1 (by omega)
-    have hsig : ∀ k, 1 ≤ k → k < L →
-        mcSt cell k = mcState (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
-          (σ (.n (4 * k + 3))) := fun k h1 h2 ↦ by
-      rw [ecell _ (by omega) (by omega), ecell _ (by omega) (by omega),
-        ecell _ (by omega) (by omega), ecell _ (by omega) (by omega)]
-      rfl
     have hhashσ : ∀ k, 1 ≤ k → k < L → (k = 1 ∨ fl k ≠ 0) →
         HashesPair (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
           (σ (.n (4 * k + 3))) (σ (.n (2 * k))) (σ (.n (2 * k + 1))) := fun k h1 h2 h ↦ by
@@ -377,15 +353,9 @@ theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 
     · show LoadHolds rd cap (i + 2) (σ (.n (i + 2)))
       rw [ecell (i + 2) (by omega) (by omega)]
       exact hcell _ (by omega) (by omega)
-    · refine mc_keccak_of eP (eZ 1 (by omega) (by omega)) (eZ 2 (by omega) (by omega))
+    · exact mc_keccak_of eP (eZ 1 (by omega) (by omega)) (eZ 2 (by omega) (by omega))
         (eZ 3 (by omega) (by omega)) (eZ 4 (by omega) (by omega)) e5
-        (hhashσ 1 le_rfl (by omega) (Or.inl rfl)) fun m hm ↦ ?_
-      rw [← hsig 1 le_rfl (by omega), ev]
-      unfold mcVal mcP
-      rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-        ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by have := m.isLt; omega)]
-      congr 1
-      rw [show 4 * L + 5 + m.val - 1 - (4 * L + 4) = m.val by omega, fin_ofNat_val]
+        (hhashσ 1 le_rfl (by omega) (Or.inl rfl))
     · set k := j + 2 with hk
       have hk2 : 2 ≤ k := by omega
       have hkL : k < L := by omega
@@ -411,15 +381,9 @@ theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 
         have vc : σ (.n (mcBase L k + mcOc L k)) = w63 := by
           rw [enode k hk2 hkL _ (by omega)]; unfold nodeVal
           rw [ite_neg' (by omega), ite_neg' (by omega), ite_pos' rfl]
-        refine ⟨vc, mc_keccak_of eP (eZ 1 (by omega) (by omega)) (eZ 2 (by omega) (by omega))
+        exact ⟨vc, mc_keccak_of eP (eZ 1 (by omega) (by omega)) (eZ 2 (by omega) (by omega))
           (eZ 3 (by omega) (by omega)) (eZ 4 (by omega) (by omega)) vc
-          (hhashσ k (by omega) hkL (Or.inr hne)) fun m hm ↦ ?_⟩
-        rw [show mcBase L k + mcOc L k + m.val - 1 = mcBase L k + (mcOc L k + m.val - 1) by omega,
-          enode k hk2 hkL _ (by have := m.isLt; omega)]
-        unfold nodeVal
-        rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-          show mcOc L k + m.val - 1 - mcOc L k + 1 = m.val by omega, fin_ofNat_val,
-          hsig k (by omega) hkL]
+          (hhashσ k (by omega) hkL (Or.inr hne))⟩
     · rw [hret, eR0, eR1]
 
 end

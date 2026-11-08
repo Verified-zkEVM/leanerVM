@@ -66,7 +66,8 @@ def chkA (c : Nat) : Atom → Option Nat
       else if oldB c x && oldB c y && isN c t1 && isN (c + 1) t2 && isN (c + 2) k then some (c + 3)
       else none
   | .keccak ins outs _ _ =>
-      if ins.length == 13 && outs.length == 13 && ins.all (oldB c) && runB c outs then some (c + 13)
+      if ins.length == 13 && (outs.length == 1 || outs.length == 2 || outs.length == 13) &&
+          ins.all (oldB c) && runB c outs then some (c + outs.length)
       else none
   | .frameAddr p run => if isN c p && run.all (oldB (c + 1)) then some (c + 1) else none
   | .hint (.limbs v ds) =>
@@ -147,7 +148,7 @@ noncomputable def newA (rd : Reader) (w : Nat → E) (l : List E) (a : Atom) : L
   | .rangeCheck x y _ _ k =>
       if isN c y then [σ k * (σ x)⁻¹, rdAt rd (σ x) 0, rdAt rd (σ k * (σ x)⁻¹) 0]
       else [rdAt rd (σ x) 0, rdAt rd (σ y) 0, σ x * σ y]
-  | .keccak ins _ i o => (List.range 13).map (kecOut (ins.map σ) i o)
+  | .keccak ins outs i o => (List.range outs.length).map (kecOut (ins.map σ) i o)
   | .frameAddr _ _ => [w c]
   | .hint (.limbs v ds) => (List.range ds.length).map (limbAt (σ v))
   | .hint (.inverse x _) => [(σ x)⁻¹]
@@ -184,8 +185,9 @@ def Good (rd : Reader) (S : List Atom) (w : Nat → E) (σ : Val) : Atom → Pro
   | .assertNe x i p => σ i = (σ x)⁻¹ ∧ σ p = σ x * σ i
   | .rangeCheck x y t1 t2 k => σ t1 = rdAt rd (σ x) 0 ∧ σ t2 = rdAt rd (σ y) 0 ∧
       (if k.idx < y.idx then σ y = σ k * (σ x)⁻¹ else σ k = σ x * σ y)
-  | .keccak ins outs i o => ins.length = 13 ∧ outs.length = 13 ∧
-      ∀ c : Fin 13, cells13 (outs.map σ) c =
+  | .keccak ins outs i o => ins.length = 13 ∧
+      (outs.length = 1 ∨ outs.length = 2 ∨ outs.length = 13) ∧
+      ∀ (c : Fin 13) (hc : c.val < outs.length), σ outs[c.val] =
         cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o c
   | .frameAddr p _ => σ p = w p.idx
   | .hint (.limbs v ds) => ∀ j (h : j < ds.length), σ ds[j] = limbAt (σ v) j
@@ -263,7 +265,13 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
   | assertInK x y => exact hs
   | keccak ins outs i o =>
     obtain ⟨h1, h2, h3⟩ := hg
-    exact ⟨h1, h2, hs, h3⟩
+    have hk : KeccakCellsRelation (cells13 (ins.map σ)) i
+        (cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o) o .all :=
+      ⟨hs, fun _ _ ↦ rfl⟩
+    rcases h2 with h2 | h2 | h2
+    · exact keccak_holds_of (oc := .one) h1 h2 hk h3
+    · exact keccak_holds_of (oc := .two) h1 h2 hk h3
+    · exact keccak_holds_of (oc := .all) h1 h2 hk h3
   | frameAddr p run => exact hs
   | hint h => trivial
 
@@ -377,9 +385,9 @@ theorem good_congr {rd : Reader} {S : List Atom} {w : Nat → E} {σ σ' : Val} 
     simp only [Good] at h ⊢
     have e1 : ins.map σ = ins.map σ' :=
       List.map_congr_left fun v hv => he v (by simp [Atom.vals, hv])
-    have e2 : outs.map σ = outs.map σ' :=
-      List.map_congr_left fun v hv => he v (by simp [Atom.vals, hv])
-    rwa [← e1, ← e2]
+    refine ⟨h.1, h.2.1, fun c hc => ?_⟩
+    rw [← e1, ← he _ (by simp [Atom.vals, List.getElem_mem])]
+    exact h.2.2 c hc
   | frameAddr p run =>
     simp only [Good] at h ⊢
     rw [← he p (by simp [Atom.vals])]; exact h
@@ -674,7 +682,8 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
       cases h
       simp only [Bool.and_eq_true, beq_iff_eq] at hc
       obtain ⟨⟨⟨hl, ho⟩, hin⟩, hout⟩ := hc
-      have hn : newA rd w l (.keccak ins outs i o) = (List.range 13).map (kecOut (ins.map σ₀) i o) := by
+      have hn : newA rd w l (.keccak ins outs i o) =
+          (List.range outs.length).map (kecOut (ins.map σ₀) i o) := by
         simp [newA]
       have hins : ins.map (B1.Val.ofArgs (l ++ newA rd w l (.keccak ins outs i o))) = ins.map σ₀ :=
         List.map_congr_left fun v hv => old_eq l (all_old hin v hv)
@@ -683,13 +692,9 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
         rcases hv with hv | hv
         · have := (oldB_spec (all_old hin v hv)).2; omega
         · have := (runB_mem hout hv).2.2; omega
-      · refine ⟨hl, ho, fun c => ?_⟩
-        rw [hins]
-        simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-          List.getElem?_eq_getElem (show c.val < outs.length by omega), Option.map_some,
-          Option.getD_some]
-        rw [runB_spec hout c (by omega), ofArgs_new, hn]
-        simp [kecOut, c.isLt]
+      · refine ⟨hl, by omega, fun c hc => ?_⟩
+        rw [hins, runB_spec hout c hc, ofArgs_new, hn]
+        simp [kecOut, c.isLt, hc]
     · exact absurd h (by simp)
   | frameAddr p run =>
     simp only [chkA] at h
