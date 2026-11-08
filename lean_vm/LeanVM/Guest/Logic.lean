@@ -70,11 +70,12 @@ def Holds (pc : ℕ) (fp : K) : OffsetInstruction → Prop
       L.read (fp * addressOfIndex o3) = some v3 ∧
       L.read (p.limb 0 * addressOfIndex o2) = some (derefSource mode ⟨addressOfIndex pc, fp⟩ v3)
   | .jump .. => False
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd => ∃ input output : Fin 13 → E,
+  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells => ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff m0 m1 m2 m3 tail b8 cap c.val)) =
         some (input c)) ∧
-      (∀ c : Fin 13, L.read (fp * addressOfIndex (out + c.val)) = some (output c)) ∧
-      KeccakCellsRelation input inOdd output outOdd
+      (∀ c : Fin 13, c.val < outCells.cellCount →
+        L.read (fp * addressOfIndex (out + c.val)) = some (output c)) ∧
+      KeccakCellsRelation input inOdd output outOdd outCells
 
 /-- What a `JUMP fp[oc], fp[od], fp[of]` at `(g^pc, fp)` checks, and where it goes. -/
 def JumpsTo (pc : ℕ) (fp : K) (oc od of : ℕ) (r : Registers K) : Prop :=
@@ -165,7 +166,7 @@ theorem execute_iff_holds {pc : ℕ} {fp : K} {ins : OffsetInstruction} (hj : in
       exact ⟨⟨p, v3, hp, hpK, h3, h2⟩, rfl⟩
     · rintro ⟨⟨p, v3, hp, hpK, h3, h2⟩, rfl⟩
       exact ⟨p, hp, hpK, v3, h3, _, h2, rfl, rfl⟩
-  | keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
+  | keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells =>
     rw [OffsetInstruction.toLeanIsaInstruction, execute_keccak_eq_some_iff, hnext]
     simp only [Holds, keccakInOffset_gpow, keccakOutOffset_gpow]
     constructor

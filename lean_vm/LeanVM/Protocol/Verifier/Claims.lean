@@ -190,20 +190,20 @@ theorem allRet_liftOption {α : Type} (o : Option α) : AllRet (liftOption o) fu
 `KECCAK` output lanes. -/
 def LayoutOk (layout : Layout) : Prop :=
   layout.tableLogHeights.length = tables.length ∧
-    ∀ c < 163, (layout.placements.getD c none).isSome = decide (c ∉ keccakOutputColumns)
+    ∀ c < 165, (layout.placements.getD c none).isSome = decide (c ∉ keccakOutputColumns)
 
 theorem columnKappas_length (logMemory logBytecode : ℕ) (heights : List ℕ) :
-    (columnKappas logMemory logBytecode heights).length = 163 := by
+    (columnKappas logMemory logBytecode heights).length = 165 := by
   simp only [columnKappas, List.length_append, List.length_cons, List.length_nil,
     List.length_flatMap, List.length_replicate]
   rfl
 
 theorem slotted_not_lane_all :
-    (List.range 163).all (fun c ↦ !(keccakSlot c).isSome || decide (c ∉ keccakOutputColumns)) =
+    (List.range 165).all (fun c ↦ !(keccakSlot c).isSome || decide (c ∉ keccakOutputColumns)) =
       true := by
   decide +kernel
 
-theorem placementsOf_isSome {kappas : List ℕ} (hl : kappas.length = 163) {c : ℕ} (hc : c < 163) :
+theorem placementsOf_isSome {kappas : List ℕ} (hl : kappas.length = 165) {c : ℕ} (hc : c < 165) :
     ((placementsOf kappas).1.getD c none).isSome = decide (c ∉ keccakOutputColumns) := by
   have hs := List.all_eq_true.mp slotted_not_lane_all c (List.mem_range.mpr hc)
   unfold placementsOf
@@ -487,7 +487,7 @@ theorem lanes_filter : ∀ i < tables.length,
   decide +kernel
 
 theorem columns_lt : ∀ i < tables.length,
-    globalColumnBases.getD i 0 + (tables.getD i default).width ≤ 163 := by
+    globalColumnBases.getD i 0 + (tables.getD i default).width ≤ 165 := by
   decide +kernel
 
 theorem rowsOk_iff {rows : List (List E × List E)} (hr : RowsOk rows) :
@@ -578,7 +578,7 @@ theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List Co
 
 /-! ## The opening -/
 
-theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim} (hc : c.column < 163) :
+theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim} (hc : c.column < 165) :
     c.onStack layout =
       if c.column ∈ keccakOutputColumns then none else some (c.stackClaim layout) := by
   have h := hl.2 c.column hc
@@ -594,7 +594,7 @@ theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim} (h
     simp [hn]
 
 theorem filterMap_onStack {layout : Layout} (hl : LayoutOk layout) :
-    ∀ claims : List ColumnClaim, (∀ c ∈ claims, c.column < 163) →
+    ∀ claims : List ColumnClaim, (∀ c ∈ claims, c.column < 165) →
       claims.filterMap (·.onStack layout) =
         (claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.stackClaim layout)
   | [], _ => rfl
@@ -604,7 +604,7 @@ theorem filterMap_onStack {layout : Layout} (hl : LayoutOk layout) :
     by_cases hm : c.column ∈ keccakOutputColumns <;> simp [hm]
 
 theorem tableClaims_lt {rows : List (List E × List E)} (hr : RowsOk rows) :
-    ∀ c ∈ tableColumnClaims rows, c.column < 163 := by
+    ∀ c ∈ tableColumnClaims rows, c.column < 165 := by
   obtain ⟨hlen, hrow⟩ := rowsOk_iff hr
   intro c hc
   rw [tableClaims_range hlen, List.mem_flatMap] at hc
@@ -637,7 +637,7 @@ theorem verifyExecution_claims (ev : List K → List E → VerifierProgram E) (b
   refine bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
-  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < 163 := by
+  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < 165 := by
     intro c hc
     simp only [List.mem_append] at hc
     rcases hc with ((hc | hc) | hc) | hc

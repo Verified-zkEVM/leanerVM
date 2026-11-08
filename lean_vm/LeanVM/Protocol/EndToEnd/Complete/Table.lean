@@ -630,15 +630,15 @@ theorem consPart_rowEvals {input : PublicInput} (hq : M3Holds (inst prog s) inpu
 
 /-! ## The output lanes' claims -/
 
-/-- **The honest claims on the output lanes**: lane `l`'s claim on its global column `111 + l`,
+/-- **The honest claims on the output lanes**: lane `l`'s claim on its global column `113 + l`,
 at the point `z` of the `KECCAK` table's coordinates, with the derived column's true value. -/
 def honestLanes (z : Vector E (s.τ 5)) : List Verifier.ColumnClaim :=
-  (List.finRange 25).map fun l ↦ ⟨111 + l.val, z.toList, colEval prog s q (outCol l) z⟩
+  (List.finRange 25).map fun l ↦ ⟨113 + l.val, z.toList, colEval prog s q (outCol l) z⟩
 
-/-- Output lane `l`'s column of the `KECCAK` table, `38 + l`. -/
-def outIdx (l : Fin 25) : Fin (width (opIdx 5)) := ⟨38 + l, by rw [width_keccak]; omega⟩
+/-- Output lane `l`'s column of the `KECCAK` table, `40 + l`. -/
+def outIdx (l : Fin 25) : Fin (width (opIdx 5)) := ⟨40 + l, by rw [width_keccak]; omega⟩
 
-/-- The output lanes are, among the `KECCAK` table's columns, its `38`th to `62`nd. -/
+/-- The output lanes are, among the `KECCAK` table's columns, its `40`th to `64`th. -/
 theorem finRange_filter_out :
     (List.finRange (width (opIdx 5))).filter
         (fun i ↦ globalColumnBases.getD 5 0 + i.val ∈ keccakOutputColumns) =
@@ -654,7 +654,7 @@ theorem zipIdx_map_finRange {α : Type} (n : ℕ) (f : Fin n → α) :
 
 /-- The tables before `KECCAK` claim only columns below its output lanes. -/
 theorem base_lt (t : Fin 6) (ht : t.val < 5) (c : ℕ) (hc : c < width (opIdx t)) :
-    globalColumnBases.getD t 0 + c < 111 := by
+    globalColumnBases.getD t 0 + c < 113 := by
   revert t c; decide +kernel
 
 /-- The `KECCAK` table's columns start at the global column `73`. -/

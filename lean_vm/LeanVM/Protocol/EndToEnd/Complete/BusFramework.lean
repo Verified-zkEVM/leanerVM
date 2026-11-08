@@ -361,15 +361,15 @@ theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
   simp only [ofK_gpow, Verifier.gpow, gen]
   ring
 
-/-- The eleven entry coordinates of an instruction, listed. -/
+/-- The thirteen entry coordinates of an instruction, listed. -/
 theorem entryList_eq (i : Fin (2 ^ prog.logSize)) :
     entryList i = [(busEntry (prog.instructions i))[0], (busEntry (prog.instructions i))[1],
-        (busEntry (prog.instructions i))[2],
-      (busEntry (prog.instructions i))[3], (busEntry (prog.instructions i))[4], (busEntry
-          (prog.instructions i))[5],
-      (busEntry (prog.instructions i))[6], (busEntry (prog.instructions i))[7], (busEntry
-          (prog.instructions i))[8],
-      (busEntry (prog.instructions i))[9], (busEntry (prog.instructions i))[10]] := rfl
+      (busEntry (prog.instructions i))[2], (busEntry (prog.instructions i))[3],
+      (busEntry (prog.instructions i))[4], (busEntry (prog.instructions i))[5],
+      (busEntry (prog.instructions i))[6], (busEntry (prog.instructions i))[7],
+      (busEntry (prog.instructions i))[8], (busEntry (prog.instructions i))[9],
+      (busEntry (prog.instructions i))[10], (busEntry (prog.instructions i))[11],
+      (busEntry (prog.instructions i))[12]] := rfl
 
 variable {prog} in
 /-- **The bytecode block's leaves are the boundary tuples' fingerprints.** -/

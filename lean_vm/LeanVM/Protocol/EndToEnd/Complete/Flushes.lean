@@ -670,7 +670,7 @@ theorem pyCountColumns : ∀ t : Fin 6,
     rw [show (LeanIsa.counts (opIdx 4)).map (·.val) = [8, 9, 10, 11] by decide +kernel]
     simp [Table.countColumns, tables, jumpColumns]
   | 5 => by
-    rw [show (LeanIsa.counts (opIdx 5)).map (·.val) = (List.range 27).map (63 + ·) by
+    rw [show (LeanIsa.counts (opIdx 5)).map (·.val) = (List.range 27).map (65 + ·) by
       decide +kernel]
     simp [Table.countColumns, tables, keccakColumns, laneNames, decimalNumeral, List.range_succ]
 
