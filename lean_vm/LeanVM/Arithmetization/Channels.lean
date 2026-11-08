@@ -261,6 +261,20 @@ def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 3) : C
   MemPull.pullIf flag ⟨addr, count, v⟩
   MemPush.push ⟨addr, count + Expression.const g * (flag * count) + flag * count, v⟩
 
+/-- The push counter of a gated read (`memReadIf`; `memory_coords_if`, `tables.rs:132-147` at
+leanVM PR #724 head `873ee6d8`): `count + g·(flag·count) + flag·count`, the value of `memReadIf`'s push counter, which is `g·count` at
+`flag = 1` (`gatedCount_one`) and `count` at `flag = 0` (`gatedCount_zero`). -/
+def gatedCount (flag c : K) : K := c + g * (flag * c) + flag * c
+
+/-- At flag `1` a gated read pushes `g·count`: it is a read. -/
+theorem gatedCount_one (c : K) : gatedCount 1 c = g * c := by
+  unfold gatedCount
+  rw [one_mul, add_comm c, add_assoc, CharTwo.add_self_eq_zero, add_zero]
+
+/-- At flag `0` a gated read pushes the pull's own count: the pair cancels. -/
+theorem gatedCount_zero (c : K) : gatedCount 0 c = c := by
+  simp [gatedCount]
+
 /-- A bytecode read of the entry `(opcode, op)` at counter `pc` with count `count`: pull
 `(pc, count, opcode, op)`, push `(pc, g·count, opcode, op)` (specification §6.2, §6.4;
 `tables.rs:113-122`). -/
