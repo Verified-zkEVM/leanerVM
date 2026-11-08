@@ -30,8 +30,9 @@ interaction's coordinates, then zeros (specification §5.1,
 * memory, separator `g^1`: `(addr, count, v₀, v₁, v₂)`, a read of the word `v` at `addr` with
   count `count` (§6.2 "Tuple and columns" and "Flush rules", `:40-47`, and §6.3, `:86`;
   `tables.rs:163-170`);
-* bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₇)`, the bytecode `entry` after the
-  address and the count (§6.4, `:93-95`; `tables.rs:149-156`).
+* bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₁₂)`, the bytecode `entry` after the
+  address and the count, fifteen coordinates, the widest message, filling the sixteen slots (§6.4;
+  `tables.rs:113-122` at leanVM PR #724 head `873ee6d8`).
 
 A typed message is one such coordinate list: the state message is the register pair `Regs` of
 the semantics itself, over `K` when evaluated and over `Expression K` in a row (one structure, one
@@ -42,7 +43,12 @@ direction as data, so that the proof system (issue #12) reads the M3 bus off the
 channels rather than transcribing the tuples again (issue #13).
 
 **The channels** (specification §6, Theorem 6.4 and Corollary 6.5). A read is
-`pull (addr, count, v)` and `push (addr, g·count, v)` (§6.2 "Flush rules"); the lookup theorem
+`pull (addr, count, v)` and `push (addr, g·count, v)` (§6.2 "Flush rules"). A *gated* read
+(`memReadIf`, the Rust's `memory_coords_if`, `tables.rs:132-147` at `873ee6d8`, for a `KECCAK`
+output cell past the first) pushes the counter `count + flag·count·g + flag·count` instead: in
+characteristic two that is `g·count` at `flag = 1`, a read, and `count` at `flag = 0`, where the
+push is the pull's own tuple and the pair cancels; its pull is a `Channel.pullIf flag`, so a
+soundness proof may assume its guarantee only at `flag = 1`, the multiplicity `-1`. The lookup theorem
 says that when the bus balances, every count is nonzero, and there are fewer than `2^64 - 1`
 reads, every pulled memory tuple is a correct read of the committed image and every pulled
 bytecode tuple is an entry of the public program. What a pull may assume locally is the
@@ -67,7 +73,8 @@ channels, `*.pull` and `*.push`, and the direction of an interaction is the chan
 whose interaction a soundness proof may assume the guarantee of (it sets `assumeGuarantees`
 and multiplicity `-1`, which evaluates to `1`), and through `Channel.push` on the push channel
 (multiplicity `1`, nothing assumed). Every interaction of the tables and the boundary blocks
-thus has multiplicity `1`; balance is the multiset equality of the two channels of a pair
+thus has multiplicity `1`, but for the pull of a gated read, of multiplicity `flag`, which no
+balance reads; balance is the multiset equality of the two channels of a pair
 (`BalancedPair`), never Clean's field-sum `BalancedInteractions`, which admits at most one
 interaction over `K`. A direction tag on Clean's interactions would turn both workarounds into
 deletions; `Direction` and `channelDir` are deleted in favour of it when it is upstreamed
@@ -160,8 +167,8 @@ structure MemMsg (F : Type) where
   v : Vector F 3
   deriving ProvableStruct
 
-/-- The bytecode tuple after its separator: `(pc, count, opcode, op₁, …, op₁₀)`, a read of the
-entry `(opcode, op₁, …, op₁₀)` (`entry`) at counter `pc` (specification §6.4). -/
+/-- The bytecode tuple after its separator: `(pc, count, opcode, op₁, …, op₁₂)`, a read of the
+entry `(opcode, op₁, …, op₁₂)` (`entry`) at counter `pc` (specification §6.4). -/
 structure BytecodeMsg (F : Type) where
   /-- The program counter, the entry's address. -/
   pc : F
@@ -169,8 +176,8 @@ structure BytecodeMsg (F : Type) where
   count : F
   /-- The opcode, coordinate 3 of the tuple. -/
   opcode : F
-  /-- The ten operand slots. -/
-  op : Vector F 10
+  /-- The twelve operand slots. -/
+  op : Vector F 12
   deriving ProvableStruct
 
 /-! ## The image in the prover data -/
@@ -245,10 +252,19 @@ def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit 
   MemPull.pull ⟨addr, count, v⟩
   MemPush.push ⟨addr, Expression.const g * count, v⟩
 
+/-- A memory read of the word `v` at `addr` with count `count` when `flag` is `1`
+(`memory_coords_if`, `tables.rs:132-147`, and `memory_if`, `verifier.py:762-766`, at leanVM PR
+#724 head `873ee6d8`): pull `(addr, count, v)` and push `(addr, count + flag·count·g + flag·count,
+v)`, `g·count` at `flag = 1` and the pull's own tuple at `flag = 0`, where the pair cancels. The
+pull is a `Channel.pullIf flag`: its guarantee is assumed at `flag = 1` only. -/
+def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 3) : Circuit K Unit := do
+  MemPull.pullIf flag ⟨addr, count, v⟩
+  MemPush.push ⟨addr, count + Expression.const g * (flag * count) + flag * count, v⟩
+
 /-- A bytecode read of the entry `(opcode, op)` at counter `pc` with count `count`: pull
 `(pc, count, opcode, op)`, push `(pc, g·count, opcode, op)` (specification §6.2, §6.4;
-`tables.rs:149-156`). -/
-def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 10) :
+`tables.rs:113-122`). -/
+def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 12) :
     Circuit K Unit := do
   BytecodePull.pull ⟨pc, count, opcode, op⟩
   BytecodePush.push ⟨pc, Expression.const g * count, opcode, op⟩
@@ -303,7 +319,7 @@ theorem memMsg_toElements (m : MemMsg K) :
   rw [Vector.toList_append, Vector.toList_append]
   rfl
 
-/-- A bytecode message flattens to `[pc, count, opcode, op₁, …, op₁₀]` (specification §6.4). -/
+/-- A bytecode message flattens to `[pc, count, opcode, op₁, …, op₁₂]` (specification §6.4). -/
 theorem bytecodeMsg_toElements (b : BytecodeMsg K) :
     (toElements b).toList = [b.pc, b.count, b.opcode] ++ b.op.toList := by
   obtain ⟨pc, count, opcode, op⟩ := b
