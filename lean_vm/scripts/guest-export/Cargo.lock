@@ -149,7 +149,6 @@ name = "primitives"
 version = "0.1.0"
 dependencies = [
  "parallel",
- "serde",
 ]
 
 [[package]]
@@ -242,7 +241,6 @@ dependencies = [
  "parallel",
  "primitives",
  "rand",
- "serde",
 ]
 
 [[package]]
