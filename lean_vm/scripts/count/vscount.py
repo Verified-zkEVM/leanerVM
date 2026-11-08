@@ -55,7 +55,7 @@ def vt_term(g):
         wrsw = Arsw[k] * (fs('ring_switch_weight') + 2240 + 16433) // 1000
         wcs = max(stat(k, 'column_selector__L%d' % j) for j in range(29))
         termW.append(om[k]['check_opening_terminal'] + 3 * stat(k, 'eq_prefix_chain') + w15 + stat(k, 'selector_tables')
-                     + 99 * wcs + wrsw)
+                     + 101 * wcs + wrsw)
     return vtW, termW
 
 HDR = '''/-
