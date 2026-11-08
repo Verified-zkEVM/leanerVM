@@ -16,7 +16,7 @@ pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and the g
 `178 .. 235`, then the nibble shares `34 .. 177` (`etOff`). The words (`etWordsN`, by
 offset) are the honest values in `K`, decided by the kernel over `etListK`, which computes
 them as the source does, one product a word: `squares`, `nibRuns` (`powRun` sixteen at a
-time), `powRun (g^252)`.
+time), `powRun (g^254)`.
 
 * `exponent_tables_holds`: its core IR is its meaning (`ExpTables`, `Guest/ExpTables.lean`).
 * `expTables_iff_words`: `ExpTables` is the `236` words `expTableWords` at the pointer.
@@ -110,7 +110,7 @@ def groupSide (gi : ℕ) : ℕ := if gi < 9 then 0 else if gi < 18 then 1 else 2
 
 /-- The table's honest words in `K`, by offset, computed as the source does. -/
 def etListK : List K :=
-  squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1 ++
+  squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 254) 34 1 ++
     (List.range 24).map fun gi ↦ K.ofBits (groupSide gi)
 
 /-- The table's words, by offset, as the compiler folds them. -/
@@ -130,34 +130,34 @@ def etWordsN : List ℕ := [
   0x100514550, 0x10deeff7bf8c0, 0x11011011111b, 0x11d7617607b1dce4, 0x5555155e522c4b1c,
   0x1631292a1c9f84e3, 0x10001011a1a015e, 0xbd0cab0bf4085307, 0x1b092fc78d4a92cc,
   0xaa644ef5214e1933, 0xbbaeaefb0aefad57, 0xe43e44f979305954, 0x1b8c364e2acb3ea9,
-  0x561ccc67eda76752, 1, 0x15f0144001a114f, 0x1aad43011ba1e5, 0xe34916e80106e21d,
-  0x11cefef6be466, 0xab943b855d3d776b, 0x1c77b6cf4edf1bd0, 0x46923ddea5ce4e34,
-  0x5455145e48670f13, 0xfb7d34d8e2b804bb, 0xbbe0dfe164a4d5b4, 0x431d528b1f73a8a2,
-  0xc259794b79e2607, 0x5945c54c76a8d132, 0xf5cb8b3860386917, 0xb345180ffd7a5551, 1,
-  0xbaf1bebe1ae4ad02, 0xb0ef530df44bb042, 0xe1398cba3a3345d1, 0xe2170b43ee771735,
-  0xef974077ab2e410a, 0x195f74d8d767e0ec, 0xe7a9ce1b1009ddf5, 0x48380fd207a3b527,
-  0x1c041e035dbcddcb, 0x5f44de92a000c6c2, 0x46349d7a0998e7db, 0x4ccfb81392b73990,
-  0xb8cfaede33ecc098, 0x1cc1aa9d264d48e7, 0xb8c0690563b0c7a0, 1, 0xb6d535c542116f62,
-  0xa6df6baa62f965f5, 0x43cd877666280ea1, 0xb9df3947cea0ffe7, 0x4914ca4044188719,
-  0xa464732dc19282c6, 0xec96d1ac82c47367, 0xe1882807248fe588, 0xfc1a74c733a2f5ce,
-  0xa6cb1bf736b8b15a, 0x14653a240571ca31, 0xfdb09cb587733b25, 0x46c5665415338185,
-  0x5b728acb7e18bf24, 0x1257c0c0b80081b1, 1, 0x180d86953ed141c6, 0x1894566cd1db8abf,
-  0xe140c4c3e9685529, 0x4cc78bf4ea999e25, 0xa4a5d5d6667950d6, 0x485ba44760a67477,
-  0x130c212db28e3452, 0xe333308087e402ba, 0x47a0b59555acba5e, 0xb9a2b8ed7bac3b92,
-  0x17cd2ccc4fbbeca4, 0xa2c1e9a5b8a1a4c9, 0xb4812ccc0001799e, 0x5e734724690b7a6f,
-  0x4b4f8209fddb26fb, 1, 0x5c62236777028505, 0xb964dc682c67ddcd, 0xb8f3ae623e1592a,
-  0xb58ac9a23d208acb, 0x1a83edcac97c2423, 0x2b4930660ea1998, 0x12bc2b081f75d26c,
-  0xb3fcc2ab3699fc73, 0x1f0ccd02e5018031, 0x4debd5201f7c72a9, 0xfebd6e55fb0a04b,
-  0x146ae2f2da36409c, 0xf4cfd90774d917b7, 0x1a3fa5613bb31290, 0xa7c23c08867ab11f, 1,
-  0x7000000000001105, 0xc70000000101000a, 0xab7000111011011e, 0x71c6000100000005,
-  0x60da710110001105, 0xabb6c60100011a15, 0xcbabbb6100baa10b, 0xc71c71dc00000011,
-  0x6001aac1c001ba1e, 0xdd076dadc61a0011, 0xd1606ad0a07a0ebb, 0xaab1b6da70980150,
-  0xac1d0cecf853f5e, 0x76b1eff5f5b7dc1f, 0xeca5ba460f10ecb, 0x71c71c71c71c6d30,
-  0xc000000001d3dfec, 0x8c00001cefef7154, 0x44c1d20c39754c3e, 0x3c7f0082db6daa2b,
-  0xa0b05fe741d3cfed, 0x2f1ac945daff2e04, 0x5bb67da48a9ea49d, 0xbfaaf65db6da7cf6,
-  0x91c3dfe31004be8d, 0x56fe300d6e526648, 0xcea10886ccb5fd32, 0x93cbf2094a5007e5,
-  0x5e25d0c68e8c7fed, 0x131b23acade5fdf5, 0xb33f7e5dd191f73, 0x970970970820c200, 0x1454400541, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+  0x561ccc67eda76752, 1, 0x15f0144001a114f, 0x1aad43011ba1e5, 0xe34916e80106e21d, 0x11cefef6be466,
+  0xab943b855d3d776b, 0x1c77b6cf4edf1bd0, 0x46923ddea5ce4e34, 0x5455145e48670f13,
+  0xfb7d34d8e2b804bb, 0xbbe0dfe164a4d5b4, 0x431d528b1f73a8a2, 0xc259794b79e2607,
+  0x5945c54c76a8d132, 0xf5cb8b3860386917, 0xb345180ffd7a5551, 1, 0xbaf1bebe1ae4ad02,
+  0xb0ef530df44bb042, 0xe1398cba3a3345d1, 0xe2170b43ee771735, 0xef974077ab2e410a,
+  0x195f74d8d767e0ec, 0xe7a9ce1b1009ddf5, 0x48380fd207a3b527, 0x1c041e035dbcddcb,
+  0x5f44de92a000c6c2, 0x46349d7a0998e7db, 0x4ccfb81392b73990, 0xb8cfaede33ecc098,
+  0x1cc1aa9d264d48e7, 0xb8c0690563b0c7a0, 1, 0xb6d535c542116f62, 0xa6df6baa62f965f5,
+  0x43cd877666280ea1, 0xb9df3947cea0ffe7, 0x4914ca4044188719, 0xa464732dc19282c6,
+  0xec96d1ac82c47367, 0xe1882807248fe588, 0xfc1a74c733a2f5ce, 0xa6cb1bf736b8b15a,
+  0x14653a240571ca31, 0xfdb09cb587733b25, 0x46c5665415338185, 0x5b728acb7e18bf24,
+  0x1257c0c0b80081b1, 1, 0x180d86953ed141c6, 0x1894566cd1db8abf, 0xe140c4c3e9685529,
+  0x4cc78bf4ea999e25, 0xa4a5d5d6667950d6, 0x485ba44760a67477, 0x130c212db28e3452,
+  0xe333308087e402ba, 0x47a0b59555acba5e, 0xb9a2b8ed7bac3b92, 0x17cd2ccc4fbbeca4,
+  0xa2c1e9a5b8a1a4c9, 0xb4812ccc0001799e, 0x5e734724690b7a6f, 0x4b4f8209fddb26fb, 1,
+  0x5c62236777028505, 0xb964dc682c67ddcd, 0xb8f3ae623e1592a, 0xb58ac9a23d208acb,
+  0x1a83edcac97c2423, 0x2b4930660ea1998, 0x12bc2b081f75d26c, 0xb3fcc2ab3699fc73,
+  0x1f0ccd02e5018031, 0x4debd5201f7c72a9, 0xfebd6e55fb0a04b, 0x146ae2f2da36409c,
+  0xf4cfd90774d917b7, 0x1a3fa5613bb31290, 0xa7c23c08867ab11f, 1, 0xc00000000000440f,
+  0x7000000010100014, 0xdc0004440440440e, 0xc60001000000010b, 0x69c40440004402ad,
+  0x6c60100011a1b1a5, 0xeed8402ea8402ece, 0x71dc0000001a0004, 0xab070006e86e805a,
+  0xdadc61a001b5f44a, 0xb4281e83ac7ba95e, 0xda7098015e01440a, 0x3b3e14fd7b9547ed,
+  0x5f5b7dc1b4543b09, 0x183c43b2e26a62e3, 0xc71c6d340000000b, 0x74f7f9d00000000,
+  0xfef71593400010c2, 0x5d530e29d471ad82, 0x6daa2960890dbc05, 0x4f3f8fbd5f859f41,
+  0xf2e07f85585bd179, 0xa926a283ac6058a1, 0x7cf9c707cdd0001e, 0xfa04819d8432c186,
+  0x64f2310d0aa2543a, 0x4e733ef5747ecb89, 0xe916bca6c5297041, 0xabc477ec5c3cc209,
+  0x49c46435a475e369, 0xfdfd3657579c8b44, 0x71c71c71db6b76b4, 0x76c6b01c76c, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
 
 theorem length_etWordsN : etWordsN.length = 236 := by decide +kernel
 
@@ -186,7 +186,7 @@ theorem getElem_idx {α : Type} {l : List α} {i j : ℕ} (h : i = j) (hi : i < 
 theorem length_etA : (squares 34 g ++ nibRuns g 9).length = 178 := by
   simp [length_squares, length_nibRuns]
 
-theorem length_etB : (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1).length = 212 := by
+theorem length_etB : (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 254) 34 1).length = 212 := by
   simp [length_squares, length_nibRuns, length_powRun]
 
 theorem etListK_sq (j : ℕ) (hj : j < 34) : etListK[j]'(by rw [length_etListK]; omega) =
@@ -207,7 +207,7 @@ theorem etListK_nib (j u : ℕ) (hj : j < 9) (hu : u < 16) :
   exact getElem_nibRuns g _ j u hj hu _
 
 theorem etListK_rank (k : ℕ) (hk : k < 34) :
-    etListK[178 + k]'(by rw [length_etListK]; omega) = g ^ (k * 252) := by
+    etListK[178 + k]'(by rw [length_etListK]; omega) = g ^ (k * 254) := by
   simp only [etListK]
   rw [List.getElem_append_left (by rw [length_etB]; omega),
     List.getElem_append_right (by rw [length_etA]; omega),
@@ -219,7 +219,7 @@ theorem etListK_side (gi : ℕ) (hg : gi < 24) :
     etListK[212 + gi]'(by rw [length_etListK]; omega) = K.ofBits (groupSide gi) := by
   simp only [etListK]
   rw [List.getElem_append_right (by rw [length_etB]; omega),
-    getElem_idx (show 212 + gi - (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1).length =
+    getElem_idx (show 212 + gi - (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 254) 34 1).length =
       gi by rw [length_etB]; omega), List.getElem_map, List.getElem_range]
 
 /-- **The exponent table is its `236` words.** -/

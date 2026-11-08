@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Tables.Basic
 /-!
 # The committed columns' sizes
 
-`committedCols 163` is every global column but `KECCAK`'s fifty value lanes (`committedCols_163`):
-the framework's six, then each table's columns, `KECCAK`'s thirteen operand and flag columns and
-its twenty-seven read counts. Over the base `[0, log_mem, τ_0, …, τ_5]`, the guest's sources
+`committedCols 165` is every global column but `KECCAK`'s fifty value lanes and its columns with
+a `q_keccak` slot (`committedCols_165`): the framework's six, then each table's columns, `KECCAK`'s
+free column (global `87`) and its twenty-seven read counts (global `138 .. 164`). Over the base `[0, log_mem, τ_0, …, τ_5]`, the guest's sources
 `colKappaSrc`, `colKappaAdj` give exactly `committedKappas (columnKappas log_mem 19 τ)`
 (`committedKappas_columnKappas`).
 
@@ -31,22 +31,22 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The committed columns: all but `KECCAK`'s value lanes and the columns with a `q_keccak` slot,
-global columns `73 .. 136`. -/
-theorem committedCols_163 :
-    committedCols 163 = List.range 73 ++ (List.range 26).map (· + 137) := by
+global columns `73 .. 86` and `88 .. 137`. -/
+theorem committedCols_165 :
+    committedCols 165 = List.range 73 ++ [87] ++ (List.range 27).map (· + 138) := by
   decide +kernel
 
-theorem committedCols_163_length : (committedCols 163).length = nCommittedCols := by
-  rw [committedCols_163]; simp
+theorem committedCols_165_length : (committedCols 165).length = nCommittedCols := by
+  rw [committedCols_165]; simp
 
-theorem columnKappas_length (lm lb : ℕ) (hs : List ℕ) : (columnKappas lm lb hs).length = 163 := by
+theorem columnKappas_length (lm lb : ℕ) (hs : List ℕ) : (columnKappas lm lb hs).length = 165 := by
   simp only [columnKappas, List.length_append, List.length_cons, List.length_nil,
     List.length_flatMap, List.length_replicate]
   decide +kernel
 
 theorem tables_shape :
     tables.map (fun t ↦ (t.width, t.opcode)) =
-      [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (90, 5)] := by
+      [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (92, 5)] := by
   decide +kernel
 
 theorem qkeccakSlotBits_eq : qkeccakSlotBits = 6 := by decide +kernel
@@ -54,7 +54,7 @@ theorem qkeccakSlotBits_eq : qkeccakSlotBits = 6 := by decide +kernel
 theorem columnKappas_eq (lm lb h0 h1 h2 h3 h4 h5 : ℕ) :
     columnKappas lm lb [h0, h1, h2, h3, h4, h5] = [lm, lm, lm, lm, lb, h5 + 6] ++
       List.replicate 15 h0 ++ List.replicate 15 h1 ++ List.replicate 8 h2 ++
-      List.replicate 15 h3 ++ List.replicate 14 h4 ++ List.replicate 90 h5 := by
+      List.replicate 15 h3 ++ List.replicate 14 h4 ++ List.replicate 92 h5 := by
   have e : ∀ hs : List ℕ, tables.flatMap (fun t ↦ List.replicate t.width (hs.getD t.opcode 0)) =
       (tables.map fun t ↦ (t.width, t.opcode)).flatMap
         (fun p ↦ List.replicate p.1 (hs.getD p.2 0)) := fun hs => by
@@ -74,12 +74,12 @@ theorem committedKappas_columnKappas (lm : ℕ) (hs : List ℕ) (hl : hs.length 
   obtain ⟨h0, h1, h2, h3, h4, h5, rfl⟩ : ∃ h0 h1 h2 h3 h4 h5, hs = [h0, h1, h2, h3, h4, h5] := by
     match hs, hl with
     | [h0, h1, h2, h3, h4, h5], _ => exact ⟨h0, h1, h2, h3, h4, h5, rfl⟩
-  rw [committedKappas, columnKappas_length, committedCols_163, columnKappas_eq]
+  rw [committedKappas, columnKappas_length, committedCols_165, columnKappas_eq]
   rfl
 
-theorem committedKappas_length (kappas : List ℕ) (h : kappas.length = 163) :
+theorem committedKappas_length (kappas : List ℕ) (h : kappas.length = 165) :
     (committedKappas kappas).length = nCommittedCols := by
-  rw [committedKappas, List.length_map, h, committedCols_163_length]
+  rw [committedKappas, List.length_map, h, committedCols_165_length]
 
 theorem tb_le_log2Ceil_of_two_pow_le {k N : ℕ} (h : 2 ^ k ≤ N) : k ≤ log2Ceil N := by
   by_contra hlt

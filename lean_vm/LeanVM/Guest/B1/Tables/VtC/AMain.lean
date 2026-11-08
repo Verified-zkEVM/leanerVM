@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Tables.VtC.FInBuf
 
 `VtShape`: the deployed shapes the ranges need. `vt_rel_complete`: from the specification's
 accepting run (`VtHonest.Ok`), on a memory defined below `2^14` (the rank keys' range check
-against `g^8567`) holding the caller's buffers (`linL`) and the own buffers at the allocator's
+against `g^8635`) holding the caller's buffers (`linL`) and the own buffers at the allocator's
 positions (`ownL`), with the oracle's answers (`VtWOk`), the honest valuation satisfies every
 statement of `verify_tables` (`vtS_complete` `0 ..< 769`, `vtB_complete` `769 ..< 2573`,
 `vtZ_complete` `2573 ..< 2672`, `vtF_complete` `2672 ..< 6251`, `vtZt_complete` `6251 ..< 6294`),

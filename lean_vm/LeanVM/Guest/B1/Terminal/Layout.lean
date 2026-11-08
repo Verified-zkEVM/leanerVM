@@ -65,7 +65,7 @@ theorem committedCols_idxOf {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
 /-- Committed column `cc`'s global column. -/
 theorem committedCols_getD {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
     (Tables.committedCols 163).getD cc 0 = colOfCommitted cc := by
-  have hcc' : cc < 99 := hcc
+  have hcc' : cc < 101 := hcc
   rw [Tables.committedCols_163, List.getD_eq_getElem _ _ (by simp; omega), colOfCommitted]
   split
   · rw [List.getElem_append_left (by simpa using ‹cc < 73›)]; simp

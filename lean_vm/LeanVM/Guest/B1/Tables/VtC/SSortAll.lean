@@ -343,7 +343,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       simp only [vtG0, show (2 : ℕ) ≠ 0 by norm_num, ↓reduceIte] at hrho ⊢
       rw [hrho, vtGP] at this
       simpa only [vtG0, show (2 : ℕ) ≠ 0 by norm_num, ↓reduceIte] using this
-  have hstepR : ∀ s0 ∈ [0, 2], ∀ r, r + 1 < vtGm s0 → ∃ d ≤ 8567,
+  have hstepR : ∀ s0 ∈ [0, 2], ∀ r, r + 1 < vtGm s0 → ∃ d ≤ 8635,
       gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 252) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹ =
       gen ^ (d + 1) * (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) * 252) *
