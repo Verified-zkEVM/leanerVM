@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 # The limits of the guest's completeness
 
 `NodeRelation bytecode seed s w` (`Statement/LeanVmGuest.lean`) admits witnesses on which the deployed guest
-(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `5e3ade21`, `G:N` its lines) does
+(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM PR #724 head `873ee6d8`, `G:N` its lines) does
 not run to completion. Completeness assumes two hypotheses beside `NodeRelation`, each a precise
 predicate on the witness:
 

@@ -1,6 +1,6 @@
 # usage: python3 -I genbglue.py > ../../LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
 # verify_tables' bus sides between the selectors and the stream reads (statements 769 ..< 2573 at
-# 5e3ade21): one lemma per slice, the statements beyond evaluation by kind (fp_w, claim_pool and
+# 873ee6d8): one lemma per slice, the statements beyond evaluation by kind (fp_w, claim_pool and
 # block_index_mle reads), the others (stores, dispatches, the KECCAK) taken as hypotheses.
 import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

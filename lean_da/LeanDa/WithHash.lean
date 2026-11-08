@@ -35,7 +35,7 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 /-! ## The challenge's sponge as the proofs read it
 
 `lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:26-74` at
-leanVM `5e3ade21`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
+leanVM PR #724 head `873ee6d8`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
 symbols of its bytes. The challenge needs only the sponge's seeding and one sample: the root is
 its public input, and no scalar is observed. The statement draws the challenge with the leanVM
 verifier's sponge (`Field.lean`'s `Sponge`, `seedInput`, `squeeze`);
