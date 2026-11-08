@@ -36,7 +36,7 @@ src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding=
 def arr(name):
     m = re.search(r'def arr_%s : List \(Nat × Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
     return [int(x) for x in re.findall(r'\((\d+), \d+, \d+\)', m.group(1))]
-A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS', 'LIG_MAX_QUERIES',
+A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS',
                          'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_MAX_INTERLEAVE', 'LIG_QUERIES',
                          'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_INTERLEAVE', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}
 lig = lambda a, i: A[a][i] if i < len(A[a]) else 0
@@ -61,7 +61,7 @@ def osBos(m):
     """The frame and buffers, and each call's bound, in order."""
     name = 'open_stacked__L%d' % m
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
-    maxQ = lig('LIG_MAX_QUERIES', m); posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m)
+    posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m)
     maxIl = lig('LIG_MAX_INTERLEAVE', m)
     # `B1.osSizesL` (ligColsCap 22, oodSlots 4, yrLogCap 5, pointCap 40, resBatch 8)
     sizes = ([4 * capLen, capLen, yrLen, 2 * nl, nF, nl, nl, posLen, posLen, 128, nl * 22, nl * 4]
