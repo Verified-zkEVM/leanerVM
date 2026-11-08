@@ -154,7 +154,7 @@ def pending : List (E × ℕ) :=
 example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
     (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0 0, 0, 0, 0,
       LeanVM.Guest.word 9223372036854775808 0 0, 0, 0, 0, 0])
-    (hK : KeccakCellsRelation I false O false) :
+    (hK : KeccakCellsRelation I false O false .all) :
     (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
     (getD_cellsBytes_of_le (by simp))
@@ -170,7 +170,7 @@ example (S : KeccakState) (x c2 : E) (I O : Fin 13 → E) (hc2 : IsInK c2)
     (hI : I = LeanVM.Guest.Core.cells13 [x + y * y * c2, c2 + y * Verifier.eOfNat 1, 0, 0, 0, 0,
       0, 0, cellsOfState S false 8, cellsOfState S false 9, cellsOfState S false 10,
       cellsOfState S false 11, cellsOfState S false 12])
-    (hK : KeccakCellsRelation I false O false) :
+    (hK : KeccakCellsRelation I false O false .all) :
     O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, [(x, 1)]⟩)) false := by
   have hcan : IsCanonical128 (x + y * y * c2) := by
     have := hK.1 0; rwa [hI] at this

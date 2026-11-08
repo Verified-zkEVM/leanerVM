@@ -17,7 +17,7 @@ base `b`, in the order of their first occurrence, as `Fn.renumber` numbers them.
 modules prove the guest's core IR equal to the templates by kernel evaluation.
 
 `kMsg pad cells len tailRun out b` is the compiler's `emit_keccak_message`
-(`crates/lean_compiler/src/lower/builtins.rs:267-322` at leanVM `5e3ade21`,
+(`crates/lean_compiler/src/lower/builtins.rs:275-335` at leanVM PR #724 head `873ee6d8`,
 `Expand.emitKeccakMessage`) from the zero state with `len=` given: the message cells (`KC`: a
 literal zero, a constant, a value) zero-extended
 to the last block's read, `0x01` XORed into byte `len` and `0x80` into the last block's last byte
@@ -59,7 +59,7 @@ def rangeS (x : V) (bound : E) (b : Nat) : List Stmt :=
 def booleans (base n : Nat) : List Stmt :=
   (List.range n).map fun j => mulS (.n (base + j)) (.n (base + j)) (.n (base + j))
 
-/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3536-3542`): out `l` at `outBase + 3·(n - 1 - l)`,
+/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3508-3514`): out `l` at `outBase + 3·(n - 1 - l)`,
 over the bits from `bitBase`. -/
 def shifts (bitBase n outBase : Nat) : List Stmt :=
   copyS (.n outBase) (.n (bitBase + n - 1)) ::
