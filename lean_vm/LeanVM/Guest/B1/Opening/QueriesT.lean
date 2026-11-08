@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Fs.Templates
 # The templates of `opening_queries` (TRIAGE G #33, #39, #40)
 
 `opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd, base, I,
-leaf_cells, depth, cd)` (G:1421-1445) has 56 specializations, one per level shape (`Oq`). One
-query (`opening_query`, G:1374-1418, inline, with `walk_path`, G:1336-1371) from its first
+leaf_cells, depth, cd)` (G:1393-1417) has 56 specializations, one per level shape (`Oq`). One
+query (`opening_query`, G:1346-1390, inline, with `walk_path`, G:1308-1343) from its first
 value `b` is `oqQueryT`:
 
 * the row: `R` hinted words (`I` at level 0, `base = 1`; `3I` limbs deeper) at `b .. b + R`, packed
@@ -210,10 +210,10 @@ def oqBlockT (s : Oq) (b pr kL k : ℕ) : List Stmt :=
 def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
   ((List.range s.B).map (oqBlockT s b pr kL)).flatten
 
-/-! ## The path (`walk_path`, a function of its own at 5e3ade21) -/
+/-! ## The path (`walk_path`, a function of its own at 873ee6d8) -/
 
 /-- The path's windows: six levels each from the bottom, the last the remainder
-(`walk_path`, lean_ethereum.py:1336-1371 at 5e3ade21). -/
+(`walk_path`, lean_ethereum.py:1308-1343 at 873ee6d8). -/
 def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
 /-- Window `i`'s levels. -/
@@ -308,7 +308,7 @@ def wpCh : ℕ := 5
 /-- `walk_path`'s padding run: after its children and its first window's word. -/
 def wpPr (s : Oq) : ℕ := wpCh + 4 * s.pd + 1
 
-/-- **`walk_path__L{pd}_L{cd}`'s body** (lean_ethereum.py:1336-1371 at 5e3ade21): the path from the
+/-- **`walk_path__L{pd}_L{cd}`'s body** (lean_ethereum.py:1308-1343 at 873ee6d8): the path from the
 node `n0, n1` (`.n 0`, `.n 1`) by the windows at `wins` (`.n 2`), the cap leaf into `cap`
 (`.n 3`), the flag into `flags` (`.n 4`). -/
 def wpBodyT (s : Oq) : List Stmt :=

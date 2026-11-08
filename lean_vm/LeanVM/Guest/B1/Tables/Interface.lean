@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)` (G:2137-2563, at 5e3ade21)
+fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)` (G:2109-2535, at 873ee6d8)
 settles the bus against the six tables: it certifies each side's blocks' offsets by a hinted order
 of its block groups (`busLayout`, V:548), certifies every table's log-height to be
 `max (log2Ceil rows) floor` (V:1294, by `padding_weight`), decomposes the three GKR leaf values
@@ -32,7 +32,7 @@ What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), 
 `verify_sub`): for every `ev` taking that value at the bus's bytecode point, the run is the
 specification's.
 
-* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2103-2135) holds exactly when
+* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2075-2107) holds exactly when
   `rows` is an integer word `n ≤ 2^τ`; it returns `paddingWeight (zeta[..τ]) n` (V:679) and the
   two words whose `lead = 1 ∧ rest ≠ 0` says `τ = log2Ceil n` (`PadLead`, `PadRest`).
 * `verify_tables_Spec`: under `TablesPre` (what `verify_sub` establishes before the call), the
@@ -64,7 +64,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:2103-2135; TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** (G:2075-2107; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
   ∀ n < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -152,26 +152,26 @@ abbrev nBusClaims : ℕ := 5
 /-- `N_COL_EVALS`: the tables' column evaluations, read where the stream holds them. -/
 abbrev nColEvals : ℕ := nPooled - nBusClaims
 
-/-- `CLAIM_KAPPA_SRC` (G:341): a claim's low dimension as a kappa source, an index into
+/-- `CLAIM_KAPPA_SRC` (G:340): a claim's low dimension as a kappa source, an index into
 `kappa_base = [g^0, g^log_mem, g^τ_0, …, g^τ_5]` … -/
 def claimKappaSrc : List ℕ :=
   [1, 1, 1, 1, 0] ++ List.replicate 15 2 ++ List.replicate 15 3 ++ List.replicate 8 4 ++
     List.replicate 15 5 ++ List.replicate 14 6 ++ List.replicate 92 7 ++ [1, 1, 1]
 
-/-- … plus `CLAIM_KAPPA_ADJ` (G:342): the bytecode claim's `19`. -/
+/-- … plus `CLAIM_KAPPA_ADJ` (G:341): the bytecode claim's `19`. -/
 def claimKappaAdj (j : ℕ) : ℕ := if j = 4 then 19 else 0
 
 /-- Claim `j`'s low dimension, `kappa_base[CLAIM_KAPPA_SRC[j]]·g^CLAIM_KAPPA_ADJ[j]` in the exponent,
 at the memory's log-size and the tables' log-heights (what `check_opening_terminal` reads,
-G:3307). -/
+G:3270). -/
 def claimLowDim (logMem : ℕ) (taus : List ℕ) (j : ℕ) : ℕ :=
   (0 :: logMem :: taus).getD (claimKappaSrc.getD j 0) 0 + claimKappaAdj j
 
 /-- **`TCtx`**, what `verify_tables` hands `check_opening_terminal` and `verify_keccak`, over
 `[zeta, chi, rm, g_bus_mu, g_zc_n]`: the claims are `claimColumns`'s; the bus's lie on a prefix of
 the bus point at `zeta`, the tables' on a prefix of the table sumcheck's point `chis` at `chi`, the
-public input's at `(rm, 0, …, 0)`; and the first `162` have the low dimension `claimLowDim` of the
-layout (at 5e3ade21 the terminal derives it from `kappa_base`, where `verify_tables` stored it in
+public input's at `(rm, 0, …, 0)`; and the first `164` have the low dimension `claimLowDim` of the
+layout (at 873ee6d8 the terminal derives it from `kappa_base`, where `verify_tables` stored it in
 `claim_cplen_g` before). -/
 def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :
     List E → Prop
@@ -221,7 +221,7 @@ abbrev rankKeysAt : ℕ := 34 + 16 * 9
 /-- `SIDE_TAB_AT` (G:292): where `exponent_tables` keeps each block group's side. -/
 abbrev sideTabAt : ℕ := rankKeysAt + 34
 
-/-- Block group `gi`'s side (`exponent_tables`, G:733-735), a word. -/
+/-- Block group `gi`'s side (`exponent_tables`, G:732-734), a word. -/
 def sideTabList : List E :=
   (List.range nBlockGroups).map fun gi ↦
     eOfNat ((List.range 3).filter (fun s ↦ sideGroupStart.getD s 0 ≤ gi)).length.pred
@@ -273,7 +273,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (G:2137-2563; TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound** (G:2109-2535; TRIAGE #52), for the guest's own bytecode words
 `bytecode`. Proved for every memory of at most `2^32` words (`verify_tables_holds`). -/
 def verify_tables_Spec (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem alphas point values args rets,

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Tail
 
-  `verify_sub`'s tail (G:3515-3541), honestly: the placement, the stack's log and the candidate,
+  `verify_sub`'s tail (G:3487-3513), honestly: the placement, the stack's log and the candidate,
   the dispatch, the terminal, the deferred claim's cells.
 -/
 

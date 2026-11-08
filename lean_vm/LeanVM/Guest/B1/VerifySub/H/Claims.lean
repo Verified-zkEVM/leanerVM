@@ -82,11 +82,11 @@ theorem flatMap_rows {Y : Type} (F : Table → ℕ → List E → List Y) (G : T
 /-- Evaluation `k`'s table, by the tables' widths. -/
 def vsEvTab (k : ℕ) : ℕ :=
   (List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
-    List.replicate 14 4 ++ List.replicate 90 5).getD k 0
+    List.replicate 14 4 ++ List.replicate 92 5).getD k 0
 
 theorem vsEvTab_blocks : (List.range 159).map vsEvTab =
     List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
-      List.replicate 14 4 ++ List.replicate 90 5 := by decide +kernel
+      List.replicate 14 4 ++ List.replicate 92 5 := by decide +kernel
 
 theorem tables_widths_list : tables.map (·.width) = vtW6 := by decide +kernel
 
@@ -189,6 +189,7 @@ theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.colum
   match H.xs5.take 3, h3 with
   | [a, b, c], _ => rfl
 
+set_option maxRecDepth 2048 in
 /-- **The honest claims' points**, by position. -/
 theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23) :
     H.claims.map (·.point) = List.replicate 4 (H.point.take H.lm) ++ [H.point.take 19] ++

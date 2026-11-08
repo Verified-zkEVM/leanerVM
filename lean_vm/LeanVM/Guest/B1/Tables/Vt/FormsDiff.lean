@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsVal
 /-!
 # The pull side by differences (G:2470-2499)
 
-At `5e3ade21` a pull block shares its push twin's selector, and the guest evaluates only the
+At `873ee6d8` a pull block shares its push twin's selector, and the guest evaluates only the
 coordinates where the two differ: `Σ_i W_i · diff_i` (`vtSlots W ev 0` over `vtDTerms t`, an empty
 list where they agree), and the table's pull form as `push + Σ_b sel_b · Σ_i W_i · diff_i`.
 `vtPullOk P Q D`: every pull coordinate's terms (`Q`) are canonically the push twin's (`P`) followed

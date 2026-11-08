@@ -46,21 +46,21 @@ def noDispatchB : Stmt → Bool
   | .dispatch .. => false
   | _ => true
 
-theorem vs_split_disp : vsCPre = vsCPre.take 1591 ++
-    [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] ++ vsCPre.drop 1592 := by
-  have h : (vsCPre.drop 1591).take 1 = [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] :=
+theorem vs_split_disp : vsCPre = vsCPre.take 1599 ++
+    [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] ++ vsCPre.drop 1600 := by
+  have h : (vsCPre.drop 1599).take 1 = [.dispatch (.n 1695) vsOpenNames vsDispArgs (vsRun 1700 5)] :=
     (Tables.tbStmtsEqb_sound (by decide +kernel)).symm
-  have e : vsCPre.drop 1591 = (vsCPre.drop 1591).take 1 ++ vsCPre.drop 1592 := by
-    rw [show vsCPre.drop 1592 = (vsCPre.drop 1591).drop 1 by simp [List.drop_drop],
+  have e : vsCPre.drop 1599 = (vsCPre.drop 1599).take 1 ++ vsCPre.drop 1600 := by
+    rw [show vsCPre.drop 1600 = (vsCPre.drop 1599).drop 1 by simp [List.drop_drop],
       List.take_append_drop]
   rw [List.append_assoc, ← h, ← e, List.take_append_drop]
 
-theorem vs_noDisp : (vsCPre.take 1591).all noDispatchB = true ∧ (vsCPre.drop 1592).all noDispatchB = true := by
+theorem vs_noDisp : (vsCPre.take 1599).all noDispatchB = true ∧ (vsCPre.drop 1600).all noDispatchB = true := by
   decide +kernel
 
-theorem vs_callsA : (vsCPre.take 1591).filterMap Stmt.callS = vsCallsA := by decide +kernel
+theorem vs_callsA : (vsCPre.take 1599).filterMap Stmt.callS = vsCallsA := by decide +kernel
 
-theorem vs_callsB : (vsCPre.drop 1592).filterMap Stmt.callS = vsCallsB := by decide +kernel
+theorem vs_callsB : (vsCPre.drop 1600).filterMap Stmt.callS = vsCallsB := by decide +kernel
 
 theorem callSF_noDisp (σ : Val) : ∀ (l : List Stmt), l.all noDispatchB = true →
     l.filterMap (Core.Stmt.callSF σ) = l.filterMap Stmt.callS

@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 `vsNames μ r`: the thirteen callees in call order (`vs_calls`), `open_stacked`'s candidate
 `openName μ r`. `vsTs fs W Bvk μ r`: callee `j` a call of `vsNames μ r`'s `j`-th name within
 `vsBsAt W Bvk μ r`'s `j`-th bound, `verify_tables`' and the terminal's within their weights at each
-opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8673 +
+opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8675 +
 (vsBsAt W Bvk μ r).sum`. `vs_kidsDepBP`: the callees on an honest child, each within its bound by
 a tree of its predicate.
 
@@ -57,7 +57,7 @@ noncomputable def vsTs (fs : String → ℕ) (W : VsWords fs) (Bvk μ r : ℕ) :
 
 /-- **`verify_sub`'s bound at one candidate.** -/
 noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : ℕ :=
-  fs "verify_sub" + 8673 + (vsBsAt W Bvk μ r).sum
+  fs "verify_sub" + 8675 + (vsBsAt W Bvk μ r).sum
 
 theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (bs : List ℕ) (sqE : ℕ) :

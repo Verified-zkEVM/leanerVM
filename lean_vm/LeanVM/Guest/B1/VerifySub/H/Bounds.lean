@@ -20,13 +20,13 @@ theorem colKappa_list : (List.range Tables.nCommittedCols).map
     (fun c ↦ (Tables.colKappaSrc c, Tables.colKappaAdj c)) =
     List.replicate 4 (1, 0) ++ [(0, 19), (7, 6)] ++ List.replicate 15 (2, 0) ++
       List.replicate 15 (3, 0) ++ List.replicate 8 (4, 0) ++ List.replicate 15 (5, 0) ++
-      List.replicate 14 (6, 0) ++ List.replicate 26 (7, 0) := by decide
+      List.replicate 14 (6, 0) ++ List.replicate 28 (7, 0) := by decide
 
 /-- **The stack's total**, column by column. -/
 theorem stackTotal_eq (lm h0 h1 h2 h3 h4 h5 : ℕ) :
     Tables.stackTotal (columnKappas lm 19 [h0, h1, h2, h3, h4, h5]) =
       4 * 2 ^ lm + 2 ^ 19 + 64 * 2 ^ h5 + 15 * 2 ^ h0 + 15 * 2 ^ h1 + 8 * 2 ^ h2 +
-        15 * 2 ^ h3 + 14 * 2 ^ h4 + 26 * 2 ^ h5 := by
+        15 * 2 ^ h3 + 14 * 2 ^ h4 + 28 * 2 ^ h5 := by
   unfold Tables.stackTotal
   rw [Tables.committedKappas_columnKappas lm _ rfl]
   have e : (List.range Tables.nCommittedCols).map (fun c ↦

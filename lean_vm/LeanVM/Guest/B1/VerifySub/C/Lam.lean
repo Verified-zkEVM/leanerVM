@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Lam
 
-  `verify_sub`'s batching (G:3500-3513), honestly.
+  `verify_sub`'s batching (G:3472-3485), honestly.
 -/
 
 module

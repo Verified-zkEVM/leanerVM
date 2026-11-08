@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Evals
 
 /-!
-# The public input's binding (G:2545-2556)
+# The public input's binding (G:2517-2528)
 
 `vt_pi`: `rm` is the squeeze after the 159 evaluations; the public input's two words are
 canonical, and the pool's last three claims are the lines through their limbs `0`, `1` at `rm`
