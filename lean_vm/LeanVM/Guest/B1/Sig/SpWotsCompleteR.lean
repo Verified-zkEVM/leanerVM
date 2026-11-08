@@ -35,8 +35,8 @@ variable {C : CallRel} {rd : Reader}
 
 theorem spRi_small {j : Nat} (hj : j ≤ 29) : spRi j = j := by
   unfold spRi spZeroR
-  rw [show List.countP (fun x => decide (x < j)) [29, 254, 349, 432, 499, 594, 677, 748, 803, 886,
-    957, 1016, 1059, 1126, 1181, 1224] = 0 by
+  rw [show List.countP (fun x => decide (x < j)) [29, 146, 241, 324, 391, 486, 569, 640, 695, 778,
+    849, 908, 951, 1018, 1073, 1116] = 0 by
       rw [List.countP_eq_zero]
       intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
