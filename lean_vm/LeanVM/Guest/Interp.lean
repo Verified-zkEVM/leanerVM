@@ -267,7 +267,8 @@ def execAtom (fr : Nat) : Atom → IM Unit
       discard <| needK (← needV fr a) "an assert_in_k operand"
       discard <| needK (← needV fr b) "an assert_in_k operand"
   | .keccak ins outs inOdd outOdd => do
-      if ins.length != 13 || outs.length != 13 then throw "a KECCAK atom not of thirteen cells"
+      if ins.length != 13 || !(outs.length == 1 || outs.length == 2 || outs.length == 13) then
+        throw "a KECCAK atom not of thirteen cells read and one, two or thirteen written"
       let xs ← ins.mapM (needV fr)
       if !(xs.all fun x => decide (IsCanonical128 x)) then
         throw "a KECCAK input cell is not canonical"
