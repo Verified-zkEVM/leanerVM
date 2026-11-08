@@ -80,13 +80,13 @@ theorem opRecs_guarantees (h : SatisfiedByB prog input w) {f : Air.Flat.Table K 
   have hdata := environment_data ht' p.2
   intro a ha
   have hmem := eval_mem_interactions ht' hrow ha
-  rcases (hf p hp).2.2.1 a ha with hc | hc | hc
+  rcases (hf p hp).2.2.2.2.1 a ha with hc | hc | hc
   · obtain ⟨ch, mult, msg, ag⟩ := a
     dsimp only at hc
     subst hc
-    intro _ _
+    intro _ hmult
     rw [hdata]
-    exact mem_channel_sound h _ hmem rfl _
+    exact mem_channel_sound h _ hmem rfl hmult _
       (by rw [ProvableType.toElements_fromElements]; rfl)
   · obtain ⟨ch, mult, msg, ag⟩ := a
     dsimp only at hc
@@ -110,7 +110,7 @@ theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arra
   have ha := assumptions_of_keccakRowsValid h.keccak_valid p.1
     (w.mem_allTables_of_mem_tables ht') p.2 hrow
   have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables ht') p.2 hrow
-  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.1 ha hc (opRecs_guarantees h.toB hf hp)
+  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.2.2.1 ha hc (opRecs_guarantees h.toB hf hp)
   obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h.toB hf hp
   have hins : prog.instructions k = ins := entry_injective (hek.symm.trans he)
   refine ⟨?_, k, hpc, fun hj ↦ hnj (hins ▸ hj)⟩
@@ -158,7 +158,10 @@ theorem statePush_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Ar
   rw [chanOf_verifier_statePush,
     chanOf_memSeed_eq_nil _ _ (by simp [StatePush, MemPull]) (by simp [StatePush, MemPush]),
     chanOf_bcSeed_eq_nil _ (by simp [StatePush, BytecodePull]) (by simp [StatePush, BytecodePush])]
-  simp only [RowRec.sends, chanOf, sendsOf_statePush, List.append_nil, flatMap_singleton_eq_map']
+  have hrow : ∀ p, chanOf StatePush.name (f p).sends = [regsArr (f p).next] := fun p ↦ by
+    rw [RowRec.chanOf_sends_of_ne _ (by simp [StatePush, MemPull]) (by simp [StatePush, MemPush])]
+    exact sendsOf_statePush _ _ _ _ _ _
+  simp only [hrow, List.append_nil, flatMap_singleton_eq_map']
   rfl
 
 /-- **The states a satisfying witness pulls**: the verifier's final registers and the rows'
@@ -173,7 +176,10 @@ theorem statePull_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Ar
   rw [chanOf_verifier_statePull,
     chanOf_memSeed_eq_nil _ _ (by simp [StatePull, MemPull]) (by simp [StatePull, MemPush]),
     chanOf_bcSeed_eq_nil _ (by simp [StatePull, BytecodePull]) (by simp [StatePull, BytecodePush])]
-  simp only [RowRec.sends, chanOf, sendsOf_statePull, List.append_nil, flatMap_singleton_eq_map']
+  have hrow : ∀ p, chanOf StatePull.name (f p).sends = [regsArr (f p).src] := fun p ↦ by
+    rw [RowRec.chanOf_sends_of_ne _ (by simp [StatePull, MemPull]) (by simp [StatePull, MemPush])]
+    exact sendsOf_statePull _ _ _ _ _ _
+  simp only [hrow, List.append_nil, flatMap_singleton_eq_map']
   rfl
 
 /-! ## The run -/
