@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 /-- **A 64-byte `keccak` of four cells** writes their hash. -/
 theorem k64_sound {pad : Nat} (hp : PadOK σ pad) {m0 m1 m2 m3 : V} {c o : Nat}
     (h : AtomsHold rd σ (k64 pad m0 m1 m2 m3 c o)) :
-    (σ (.n o), σ (.n (o + 1))) = hcell [σ m0, σ m1, σ m2, σ m3] := by
+    σ (.n o) = (hcell [σ m0, σ m1, σ m2, σ m3]).1 := by
   rw [k64_eq] at h
   have := kMsg_sound (cells := [.cell m0, .cell m1, .cell m2, .cell m3]) (len := 64) (tailRun := false)
     (out := some o) hp (fun h => by simp at h) h (by simp) (fun j hj => by
@@ -85,7 +85,7 @@ theorem mFold_congr {pp : E} {A A' : Nat → E} {bits bits' : Nat → Bool} {sib
 def mNext (nodeOf : Nat → Option V) (l b : Nat) : Nat :=
   (match nodeOf l with
     | none => b + 5
-    | some _ => b + 6) + 14
+    | some _ => b + 6) + 2
 
 /-- The base of level `l + j` of a path from level `l` at base `b`. -/
 def mBase (nodeOf : Nat → Option V) : Nat → Nat → Nat → Nat
@@ -133,8 +133,7 @@ theorem merkle_level {pad : Nat} (hp : PadOK σ pad) {pp bit cur adr : V} {b c :
   have e3 := h1.atom (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self ..))))
   simp only [Atom.Holds] at e1 e2 e3
-  have hk2 := congrArg Prod.fst (k64_sound hp hk)
-  simp only at hk2
+  have hk2 := k64_sound hp hk
   rw [hk2]
   rcases isBit_cases hbit with h0 | h1'
   · rw [h0, zero_mul, e1] at e3
@@ -157,22 +156,22 @@ theorem merkleT_sound {pad : Nat} (hp : PadOK σ pad) {pp : V} {bitOf : Nat → 
           m l (σ cur)
   | 0, l, cur, b, _, _ => rfl
   | m + 1, l, cur, b, hm, h => by
-      have step : ∀ c : Nat, mNext nodeOf l b = c + 14 → V.n (c - 1) = mAdr nodeOf l b →
+      have step : ∀ c : Nat, mNext nodeOf l b = c + 2 → V.n (c - 1) = mAdr nodeOf l b →
           AtomsHold rd σ ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
             addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3))]) →
           AtomsHold rd σ (k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)) →
-          AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).1 →
-          σ (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.2 =
+          AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1 →
+          σ (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2 =
             mFold (σ pp) (fun l' => σ (mAdr nodeOf l' (mBase nodeOf l (l' - l) b)))
               (fun l' => decide (σ (bitOf l') = 1)) (fun l' => mSib σ bitOf l' (mBase nodeOf l (l' - l) b))
               (m + 1) l (σ cur) := by
         intro c hc hadr h1 hk hr
-        rw [merkleT_sound hp hbit m (l + 1) (.n (c + 1)) (c + 14) (by omega) hr]
+        rw [merkleT_sound hp hbit m (l + 1) (.n (c + 1)) (c + 2) (by omega) hr]
         simp only [mFold, Nat.sub_self, mBase]
         rw [merkle_level hp (hbit l (by omega)) h1 hk, hadr]
         apply mFold_congr
         intro l' hl'
-        have hb : mBase nodeOf (l + 1) (l' - (l + 1)) (c + 14) = mBase nodeOf l (l' - l) b := by
+        have hb : mBase nodeOf (l + 1) (l' - (l + 1)) (c + 2) = mBase nodeOf l (l' - l) b := by
           rw [show l' - l = l' - (l + 1) + 1 by omega, mBase, hc]
         simp only [hb, and_self]
       simp only [merkleT] at h ⊢

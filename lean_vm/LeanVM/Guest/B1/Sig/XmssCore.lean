@@ -111,7 +111,7 @@ theorem xCore_complete {layer b : Nat} (hA : 211 ≤ xA layer b) (hm : MemOK rd 
   have b2 : (xCw layer b).2.1 + 2 ≤ (xLeafK layer b).2.1 :=
     kMsg_le (show xPad + 5 ≤ (xCw layer b).2.1 + 2 by simp [xPad]; omega) hcellNB
   have b3 : (xLeafK layer b).2.1 ≤ (xMk layer b).2.1 := merkleT_snd_ge ..
-  have hout : (xLeafK layer b).2.2 + 13 ≤ (xLeafK layer b).2.1 :=
+  have hout : (xLeafK layer b).2.2 + 1 ≤ (xLeafK layer b).2.1 :=
     kMsg_out xPad ((xLeafCells layer b).map KC.cell) 960 false ((xCw layer b).2.1 + 2)
   -- the step addresses
   refine Completes.seq (xStepAddrs_seq hidx) (by omega) (fun σ1 he1 hh1 => ?_)
@@ -184,8 +184,7 @@ theorem xCore_complete {layer b : Nat} (hA : 211 ≤ xA layer b) (hm : MemOK rd 
   have hleaf := kMsg_sound (out := none) hpad4 (by simp) hlk (by rw [hlen]) (fun j hj =>
     cellsBytes_getD_past (by rw [List.length_map, hlen]; omega))
   have hleafc : IsCanonical128 (σ4 (.n (xLeafK layer b).2.2)) := by
-    have := congrArg Prod.fst hleaf
-    simp only at this
+    have := hleaf
     show IsCanonical128 (σ4 (.n (kMsg xPad ((xLeafCells layer b).map KC.cell) 960 false none
       ((xCw layer b).2.1 + 2)).2.2))
     rw [this]

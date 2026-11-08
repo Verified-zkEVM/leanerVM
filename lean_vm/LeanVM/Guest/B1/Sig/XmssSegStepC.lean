@@ -127,7 +127,7 @@ theorem sWc_sound {layer b : Nat} {σ : Val} (hg : SGood layer b σ) :
     StepSound rd σ (sWc layer b)
       (fun i s y => (hcell [σ sLxPP, σ (.n (sA layer b + 2 * min s 2 + 1)), y, σ (sTag (min i 57))]).1) := by
   intro i s v c o h
-  exact congrArg Prod.fst (k64_sound hg.2.2.2.1 h)
+  exact k64_sound hg.2.2.2.1 h
 
 theorem sWc_pow {layer b : Nat} {σ : Val} (hg : SGood layer b σ) :
     ∀ s < 13, σ ((sWc layer b).power s) = gen ^ s := by

@@ -381,44 +381,68 @@ theorem prevVal_canon {σ : Val} {st : Option (List V)}
       rw [List.getD_eq_getElem _ _ (by omega)]
       exact hs.2 _ (List.getElem_mem _)
 
-theorem kBlocks_none_eq (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (m k : Nat)
+theorem kBlocks_none_eq (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n m k : Nat)
     (st : Option (List V)) (b : Nat) :
-    kBlocks pad cs B tailRun none (m + 1) k st b =
+    kBlocks pad cs B tailRun none n (m + 1) k st b =
       ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).1 ++
         ([kecS (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.1
-          (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 13) (k % 2 == 1)
-          (!(k + 1 == B) && k % 2 == 0)] ++
-        (kBlocks pad cs B tailRun none m (k + 1)
+          (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 (kOutN B n k))
+          (k % 2 == 1) (!(k + 1 == B) && k % 2 == 0)] ++
+        (kBlocks pad cs B tailRun none n m (k + 1)
           (some (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 13))
-          ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + 13)).1),
-        (kBlocks pad cs B tailRun none m (k + 1)
+          ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + kOutN B n k)).1),
+        (kBlocks pad cs B tailRun none n m (k + 1)
           (some (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 13))
-          ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + 13)).2.1,
+          ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + kOutN B n k)).2.1,
         if k + 1 == B then (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 else
-          (kBlocks pad cs B tailRun none m (k + 1)
+          (kBlocks pad cs B tailRun none n m (k + 1)
             (some (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 13))
-            ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + 13)).2.2) := by
+            ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + kOutN B n k)).2.2) := by
   simp only [kBlocks, Option.getD_none, Option.isSome_none, Bool.and_false, Bool.false_eq_true,
     ↓reduceIte, List.append_assoc]
   split <;> rfl
 
-theorem kBlocks_nb {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
-    ∀ (m k : Nat) (st : Option (List V)) (b : Nat), pad + 5 ≤ b → (∀ c ∈ cs, KCb b c) →
-      (∀ s, st = some s → ∀ v ∈ s, NBv b v) →
-      NumBelow (kBlocks pad cs B tailRun none m k st b).2.1
-          (Stmt.valsList (kBlocks pad cs B tailRun none m k st b).1) ∧
-        b ≤ (kBlocks pad cs B tailRun none m k st b).2.1
-  | 0, _, _, b, _, _, _ => ⟨NumBelow.nil _, le_rfl⟩
-  | m + 1, k, st, b, hpb, hcs, hst => by
+theorem kOutN_pos {B n k : Nat} (hn : 1 ≤ n) : 1 ≤ kOutN B n k := by
+  unfold kOutN; split <;> omega
+
+theorem kOutN_le {B n k : Nat} (hn : n ≤ 13) : kOutN B n k ≤ 13 := by
+  unfold kOutN; split <;> omega
+
+theorem kOutN_mid {B n k : Nat} (hk : k + 1 ≠ B) : kOutN B n k = 13 := by
+  simp [kOutN, hk]
+
+theorem kOutN_cellCount {B n k : Nat} (hn : n = 1 ∨ n = 2 ∨ n = 13) :
+    kOutN B n k = 1 ∨ kOutN B n k = 2 ∨ kOutN B n k = 13 := by
+  unfold kOutN; split
+  · exact hn
+  · exact .inr (.inr rfl)
+
+theorem kBlocks_nb {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool} :
+    ∀ (m k : Nat) (st : Option (List V)) (b : Nat), k + m ≤ B → pad + 5 ≤ b →
+      (∀ c ∈ cs, KCb b c) → (∀ s, st = some s → ∀ v ∈ s, NBv b v) →
+      NumBelow (kBlocks pad cs B tailRun none n m k st b).2.1
+          (Stmt.valsList (kBlocks pad cs B tailRun none n m k st b).1) ∧
+        b ≤ (kBlocks pad cs B tailRun none n m k st b).2.1
+  | 0, _, _, b, _, _, _, _ => ⟨NumBelow.nil _, le_rfl⟩
+  | m + 1, k, st, b, hkm, hpb, hcs, hst => by
       rw [kBlocks_none_eq]
       dsimp only
       obtain ⟨i1, i2, i3⟩ := kIns_seq (pad := pad) (tailRun := tailRun)
         (blk := (cs.drop (17 * k / 2)).take 9) hpb hst (fun c hc => hcs c (blockOf_mem hc))
-      obtain ⟨r1, r2⟩ := kBlocks_nb (pad := pad) (cs := cs) (B := B) (tailRun := tailRun) m (k + 1)
-        (some (runV (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 13))
-        ((kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 + 13) (by omega)
-        (fun c hc => (hcs c hc).mono (by omega))
-        (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv)
+      set o := (kIns pad ((cs.drop (17 * k / 2)).take 9) tailRun st b).2.2 with ho
+      obtain ⟨r1, r2⟩ : NumBelow (kBlocks pad cs B tailRun none n m (k + 1) (some (runV o 13))
+            (o + kOutN B n k)).2.1
+          (Stmt.valsList (kBlocks pad cs B tailRun none n m (k + 1) (some (runV o 13))
+            (o + kOutN B n k)).1) ∧
+          o + kOutN B n k ≤ (kBlocks pad cs B tailRun none n m (k + 1) (some (runV o 13))
+            (o + kOutN B n k)).2.1 := by
+        by_cases hl : k + 1 = B
+        · obtain rfl : m = 0 := by omega
+          exact ⟨NumBelow.nil _, le_rfl⟩
+        · rw [kOutN_mid hl]
+          exact kBlocks_nb m (k + 1) (some (runV o 13)) (o + 13) (by omega) (by omega)
+            (fun c hc => (hcs c hc).mono (by omega))
+            (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv)
       refine ⟨?_, by omega⟩
       rw [valsList_append, valsList_append]
       refine (i1.numBelow.mono (by omega)).append (NumBelow.append ?_ r1)
@@ -429,20 +453,24 @@ theorem kBlocks_nb {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
         exact ⟨j, by omega, rfl⟩
       · exact runV_nb (by omega) v hv
 
-/-- **The blocks complete**, each `KECCAK` on canonical inputs. -/
-theorem kBlocks_complete {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
-    ∀ (m k : Nat) (st : Option (List V)) (b : Nat) (σ : Val), PadOK σ pad → pad + 5 ≤ b →
-      (∀ c ∈ cs, KCb b c ∧ KCc σ c) →
+/-- **The blocks complete**, each `KECCAK` on canonical inputs, the last writing `n` cells (one,
+two or thirteen). -/
+theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
+    (hn : n = 1 ∨ n = 2 ∨ n = 13) :
+    ∀ (m k : Nat) (st : Option (List V)) (b : Nat) (σ : Val), k + m ≤ B → PadOK σ pad →
+      pad + 5 ≤ b → (∀ c ∈ cs, KCb b c ∧ KCc σ c) →
       (∀ s, st = some s → s.length = 13 ∧ ∀ v ∈ s, NBv b v ∧ IsCanonical128 (σ v)) →
       (st = none → tailRun = true → TailCells (blockOf cs k)) →
-      Completes C rd b (kBlocks pad cs B tailRun none m k st b).2.1
-          (kBlocks pad cs B tailRun none m k st b).1 σ (fun _ => True) ∧
-        NumBelow (kBlocks pad cs B tailRun none m k st b).2.1
-          (Stmt.valsList (kBlocks pad cs B tailRun none m k st b).1) ∧
-        b ≤ (kBlocks pad cs B tailRun none m k st b).2.1
-  | 0, _, _, b, σ, _, _, _, _, _ =>
+      Completes C rd b (kBlocks pad cs B tailRun none n m k st b).2.1
+          (kBlocks pad cs B tailRun none n m k st b).1 σ (fun _ => True) ∧
+        NumBelow (kBlocks pad cs B tailRun none n m k st b).2.1
+          (Stmt.valsList (kBlocks pad cs B tailRun none n m k st b).1) ∧
+        b ≤ (kBlocks pad cs B tailRun none n m k st b).2.1
+  | 0, _, _, b, σ, _, _, _, _, _, _ =>
       ⟨⟨σ, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩, NumBelow.nil _, le_rfl⟩
-  | m + 1, k, st, b, σ, hp, hpb, hcs, hst, htr => by
+  | m + 1, k, st, b, σ, hkm, hp, hpb, hcs, hst, htr => by
+      obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := cs) (B := B) (n := n) (tailRun := tailRun)
+        (m + 1) k st b hkm hpb (fun c hc => (hcs c hc).1) (fun s hs v hv => ((hst s hs).2 v hv).1)
       rw [kBlocks_none_eq]
       dsimp only
       set blk := (cs.drop (17 * k / 2)).take 9 with hblk
@@ -451,15 +479,52 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
         (fun s hs v hv => ((hst s hs).2 v hv).1) hblkb
       have hlen : (kIns pad blk tailRun st b).2.1.length = 13 := kIns_length htr b
       set ins := kIns pad blk tailRun st b with hins
-      obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := cs) (B := B) (tailRun := tailRun) (m + 1) k st b
-        hpb (fun c hc => (hcs c hc).1) (fun s hs v hv => ((hst s hs).2 v hv).1)
       rw [kBlocks_none_eq] at n1 n2
       dsimp only at n1 n2
       rw [← hblk, ← hins] at n1 n2
       refine ⟨?_, n1, n2⟩
-      obtain ⟨r1, r2⟩ := kBlocks_nb (pad := pad) (cs := cs) (B := B) (tailRun := tailRun) m (k + 1)
-        (some (runV ins.2.2 13)) (ins.2.2 + 13) (by omega) (fun c hc => ((hcs c hc).1).mono (by omega))
-        (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv)
+      set w := kOutN B n k with hw
+      have hr : ∀ σ2 : Val, PadOK σ2 pad → (∀ c ∈ cs, KCc σ2 c) →
+          (∀ c < w, IsCanonical128 (σ2 (.n (ins.2.2 + c)))) →
+          Completes C rd (ins.2.2 + w)
+            (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + w)).2.1
+            (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + w)).1
+            σ2 (fun _ => True) ∧
+          NumBelow (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
+            (ins.2.2 + w)).2.1
+            (Stmt.valsList (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
+              (ins.2.2 + w)).1) ∧
+          ins.2.2 + w ≤ (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
+            (ins.2.2 + w)).2.1 := by
+        intro σ2 hp2 hc2 hcan2
+        by_cases hl : k + 1 = B
+        · obtain rfl : m = 0 := by omega
+          exact ⟨⟨σ2, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩, NumBelow.nil _, le_rfl⟩
+        · have hw13 : w = 13 := kOutN_mid hl
+          rw [hw13] at hcan2 ⊢
+          exact kBlocks_complete hn m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + 13) σ2
+            (by omega) hp2 (by omega)
+            (fun c hc => ⟨((hcs c hc).1).mono (by omega), hc2 c hc⟩)
+            (fun s hs => by
+              cases hs
+              refine ⟨runV_length _ _, fun v hv => ⟨runV_nb (by omega) v hv, ?_⟩⟩
+              simp only [runV, List.mem_map, List.mem_range] at hv
+              obtain ⟨c, hc, rfl⟩ := hv
+              exact hcan2 c hc)
+            (fun h => by simp at h)
+      obtain ⟨r1, r2⟩ : NumBelow (kBlocks pad cs B tailRun none n m (k + 1)
+            (some (runV ins.2.2 13)) (ins.2.2 + w)).2.1
+          (Stmt.valsList (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
+            (ins.2.2 + w)).1) ∧
+          ins.2.2 + w ≤ (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
+            (ins.2.2 + w)).2.1 := by
+        by_cases hl : k + 1 = B
+        · obtain rfl : m = 0 := by omega
+          exact ⟨NumBelow.nil _, le_rfl⟩
+        · rw [show w = 13 from kOutN_mid hl]
+          exact kBlocks_nb m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + 13) (by omega) (by omega)
+            (fun c hc => ((hcs c hc).1).mono (by omega))
+            (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv)
       refine Completes.append (m := ins.2.2) i3 (by omega) i1.numBelow (seq_completes i1 σ)
         (fun σ1 he1 hh1 => ?_)
       have hag1 : AgreeBelow b σ σ1 := he1.agree
@@ -479,8 +544,9 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
               have hm := blockOf_mem (List.mem_of_getElem? hk)
               exact (hcs k' hm).2.congr (hcs k' hm).1 hag1
         · exact canon_zero
-      refine Completes.append (m := ins.2.2 + 13) (by omega) r2 ?_
-        (kecS_complete σ1 ins.2.2 hlen i2 hcanon _ _) (fun σ2 he2 hpost => ?_)
+      refine Completes.append (m := ins.2.2 + w) (by omega) r2 ?_
+        (kecS_complete σ1 ins.2.2 (kOutN_cellCount hn) hlen i2 hcanon _ _)
+        (fun σ2 he2 hpost => ?_)
       · simp only [kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
         intro v hv
         rcases List.mem_append.mp hv with hv | hv
@@ -488,35 +554,31 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B : Nat} {tailRun : Bool} :
           exact ⟨j, by omega, rfl⟩
         · exact runV_nb (by omega) v hv
       have hag2 : AgreeBelow ins.2.2 σ1 σ2 := he2.agree
-      exact (kBlocks_complete (pad := pad) (cs := cs) (B := B) (tailRun := tailRun) m (k + 1)
-        (some (runV ins.2.2 13)) (ins.2.2 + 13) σ2 (hp1.congr (by omega) hag2) (by omega)
-        (fun c hc => ⟨((hcs c hc).1).mono (by omega),
-          ((hcs c hc).2.congr (hcs c hc).1 hag1).congr (((hcs c hc).1).mono i3) hag2⟩)
-        (fun s hs => by
-          cases hs
-          refine ⟨runV_length _ _, fun v hv => ⟨runV_nb (by omega) v hv, ?_⟩⟩
-          simp only [runV, List.mem_map, List.mem_range] at hv
-          obtain ⟨c, hc, rfl⟩ := hv
-          rw [hpost c hc]
-          exact canon_kOut _ _ _ _)
-        (fun h => by simp at h)).1
-theorem kMsg_eq (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b : Nat) :
-    kMsg pad cells len tailRun none b =
+      exact (hr σ2 (hp1.congr (by omega) hag2)
+        (fun c hc => ((hcs c hc).2.congr (hcs c hc).1 hag1).congr (((hcs c hc).1).mono i3) hag2)
+        (fun c hc => by rw [hpost c hc]; exact canon_kOut _ _ _ _)).1
+
+theorem kMsg_eq (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b n : Nat) :
+    kMsg pad cells len tailRun none b n =
       let cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero
       let x1 := kXorByte cs0 len 1 b
       let x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2
-      ((x1.1 ++ x2.1) ++ (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none (kBlocksOf len) 0 none x2.2.2).1,
-        (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none (kBlocksOf len) 0 none x2.2.2).2.1,
-        (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none (kBlocksOf len) 0 none x2.2.2).2.2) := rfl
-
-/-- **The Keccak message completes** on canonical cells. -/
-theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat} (σ : Val)
-    (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c ∧ KCc σ c)
-    (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0)) :
-    Completes C rd b (kMsg pad cells len tailRun none b).2.1 (kMsg pad cells len tailRun none b).1 σ
-        (fun _ => True) ∧
-      NumBelow (kMsg pad cells len tailRun none b).2.1 (Stmt.valsList (kMsg pad cells len tailRun none b).1) ∧
-      b ≤ (kMsg pad cells len tailRun none b).2.1 := by
+      ((x1.1 ++ x2.1) ++
+          (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none n (kBlocksOf len) 0 none x2.2.2).1,
+        (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none n (kBlocksOf len) 0 none x2.2.2).2.1,
+        (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none n (kBlocksOf len) 0 none x2.2.2).2.2) :=
+  rfl
+/-- **The Keccak message completes** on canonical cells, its last block writing `n` cells (one,
+two or thirteen). -/
+theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
+    (σ : Val) (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c ∧ KCc σ c)
+    (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0)) (n : Nat := 1)
+    (hn : n = 1 ∨ n = 2 ∨ n = 13 := by decide) :
+    Completes C rd b (kMsg pad cells len tailRun none b n).2.1 (kMsg pad cells len tailRun none b n).1
+        σ (fun _ => True) ∧
+      NumBelow (kMsg pad cells len tailRun none b n).2.1
+        (Stmt.valsList (kMsg pad cells len tailRun none b n).1) ∧
+      b ≤ (kMsg pad cells len tailRun none b n).2.1 := by
   rw [kMsg_eq]
   dsimp only
   set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero with hcs0
@@ -532,17 +594,18 @@ theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool}
     (b := x1.2.2) a2
   set x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2 with hx2
   have hs := SeqOK.append a1 b1
-  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun)
-    (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
+  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (n := n)
+    (tailRun := tailRun) (kBlocksOf len) 0 none x2.2.2 (by omega) (by omega) b2
+    (fun s hs => by simp at hs)
   refine ⟨?_, by rw [valsList_append]; exact (hs.numBelow.mono n2).append n1, by omega⟩
   refine Completes.append (m := x2.2.2) (by omega) n2 hs.numBelow (seq_completes hs σ)
     (fun σ1 he1 hh1 => ?_)
   have hag1 : AgreeBelow b σ σ1 := he1.agree
   have k1 := kcc_of_xorByte (rd := rd) hh1.left (fun c h => (hc0 c h).2.congr (hc0 c h).1 hag1)
   have k2 := kcc_of_xorByte (rd := rd) hh1.right k1
-  exact (kBlocks_complete (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun)
-    (kBlocksOf len) 0 none x2.2.2 σ1 (hp.congr hpb hag1) (by omega) (fun c h => ⟨b2 c h, k2 c h⟩)
-    (fun s hs => by simp at hs) (fun _ h => htr h)).1
+  exact (kBlocks_complete (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun) hn
+    (kBlocksOf len) 0 none x2.2.2 σ1 (by omega) (hp.congr hpb hag1) (by omega)
+    (fun c h => ⟨b2 c h, k2 c h⟩) (fun s hs => by simp at hs) (fun _ h => htr h)).1
 
 end
 end LeanVM.Guest.B1.Sig

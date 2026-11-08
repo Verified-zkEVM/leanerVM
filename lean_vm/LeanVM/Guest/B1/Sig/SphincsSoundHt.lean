@@ -172,7 +172,7 @@ theorem sLayerPre_cells {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
       simp only [List.map_cons, List.map_nil, KC.val, hctr]
       exact hz j (by simpa using hj))
   have e : sEncOf l = .n (sLayerK l a0 signed).2.2 := by rw [(sLayerK_out l a0 signed).1]; rfl
-  have k1 := congrArg Prod.fst k
+  have k1 := k
   simp only [List.map_cons, List.map_nil, KC.val, hctr, c1, c0] at k1
   rw [e]
   exact k1

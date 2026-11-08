@@ -337,8 +337,7 @@ theorem sForsTree_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 a1 : V} {bit val 
   simp only [sForsTree] at h ⊢
   have hy := sForsAt_leaf_next a1 val c b
   have hadr := sForsAt_sound (a1 := a1) (x := b + 1) hc (by norm_num) hs hval h.left.left.right
-  have hk := congrArg Prod.fst (k64_sound hp h.left.right)
-  simp only at hk
+  have hk := k64_sound hp h.left.right
   have hlv := sForsLevels_sound hp hc hs hbit hval 10 0 _ _ (by norm_num) h.right
   rw [hlv, nIter_zero, fRootE, hk, hadr,
     show (sForsAt a1 val c 0 (b + 1)).2.1 + 14 = b + forsLeafWidth c by

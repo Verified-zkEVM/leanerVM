@@ -640,11 +640,12 @@ theorem kMsg_sound_cells {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len 
 
 /-- **The lowered Keccak message's first cell is the digest's first half** (`kMsg_sound_cells`). -/
 theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat} {tailRun : Bool}
-    {out : Option Nat} {b n : Nat} (hn : 1 ≤ n)
+    {out : Option Nat} {b n : Nat}
     (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0))
     (h : AtomsHold rd σ (kMsg pad cells len tailRun out b n).1)
     (hlen : len ≤ 16 * cells.length)
-    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0) :
+    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0)
+    (hn : 1 ≤ n := by decide) :
     σ (.n (kMsg pad cells len tailRun out b n).2.2) =
       (digestHalves (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len))).1 :=
   (kMsg_sound_cells hp htr h hlen hz).1 hn
@@ -652,11 +653,12 @@ theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat}
 /-- **A lowered Keccak message into two cells or more computes the Keccak-256 digest**
 (`kMsg_sound_cells`). -/
 theorem kMsg_sound2 {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat} {tailRun : Bool}
-    {out : Option Nat} {b n : Nat} (hn : 2 ≤ n)
+    {out : Option Nat} {b n : Nat}
     (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0))
     (h : AtomsHold rd σ (kMsg pad cells len tailRun out b n).1)
     (hlen : len ≤ 16 * cells.length)
-    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0) :
+    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0)
+    (hn : 2 ≤ n := by decide) :
     (σ (.n (kMsg pad cells len tailRun out b n).2.2),
         σ (.n ((kMsg pad cells len tailRun out b n).2.2 + 1))) =
       digestHalves (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len)) := by

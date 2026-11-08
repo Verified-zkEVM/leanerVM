@@ -160,8 +160,8 @@ theorem mBase_lt (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Opti
   | 0, _, _, _, _, hj => absurd hj (by omega)
   | m + 1, l, cur, b, 0, _ => by
       simp only [mBase, merkleT]
-      have h5 : b + 2 ≤ b + 5 + 14 := by omega
-      have h6 : b + 2 ≤ b + 6 + 14 := by omega
+      have h5 : b + 2 ≤ b + 5 + 2 := by omega
+      have h6 : b + 2 ≤ b + 6 + 2 := by omega
       split
       · exact le_trans h5 (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
       · exact le_trans h6 (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
@@ -169,11 +169,11 @@ theorem mBase_lt (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Opti
       simp only [mBase]
       cases hn : nodeOf l with
       | none =>
-          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 5 + 1)) (b + 5 + 14) j (by omega)
+          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 5 + 1)) (b + 5 + 2) j (by omega)
           simp only [merkleT, hn, mNext]
           exact this
       | some nd =>
-          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 6 + 1)) (b + 6 + 14) j (by omega)
+          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 6 + 1)) (b + 6 + 2) j (by omega)
           simp only [merkleT, hn, mNext]
           exact this
 
@@ -229,9 +229,10 @@ theorem cwTip_lt (W : WotsT) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 <
     simp only [Bool.false_eq_true, ↓reduceIte] at hs
     omega
 
-theorem kBlocks_end (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) :
+theorem kBlocks_end (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n : Nat) :
     ∀ (m k : Nat) (st : Option (List V)) (b : Nat), 0 < m → k + m = B →
-      (kBlocks pad cs B tailRun none m k st b).2.2 + 13 ≤ (kBlocks pad cs B tailRun none m k st b).2.1
+      (kBlocks pad cs B tailRun none n m k st b).2.2 + n ≤
+        (kBlocks pad cs B tailRun none n m k st b).2.1
   | 0, _, _, _, h, _ => absurd h (by omega)
   | m + 1, k, st, b, _, hkm => by
       rw [kBlocks_none_eq]
@@ -239,21 +240,23 @@ theorem kBlocks_end (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) :
       by_cases hl : k + 1 = B
       · have hm : m = 0 := by omega
         subst hm
-        simp [hl, kBlocks]
+        simp [hl, kBlocks, kOutN]
       · have hne : (k + 1 == B) = false := by simp [hl]
         simp only [hne, Bool.false_eq_true, ↓reduceIte]
-        exact kBlocks_end pad cs B tailRun m (k + 1) _ _ (by omega) (by omega)
+        exact kBlocks_end pad cs B tailRun n m (k + 1) _ _ (by omega) (by omega)
 
 /-- **The message's output** lies below its end. -/
-theorem kMsg_out (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b : Nat) :
-    (kMsg pad cells len tailRun none b).2.2 + 13 ≤ (kMsg pad cells len tailRun none b).2.1 := by
+theorem kMsg_out (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b : Nat)
+    (n : Nat := 1) :
+    (kMsg pad cells len tailRun none b n).2.2 + n ≤ (kMsg pad cells len tailRun none b n).2.1 := by
   rw [kMsg_eq]
   dsimp only
-  exact kBlocks_end _ _ _ _ (kBlocksOf len) 0 none _ (by unfold kBlocksOf; omega) (by simp)
+  exact kBlocks_end _ _ _ _ _ (kBlocksOf len) 0 none _ (by unfold kBlocksOf; omega) (by simp)
 
 /-- **The message ends above its base.** -/
 theorem kMsg_le {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
-    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) : b ≤ (kMsg pad cells len tailRun none b).2.1 := by
+    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) (n : Nat := 1) :
+    b ≤ (kMsg pad cells len tailRun none b n).2.1 := by
   rw [kMsg_eq]
   dsimp only
   set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero with hcs0
@@ -270,8 +273,9 @@ theorem kMsg_le {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : 
   set x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2 with hx2
   have hs := SeqOK.append a1 b1
   have := hs.le
-  obtain ⟨-, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun)
-    (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
+  obtain ⟨-, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (n := n)
+    (tailRun := tailRun) (kBlocksOf len) 0 none x2.2.2 (by omega) (by omega) b2
+    (fun s hs => by simp at hs)
   omega
 
 theorem numBelow_of_all {hi : Nat} {vs : List V} (h : vs.all (nbB hi) = true) : NumBelow hi vs :=
@@ -279,8 +283,9 @@ theorem numBelow_of_all {hi : Nat} {vs : List V} (h : vs.all (nbB hi) = true) : 
 
 /-- **The message's values lie below its end.** -/
 theorem kMsg_numBelow {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
-    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) :
-    NumBelow (kMsg pad cells len tailRun none b).2.1 (Stmt.valsList (kMsg pad cells len tailRun none b).1) := by
+    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) (n : Nat := 1) :
+    NumBelow (kMsg pad cells len tailRun none b n).2.1
+      (Stmt.valsList (kMsg pad cells len tailRun none b n).1) := by
   rw [kMsg_eq]
   dsimp only
   set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero with hcs0
@@ -297,8 +302,9 @@ theorem kMsg_numBelow {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool}
   set x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2 with hx2
   have hs := SeqOK.append a1 b1
   have := hs.le
-  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun)
-    (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
+  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (n := n)
+    (tailRun := tailRun) (kBlocksOf len) 0 none x2.2.2 (by omega) (by omega) b2
+    (fun s hs => by simp at hs)
   rw [valsList_append]
   exact (hs.numBelow.mono n2).append n1
 
@@ -319,22 +325,22 @@ theorem merkleT_numBelow {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
             ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
               addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
               cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.2) →
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2) →
           NumBelow (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.1
             (Stmt.valsList (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).1) := by
         intro c nodeL hc hseq heq
         rw [heq]
         have hl := level_numBelow hpb hpp h0 hcur hseq hc
         have hr := merkleT_numBelow (pad := pad) (pp := pp) (bitOf := bitOf) (nodeOf := nodeOf)
-          (addrOf := addrOf) m (l + 1) (.n (c + 1)) (c + 14) (by omega) (hpp.mono' (by omega))
+          (addrOf := addrOf) m (l + 1) (.n (c + 1)) (c + 2) (by omega) (hpp.mono' (by omega))
           ⟨c + 1, by omega, rfl⟩
           (fun j hj => by
             rw [show l + 1 + j = l + (j + 1) by omega]
-            exact NBv.mono' (hbits (j + 1) (by omega)) (show b ≤ c + 14 by omega))
-          (fun l' nd h => NBv.mono' (hnodes l' nd h) (show b ≤ c + 14 by omega))
-        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)
+            exact NBv.mono' (hbits (j + 1) (by omega)) (show b ≤ c + 2 by omega))
+          (fun l' nd h => NBv.mono' (hnodes l' nd h) (show b ≤ c + 2 by omega))
+        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
         dsimp only
         rw [valsList_append]
         exact (hl.mono hge).append hr
