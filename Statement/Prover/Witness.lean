@@ -109,7 +109,7 @@ def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
   let keccakHeight : ℕ := 2 ^ max (log2Ceil (count .keccak)) 9
   4 * 2 ^ κ + 2 ^ logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
-    14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
+    14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- The greatest committed size the verifier admits, `2^28` (`MAX_MU`, `pcs.rs:51`). -/
 def maxCommitted : ℕ := 2 ^ 28

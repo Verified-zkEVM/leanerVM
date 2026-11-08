@@ -670,17 +670,27 @@ def stateDerived (f : Flushes) (pc fp : ℕ) (npc nfp : Form) : Flushes :=
 def stateStep (f : Flushes) (pc fp : ℕ) : Flushes :=
   f.stateDerived pc fp (Form.col pc 1) (Form.col fp)
 
-/-- `Flushes._counted`. -/
-def counted (f : Flushes) (pre : List Form) (count : ℕ) (suffix : List Form) : Flushes :=
-  f.pair (pre ++ [Form.col count 1] ++ suffix) (pre ++ [Form.col count] ++ suffix)
+/-- `Flushes._counted`: a pull at `count` and a push at `counter`, the same otherwise. -/
+def counted (f : Flushes) (pre : List Form) (counter : Form) (count : ℕ) (suffix : List Form) :
+    Flushes :=
+  f.pair (pre ++ [counter] ++ suffix) (pre ++ [Form.col count] ++ suffix)
 
 /-- `Flushes.bytecode`. -/
 def bytecode (f : Flushes) (pc count opcode : ℕ) (operands : List Form) : Flushes :=
-  f.counted [Form.const sepBytecode, Form.col pc] count (Form.const (gpow opcode) :: operands)
+  f.counted [Form.const sepBytecode, Form.col pc] (Form.col count 1) count
+    (Form.const (gpow opcode) :: operands)
 
 /-- `Flushes.memory`. -/
 def memory (f : Flushes) (address : Form) (count : ℕ) (values : List Form) : Flushes :=
-  f.counted [Form.const sepMem, address] count values
+  f.counted [Form.const sepMem, address] (Form.col count 1) count values
+
+/-- `Flushes.memory_if`: `memory` when the column `flag` is `1`. The push's counter is
+`count·(1 + flag·(g + 1))`: `g·count` at `1`, and the pull's `count` at `0`, so the pair cancels
+and touches no cell. -/
+def memoryIf (f : Flushes) (flag : ℕ) (address : Form) (count : ℕ) (values : List Form) :
+    Flushes :=
+  f.counted [Form.const sepMem, address]
+    (Form.sum [Form.col count, Form.prod flag count 1, Form.prod flag count]) count values
 
 /-- `Flushes.memory_cols`: the columns, padded with zeros to three limbs. -/
 def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ) : Flushes :=
@@ -724,14 +734,15 @@ def decimalNumeral (n : ℕ) : String :=
 def laneNames (namePrefix : String) : List String :=
   (List.range 25).map fun l ↦ namePrefix ++ "_" ++ decimalNumeral l
 
-/-- `KECCAK_COLUMNS` (`verifier.py:932-941`): the operands, the layout flags, the read limb that
+/-- `KECCAK_COLUMNS` (`verifier.py:943-954`): the operands, the layout flags, the bytecode's flags
+for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the read limb that
 holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots each; `out_l`,
 claimed by the Keccak reduction, committed nowhere), then the read counts. The first
-`QKECCAK_SPARE` (`14`) committed columns, `pc` through `free` and `cnt_0`, ride `q_keccak`'s spare
-slots `50…63` (`keccakSlotOf`). -/
+`QKECCAK_SPARE` (`14`) committed columns, `pc` through `out_all`, ride `q_keccak`'s spare slots
+`50…63` (`keccakSlotOf`). -/
 def keccakColumns : List String :=
   ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
-    "odd_out", "free"] ++ laneNames "in" ++ laneNames "out" ++
+    "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
     (List.range 26).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
 
 /-- `KECCAK_IN` (`verifier.py:942`): the local column of input lane `0`. -/
@@ -864,7 +875,9 @@ def layoutLimb (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : For
 /-- `_flushes_keccak()` (`verifier.py:896-923`): the state step, the bytecode read, then the
 thirteen cells read (four addressed ones, the tail run, `b8`, the cap run) and the thirteen
 written, each holding its lanes in the layout its flag names (`_keccak_cell_lanes`, which is
-`cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column `free`, a written one's zero. -/
+`cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column `free`, a written one's zero.
+Output cell `0` is always written, cell `1` when `out_two` is `1`, and cells `2…12` when `out_all`
+is `1` (`memoryIf`). -/
 def flushesKeccak : Flushes :=
   let c := columnIndexByName keccakColumns
   let oM := ["o_m0", "o_m1", "o_m2", "o_m3"].map c
@@ -872,7 +885,8 @@ def flushesKeccak : Flushes :=
   let f : Flushes := {}
   let f := f.stateStep (c "pc") fp
   let f := f.bytecode (c "pc") (c "cnt_bc") opKeccak
-    ((oM ++ ["o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out"].map c).map (Form.col ·))
+    ((oM ++ ["o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two",
+      "out_all"].map c).map (Form.col ·))
   let address := fun (cell : ℕ) ↦
     if cell < 4 then Form.prod fp (oM.getD cell 0)
     else if cell < 8 then Form.prod fp (c "o_tail") (cell - 4)
@@ -887,8 +901,11 @@ def flushesKeccak : Flushes :=
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimb (lane (pick (cellLanes false cell)))
           (lane (pick (cellLanes true cell))) flag missing) ++ [Form.const 0]
-      f.memory (if side = 0 then address cell else Form.prod fp (c "o_out") cell)
-        (keccakCnt + 13 * side + cell) values) f) f
+      let count := keccakCnt + 13 * side + cell
+      if side = 0 then f.memory (address cell) count values
+      else if cell = 0 then f.memory (Form.prod fp (c "o_out")) count values
+      else f.memoryIf (if cell = 1 then c "out_two" else c "out_all")
+        (Form.prod fp (c "o_out") cell) count values) f) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
 (`verifier.py:776-796`). -/
@@ -1057,7 +1074,7 @@ def columnKappas (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) : Li
 
 /-- The placements of every column, and the stack's log-size (`verifier.py:998-1013`): the
 committed columns (every column but those with a `q_keccak` slot, the `KECCAK` input lanes and
-the table's first fourteen committed columns, and the `KECCAK` output lanes: `99` of `163`)
+the table's first fourteen committed columns, and the `KECCAK` output lanes: `101` of `165`)
 stacked by `stack_offsets`, a column with a slot at `q_keccak`'s offset plus its slot's `2^κ`
 words, an output lane nowhere. -/
 def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
