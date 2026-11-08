@@ -29,7 +29,8 @@ functions out as a `Program`, padding with `SET fp[0] = 0` as the compiler does
 of every function, by a proof that evaluates nothing but the one instruction asked for.
 
 A `KECCAK`'s thirteen read cells are at the offsets `keccakIns` (`m0..m3`, the runs from `tail` and
-`cap`, `b8`) and its thirteen written cells at `keccakOuts` (`out + k`); `keccakInOffset_gpow` and
+`cap`, `b8`) and its one, two or thirteen written cells at `keccakOuts` (`out + k`, `k` below the
+instruction's `outCells.cellCount`); `keccakInOffset_gpow` and
 `keccakOutOffset_gpow` turn the instruction's addresses into these offsets.
 -/
 
@@ -52,8 +53,9 @@ def keccakInOff (m0 m1 m2 m3 tail b8 cap c : ℕ) : ℕ :=
 def keccakIns (m0 m1 m2 m3 tail b8 cap : ℕ) : List ℕ :=
   (List.range 13).map (keccakInOff m0 m1 m2 m3 tail b8 cap)
 
-/-- The frame offsets of the thirteen cells a `KECCAK` writes, `out + k`. -/
-def keccakOuts (out : ℕ) : List ℕ := (List.range 13).map (out + ·)
+/-- The frame offsets of the `n` cells a `KECCAK` writes, `out + k` (`k < n`, `n` its
+`outCells.cellCount`). -/
+def keccakOuts (out n : ℕ) : List ℕ := (List.range n).map (out + ·)
 
 /-- Whether an instruction is a `JUMP`, the one that may not fall through. -/
 def OffsetInstruction.isJump : OffsetInstruction → Bool
@@ -121,8 +123,11 @@ theorem keccakIns_getD (m0 m1 m2 m3 tail b8 cap : ℕ) {c : ℕ} (hc : c < 13) :
     (keccakIns m0 m1 m2 m3 tail b8 cap).getD c 0 = keccakInOff m0 m1 m2 m3 tail b8 cap c := by
   simp [keccakIns, hc]
 
-theorem keccakOuts_getD (out : ℕ) {k : ℕ} (hk : k < 13) : (keccakOuts out).getD k 0 = out + k := by
+theorem keccakOuts_getD (out n : ℕ) {k : ℕ} (hk : k < n) : (keccakOuts out n).getD k 0 = out + k := by
   simp [keccakOuts, hk]
+
+theorem keccakOuts_length (out n : ℕ) : (keccakOuts out n).length = n := by
+  simp [keccakOuts]
 
 /-- Instruction `i` of code in chunks of `chunkLength`, the padding past the end:
 `CompiledFunction.instructionAt` at any chunk length. -/
