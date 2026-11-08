@@ -90,11 +90,11 @@ theorem vtc_sels (hl : args.length = 20) (hlow : LowDefB 14 rd) {point : List E}
       σv (.n 796) = σv (.n 794) ∧ σv (.n 820) = σv (.n 817) ∧ σv (.n 890) = σv (.n 887) ∧
       (∀ i < 51, σv (.n (vtPushPadData.getD i default).2.2.1) =
         blockSel (vtSizesP lm τ) point.length (3 + i) point) ∧
-      σv (.n 1385) = σv (.n 794) + σv (.n 817) + σv (.n 887) +
+      σv (.n 1393) = σv (.n 794) + σv (.n 817) + σv (.n 887) +
         (vtPushPadData.map fun x ↦ σv (.n x.2.2.1)).sum ∧
       (∀ i < 45, σv (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
-      σv (.n 2444) = (vtCountPadData.map fun x ↦ σv (.n x.2.2.1)).sum := by
+      σv (.n 2460) = (vtCountPadData.map fun x ↦ σv (.n x.2.2.1)).sum := by
   have hlow16 : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦
     hlow i (by norm_num; omega)
   have hkbt : ∀ t < 6, σv (.n (30 + t)) = gen ^ τ t := fun t ht => by

@@ -78,7 +78,7 @@ structure VtBases where
 def vtAllocVars : List ℕ :=
   [36, 37, 38, 39, 668, 703, 705, 706, 781] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2589, 2592, 2613]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2605, 2608, 2629]
 
 theorem vtAllocVars_length : vtAllocVars.length = 111 := by decide
 
@@ -135,7 +135,7 @@ noncomputable def linL : TLay :=
 
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
-  [24, 24, 24, 24, 34, H.μ, 1728, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
+  [24, 24, 24, 24, 34, H.μ, 1736, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
     [7 * (H.n + 1), H.n + 1, H.n + 1]
 
 /-- **The own buffers' honest words**, in allocation order. -/
@@ -168,7 +168,7 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
   w704 : w 704 = 0
   w581 : w 581 = H.bv
-  w2500 : w 2500 = gen ^ H.n
+  w2500 : w 2516 = gen ^ H.n
   hwI : w 824 = indexMle (H.point.take H.lm) ∧ w 894 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0

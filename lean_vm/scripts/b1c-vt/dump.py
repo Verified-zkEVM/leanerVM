@@ -9,7 +9,7 @@ chunks = {}
 for m in re.finditer(r'noncomputable def (c\d+) : List Core.Stmt := \(\n(.*?)\n  \[\]\)', sec, re.S):
     chunks[m.group(1)] = m.group(2)
 stmts = []
-for c in [f'c{k}' for k in range(16)]:
+for c in sorted(chunks, key=lambda c: int(c[1:])):
     body = chunks[c]
     depth = 0; cur = ''; k = 0
     while k < len(body):
