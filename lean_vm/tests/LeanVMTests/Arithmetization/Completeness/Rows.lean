@@ -39,7 +39,7 @@ theorem xor_row_sends (cnt : ℕ → K) (rbc : K) (data : ProverData K) :
   rowOf_sends zeroImage_xor cnt rbc data
 
 /-- The state pull is `(pc, fp)` and the push the fall-through. -/
-example (rbc : K) (e : Vector K 11) (reads : List (K × K × Vector K 3)) :
+example (rbc : K) (e : Vector K 13) (reads : List (K × K × Vector K 3)) :
     (sendsOf (addressOfIndex 5) 1 (Registers.next ⟨addressOfIndex 5, 1⟩) rbc e reads).take 2 =
       [(StatePull.name, #[addressOfIndex 5, 1]), (StatePush.name, #[g * addressOfIndex 5, 1])] := by
   simp only [sendsOf, List.cons_append, List.take_succ_cons, List.take_zero, Registers.next]

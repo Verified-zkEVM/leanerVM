@@ -32,8 +32,8 @@ window:
 * the stack's root (`commitStack`): one commitment, `2`;
 * the bus (`verifyBusBalance`): `27` plus the GKR walk over the push side's depth, which is at
   most `38` (`3 + 51` blocks of at most `2^32` rows), `gkrCost 38 0 = gkrBound`;
-* the table sumcheck (`tablePhase`): `4 + 7 · 32 + 157` (at most `32` rounds, the tables'
-  `157` columns read once);
+* the table sumcheck (`tablePhase`): `4 + 7 · 32 + 159` (at most `32` rounds, the tables'
+  `159` columns read once);
 * the public input: `4`, its challenge (the prover sends nothing);
 * `KECCAK`'s reduction (`keccakPhase`, `verifyKeccak`) at a point of at most `32` coordinates:
   `keccakCost 29`, `12` layers of `135 + 6 · 29`;
@@ -42,7 +42,7 @@ window:
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
   `costHeight = 26`.
 
-In total `leanVmCost = 48017` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
+In total `leanVmCost = 48019` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
 hash and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at
 most
 `leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 12006` queries on every proof

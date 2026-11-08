@@ -109,10 +109,10 @@ theorem vt_countSel_data : ∀ i < 45,
   decide
 
 theorem vt_pushSel_last : vtSelSum (vtPushSel.getD 50 default).2.2.1
-    (vtPushSel.getD 50 default).2.2.2.1 (vtPushSel.getD 50 default).2.2.2.2.1 = 1385 := by decide
+    (vtPushSel.getD 50 default).2.2.2.1 (vtPushSel.getD 50 default).2.2.2.2.1 = 1393 := by decide
 
 theorem vt_countSel_last : vtSelSum (vtCountSel.getD 44 default).2.2.1
-    (vtCountSel.getD 44 default).2.2.2.1 (vtCountSel.getD 44 default).2.2.2.2.1 = 2444 := by
+    (vtCountSel.getD 44 default).2.2.2.1 (vtCountSel.getD 44 default).2.2.2.2.1 = 2460 := by
   decide
 
 /-- A running sum: each step adds its term to the previous step's sum. -/
@@ -156,11 +156,11 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
       σ (.n 796) = σ (.n 794) ∧ σ (.n 820) = σ (.n 817) ∧ σ (.n 890) = σ (.n 887) ∧
       (∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
         blockSel (vtSizesP lm τ) point.length (3 + i) point) ∧
-      σ (.n 1385) = σ (.n 794) + σ (.n 817) + σ (.n 887) +
+      σ (.n 1393) = σ (.n 794) + σ (.n 817) + σ (.n 887) +
         (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum ∧
       (∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
-      σ (.n 2444) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
+      σ (.n 2460) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
   have hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList := hE.1
   obtain ⟨hoP, hoC⟩ := vt_sort hμ Lm h hlm hτ hkb hE
   rw [vt_sizesP_eq] at hoP

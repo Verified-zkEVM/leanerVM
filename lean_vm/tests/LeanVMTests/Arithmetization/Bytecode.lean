@@ -37,7 +37,7 @@ def derefPcI : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex
 def derefFpI : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .fp
 def jumpI : LeanIsaInstruction := .jump (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
 def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7] (addressOfIndex 8) (addressOfIndex 12) (addressOfIndex 13) (addressOfIndex 17)
-  false true
+  false true .two
 
 /-! ## The flags and the codes -/
 
@@ -60,34 +60,34 @@ def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7
 #guard opcode? (K.ofBits 0x40) = none
 #guard opcode? 0 = none
 
-/-! ## Slots 3 to 10 (specification §8.1) -/
+/-! ## Slots 3 to 15 (specification §8.1) -/
 
 #guard (busEntry xorI).toList = [Opcode.xor.busCode, addressOfIndex 2, addressOfIndex 3,
-    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0]
+    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry mulI).toList = [Opcode.mulNative.busCode, addressOfIndex 2, addressOfIndex 3,
-    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0]
+    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry setI).toList =
   [Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0,
-      0, 0, 0]
+      0, 0, 0, 0, 0]
 #guard (busEntry derefCellI).toList = [Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5,
-    0, 0, 0, 0, 0, 0, 0]
+    0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry derefPcI).toList = [Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1,
-    0, 0, 0, 0, 0, 0]
+    0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry derefFpI).toList = [Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 0,
-    1, 0, 0, 0, 0, 0]
+    1, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry jumpI).toList = [Opcode.jump.busCode, addressOfIndex 2, addressOfIndex 3,
-    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0]
+    addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry keccakI).toList =
   [Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7,
-      addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17, 0, 1]
+      addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17, 0, 1, 1, 0]
 
--- The sixteen slots: the opcode at 3, the operands at 4 to 13, zero elsewhere.
+-- The sixteen slots: the opcode at 3, the operands at 4 to 15, zero at 0 to 2.
 #guard (instructionSlots setI).toList =
   [0, 0, 0, Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (instructionSlots keccakI).toList =
   [0, 0, 0, Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6,
       addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
-    0, 1, 0, 0]
+    0, 1, 1, 0]
 
 /-- Slot 3 is the opcode, through `encodeSlots_getElem` and `entry_getElem_zero`. -/
 example : (instructionSlots setI)[3] = Opcode.setConstant.busCode := by
@@ -106,12 +106,12 @@ example : (instructionSlots setI)[7] = K.ofBits 9 := by decide +kernel
 #guard decode (busEntry derefFpI) = some derefFpI
 #guard decode (busEntry jumpI) = some jumpI
 #guard decode (busEntry keccakI) = some keccakI
-#guard decode (busEntry (.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true false)) =
+#guard decode (busEntry (.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true false .all)) =
   some (.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8)
-      (addressOfIndex 9) (addressOfIndex 13) true false)
+      (addressOfIndex 9) (addressOfIndex 13) true false .all)
 
 /-- The literal entry of `SET_CONSTANT` decodes to it: `decode` is exact. -/
-example : decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0] =
+example : decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0] =
     some setI :=
   decode_eq_some_iff.mpr rfl
 
@@ -123,45 +123,69 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
 
 -- The flag pair `(1, 1)` is not an instruction, nor is a non-Boolean flag.
 #guard decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1, 1, 0, 0, 0, 0,
-    0] = none
+    0, 0, 0] = none
 #guard decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, g, 0, 0, 0, 0, 0,
-    0] = none
+    0, 0, 0] = none
 -- An unknown opcode is not an instruction.
 #guard decode #v[addressOfIndex 6, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0, 0,
-    0, 0, 0] = none
+    0, 0, 0, 0, 0] = none
 #guard decode #v[0, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0, 0, 0, 0,
-    0] = none
+    0, 0, 0] = none
 -- A nonzero spare entry coordinate is outside the canonical typed-program encoding.
 #guard decode #v[Opcode.xor.busCode, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 1, 0, 0,
-    0, 0, 0, 0] = none
-#guard decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 1, 0, 0, 0, 0, 0] = none
+    0, 0, 0, 0, 0, 0] = none
+#guard decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 1, 0, 0, 0, 0, 0, 0, 0] = none
 #guard decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 1, 0, 0,
-    0] = none
+    0, 0, 0] = none
 #guard decode #v[Opcode.jump.busCode, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0,
-    1, 0, 0, 0] = none
+    1, 0, 0, 0, 0, 0] = none
 #guard decode #v[Opcode.jump.busCode, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0,
-    0, 0, 0, 1] = none
+    0, 0, 0, 1, 0, 0] = none
 -- A `KECCAK` layout flag must be `0` or `1`.
 #guard decode #v[Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
-  g, 1] = none
+  g, 1, 1, 0] = none
 #guard decode #v[Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
-  0, g] = none
+  0, g, 1, 0] = none
+
+-- `KECCAK`'s output flags `(out_two, out_all)`: `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`
+-- (`OutCells::flags`, `isa.rs:79-82` at leanVM PR #724 head `873ee6d8`); `(0, 1)` and a non-bit
+-- are none.
+#guard keccakOutputFlags .one = (0, 0)
+#guard keccakOutputFlags .two = (1, 0)
+#guard keccakOutputFlags .all = (1, 1)
+#guard outCells? 0 0 = some .one
+#guard outCells? 1 0 = some .two
+#guard outCells? 1 1 = some .all
+#guard outCells? 0 1 = none
+#guard outCells? g 0 = none
+#guard outCells? 1 g = none
+#guard decode (busEntry (.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) true false .one)) =
+  some (.keccak ![1, g, addressOfIndex 2, addressOfIndex 3] (addressOfIndex 4) (addressOfIndex 8)
+      (addressOfIndex 9) (addressOfIndex 13) true false .one)
+-- The output flag pair `(0, 1)` is no `OutCells`, nor is a non-bit output flag: no `KECCAK` entry
+-- has them, so no `KECCAK` row reads them off the bytecode bus.
+#guard decode #v[Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
+  0, 1, 0, 1] = none
+#guard decode #v[Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
+  0, 1, g, 0] = none
+#guard decode #v[Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6, addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
+  0, 1, 1, g] = none
 
 /-- As a theorem: the flag pair `(1, 1)` is no mode's flags, so the vector is no instruction's
 entry. -/
 example : decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1, 1, 0, 0, 0, 0,
-    0] = none := by
+    0, 0, 0] = none := by
   refine decode_eq_none_iff.mpr fun i h ↦ ?_
-  have h0 := congrArg (fun v : Vector K 11 ↦ v[0]) h
-  have h4 := congrArg (fun v : Vector K 11 ↦ v[4]) h
-  have h5 := congrArg (fun v : Vector K 11 ↦ v[5]) h
+  have h0 := congrArg (fun v : Vector K 13 ↦ v[0]) h
+  have h4 := congrArg (fun v : Vector K 13 ↦ v[4]) h
+  have h5 := congrArg (fun v : Vector K 13 ↦ v[5]) h
   cases i <;> simp [busEntry, Opcode.code_injective.eq_iff] at h0 h4 h5
   rename_i mode
   cases mode <;> simp [derefFlags] at h4 h5
 
 /-- The same, decided by the kernel. -/
 example : decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1, 1, 0, 0, 0, 0,
-    0] = none := by
+    0, 0, 0] = none := by
   decide +kernel
 
 end

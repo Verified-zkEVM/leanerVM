@@ -64,8 +64,11 @@ pulled on `pull` form the same multiset (§5.1 "Balance", `05-arithmetization.te
 `List.Perm`, counted in `ℕ`. It is never Clean's `BalancedInteractions`, a sum in the field:
 `ringChar K = 2` lets that sum accept at most one interaction, and a message pushed twice and
 never pulled has field-sum balance `2 = 0`.
-Every interaction of the ensemble has multiplicity `1`, so the multiset of messages
-is the multiset of interactions. The direction of an interaction is the channel it is on: the
+Balance counts every interaction once, whatever its multiplicity, as the M3 bus flushes it and
+as the Rust and the Python do: every interaction has multiplicity `1` but the pull of a `KECCAK`
+gated output cell (`memReadIf`), of multiplicity `-flag`, which is flushed at every flag; at flag
+`0` its push is its own tuple, the pair cancels, and `Soundness.MemChannel` drops it before the
+lookup argument. The direction of an interaction is the channel it is on: the
 three pairs `(StatePull, StatePush)`, `(MemPull, MemPush)`, `(BytecodePull, BytecodePush)`.
 
 **The verifier's checks.** `CountsNonzero w` is the nonzero count product: every read pull of
@@ -455,9 +458,10 @@ and a pulled message is read as its typed form, as the module does (`messagesOn`
 
 ```lean
 /-- Specification Lemma 6.3, Thm. 6.4, Cor. 6.5: with nonzero counts and fewer than `2^64 - 1`
-reads, balance of the memory pair makes every pulled memory tuple a correct read. -/
+reads, balance of the memory pair makes every memory pull of multiplicity `-1` (every pull but a
+`KECCAK` gated output cell at flag `0`, which cancels) a correct read. -/
 theorem mem_channel_sound (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
+    ∀ i ∈ w.interactions, i.channel.name = MemPull.name → i.mult = -1 →
       ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data
 
 /-- The same for the bytecode pair, in the strong form: every pulled entry is the public

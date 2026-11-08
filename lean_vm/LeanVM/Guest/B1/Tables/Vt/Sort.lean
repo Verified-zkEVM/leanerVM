@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Interface
 # A side's block offsets (G:2158-2199)
 
 `vt_rank0`, `vt_rank`: what a rank's template gives (`VtRankFacts`). `vt_side_cert`: when every
-group's key is `g^(252 κ - b0)` and its size `g^(len·2^κ)`, the ranks of a side certify its groups'
+group's key is `g^(254 κ - b0)` and its size `g^(len·2^κ)`, the ranks of a side certify its groups'
 order strictly descending in the key (`tb_group_offsets`), so every block's offset is its
 `stackOffsets` offset. `vt_sort`: the push side's `54` blocks and the count side's `45`, their
 log-sizes `vtKap` of the memory's log-size and the tables' heights.
@@ -57,10 +57,10 @@ theorem vtW23_eq : vtW23 = ofK (Parameters.addressOfIndex 23) := by
   rw [vtW23, show (8388608 : ℕ) = 2 ^ 23 by norm_num, tb_word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
-theorem vtW8567_eq : vtW8567 = ofK (Parameters.addressOfIndex 8567) := by
-  rw [vtW8567, tb_word_eOfNat]
-  show ofK (K.ofBits 13258782582107712005) = ofK (Parameters.addressOfIndex 8567)
-  rw [show K.ofBits 13258782582107712005 = Parameters.addressOfIndex 8567 by decide +kernel]
+theorem vtW8635_eq : vtW8635 = ofK (Parameters.addressOfIndex 8635) := by
+  rw [vtW8635, tb_word_eOfNat]
+  show ofK (K.ofBits 9287367476377611832) = ofK (Parameters.addressOfIndex 8635)
+  rw [show K.ofBits 9287367476377611832 = Parameters.addressOfIndex 8635 by decide +kernel]
 
 /-- Rank `r`'s group size read. -/
 def vtSz (v0 r : ℕ) : ℕ := if r = 0 then v0 + 12 else vtRv v0 r + 18
@@ -87,7 +87,7 @@ def VtRankFacts (rd : Reader) (σ : Val) (v0 s r : ℕ) : Prop :=
     LoadHolds rd (σ (.n 37) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtSz v0 r))) ∧
     σ (.n (vtGout v0 r)) = σ (.n (vtGin v0 r)) * σ (.n (vtSz v0 r)) ∧
     (r = 0 → σ (.n (vtGin v0 r)) = 1) ∧
-    (1 ≤ r → ∃ d < 8568, σ (.n (vtRv v0 (r - 1) + 8)) = gen ^ (d + 1) * σ (.n (vtRv v0 r + 8)))
+    (1 ≤ r → ∃ d < 8636, σ (.n (vtRv v0 (r - 1) + 8)) = gen ^ (d + 1) * σ (.n (vtRv v0 r + 8)))
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -123,8 +123,8 @@ theorem vt_rank {σ : Val} {v0 R0 s r : ℕ} (hr : 1 ≤ r) {kret : List E → P
   refine ⟨vt_rc hμ Lm (K := 24) (by omega) (by norm_num) (by rw [c1, vtW23_eq]) rc2,
     by rw [← m6, ← c5]; exact l5, by rw [← m7]; exact l8, by rw [← m16]; exact lgin,
     by rw [← m17]; exact l18, m19, fun h => absurd h hr0, fun _ => ?_⟩
-  obtain ⟨d, hd, hdv⟩ := vt_rc hμ Lm (K := 8568) (by omega) (by norm_num)
-    (by rw [c9, vtW8567_eq]) rc12
+  obtain ⟨d, hd, hdv⟩ := vt_rc hμ Lm (K := 8636) (by omega) (by norm_num)
+    (by rw [c9, vtW8635_eq]) rc12
   refine ⟨d, hd, ?_⟩
   have h10 : σ (.n (vtRv v0 r + 10)) = gen ^ (d + 1) := by
     calc σ (.n (vtRv v0 r + 10)) = σ (.n (vtRv v0 r + 10)) * (vtWInvGen * gen ^ 1) := by
@@ -156,7 +156,7 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
     (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0))
     (hsideS : ∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) (hs : s < 3)
     (hkey : ∀ j < m, ∃ key, LoadHolds rd (σ (.n 36)) (G0 + j) key ∧
-      key * gen ^ (base + st j) = gen ^ (kg j * 252))
+      key * gen ^ (base + st j) = gen ^ (kg j * 254))
     (hsz : ∀ j < m, LoadHolds rd (σ (.n 37)) (G0 + j) (gen ^ ((st (j + 1) - st j) * 2 ^ kg j)))
     (hkg : ∀ j < m, kg j < 34) (hrun : ∀ j < m, st j < st (j + 1))
     (hgrp : ∀ x < n, grp x < m ∧ st (grp x) ≤ x ∧ x < st (grp x + 1))
@@ -180,7 +180,7 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
   have hoe : ∀ r < m, G0 + o r = e r := fun r hr => by have := hes r hr; simp only [ho_def]; omega
   have ho : ∀ r < m, o r < m := fun r hr => by have := hes r hr; simp only [ho_def]; omega
   -- the keys, in the exponent
-  set keyN : ℕ → ℕ := fun j => kg j * 252 + 153 - (base + st j) with hkeyN
+  set keyN : ℕ → ℕ := fun j => kg j * 254 + 153 - (base + st j) with hkeyN
   have hkv : ∀ r < m, σ (.n (vtRv v0 r + 8)) * gen ^ 153 = gen ^ keyN (o r) := fun r hr => by
     obtain ⟨key, hk1, hk2⟩ := hkey (o r) (ho r hr)
     have h4 := (hfacts r hr).2.2.1
@@ -300,7 +300,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
                               exact this k hk)
   -- the groups' keys and sizes
   have hG : ∀ k < 15, (∃ key, LoadHolds Lm.read (σ (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 252)) ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
       LoadHolds Lm.read (σ (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, hsz1, hsq1, hszv⟩ := vt_grps h k hk

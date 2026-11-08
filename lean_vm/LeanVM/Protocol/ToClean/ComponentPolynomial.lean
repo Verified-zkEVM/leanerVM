@@ -72,7 +72,10 @@ Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.le
 * A flush carries no multiplicity: the side is the channel's (`dir`), never the sign of a
   multiplicity, which carries none in characteristic two. The table is faithful to a component
   whose multiplicities have no variable and the value `1` or `-1` (`UnitMultiplicities`,
-  decidable; `eval_of_constValue`).
+  decidable; `eval_of_constValue`). The `KECCAK` table's gated pulls (Clean's `pullIf`,
+  multiplicity `-flag`) are flushed unconditionally, as the Rust and the Python flush them: the
+  push's counter `count·(1 + flag·(g + 1))` makes the pair one tuple on both sides at `flag = 0`,
+  which the arithmetization's soundness accounts for.
 * A message longer than fifteen coordinates is truncated by the sixteen-slot tuple.
 -/
 

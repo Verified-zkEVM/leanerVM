@@ -75,10 +75,11 @@ theorem constraintSoundness {prog : LeanIsaProgram} {input : PublicInput}
   rw [e k (by omega), e (k + 1) hk, s1, s2]
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
   refine ⟨p.1, List.mem_of_mem_take ht, p.2, hrow, ?_, ?_⟩
-  · rw [rowMessagesOn_eq_rowSends, (hf p hp).1, RowRec.sends, Channel.toRaw_name,
-      sendsOf_statePull]
-    rfl
-  · rw [rowMessagesOn_eq_rowSends, (hf p hp).1, RowRec.sends, Channel.toRaw_name,
-      sendsOf_statePush]
+  · rw [rowMessagesOn_eq_rowSends, (hf p hp).1, Channel.toRaw_name]
+    exact (RowRec.chanOf_sends_of_ne _ (by simp [StatePull, MemPull])
+      (by simp [StatePull, MemPush])).trans (sendsOf_statePull _ _ _ _ _ _)
+  · rw [rowMessagesOn_eq_rowSends, (hf p hp).1, Channel.toRaw_name]
+    exact (RowRec.chanOf_sends_of_ne _ (by simp [StatePush, MemPull])
+      (by simp [StatePush, MemPush])).trans (sendsOf_statePush _ _ _ _ _ _)
 
 end LeanVM.Arithmetization

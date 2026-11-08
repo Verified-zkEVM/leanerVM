@@ -68,7 +68,7 @@ theorem kn_columnKappas_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x 
     rw [(List.mem_replicate.1 ht).2]
     have := kn_hs_getD_le hh t.opcode; omega
 
-theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : ∀ x ∈ kappas, x ≤ 34) :
+theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 165) (hk : ∀ x ∈ kappas, x ≤ 34) :
     Tables.stackTotal kappas < 2 ^ 60 := by
   have hle := List.sum_le_length_nsmul ((Tables.committedKappas kappas).map (2 ^ ·)) (2 ^ 34) (by
     intro y hy
@@ -80,13 +80,13 @@ theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : �
     rcases hc : kappas[c]? with _ | z
     · simp
     · simp only [Option.getD_some]; exact hk z (List.mem_of_getElem? hc))
-  have hlen : (Tables.committedKappas kappas).length ≤ 163 := by
+  have hlen : (Tables.committedKappas kappas).length ≤ 165 := by
     simp only [Tables.committedKappas, Tables.committedCols, List.length_map]
     exact (List.length_filter_le _ _).trans (by simp [hl])
   simp only [List.length_map, smul_eq_mul] at hle
   unfold Tables.stackTotal
   calc _ ≤ _ := hle
-    _ ≤ 163 * 2 ^ 34 := Nat.mul_le_mul_right _ hlen
+    _ ≤ 165 * 2 ^ 34 := Nat.mul_le_mul_right _ hlen
     _ < 2 ^ 60 := by norm_num
 
 /-- The bound `check_opening_terminal`'s dispatches need of `kappa_base`'s entry `i`: `kb[0] = g^0`

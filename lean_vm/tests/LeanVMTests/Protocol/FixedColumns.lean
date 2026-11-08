@@ -115,7 +115,8 @@ example (w : Vector E 4) : eval₂Mle (bytecodeColumn singletonColumnProgram).va
 
 /-- Sixteen instructions of the six kinds, with the distinct operands `K.ofBits 1` to
 `K.ofBits 58` in order of appearance (the two `KECCAK`s' output operands `K.ofBits 59` and
-`K.ofBits 60`), the three `DEREF` modes, and both `KECCAK` layout-flag pairs. -/
+`K.ofBits 60`), the three `DEREF` modes, both `KECCAK` layout-flag pairs, and the output cells
+`.two` and `.all`. -/
 def sixteen : LeanIsaProgram where
   logSize := 4
   logSize_le := by decide
@@ -126,7 +127,7 @@ def sixteen : LeanIsaProgram where
     .deref (K.ofBits 11) (K.ofBits 12) (K.ofBits 13) .cell,
     .jump (K.ofBits 14) (K.ofBits 15) (K.ofBits 16),
     .keccak ![K.ofBits 17, K.ofBits 18, K.ofBits 19, K.ofBits 20] (K.ofBits 21) (K.ofBits 22)
-      (K.ofBits 23) (K.ofBits 59) false true,
+      (K.ofBits 23) (K.ofBits 59) false true .two,
     .deref (K.ofBits 24) (K.ofBits 25) (K.ofBits 26) .pc,
     .deref (K.ofBits 27) (K.ofBits 28) (K.ofBits 29) .fp,
     .xor (K.ofBits 30) (K.ofBits 31) (K.ofBits 32),
@@ -134,7 +135,7 @@ def sixteen : LeanIsaProgram where
     .setConstant (K.ofBits 36) (E.ofLimbs (K.ofBits 37) (K.ofBits 38) (K.ofBits 39)),
     .jump (K.ofBits 40) (K.ofBits 41) (K.ofBits 42),
     .keccak ![K.ofBits 43, K.ofBits 44, K.ofBits 45, K.ofBits 46] (K.ofBits 47) (K.ofBits 48)
-      (K.ofBits 49) (K.ofBits 60) true false,
+      (K.ofBits 49) (K.ofBits 60) true false .all,
     .xor (K.ofBits 50) (K.ofBits 51) (K.ofBits 52),
     .mulNative (K.ofBits 53) (K.ofBits 54) (K.ofBits 55),
     .jump (K.ofBits 56) (K.ofBits 57) (K.ofBits 58)]
@@ -193,13 +194,19 @@ def slot12 : List K := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
 /-- Slot 13: `KECCAK`'s output layout flag. -/
 def slot13 : List K := [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:776-794` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sixteen slots of `2 ^ κ_bc` cells, the cell
-`(slot << κ_bc) + i` holding column `slot` at instruction `i`; the eleven public columns at
-slots 3 to 13 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at the other slots. -/
+/-- Slot 14: `KECCAK`'s `out_two` flag (`1` for `.two` and `.all`). -/
+def slot14 : List K := [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+/-- Slot 15: `KECCAK`'s `out_all` flag (`1` for `.all`). -/
+def slot15 : List K := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:777-795` at leanVM
+PR #724 head `873ee6d8a57428e33908ecf1608a7bdd43bf832e`): sixteen slots of `2 ^ κ_bc` cells, the
+cell `(slot << κ_bc) + i` holding column `slot` at instruction `i`; the thirteen public columns at
+slots 3 to 15 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at slots 0 to 2. -/
 def rustTable : List K :=
   zeroSlot ++ zeroSlot ++ zeroSlot ++ opcodeSlot ++ slot4 ++ slot5 ++ slot6 ++ slot7 ++ slot8 ++
-    slot9 ++ slot10 ++ slot11 ++ slot12 ++ slot13 ++ zeroSlot ++ zeroSlot
+    slot9 ++ slot10 ++ slot11 ++ slot12 ++ slot13 ++ slot14 ++ slot15
 
 -- The column is the Rust's table, cell for cell.
 #guard (bytecodeColumn sixteen).values.toList = rustTable

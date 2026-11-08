@@ -191,7 +191,7 @@ def XorSpec (r : XorRow K) (next : Registers K) (data : ProverData K) : Prop :=
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
 private theorem xor_entry (a b c : K) :
-    #v[Opcode.xor.busCode] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = busEntry (.xor a b c) := rfl
+    #v[Opcode.xor.busCode] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0, 0, 0] = busEntry (.xor a b c) := rfl
 
 /-! ## The table -/
 
@@ -203,7 +203,8 @@ def xorTable : GeneralFormalCircuit K XorRow Registers where
     let next : Var Registers K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.busCode) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.busCode) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0,
+      0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
     memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]

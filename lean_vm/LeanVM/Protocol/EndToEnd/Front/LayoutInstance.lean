@@ -619,15 +619,15 @@ theorem onStack_holds_iff (prog : LeanIsaProgram) (s : Sizes) (c : Col) (hc : ¬
 
 /-! ## The bytecode fingerprint -/
 
-/-- The bytecode column's extension at `(z, w)` is the eleven entry columns' extensions at `z`,
-weighted by the Lagrange basis of `w` at slots `3 to 13`: the other slots are zero. -/
+/-- The bytecode column's extension at `(z, w)` is the thirteen entry columns' extensions at `z`,
+weighted by the Lagrange basis of `w` at slots `3 to 15`: the other slots are zero. -/
 theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     bytecodeColumnEval prog z w =
-      ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *
+      ∑ k : Fin 13, (lagrangeBasis w)[k.val + 3] *
         eval₂Mle (entryColumn prog k).values (algebraMap K E) z := by
   unfold bytecodeColumnEval
-  let e : Fin 11 → Fin 16 := fun k ↦ ⟨k.val + 3, by omega⟩
+  let e : Fin 13 → Fin 16 := fun k ↦ ⟨k.val + 3, by omega⟩
   have he : Function.Injective e := fun a b h ↦ by
     simp only [e, Fin.mk.injEq] at h; exact Fin.ext (by omega)
   rw [← Finset.sum_subset (Finset.subset_univ (Finset.univ.image e)), Finset.sum_image
@@ -637,26 +637,27 @@ theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog
     refine congrArg₂ (· * ·) rfl (Finset.sum_congr rfl fun i _ ↦ ?_)
     refine congrArg₂ (· * ·) ?_ rfl
     have h := encodeSlots_getElem (prog.instructions i) (k.val + 3) (by omega)
-    simp only [show 3 ≤ k.val + 3 ∧ k.val + 3 < 14 from ⟨by omega, by omega⟩] at h
+    simp only [show 3 ≤ k.val + 3 ∧ k.val + 3 < 16 from ⟨by omega, by omega⟩] at h
     simp only [Fin.getElem_fin] at h ⊢
     rw [h]
     simp [CMlPolynomialEval.map, entryColumn]
   · intro s _ hs
-    have hs' : ¬ (3 ≤ s.val ∧ s.val < 14) := by
-      rintro ⟨h1, h2⟩
+    have hs' : ¬ 3 ≤ s.val := by
+      intro h1
+      have h2 := s.isLt
       exact hs (Finset.mem_image.mpr ⟨⟨s.val - 3, by omega⟩, Finset.mem_univ _,
         Fin.ext (by simp only [e]; omega)⟩)
     simp [encodeSlots_getElem _ _ s.isLt, hs']
 
 /-- **The bytecode fingerprint**: the Python's `multilinear_eval(bytecode, (*low, *alphas))` is the
-sum over the instance's eleven entry coordinates (`entryColumn`, coordinates `3 to 13` of the bytecode
+sum over the instance's thirteen entry coordinates (`entryColumn`, coordinates `3 to 15` of the bytecode
 boundary blocks) of the fingerprint weight times the column's extension at `low`. Added to the
 weighted separator, index and count (slots `0 to 2`), it is the instance's fingerprint of the
 bytecode block at `low`. -/
 theorem multilinearEval_bytecodeWords (prog : LeanIsaProgram) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     multilinearEval ((bytecodeWords prog).map ofK) (z.toList ++ w.toList) =
-      ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *
+      ∑ k : Fin 13, (lagrangeBasis w)[k.val + 3] *
         eval₂Mle (entryColumn prog k).values (algebraMap K E) z := by
   rw [← bytecodeColumnEval_eq_entries, ← bytecodeColumn_eval, ← Vector.toList_append]
   have : (bytecodeWords prog).map ofK =

@@ -53,12 +53,12 @@ theorem vec3_toList {F : Type} (v : Vector F 3) : v.toList = [v[0], v[1], v[2]] 
   have : i < 3 := by simpa using h1
   interval_cases i <;> simp
 
-/-- A vector of ten is the list of its entries. -/
-theorem vec10_toList {F : Type} (v : Vector F 10) :
-    v.toList = [v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]] := by
+/-- A vector of twelve is the list of its entries. -/
+theorem vec12_toList {F : Type} (v : Vector F 12) :
+    v.toList = [v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11]] := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
-  have : i < 10 := by simpa using h1
+  have : i < 12 := by simpa using h1
   interval_cases i <;> simp
 
 /-- A state message flattens to the array `[pc, fp]`, over any type of coordinates. -/
@@ -75,16 +75,16 @@ theorem memMsg_toArray {F : Type} (m : MemMsg F) :
   rw [Vector.toList_toArray, Vector.toList_append, Vector.toList_append, vec3_toList]
   rfl
 
-/-- A bytecode message flattens to the array `[pc, count, opcode, op₀, …, op₉]`. -/
+/-- A bytecode message flattens to the array `[pc, count, opcode, op₀, …, op₁₁]`. -/
 theorem bytecodeMsg_toArray {F : Type} (b : BytecodeMsg F) :
     (toElements b).toArray =
       #[b.pc, b.count, b.opcode, b.op[0], b.op[1], b.op[2], b.op[3], b.op[4], b.op[5], b.op[6],
-        b.op[7], b.op[8], b.op[9]] := by
+        b.op[7], b.op[8], b.op[9], b.op[10], b.op[11]] := by
   obtain ⟨pc, count, opcode, op⟩ := b
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray, Vector.toList_append, Vector.toList_append, Vector.toList_append,
-    vec10_toList]
+    vec12_toList]
   rfl
 
 /-! ## A row's sends -/
@@ -142,8 +142,8 @@ theorem xor_sends_gen (x : Var XorRow K) (env : Environment K) (n : ℕ) (r : Xo
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name, #[r.pc, r.rbc, Opcode.xor.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0,
-           0, 0]),
-       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.xor.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+           0, 0, 0, 0]),
+       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.xor.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oA, r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPush.name, #[r.fp * r.oA, g * r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPull.name, #[r.fp * r.oB, r.rB, r.vB[0], r.vB[1], r.vB[2]]),
@@ -165,9 +165,9 @@ theorem mul_sends_gen (x : Var MulRow K) (env : Environment K) (n : ℕ) (r : Mu
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]),
+        #[r.pc, g * r.rbc, Opcode.mulNative.busCode, r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oA, r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPush.name, #[r.fp * r.oA, g * r.rA, r.vA[0], r.vA[1], r.vA[2]]),
        (MemPull.name, #[r.fp * r.oB, r.rB, r.vB[0], r.vB[1], r.vB[2]]),
@@ -195,10 +195,10 @@ theorem set_sends_gen (x : Var SetRow K) (env : Environment K) (n : ℕ) (r : Se
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
         #[r.pc, g * r.rbc, Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0,
-            0, 0]),
+            0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.o, r.r, r.k[0], r.k[1], r.k[2]]),
        (MemPush.name, #[r.fp * r.o, g * r.r, r.k[0], r.k[1], r.k[2]])] := by
   subst hx
@@ -214,9 +214,9 @@ theorem deref_sends_gen (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r 
       (fun i ↦ (i.channel.name, i.msg)) =
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
-        #[r.pc, r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
+        #[r.pc, r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0, 0, 0]),
        (BytecodePush.name,
-        #[r.pc, g * r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]),
+        #[r.pc, g * r.rbc, Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.o1, r.r1, r.p, 0, 0]),
        (MemPush.name, #[r.fp * r.o1, g * r.r1, r.p, 0, 0]),
        (MemPull.name, #[r.p * r.o2, r.r2,
@@ -242,8 +242,8 @@ theorem jump_sends_gen (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : 
       [(StatePull.name, #[r.pc, r.fp]),
        (StatePush.name, #[b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp]),
        (BytecodePull.name, #[r.pc, r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0,
-           0, 0]),
-       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]),
+           0, 0, 0, 0]),
+       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
        (MemPull.name, #[r.fp * r.oc, r.rc, r.vcond, 0, 0]),
        (MemPush.name, #[r.fp * r.oc, g * r.rc, r.vcond, 0, 0]),
        (MemPull.name, #[r.fp * r.od, r.rd, r.vpc, 0, 0]),
@@ -259,7 +259,9 @@ theorem jump_sends_gen (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : 
 
 set_option maxHeartbeats 16000000 in
 /-- The sends of the `KECCAK` row circuit, in closed form: the state step, the bytecode read, and
-twenty-six cells of two limbs in their layouts, the third limb of each message `0`. -/
+twenty-six cells of two limbs in their layouts, the third limb of each message `0`; the push of
+output cell `c ≥ 1` carries the gated counter `count + g·(flag·count) + flag·count`, its flag
+`out_two` for `c = 1` and `out_all` past it. -/
 theorem keccak_sends_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ)
     (r : KeccakRow K) (hx : eval env x = r) :
     (((keccakTable.main x).operations n).interactionValues env).map
@@ -267,11 +269,11 @@ theorem keccak_sends_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ)
       [(StatePull.name, #[r.pc, r.fp]), (StatePush.name, #[g * r.pc, r.fp]),
        (BytecodePull.name,
         #[r.pc, r.rbc, Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8,
-          r.ocap, r.oout, r.oddIn, r.oddOut]),
+          r.ocap, r.oout, r.oddIn, r.oddOut, r.outTwo, r.outAll]),
        (BytecodePush.name,
         #[r.pc, g * r.rbc, Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3],
             r.otail, r.ob8,
-          r.ocap, r.oout, r.oddIn, r.oddOut]),
+          r.ocap, r.oout, r.oddIn, r.oddOut, r.outTwo, r.outAll]),
        (MemPull.name, #[r.fp * r.om[0], r.cnt[0], r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
        (MemPush.name, #[r.fp * r.om[0], g * r.cnt[0], r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
        (MemPull.name, #[r.fp * r.om[1], r.cnt[1], r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]),
@@ -301,32 +303,34 @@ theorem keccak_sends_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ)
        (MemPull.name, #[r.fp * (g ^ 0 * r.oout), r.cnt[13], r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]),
        (MemPush.name, #[r.fp * (g ^ 0 * r.oout), g * r.cnt[13], r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]),
        (MemPull.name, #[r.fp * (g ^ 1 * r.oout), r.cnt[14], r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]),
-       (MemPush.name, #[r.fp * (g ^ 1 * r.oout), g * r.cnt[14], r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]),
+       (MemPush.name, #[r.fp * (g ^ 1 * r.oout), r.cnt[14] + g * (r.outTwo * r.cnt[14]) + r.outTwo * r.cnt[14], r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]),
        (MemPull.name, #[r.fp * (g ^ 2 * r.oout), r.cnt[15], r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]),
-       (MemPush.name, #[r.fp * (g ^ 2 * r.oout), g * r.cnt[15], r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]),
+       (MemPush.name, #[r.fp * (g ^ 2 * r.oout), r.cnt[15] + g * (r.outAll * r.cnt[15]) + r.outAll * r.cnt[15], r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]),
        (MemPull.name, #[r.fp * (g ^ 3 * r.oout), r.cnt[16], r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]),
-       (MemPush.name, #[r.fp * (g ^ 3 * r.oout), g * r.cnt[16], r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]),
+       (MemPush.name, #[r.fp * (g ^ 3 * r.oout), r.cnt[16] + g * (r.outAll * r.cnt[16]) + r.outAll * r.cnt[16], r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]),
        (MemPull.name, #[r.fp * (g ^ 4 * r.oout), r.cnt[17], r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]),
-       (MemPush.name, #[r.fp * (g ^ 4 * r.oout), g * r.cnt[17], r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]),
+       (MemPush.name, #[r.fp * (g ^ 4 * r.oout), r.cnt[17] + g * (r.outAll * r.cnt[17]) + r.outAll * r.cnt[17], r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]),
        (MemPull.name, #[r.fp * (g ^ 5 * r.oout), r.cnt[18], r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]),
-       (MemPush.name, #[r.fp * (g ^ 5 * r.oout), g * r.cnt[18], r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]),
+       (MemPush.name, #[r.fp * (g ^ 5 * r.oout), r.cnt[18] + g * (r.outAll * r.cnt[18]) + r.outAll * r.cnt[18], r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]),
        (MemPull.name, #[r.fp * (g ^ 6 * r.oout), r.cnt[19], r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]),
-       (MemPush.name, #[r.fp * (g ^ 6 * r.oout), g * r.cnt[19], r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]),
+       (MemPush.name, #[r.fp * (g ^ 6 * r.oout), r.cnt[19] + g * (r.outAll * r.cnt[19]) + r.outAll * r.cnt[19], r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]),
        (MemPull.name, #[r.fp * (g ^ 7 * r.oout), r.cnt[20], r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]),
-       (MemPush.name, #[r.fp * (g ^ 7 * r.oout), g * r.cnt[20], r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]),
+       (MemPush.name, #[r.fp * (g ^ 7 * r.oout), r.cnt[20] + g * (r.outAll * r.cnt[20]) + r.outAll * r.cnt[20], r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]),
        (MemPull.name, #[r.fp * (g ^ 8 * r.oout), r.cnt[21], r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]),
-       (MemPush.name, #[r.fp * (g ^ 8 * r.oout), g * r.cnt[21], r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]),
+       (MemPush.name, #[r.fp * (g ^ 8 * r.oout), r.cnt[21] + g * (r.outAll * r.cnt[21]) + r.outAll * r.cnt[21], r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]),
        (MemPull.name, #[r.fp * (g ^ 9 * r.oout), r.cnt[22], r.lout[17], r.lout[18], 0]),
-       (MemPush.name, #[r.fp * (g ^ 9 * r.oout), g * r.cnt[22], r.lout[17], r.lout[18], 0]),
+       (MemPush.name, #[r.fp * (g ^ 9 * r.oout), r.cnt[22] + g * (r.outAll * r.cnt[22]) + r.outAll * r.cnt[22], r.lout[17], r.lout[18], 0]),
        (MemPull.name, #[r.fp * (g ^ 10 * r.oout), r.cnt[23], r.lout[19], r.lout[20], 0]),
-       (MemPush.name, #[r.fp * (g ^ 10 * r.oout), g * r.cnt[23], r.lout[19], r.lout[20], 0]),
+       (MemPush.name, #[r.fp * (g ^ 10 * r.oout), r.cnt[23] + g * (r.outAll * r.cnt[23]) + r.outAll * r.cnt[23], r.lout[19], r.lout[20], 0]),
        (MemPull.name, #[r.fp * (g ^ 11 * r.oout), r.cnt[24], r.lout[21], r.lout[22], 0]),
-       (MemPush.name, #[r.fp * (g ^ 11 * r.oout), g * r.cnt[24], r.lout[21], r.lout[22], 0]),
+       (MemPush.name, #[r.fp * (g ^ 11 * r.oout), r.cnt[24] + g * (r.outAll * r.cnt[24]) + r.outAll * r.cnt[24], r.lout[21], r.lout[22], 0]),
        (MemPull.name, #[r.fp * (g ^ 12 * r.oout), r.cnt[25], r.lout[23], r.lout[24], 0]),
-       (MemPush.name, #[r.fp * (g ^ 12 * r.oout), g * r.cnt[25], r.lout[23], r.lout[24], 0])] := by
+       (MemPush.name, #[r.fp * (g ^ 12 * r.oout), r.cnt[25] + g * (r.outAll * r.cnt[25]) + r.outAll * r.cnt[25], r.lout[23], r.lout[24], 0])] := by
   subst hx
-  obtain ⟨pc, fp, om, otail, ob8, ocap, oout, oddIn, oddOut, free, lin, lout, cnt, rbc⟩ := x
-  simp only [Operations.interactionValues, circuit_norm, keccakTable, memRead, bytecodeRead,
+  obtain ⟨pc, fp, om, otail, ob8, ocap, oout, oddIn, oddOut, outTwo, outAll, free, lin, lout, cnt,
+    rbc⟩ := x
+  simp only [Operations.interactionValues, circuit_norm, keccakTable, memRead, memReadIf,
+    bytecodeRead,
     AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
     bytecodeMsg_toArray, Vector.getElem_map, -BitVec.reduceNeg]
 
@@ -353,10 +357,10 @@ theorem bytecode_sends_gen (x : Var BytecodeRow K) (env : Environment K) (n : �
       (fun i ↦ (i.channel.name, i.msg)) =
       [(BytecodePush.name,
         #[r.idx, 1, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5], r.op[6],
-          r.op[7], r.op[8], r.op[9]]),
+          r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]]),
        (BytecodePull.name,
         #[r.idx, r.cntFin, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5],
-          r.op[6], r.op[7], r.op[8], r.op[9]])] := by
+          r.op[6], r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]])] := by
   subst hx
   obtain ⟨idx, cntFin, opcode, op⟩ := x
   simp only [Operations.interactionValues, circuit_norm, bytecodeTable, AbstractInteraction.eval,

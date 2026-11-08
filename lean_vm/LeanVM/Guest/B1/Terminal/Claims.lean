@@ -180,7 +180,7 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
   have hL := T.hL
   have hzs := T.hzs
   have hchis := T.hchis
-  have hNC : Tables.nCommittedCols = 99 := rfl
+  have hNC : Tables.nCommittedCols = 101 := rfl
   -- a chain claim's low length is its column's size
   have hlenK : ∀ (hk : termKind j < 2) (hcc : termCol j < Tables.nCommittedCols),
       (claims.getD j default).point.length =

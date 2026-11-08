@@ -15,10 +15,10 @@ public import LeanVM.Guest.B1.Placement.Common
 
 `certify_placement(kappa_base, g_squares)` (G:3162-3206) reads `kb[i] = kappa_base[g^i]`, then
 for each column group `gi < 9` (`colGroupStart`) builds its `g^κ` from its first column's source
-and adjustment, range-checks `κ < 34`, keys the group by `g^(κ·252)·INV_GEN^c₀` (the rank keys at
+and adjustment, range-checks `κ < 34`, keys the group by `g^(κ·254)·INV_GEN^c₀` (the rank keys at
 `g_squares·g^178`) and sizes it `g^((#columns)·2^κ)` (an addition chain over `g_squares[g^κ]`).
 It reads the hinted group order `col_group_order`, range-checks each entry below `9`, certifies
-each key below the previous one (`prev_key / key · INV_GEN = g^e`, `e < 8568`), stores the
+each key below the previous one (`prev_key / key · INV_GEN = g^e`, `e < 8636`), stores the
 running total at the group's base write-once and multiplies the total by the group's size; then
 it lays every column out from its group's base, `g_squares[g^κ]` apart.
 
@@ -26,8 +26,8 @@ The expansion is `cpPre` (`cpFound`, by kernel evaluation): the eight loads, the
 (`cpGroup`), the order hint, rank `0` (`cpRank0`) and ranks `1 .. 8` (`cpRank`, from value
 `133 + 18·r`), the columns (`cpCols`) and the returns.
 
-The keys: with `K·g^c₀ = g^(κ·252)` per group, `K_prev = g^(e+1)·K` multiplies out to
-`κ_prev·252 + c₀ = κ·252 + c₀_prev + e + 1` over small naturals, so `κ` does not increase along the
+The keys: with `K·g^c₀ = g^(κ·254)` per group, `K_prev = g^(e+1)·K` multiplies out to
+`κ_prev·254 + c₀ = κ·254 + c₀_prev + e + 1` over small naturals, so `κ` does not increase along the
 ranks and a tie has `c₀` increase: `stackOffsets`'s order, group by group. `tb_group_stack_cert`
 (`Placement/Common`) expands it to the columns.
 -/
@@ -47,8 +47,8 @@ abbrev w33 : E := word 8589934592 0 0
 /-- `g^8`, the range check against `N_COL_GROUPS = 9`. -/
 abbrev w8 : E := word 256 0 0
 
-/-- `g^8567`, the range check against `RANK_KEY_BOUND = 34·252`. -/
-abbrev wRankBound : E := word 13258782582107712005 0 0
+/-- `g^8635`, the range check against `RANK_KEY_BOUND = 34·254`. -/
+abbrev wRankBound : E := word 9287367476377611832 0 0
 
 /-- `INV_GEN`. -/
 abbrev wInvGen : E := word 9223372036854775821 0 0
@@ -58,10 +58,10 @@ theorem word_g8 : word 256 0 0 = ofK (Parameters.addressOfIndex 8) := by
   show ofK (K.ofBits 256) = ofK (Parameters.addressOfIndex 8)
   rw [show K.ofBits 256 = Parameters.addressOfIndex 8 by decide +kernel]
 
-theorem word_g8567 : word 13258782582107712005 0 0 = ofK (Parameters.addressOfIndex 8567) := by
+theorem word_g8635 : word 9287367476377611832 0 0 = ofK (Parameters.addressOfIndex 8635) := by
   rw [tb_word_eOfNat]
-  show ofK (K.ofBits 13258782582107712005) = ofK (Parameters.addressOfIndex 8567)
-  rw [show K.ofBits 13258782582107712005 = Parameters.addressOfIndex 8567 by decide +kernel]
+  show ofK (K.ofBits 9287367476377611832) = ofK (Parameters.addressOfIndex 8635)
+  rw [show K.ofBits 9287367476377611832 = Parameters.addressOfIndex 8635 by decide +kernel]
 
 theorem wInvGen_mul_gen : wInvGen * gen = 1 := by
   rw [show gen = ofK (K.ofBits 2) from rfl,
@@ -71,7 +71,7 @@ theorem wInvGen_mul_gen : wInvGen * gen = 1 := by
 
 /-! ## The groups -/
 
-/-- Group `gi`'s first column `c₀` (`COL_GROUP_START`; `cpC0 9 = 99`). -/
+/-- Group `gi`'s first column `c₀` (`COL_GROUP_START`; `cpC0 9 = 101`). -/
 def cpC0 (gi : ℕ) : ℕ := colGroupStart.getD gi 0
 
 /-- Group `gi`'s number of columns. -/
@@ -112,7 +112,7 @@ def cpCh (gi : ℕ) : List Bool :=
   [[true, true], [], [], [true, false, true, false, true, false],
     [true, false, true, false, true, false], [true, true, true],
     [true, false, true, false, true, false], [true, false, true, false, true],
-    [true, false, true, true, false, true]].getD gi []
+    [true, false, true, false, true, true]].getD gi []
 
 /-- An addition chain from value `v0`. -/
 def cpChain (v0 : ℕ) (bs : List Bool) : List Stmt :=
@@ -206,20 +206,20 @@ def cpPre : List Stmt :=
       .atom (.hint (.witness "col_group_order" (.heap (.n 138) 0 9))),
       .atom (.hint (.alloc (.n 139) 9))] ++
     cpRank0 ++ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ++
-    [.atom (.hint (.alloc (.n 295) 99))] ++ ((List.range 9).map cpCols).flatten ++
-    [.atom (.copy (.n 413) (.n 294)), .atom (.copy (.n 414) (.n 295))]
+    [.atom (.hint (.alloc (.n 295) 101))] ++ ((List.range 9).map cpCols).flatten ++
+    [.atom (.copy (.n 415) (.n 294)), .atom (.copy (.n 416) (.n 295))]
 
 /-- The function found by name is the template. -/
 noncomputable def cpCheck : Bool :=
   match coreProgram.find? "certify_placement" with
   | some fn => decide (fn.params = [.n 0, .n 1]) &&
-      tbStmtsEqb fn.body (cpPre ++ [.ret [.n 413, .n 414]])
+      tbStmtsEqb fn.body (cpPre ++ [.ret [.n 415, .n 416]])
   | none => false
 
 theorem cpCheck_eq : cpCheck = true := by decide +kernel
 
 theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn ∧
-    fn.params = [.n 0, .n 1] ∧ fn.body = cpPre ++ [.ret [.n 413, .n 414]] := by
+    fn.params = [.n 0, .n 1] ∧ fn.body = cpPre ++ [.ret [.n 415, .n 416]] := by
   have h := cpCheck_eq
   unfold cpCheck at h
   split at h
@@ -232,17 +232,17 @@ theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn �
 
 theorem cpC0_zero : cpC0 0 = 0 := rfl
 
-theorem cpC0_nine : cpC0 9 = 99 := rfl
+theorem cpC0_nine : cpC0 9 = 101 := rfl
 
 theorem cpC0_mono : ∀ g < 9, cpC0 g ≤ cpC0 (g + 1) := by decide +kernel
 
-theorem cpC0_le : ∀ g < 9, cpC0 (g + 1) ≤ 99 := by decide +kernel
+theorem cpC0_le : ∀ g < 9, cpC0 (g + 1) ≤ 101 := by decide +kernel
 
 /-- `c₀` orders the groups. -/
 theorem cpC0_lt : ∀ a < 9, ∀ b < 9, cpC0 a < cpC0 b → a < b := by decide +kernel
 
 /-- A group's columns share its first column's source and adjustment. -/
-theorem cp_group_const : ∀ g < 9, ∀ c < 99, cpC0 g ≤ c → c < cpC0 (g + 1) →
+theorem cp_group_const : ∀ g < 9, ∀ c < 101, cpC0 g ≤ c → c < cpC0 (g + 1) →
     colKappaSrc c = cpSrc g ∧ colKappaAdj c = cpAdj g := by decide +kernel
 
 theorem cpSrc_lt : ∀ g < 9, cpSrc g < 8 := by decide +kernel
@@ -404,7 +404,7 @@ def CpFacts (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
     (∃ t, LoadHolds rd (σ (.n 11) * σ (.n (cpRB r))) 0 t ∧
       σ (.n (cpRT r)) = σ (.n (cpRP r)) * t) ∧
     (r = 0 → σ (.n (cpRP r)) = 1) ∧ (1 ≤ r → σ (.n (cpRP r)) = σ (.n (cpRT (r - 1)))) ∧
-    (1 ≤ r → ∃ e < 8568, σ (.n (cpRK (r - 1))) = gen ^ (e + 1) * σ (.n (cpRK r)))
+    (1 ≤ r → ∃ e < 8636, σ (.n (cpRK (r - 1))) = gen ^ (e + 1) * σ (.n (cpRK r)))
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -420,8 +420,8 @@ theorem cp_rc34 {σ : Val} {x y t1 t2 k : ℕ} (hk : σ (.n k) = w33)
     h.2.2
 
 theorem cp_rcKey {σ : Val} {x y t1 t2 k : ℕ} (hk : σ (.n k) = wRankBound)
-    (h : TbRcHolds Lm.read σ x y t1 t2 k) : ∃ e < 8568, σ (.n x) = gen ^ e :=
-  tb_rc_sound' hμ Lm (K := 8568) (by omega) (by decide) (by rw [hk]; exact word_g8567) h.1
+    (h : TbRcHolds Lm.read σ x y t1 t2 k) : ∃ e < 8636, σ (.n x) = gen ^ e :=
+  tb_rc_sound' hμ Lm (K := 8636) (by omega) (by decide) (by rw [hk]; exact word_g8635) h.1
     h.2.1 h.2.2
 
 theorem cpFacts_succ {σ : Val} {r : ℕ} (h : CpRankOk Lm.read σ (r + 1)) :
@@ -567,15 +567,15 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     have hb := hπ9 (r + 1) hr
     have k1 := (hKf _ ha).2
     have k2 := (hKf _ hb).2
-    rw [show rankStride = 252 from rfl] at k1 k2
+    rw [show rankStride = 254 from rfl] at k1 k2
     have b1 := (hG _ ha).1
     have b2 := (hG _ hb).1
     have c1 := cpC0_le _ ha
     have c2 := cpC0_le _ hb
     have c1' := cpC0_mono _ ha
     have c2' := cpC0_mono _ hb
-    have heq : gen ^ (κc (cpC0 (π r)) * 252 + cpC0 (π (r + 1))) =
-        gen ^ (e + 1 + κc (cpC0 (π (r + 1))) * 252 + cpC0 (π r)) := by
+    have heq : gen ^ (κc (cpC0 (π r)) * 254 + cpC0 (π (r + 1))) =
+        gen ^ (e + 1 + κc (cpC0 (π (r + 1))) * 254 + cpC0 (π r)) := by
       rw [pow_add, pow_add, pow_add, ← k1, ← k2, hrel]
       ring
     have := tb_gen_pow_inj' (by omega) (by omega) heq
@@ -601,9 +601,9 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     cpC0_zero cpC0_mono hconst hπ9 hadj hoff
   rw [cpC0_nine] at hoffs htot
   -- the statement's sizes
-  have hκ : committedKappas (columnKappas logMem guestLogBytecode hs) = (List.range 99).map κc :=
+  have hκ : committedKappas (columnKappas logMem guestLogBytecode hs) = (List.range 101).map κc :=
     committedKappas_columnKappas logMem hs hl
-  refine ⟨σ (.n 414), ?_, columnKappas_length _ _ _, ?_⟩
+  refine ⟨σ (.n 416), ?_, columnKappas_length _ _ _, ?_⟩
   · rw [← hret, e413, e414, stackTotal, hκ, List.map_map]
     have := (hT 8 (by omega)).2
     rw [show cpRT 8 = 294 from rfl] at this

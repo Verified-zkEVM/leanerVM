@@ -156,7 +156,13 @@ guarantees. -/
 def OpRecs (w : EnsembleWitness (leanIsaEnsemble prog)) (f : Air.Flat.Table K × Array K → RowRec) :
     Prop :=
   ∀ p ∈ opPairs w,
-    rowSends p.1.component (p.1.environment p.2) = (f p).sends ∧ (f p).reads.length ≤ 26 ∧
+    rowSends p.1.component (p.1.environment p.2) = (f p).sends ∧
+      (f p).reads.length + (f p).gated.length ≤ 26 ∧
+      (∀ i ∈ p.1.component.rowOperations.interactions.map
+          (AbstractInteraction.eval (p.1.environment p.2)),
+        i.channel.name = MemPull.name → i.mult = -1 →
+          i.msg ∈ (f p).real.map fun y ↦ memMsgOf y.1 y.2.1 y.2.2) ∧
+      ((∃ ins, (f p).e = busEntry ins) → ∀ y ∈ (f p).gated, y.1 = 0 ∨ y.1 = 1) ∧
       (∀ a ∈ p.1.component.operations.interactions, ChannelOk a.channel) ∧
       (p.1.component.Assumptions (p.1.environment p.2) →
         p.1.component.operations.ConstraintsHold (p.1.environment p.2) →
@@ -184,8 +190,8 @@ theorem exists_opRecs (w : EnsembleWitness (leanIsaEnsemble prog)) : ∃ f, OpRe
   obtain ⟨h, hch⟩ := hrow p hp
   have hdata := environment_data (List.mem_of_mem_take (mem_opPairs hp).1) p.2
   simp only [h, ↓reduceDIte]
-  obtain ⟨hs, hl, hstep, hfree⟩ := h.choose_spec
-  refine ⟨hs, hl, hch, fun ha hc hg ↦ ?_, fun hc hg ↦ ?_⟩
+  obtain ⟨hs, hl, hgu, hbits, hstep, hfree⟩ := h.choose_spec
+  refine ⟨hs, hl, hgu, hbits, hch, fun ha hc hg ↦ ?_, fun hc hg ↦ ?_⟩
   · rw [← hdata]
     exact hstep ha hc hg
   · rw [← hdata]
@@ -312,17 +318,17 @@ theorem bcBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnse
     bytecode_sends_gen _ _ _ _ (eval_rowVar _ _)]
   simp [bcMsgOf, bytecodeRowOf]
 
-/-- **Everything a satisfying witness sends**: the verifier's two states, the records of the rows
-of the six tables, the memory block's seed and finalize of the image the data names, and the
-bytecode block's seed and finalize of the program. -/
-theorem allSends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
-    ∃ (mfin : Fin (2 ^ (imageOf w.data).1) → K) (bfin : Fin (2 ^ prog.logSize) → K),
-      allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
-        memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin := by
-  obtain ⟨mfin, hmem⟩ := memBlock_sends_eq h
-  obtain ⟨bfin, hbc⟩ := bcBlock_sends_eq h
-  refine ⟨mfin, bfin, ?_⟩
+/-- **Everything a satisfying witness sends**, for the finalize counts its two blocks carry: the
+verifier's two states, the records of the rows of the six tables, the memory block's seed and
+finalize of the image the data names, and the bytecode block's seed and finalize of the program. -/
+theorem allSends_eq_of {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
+    {mfin : Fin (2 ^ (imageOf w.data).1) → K} {bfin : Fin (2 ^ prog.logSize) → K}
+    (hmem : tableSends (tableAt w 6) = memSeedSends (imageOf w.data).2 mfin)
+    (hbc : tableSends (tableAt w 7) = bcSeedSends prog bfin) :
+    allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
+      memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin := by
+  have _ := h
   unfold allSends EnsembleWitness.allTables
   rw [List.flatMap_cons, tables_eq w, List.flatMap_append, List.flatMap_cons, List.flatMap_cons,
     List.flatMap_nil, List.append_nil, ← List.append_assoc, ← List.append_assoc]
@@ -339,6 +345,18 @@ theorem allSends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble 
         rw [List.flatMap_map]
         refine List.flatMap_congr fun row hrow ↦ ?_
         exact (hf (t, row) (List.mem_flatMap.mpr ⟨t, ht, List.mem_map_of_mem hrow⟩)).1
+
+/-- **Everything a satisfying witness sends**: the verifier's two states, the records of the rows
+of the six tables, the memory block's seed and finalize of the image the data names, and the
+bytecode block's seed and finalize of the program. -/
+theorem allSends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
+    ∃ (mfin : Fin (2 ^ (imageOf w.data).1) → K) (bfin : Fin (2 ^ prog.logSize) → K),
+      allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
+        memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin := by
+  obtain ⟨mfin, hmem⟩ := memBlock_sends_eq h
+  obtain ⟨bfin, hbc⟩ := bcBlock_sends_eq h
+  exact ⟨mfin, bfin, allSends_eq_of h hf hmem hbc⟩
 
 /-! ## The messages of each piece -/
 
@@ -426,12 +444,30 @@ theorem chanOf_bcSeed_eq_nil (fin : Fin (2 ^ prog.logSize) → K) {n : String}
 
 /-! ## The read counts -/
 
+/-- A read a row makes is a memory pull of its sends. -/
+theorem RowRec.mem_chan_of_real {x : RowRec} {y : K × K × Vector K 3} (hy : y ∈ x.real) :
+    memMsgOf y.1 y.2.1 y.2.2 ∈ chanOf MemPull.name x.sends := by
+  rw [RowRec.sends, chanOf, List.filter_append, List.map_append, sendsOf_memPull,
+    gatedSends_memPull]
+  rcases List.mem_append.mp hy with hy | hy
+  · exact List.mem_append_left _ (List.mem_map_of_mem hy)
+  · obtain ⟨z, hz, rfl⟩ := List.mem_map.mp hy
+    exact List.mem_append_right _
+      (List.mem_map_of_mem (f := fun y ↦ memMsgOf y.2.1 y.2.2.1 y.2.2.2) (List.mem_filter.mp hz).1)
+
+/-- A row's messages on a channel other than the memory pair are those of its reads' `sendsOf`. -/
+theorem RowRec.chanOf_sends_of_ne (x : RowRec) {n : String} (h1 : n ≠ MemPull.name)
+    (h2 : n ≠ MemPush.name) :
+    chanOf n x.sends = chanOf n (sendsOf x.pc x.fp x.next x.rbc x.e x.reads) := by
+  rw [RowRec.sends, chanOf, chanOf, List.filter_append, List.map_append,
+    gatedSends_filter_eq_nil _ h1 h2, List.append_nil]
+
 /-- **The nonzero count product, per row**: every memory read count and the bytecode count of a
 row of the six tables is nonzero (`CountsNonzero`). -/
 theorem opRecs_counts_nonzero {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
     (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
     {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
-    (∀ x ∈ (f p).reads, x.2.1 ≠ 0) ∧ (f p).rbc ≠ 0 := by
+    (∀ x ∈ (f p).real, x.2.1 ≠ 0) ∧ (f p).rbc ≠ 0 := by
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
   have hsends := (hf p hp).1
   have hsub : ∀ n, ∀ msg ∈ chanOf n (f p).sends,
@@ -441,14 +477,15 @@ theorem opRecs_counts_nonzero {input : PublicInput} {w : EnsembleWitness (leanIs
       exact List.mem_flatMap.mpr ⟨p.2, hrow, by rw [hsends]; exact hm⟩
   constructor
   · intro x hx
-    have hm : memMsgOf x.1 x.2.1 x.2.2 ∈ chanOf MemPull.name (f p).sends := by
-      rw [RowRec.sends, chanOf, sendsOf_memPull]
-      exact List.mem_map_of_mem hx
+    have hm : memMsgOf x.1 x.2.1 x.2.2 ∈ chanOf MemPull.name (f p).sends :=
+      RowRec.mem_chan_of_real hx
     obtain ⟨i, hi, hn, hmsg⟩ := mem_interactions_of_chanOf (hsub _ _ hm)
     have := h.counts_nonzero p.1 ht i hi (Or.inl hn) (by rw [hmsg]; simp [memMsgOf])
     simpa [hmsg, memMsgOf] using this
   · have hm : bcMsgOf (f p).pc (f p).rbc (f p).e ∈ chanOf BytecodePull.name (f p).sends := by
-      rw [RowRec.sends, chanOf, sendsOf_bcPull]
+      rw [RowRec.sends, chanOf, List.filter_append, List.map_append, sendsOf_bcPull,
+        gatedSends_filter_eq_nil _ (by simp [BytecodePull, MemPull])
+          (by simp [BytecodePull, MemPush])]
       exact List.mem_singleton_self _
     obtain ⟨i, hi, hn, hmsg⟩ := mem_interactions_of_chanOf (hsub _ _ hm)
     have := h.counts_nonzero p.1 ht i hi (Or.inr hn) (by rw [hmsg]; simp [bcMsgOf])
@@ -475,12 +512,16 @@ theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEns
 bound of specification Lemma 6.3, derived from the caps. -/
 theorem opReads_length_lt {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
     (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
-    ((opPairs w).flatMap fun p ↦ (f p).reads).length < 2 ^ 64 - 1 := by
+    ((opPairs w).flatMap fun p ↦ (f p).real).length < 2 ^ 64 - 1 := by
   rw [List.length_flatMap]
-  have hb : ∀ x ∈ (opPairs w).map fun p ↦ (f p).reads.length, x ≤ 26 := by
+  have hb : ∀ x ∈ (opPairs w).map fun p ↦ (f p).real.length, x ≤ 26 := by
     intro x hx
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hx
-    exact (hf p hp).2.1
+    have h1 : (((f p).gated.filter fun y ↦ y.1 = 1).map (·.2)).length ≤ (f p).gated.length := by
+      rw [List.length_map]; exact List.length_filter_le _ _
+    have h2 := (hf p hp).2.1
+    simp only [RowRec.real, List.length_append]
+    omega
   have hsum := List.sum_le_length_nsmul _ _ hb
   rw [List.length_map, smul_eq_mul] at hsum
   have := opPairs_length_le h

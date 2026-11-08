@@ -116,9 +116,9 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `g^(-1)`, as the data writes it. -/
 abbrev vtWInvGen : E := word 9223372036854775821 0 0
 
-/-- `g^23`, `g^8567`, as the data writes them. -/
+/-- `g^23`, `g^8635`, as the data writes them. -/
 abbrev vtW23 : E := word 8388608 0 0
-abbrev vtW8567 : E := word 13258782582107712005 0 0
+abbrev vtW8635 : E := word 9287367476377611832 0 0
 
 /-- A word inverting `g^b`. -/
 theorem vt_wInv {W b : ℕ} (hW : K.ofBits W * Parameters.addressOfIndex b = 1) :
@@ -157,7 +157,7 @@ def vtRankT (v R s pk gin : ℕ) : List Stmt :=
     .atom (.rangeCheck (.n v) (.n (v + 2)) (.n (v + 3)) (.n (v + 4)) (.n (v + 1))),
     .atom (.const (.n (v + 5)) (word s 0 0)), .atom (.mul (.n (v + 6)) (.n 12) (.n v)),
     .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 36) (.n v)),
-    .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) vtW8567),
+    .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) vtW8635),
     .atom (.mul (.n pk) (.n (v + 10)) (.n (v + 8))), .atom (.const (.n (v + 11)) vtWInvGen),
     .atom (.mul (.n (v + 12)) (.n (v + 10)) (.n (v + 11))),
     .atom (.rangeCheck (.n (v + 12)) (.n (v + 13)) (.n (v + 14)) (.n (v + 15)) (.n (v + 9))),

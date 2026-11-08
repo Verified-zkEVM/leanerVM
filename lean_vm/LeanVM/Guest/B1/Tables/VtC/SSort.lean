@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SGrpT
 # The block certification, honestly (G:2158-2199)
 
 The honest buffers, for the memory's log-size `lm` and the tables' heights `τ` (`vtKg`: a group's
-log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(252 κ - b0)`),
+log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(254 κ - b0)`),
 `vtGSizeW` (`group_size`), `vtGOrdW` (`group_order`: each side's groups sorted by `stackLe`,
 `vtOrd`, the push side's at `0 .. 8`, the count side's at `18 .. 23`), `vtGBaseW` (`group_base`:
 the prefix sums of the sizes in that order, `vtGP`).
@@ -62,7 +62,7 @@ def vtGP (lm : ℕ) (τ : ℕ → ℕ) (s r : ℕ) : ℕ :=
 
 /-- `group_key`'s honest words. -/
 noncomputable def vtGKeyW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun gi ↦
-  gen ^ (vtKg lm τ gi * 252) * (gen ^ blockGroupStart.getD gi 0)⁻¹
+  gen ^ (vtKg lm τ gi * 254) * (gen ^ blockGroupStart.getD gi 0)⁻¹
 
 /-- `group_size`'s honest words. -/
 noncomputable def vtGSizeW (lm : ℕ) (τ : ℕ → ℕ) : List E :=
@@ -187,7 +187,7 @@ theorem rank_ok (hlow : LowDefB 14 rd) {v R s pk gin gi d : ℕ} (hv : 40 ≤ v)
     {key sz : E} (hkey : LoadHolds rd (σ (.n 36) * gen ^ gi) 0 key)
     (hbase : LoadHolds rd (σ (.n 38) * gen ^ gi) 0 (σ (.n gin)))
     (hsz : LoadHolds rd (σ (.n 37) * gen ^ gi) 0 sz)
-    (hpkv : σ (.n pk) = gen ^ (d + 1) * key) (hd : d ≤ 8567) (hk0 : key ≠ 0) :
+    (hpkv : σ (.n pk) = gen ^ (d + 1) * key) (hd : d ≤ 8635) (hk0 : key ≠ 0) :
     (∀ st ∈ vtRankT v R s pk gin, VSH C rd σ st) ∧ σ (.n v) = gen ^ gi ∧
       σ (.n (v + 8)) = key ∧ σ (.n (v + 18)) = sz ∧ σ (.n (v + 19)) = σ (.n gin) * sz := by
   simp only [vtRankT, GoodL, GoodS, fixNe, Good, and_true] at hg
@@ -214,7 +214,7 @@ theorem rank_ok (hlow : LowDefB 14 rd) {v R s pk gin gi d : ℕ} (hv : 40 ≤ v)
     rw [g11, e10, g10, pow_succ, mul_assoc, mul_comm gen, ← pow_one gen,
       vt_wInv (W := 9223372036854775821) (b := 1) (by decide +kernel), mul_one]
   obtain ⟨q1, q2, q3⟩ := g12
-  obtain ⟨hrc12, -⟩ := rc_holds (κ := 14) hlow q1 q2 q3 e12 (by rw [g8, vtW8567_gen]) hd
+  obtain ⟨hrc12, -⟩ := rc_holds (κ := 14) hlow q1 q2 q3 e12 (by rw [g8, vtW8635_gen]) hd
     (by norm_num)
   have m16 : σ (.n (v + 16)) = σ (.n 38) * gen ^ gi := by rw [g13, ev]
   have m17 : σ (.n (v + 17)) = σ (.n 37) * gen ^ gi := by rw [g15, ev]
@@ -287,7 +287,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 local notation "σv" => vtσ rd w args
 
 /-- **A side's ranks, honestly**: rank `r` reads group `g^(gi r)`, its key `key r` and size
-`g^(S r)`; the keys descend by `g^(d+1)`, `d ≤ 8567`; the bases hold the sizes' prefix sums. Every
+`g^(S r)`; the keys descend by `g^(d+1)`, `d ≤ 8635`; the bases hold the sizes' prefix sums. Every
 rank's statements hold and give `VtRankFacts`, the running offset the prefix sum. -/
 theorem side_ok (hl : args.length = 20) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : ℕ}
     (hv : 40 ≤ v0) (hm : 1 ≤ m)
@@ -305,7 +305,7 @@ theorem side_ok (hl : args.length = 20) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : �
     (hkey : ∀ r < m, LoadHolds rd (σv (.n 36) * gen ^ gi r) 0 (key r))
     (hsz : ∀ r < m, LoadHolds rd (σv (.n 37) * gen ^ gi r) 0 (gen ^ S r))
     (hbase : ∀ r < m, LoadHolds rd (σv (.n 38) * gen ^ gi r) 0 (gen ^ ∑ r' ∈ range r, S r'))
-    (hstep : ∀ r, r + 1 < m → ∃ d ≤ 8567, key r = gen ^ (d + 1) * key (r + 1))
+    (hstep : ∀ r, r + 1 < m → ∃ d ≤ 8635, key r = gen ^ (d + 1) * key (r + 1))
     (hk0 : ∀ r < m, key r ≠ 0) :
     (∀ st ∈ (vtPre.drop p0).take (13 + 18 * (m - 1)), VSH (coreProgram.Rel rd) rd σv st) ∧
       ∀ r < m, VtRankFacts rd σv v0 s r ∧ σv (.n (vtGin v0 r)) = gen ^ ∑ r' ∈ range r, S r' := by

@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Selectors.LayoutBasic
 The inputs are the runs `cpLin`: `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]` at `ekb`, the
 squares table at `esq` and the rank keys at `esq + 178` (`rankKeysList`). The buffers (`cpOwn`),
 at any bases `e10`, `e11`, `e138`, `e139`, `e295` (named by the values holding them): the groups'
-keys `g^(κ·252)·INV_GEN^c₀` (`cpKey`), their sizes `g^(#columns·2^κ)` (`cpSize`), the group
+keys `g^(κ·254)·INV_GEN^c₀` (`cpKey`), their sizes `g^(#columns·2^κ)` (`cpSize`), the group
 order (`cpGOrd`, `stackOffsets`'s order of the groups: descending `κ`, ties by ascending group,
 the honest `col_group_order` witness), each group's base `g^(sizes before it)` (`cpGP`) and the
 columns' `g^offset`.
@@ -28,7 +28,7 @@ The honest valuation `cpσ` is written out value by value (`cpF`): the base's wo
 values (`cpGrpV`: its `g^κ`, range check, rank key, key, chain of its size), rank `0`
 (`cpRank0V`), ranks `1 .. 8` (`cpRankV`: the group, its range check, its key, the key step `e`
 to the previous rank and its range check, the base, the size and the running total) and each
-group's columns (`cpColV`). The range checks read the memory at `g^a`, `a ≤ 8567`: the memory is
+group's columns (`cpColV`). The range checks read the memory at `g^a`, `a ≤ 8635`: the memory is
 defined below `2^14` (`LowDefB 14`).
 
 The columns' offsets are `stackOffsets`'s (`cp_offsets`), by `tb_group_stack_cert` on a memory
@@ -88,14 +88,14 @@ def cpRho (gi : ℕ) : ℕ := (cpGOrd lm hs).idxOf gi
 /-- The sizes of the groups of ranks below `r`. -/
 def cpGP (r : ℕ) : ℕ := tbGroupPrefix cpC0 (cpKc lm hs) (cpPi lm hs) r
 
-/-- Group `gi`'s rank key `g^(κ·252)·INV_GEN^c₀`. -/
+/-- Group `gi`'s rank key `g^(κ·254)·INV_GEN^c₀`. -/
 noncomputable def cpKey (gi : ℕ) : E :=
   gen ^ (cpKg lm hs gi * rankStride) * word (cpInvWords.getD gi 0) 0 0
 
 /-- Group `gi`'s size, `#columns·2^κ`. -/
 def cpSize (gi : ℕ) : ℕ := cpLen gi * 2 ^ cpKg lm hs gi
 
-/-- The key step from rank `r - 1` to rank `r`: `κ_prev·252 + c₀ = κ·252 + c₀_prev + e + 1`. -/
+/-- The key step from rank `r - 1` to rank `r`: `κ_prev·254 + c₀ = κ·254 + c₀_prev + e + 1`. -/
 def cpE (r : ℕ) : ℕ :=
   cpKg lm hs (cpPi lm hs (r - 1)) * rankStride + cpC0 (cpPi lm hs r) -
     cpKg lm hs (cpPi lm hs r) * rankStride - cpC0 (cpPi lm hs (r - 1)) - 1
@@ -132,10 +132,10 @@ theorem cpBx_eq : ∀ gi < 9, cpBx gi = cpB gi := by decide +kernel
 theorem cpGOf_eq : ∀ gi < 9, ∀ v < 138, cpB gi ≤ v → v < cpBx (gi + 1) → cpGOf v = gi := by
   decide +kernel
 
-theorem cpCOf_eq : ∀ gi < 9, ∀ v < 413, cpD gi ≤ v → v < cpD (gi + 1) → cpCOf v = gi := by
+theorem cpCOf_eq : ∀ gi < 9, ∀ v < 415, cpD gi ≤ v → v < cpD (gi + 1) → cpCOf v = gi := by
   decide +kernel
 
-theorem cpCGrp_eq : ∀ gi < 9, ∀ c < 99, cpC0 gi ≤ c → c < cpC0 (gi + 1) → cpCGrp c = gi := by
+theorem cpCGrp_eq : ∀ gi < 9, ∀ c < 101, cpC0 gi ≤ c → c < cpC0 (gi + 1) → cpCGrp c = gi := by
   decide +kernel
 
 /-- The groups' values lie in `12 .. 137`, in order. -/
@@ -144,7 +144,7 @@ theorem cp_grp_geom : ∀ gi < 9, 12 ≤ cpB gi ∧ cpZ gi + 1 + (cpCh gi).lengt
 
 /-- The columns' values lie in `296 .. 412`, in order. -/
 theorem cp_col_geom : ∀ gi < 9, 296 ≤ cpD gi ∧ cpD (gi + 1) = cpD gi + 2 + cpLen gi ∧
-    cpD (gi + 1) ≤ 413 := by decide +kernel
+    cpD (gi + 1) ≤ 415 := by decide +kernel
 
 theorem cpC0_lt99 : ∀ gi < 9, cpC0 gi ≤ 73 := by decide +kernel
 
@@ -208,9 +208,9 @@ noncomputable def cpRankV (r j : ℕ) : E :=
   | 8 => gen ^ (e + 1)
   | 9 => wInvGen
   | 10 => gen ^ e
-  | 11 => gen ^ (8567 - e)
+  | 11 => gen ^ (8635 - e)
   | 12 => rdv rd e
-  | 13 => rdv rd (8567 - e)
+  | 13 => rdv rd (8635 - e)
   | 14 => ofK (addressOfIndex e139) * gen ^ p
   | 15 => ofK (addressOfIndex e11) * gen ^ p
   | 16 => gen ^ cpSize lm hs p
@@ -235,8 +235,8 @@ noncomputable def cpF (v : ℕ) : E :=
   else if v < 151 then cpRank0V lm hs e10 e11 e139 rd (v - 140)
   else if v < 295 then cpRankV lm hs e10 e11 e139 rd ((v - 133) / 18) ((v - 133) % 18)
   else if v = 295 then ofK (addressOfIndex e295)
-  else if v < 413 then cpColV lm hs esq (cpCOf v) v
-  else if v = 413 then gen ^ cpGP lm hs 9
+  else if v < 415 then cpColV lm hs esq (cpCOf v) v
+  else if v = 415 then gen ^ cpGP lm hs 9
   else ofK (addressOfIndex e295)
 
 /-- **The honest valuation.** -/
@@ -309,13 +309,13 @@ end
 section
 variable {lm : ℕ} {hs : List ℕ}
 
-theorem cpKs_length : (cpKs lm hs).length = 99 :=
+theorem cpKs_length : (cpKs lm hs).length = 101 :=
   committedKappas_length _ (columnKappas_length _ _ _)
 
-theorem cpKs_eq (hl : hs.length = 6) : cpKs lm hs = (List.range 99).map (cpKc lm hs) :=
+theorem cpKs_eq (hl : hs.length = 6) : cpKs lm hs = (List.range 101).map (cpKc lm hs) :=
   committedKappas_columnKappas lm hs hl
 
-theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 99) :
+theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 101) :
     (cpKs lm hs).getD c 0 = cpKc lm hs c := by
   rw [cpKs_eq hl, List.getD_eq_getElem _ _ (by simpa using hc)]
   simp
@@ -396,10 +396,10 @@ theorem cpGP_zero : cpGP lm hs 0 = 0 := by simp [cpGP, tbGroupPrefix]
 theorem cpGP_succ (r : ℕ) : cpGP lm hs (r + 1) = cpGP lm hs r + cpSize lm hs (cpPi lm hs r) := by
   rw [cpGP, tb_groupPrefix_succ]; rfl
 
-/-- **The key step**: between adjacent ranks it is a natural below `8568`. -/
+/-- **The key step**: between adjacent ranks it is a natural below `8636`. -/
 theorem cpE_spec (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
     (h5 : hs.getD 5 0 ≤ 27) {r : ℕ} (hr : r + 1 < 9) :
-    cpE lm hs (r + 1) ≤ 8567 ∧
+    cpE lm hs (r + 1) ≤ 8635 ∧
       cpKg lm hs (cpPi lm hs r) * rankStride + cpC0 (cpPi lm hs (r + 1)) =
         cpE lm hs (r + 1) + 1 + cpKg lm hs (cpPi lm hs (r + 1)) * rankStride +
           cpC0 (cpPi lm hs r) := by
@@ -416,14 +416,14 @@ theorem cpE_spec (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h <
     · exact Or.inl (cpC0_strict _ ha _ hb (htie (by omega)))
   unfold cpE
   rw [Nat.add_sub_cancel]
-  simp only [show rankStride = 252 from rfl]
+  simp only [show rankStride = 254 from rfl]
   generalize cpKg lm hs (cpPi lm hs r) = A at *
   generalize cpKg lm hs (cpPi lm hs (r + 1)) = B at *
   generalize cpC0 (cpPi lm hs r) = a at *
   generalize cpC0 (cpPi lm hs (r + 1)) = b at *
   rcases hs' with h | h
   · constructor <;> omega
-  · have : (B + 1) * 252 ≤ A * 252 := Nat.mul_le_mul_right _ h
+  · have : (B + 1) * 254 ≤ A * 254 := Nat.mul_le_mul_right _ h
     constructor <;> omega
 
 /-- **The keys of adjacent ranks**: `key_prev = g^(e+1)·key`. -/
@@ -451,16 +451,16 @@ end
 
 /-! ## The columns' offsets -/
 
-/-- A memory holding `g^Q c` at column `c < 99` from `g^0`. -/
+/-- A memory holding `g^Q c` at column `c < 101` from `g^0`. -/
 noncomputable def cpOffRd (Q : ℕ → ℕ) : Reader := fun x ↦
-  if h : ∃ c, c < 99 ∧ addressOfIndex c = x then some (gen ^ Q (Classical.choose h)) else none
+  if h : ∃ c, c < 101 ∧ addressOfIndex c = x then some (gen ^ Q (Classical.choose h)) else none
 
-theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 99) :
+theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 101) :
     LoadHolds (cpOffRd Q) (ofK (addressOfIndex 0)) c (gen ^ Q c) := by
   refine ⟨tb_isInK_ofK _, ?_⟩
   rw [tb_addr_ofK, Nat.zero_add]
-  have h : ∃ c', c' < 99 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
-  have he : ∀ h' : ∃ c', c' < 99 ∧ addressOfIndex c' = addressOfIndex c,
+  have h : ∃ c', c' < 101 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
+  have he : ∀ h' : ∃ c', c' < 101 ∧ addressOfIndex c' = addressOfIndex c,
       Classical.choose h' = c := fun h' ↦ by
     have hs := Classical.choose_spec h'
     exact gpow_injOn (show Classical.choose h' ∈ Set.Iio (2 ^ 64 - 1) by
@@ -505,7 +505,7 @@ theorem cp_offsets (hl : hs.length = 6) :
     (fun r hr ↦ cpPi_adj hr) hoff
   rw [cpC0_nine] at hoffs htot
   refine ⟨fun gi hgi j hj ↦ ?_, ?_⟩
-  · have hc : cpC0 gi + j < 99 := by
+  · have hc : cpC0 gi + j < 101 := by
       have := cpC0_le gi hgi; unfold cpLen at hj; omega
     have h1 := hoffs _ hc
     rw [← cpKs_eq hl] at h1
@@ -535,8 +535,8 @@ theorem w8_eq : w8 = gen ^ 8 := by rw [w8, word_g8, gen_pow_eq_ofK]
 
 theorem w33_eq : w33 = gen ^ 33 := by rw [w33, word_g33, gen_pow_eq_ofK]
 
-theorem wRankBound_eq : wRankBound = gen ^ 8567 := by
-  rw [wRankBound, word_g8567, gen_pow_eq_ofK]
+theorem wRankBound_eq : wRankBound = gen ^ 8635 := by
+  rw [wRankBound, word_g8635, gen_pow_eq_ofK]
 
 theorem isInK_gen_pow (a : ℕ) : IsInK (gen ^ a) := by rw [gen_pow_eq_ofK]; exact tb_isInK_ofK _
 
@@ -559,7 +559,7 @@ structure CpReads (lm : ℕ) (hs : List ℕ) (ekb esq e10 e11 e138 e139 e295 : �
   ord : ∀ r < 9, LoadHolds rd (ofK (addressOfIndex e138)) r (gen ^ cpPi lm hs r)
   base : ∀ g < 9, LoadHolds rd (ofK (addressOfIndex e139)) g
     (gen ^ cpGP lm hs (cpRho lm hs g))
-  off : ∀ c < 99, LoadHolds rd (ofK (addressOfIndex e295)) c
+  off : ∀ c < 101, LoadHolds rd (ofK (addressOfIndex e295)) c
     (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0)
 
 theorem cp_reads (hl : hs.length = 6)
@@ -780,7 +780,7 @@ theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
     vR 17 (by norm_num), vK, vT, v10, v11, v138, v139]
   simp only [cpRankV]
   obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpPi lm hs (r + 1)) (K := 8) (by omega) (by norm_num)
-  obtain ⟨d1, d2, d3⟩ := rc_ok hlow (a := cpE lm hs (r + 1)) (K := 8567) hE (by norm_num)
+  obtain ⟨d1, d2, d3⟩ := rc_ok hlow (a := cpE lm hs (r + 1)) (K := 8635) hE (by norm_num)
   refine ⟨R.ord _ (by omega), trivial, ⟨c1, by rw [w8_eq, c2], c3⟩, trivial, ?_, trivial,
     cpKey_step hl hlm hhs h5 (by omega), trivial, ?_, ⟨d1, by rw [wRankBound_eq, d2], d3⟩,
     trivial, ?_, trivial, ?_, ?_⟩
@@ -853,7 +853,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hm : MemLay rd (cpOwn lm hs e10 e11 e138 e139 e295 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e10 e11 e138 e139 e295 rd)
-      (cpPre ++ [.ret [.n 413, .n 414]]) False
+      (cpPre ++ [.ret [.n 415, .n 416]]) False
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
         ofK (addressOfIndex e295)]) := by
   have R := cp_reads hl hm
@@ -864,7 +864,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   obtain ⟨-, htot⟩ := cp_offsets (lm := lm) hl
   obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpPi lm hs 0) (K := 8) (by omega) (by norm_num)
   have s140 : σ (.n 140) = gen ^ cpPi lm hs 0 := r0 0 (by norm_num)
-  have s413 : σ (.n 413) = gen ^ cpGP lm hs 9 := rfl
+  have s415 : σ (.n 415) = gen ^ cpGP lm hs 9 := rfl
   have s294 : σ (.n 294) = gen ^ cpGP lm hs 9 :=
     (cp_rankKey (lm := lm) (hs := hs) (ekb := ekb) (esq := esq) (e10 := e10) (e11 := e11)
       (e138 := e138) (e139 := e139) (e295 := e295) (rd := rd) (r := 8) (by norm_num)).2
@@ -880,7 +880,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     refine ⟨fun i hi ↦ ?_, fun gi hgi ↦ cp_group_holds hl hlm hhs h5 hlow R hgi, ?_, r0 1 (by norm_num),
       ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_, r0 7 (by norm_num), r0 8 (by norm_num), ?_,
       r0 9 (by norm_num), ?_, fun r hr ↦ cp_rank hl hlm hhs h5 hlow R hr,
-      fun gi hgi ↦ cp_cols_holds hl hlm hhs h5 R hgi, by rw [s413, s294], rfl⟩
+      fun gi hgi ↦ cp_cols_holds hl hlm hhs h5 R hgi, by rw [s415, s294], rfl⟩
     · have vkb : σ (.n (2 + i)) = gen ^ cpEb lm hs i :=
         cpσ_kb lm hs ekb esq e10 e11 e138 e139 e295 rd hi
       rw [vkb]; exact R.kb i hi
@@ -905,8 +905,8 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
         show σ (.n 150) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
         Nat.add_zero, cpGP_succ, cpGP_zero, Nat.zero_add]
       exact R.size _ hp0
-  · show [σ (.n 413), σ (.n 414)] = _
-    rw [s413, htot, show σ (.n 414) = ofK (addressOfIndex e295) from rfl]
+  · show [σ (.n 415), σ (.n 416)] = _
+    rw [s415, htot, show σ (.n 416) = ofK (addressOfIndex e295) from rfl]
 
 /-- **The offsets' buffer satisfies `PCtx`** on any memory holding the buffers. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e10 e11 e138 e139 e295 : ℕ} {rd : Reader}
