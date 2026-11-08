@@ -80,7 +80,7 @@ theorem canon_zero' : IsCanonical128 (0 : E) := by
 theorem good_keccak_cells {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {ins : List V}
     {b : ℕ} (h : Good rd S w σ (.keccak ins (lyOuts b) false false)) :
     ∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩ := by
-  obtain ⟨-, -, hc⟩ := h
+  obtain ⟨-, -, hc⟩ := good_keccak13 h (by simp [lyOuts])
   intro k hk
   have := hc ⟨k, hk⟩
   simpa [cells13, lyOuts, List.getD_eq_getElem?_getD, hk, permOf] using this

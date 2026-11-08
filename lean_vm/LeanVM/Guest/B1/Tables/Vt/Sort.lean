@@ -57,10 +57,10 @@ theorem vtW23_eq : vtW23 = ofK (Parameters.addressOfIndex 23) := by
   rw [vtW23, show (8388608 : ℕ) = 2 ^ 23 by norm_num, tb_word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
-theorem vtW8567_eq : vtW8567 = ofK (Parameters.addressOfIndex 8567) := by
-  rw [vtW8567, tb_word_eOfNat]
-  show ofK (K.ofBits 13258782582107712005) = ofK (Parameters.addressOfIndex 8567)
-  rw [show K.ofBits 13258782582107712005 = Parameters.addressOfIndex 8567 by decide +kernel]
+theorem vtW8635_eq : vtW8635 = ofK (Parameters.addressOfIndex 8635) := by
+  rw [vtW8635, tb_word_eOfNat]
+  show ofK (K.ofBits 9287367476377611832) = ofK (Parameters.addressOfIndex 8635)
+  rw [show K.ofBits 9287367476377611832 = Parameters.addressOfIndex 8635 by decide +kernel]
 
 /-- Rank `r`'s group size read. -/
 def vtSz (v0 r : ℕ) : ℕ := if r = 0 then v0 + 12 else vtRv v0 r + 18
@@ -87,7 +87,7 @@ def VtRankFacts (rd : Reader) (σ : Val) (v0 s r : ℕ) : Prop :=
     LoadHolds rd (σ (.n 37) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtSz v0 r))) ∧
     σ (.n (vtGout v0 r)) = σ (.n (vtGin v0 r)) * σ (.n (vtSz v0 r)) ∧
     (r = 0 → σ (.n (vtGin v0 r)) = 1) ∧
-    (1 ≤ r → ∃ d < 8568, σ (.n (vtRv v0 (r - 1) + 8)) = gen ^ (d + 1) * σ (.n (vtRv v0 r + 8)))
+    (1 ≤ r → ∃ d < 8636, σ (.n (vtRv v0 (r - 1) + 8)) = gen ^ (d + 1) * σ (.n (vtRv v0 r + 8)))
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -123,8 +123,8 @@ theorem vt_rank {σ : Val} {v0 R0 s r : ℕ} (hr : 1 ≤ r) {kret : List E → P
   refine ⟨vt_rc hμ Lm (K := 24) (by omega) (by norm_num) (by rw [c1, vtW23_eq]) rc2,
     by rw [← m6, ← c5]; exact l5, by rw [← m7]; exact l8, by rw [← m16]; exact lgin,
     by rw [← m17]; exact l18, m19, fun h => absurd h hr0, fun _ => ?_⟩
-  obtain ⟨d, hd, hdv⟩ := vt_rc hμ Lm (K := 8568) (by omega) (by norm_num)
-    (by rw [c9, vtW8567_eq]) rc12
+  obtain ⟨d, hd, hdv⟩ := vt_rc hμ Lm (K := 8636) (by omega) (by norm_num)
+    (by rw [c9, vtW8635_eq]) rc12
   refine ⟨d, hd, ?_⟩
   have h10 : σ (.n (vtRv v0 r + 10)) = gen ^ (d + 1) := by
     calc σ (.n (vtRv v0 r + 10)) = σ (.n (vtRv v0 r + 10)) * (vtWInvGen * gen ^ 1) := by

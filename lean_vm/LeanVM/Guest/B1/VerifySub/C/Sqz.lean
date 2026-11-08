@@ -112,7 +112,7 @@ theorem kc_complete (hl : args.length = 6) {ins : List V} {o : ℕ}
   have hK := keccakA_complete hk hcan
   have hout : ∀ k < 13, IsCanonical128 (vsσ rd w args (.n (o + k))) := by
     intro k hk13
-    have := hk.2.2 ⟨k, hk13⟩
+    have := (good_keccak13 hk (by simp [vsRun])).2.2 ⟨k, hk13⟩
     simp [cells13, vsRun, List.getD_eq_getElem?_getD, hk13] at this
     rw [this]
     exact canon_cellsOfState _ _ _

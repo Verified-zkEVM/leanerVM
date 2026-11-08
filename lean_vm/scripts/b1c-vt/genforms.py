@@ -11,10 +11,10 @@ _ed = _ed[_ed.index(':=') + 2:_ed.index('\n\n')]
 EV = [(p, b, k) for k, (p, b) in enumerate(ast.literal_eval(' '.join(_ed.split())))]
 evvar={}   # copy var -> k
 for (p,b,k) in EV: evvar[b+10]=k
-BASE=[0,15,30,38,53,67]; WIDTH=[15,15,8,15,14,90]
+BASE=[0,15,30,38,53,67]; WIDTH=[15,15,8,15,14,92]
 # The forms' window, the ξ powers multiplying the push/pull/count forms (G:2504), W's and β's variables.
-WLO, WHI = 2672, 6250
-XI = (2575, 2576, 2577)
+WLO, WHI = 2688, 6352
+XI = (2591, 2592, 2593)
 WV, BV = 13, 14
 # Each table's form values per side: the operands of its `ξ²·F0`, `ξ³·F1`, `ξ⁴·F2`, in table order.
 def _formvals():

@@ -41,13 +41,13 @@ theorem vsH_tau22 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem :
   rw [stackLog_eq hbl] at h28
   have hcl : 5 < (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode
       (Tables.tableHeightsOf rowsN))).length := by
-    rw [Tables.committedKappas_length _ (Tables.columnKappas_length _ _ _)]; show 5 < 99; norm_num
+    rw [Tables.committedKappas_length _ (Tables.columnKappas_length _ _ _)]; show 5 < 101; norm_num
   have := Tables.tb_le_log2Ceil_of_two_pow_le (Tables.tb_single_le_sum_map _ 5 hcl)
   have e : ((Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode
       (Tables.tableHeightsOf rowsN))).map (2 ^ ·)).sum =
       Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) := rfl
   rw [e, Tables.committedKappas_columnKappas logMem _ hsl,
-    List.getD_eq_getElem _ _ (by simp; show 5 < 99; norm_num), List.getElem_map, List.getElem_range] at this
+    List.getD_eq_getElem _ _ (by simp; show 5 < 101; norm_num), List.getElem_map, List.getElem_range] at this
   simp [Tables.colKappaSrc, Tables.colKappaAdj] at this
   rw [List.getD_eq_getElem?_getD]
   omega

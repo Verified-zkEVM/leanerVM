@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 
 At frame pointer `fp` the buffers lie at `e10 = fp + fs "certify_placement"` (the groups' keys),
 `e11 = e10 + 9` (their sizes), `e138 = e11 + 9` (the group order), `e139 = e138 + 9` (the groups'
-bases) and `e295 = e139 + 9` (the columns' offsets, `99` words); the function returns the stack's
+bases) and `e295 = e139 + 9` (the columns' offsets, `101` words); the function returns the stack's
 total and the offsets' pointer, and its returned layout is `cpOwn` there (`cpOut`).
 `certify_placement_completeAt`: `CompleteAtD` on the base, squares and rank-key runs `cpLin`, for
 `κ ≥ 14`, by `completeAt_flatOutD` on the honest valuation `cpσ` (`cp_body_holds`), every load in
@@ -43,7 +43,7 @@ noncomputable def cpOwnL (lm : ℕ) (hs : List ℕ) : List (List E) :=
     (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)]
 
 /-- The buffers' sizes. -/
-abbrev cpSizes : List ℕ := [9, 9, 9, 9, 99]
+abbrev cpSizes : List ℕ := [9, 9, 9, 9, 101]
 
 theorem cp_bufL (lm : ℕ) (hs : List ℕ) (b : ℕ) :
     bufL b cpSizes (cpOwnL lm hs) = cpOwn lm hs b (b + 9) (b + 9 + 9) (b + 9 + 9 + 9)
@@ -58,7 +58,7 @@ theorem cp_flat : cpPre.all Stmt.flat = true := by decide +kernel
 theorem cp_addrs : cpPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem cp_allocs : cpPre.filterMap Main.Stmt.allocSz =
-    [(.n 10, .inl 9), (.n 11, .inl 9), (.n 138, .inl 9), (.n 139, .inl 9), (.n 295, .inl 99)] := by
+    [(.n 10, .inl 9), (.n 11, .inl 9), (.n 138, .inl 9), (.n 139, .inl 9), (.n 295, .inl 101)] := by
   decide +kernel
 
 theorem cp_not_loop : coreProgram.loop "certify_placement" = false := by decide +kernel
@@ -159,7 +159,7 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
   have h139 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e139 + g) := fun g hg ↦
     cp_regionL (q := (e139, (List.range 9).map fun g ↦ gen ^ cpGP lm hs (cpRho lm hs g)))
       (by simp [cpOwn]) (by simp; omega)
-  have h295 : ∀ c < 99, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e295 + c) := fun c hc ↦
+  have h295 : ∀ c < 101, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e295 + c) := fun c hc ↦
     cp_regionL (q := (e295, (stackOffsets (cpKs lm hs)).1.map (gen ^ ·))) (by simp [cpOwn])
       (by simp [tb_stackOffsets_length, cpKs_length]; omega)
   have hκ : ∀ gi, cpKg lm hs gi < 34 := fun gi ↦ cpKc_lt hl hlm hhs h5 _
