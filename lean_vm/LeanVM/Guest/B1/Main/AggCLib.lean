@@ -180,9 +180,10 @@ theorem chal_inK {A : List Atom} {s0 s1 : V} {b : ℕ} (h : allIn A (challA s0 s
 
 /-- An evaluated `KECCAK`'s outputs are canonical. -/
 theorem keccak_out_canon {ins outs : List V} {i o : Bool}
-    (hg : Good rd S w σ (.keccak ins outs i o)) {c : ℕ} (hc : c < 13) :
+    (hg : Good rd S w σ (.keccak ins outs i o)) {c : ℕ} (hc : c < 13)
+    (ho : outs.length = 13 := by first | rfl | simp) :
     IsCanonical128 (σ (outs.getD c default)) := by
-  obtain ⟨-, hl, hk⟩ := hg
+  obtain ⟨-, hl, hk⟩ := good_keccak13 hg ho
   have := hk ⟨c, hc⟩
   simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
     List.getElem?_eq_getElem (show c < outs.length by omega), Option.map_some,

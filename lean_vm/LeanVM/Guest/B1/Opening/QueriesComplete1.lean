@@ -29,7 +29,7 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The query's places in order. -/
 theorem places : d.b + d.s.R ≤ d.k1 ∧ d.k1 + d.s.D ≤ d.kL ∧ d.kL + d.s.chainLen = d.ch ∧
-    d.kL + 36 ≤ d.ch ∧ d.e = d.ch :=
+    d.kL + 25 ≤ d.ch ∧ d.e = d.ch :=
   ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, by rw [ch_eq]; unfold Oq.chainLen; omega,
     e_eq d⟩
 

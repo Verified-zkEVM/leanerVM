@@ -244,8 +244,8 @@ noncomputable def cl23Else : List Stmt := match Fn.body Data.core23 with
 set_option maxRecDepth 100000 in
 theorem core22_shape : Fn.body Data.core23 =
     [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
-     .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 87) (.n 10)), .atom (.copy (.n 88) (.n 11)),
-     .ret [.n 87, .n 88]] :=
+     .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11)),
+     .ret [.n 76, .n 77]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
@@ -256,29 +256,29 @@ noncomputable def czOk : Bool :=
   cl23Zero.all Stmt.flat && czSpec.check (atomsIn cl23Zero) &&
     decide (czSpec.outV (czSpec.nb - 1) 0 = V.n 10) && decide (czSpec.outV (czSpec.nb - 1) 1 = V.n 11)
 
-/-- The nonempty list's branch: `list_split`, the zero state at `chain = .n 34`, the big frames'
+/-- The nonempty list's branch: `list_split`, the zero state at `chain = .n 23`, the big frames'
 loop, `mid = chain · bigs^13`, `mid_entries = entries · bigs^544`, the groups' loop,
 `last = mid · groups^13`, `blk = mid_entries · groups^68`, the dispatch on the rest. -/
 noncomputable def ceOk : Bool :=
   cl23Else.all Stmt.flat &&
-  cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24, .n 25])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 49) "__loop15" [.n 50, .n 23, .n 34, .n 0])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 69) "__loop16" [.n 70, .n 24, .n 56, .n 67])) &&
-  cl23Else.any (stmtEqb · (.dispatch (.n 25) clNames [.n 76, .n 84] [.n 85, .n 86])) &&
-  (atomsIn cl23Else).any (isConstAt (.n 50) 1 0) &&
-  (atomsIn cl23Else).any (isAddAt (.n 49) (.n 48) (.n 23)) &&
-  (atomsIn cl23Else).any (isConstAt (.n 48) 1 0) &&
-  (atomsIn cl23Else).any (isConstAt (.n 70) 1 0) &&
-  (atomsIn cl23Else).any (isAddAt (.n 69) (.n 68) (.n 24)) &&
-  (atomsIn cl23Else).any (isConstAt (.n 68) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n (35 + c)) (.n 34) c) &&
-    (atomsIn cl23Else).any (isConstAt (.n (35 + c)) 0 0)) &&
-  monoIs (atomsIn cl23Else) (.n 56) (.n 34) (.n 23) 13 &&
-  monoIs (atomsIn cl23Else) (.n 67) (.n 0) (.n 23) 544 &&
-  mono2Is (atomsIn cl23Else) (.n 76) (.n 34) (.n 23) 13 (.n 24) 13 &&
-  mono2Is (atomsIn cl23Else) (.n 84) (.n 0) (.n 23) 544 (.n 24) 68 &&
-  (atomsIn cl23Else).any (isCopyAt (.n 10) (.n 85)) &&
-  (atomsIn cl23Else).any (isCopyAt (.n 11) (.n 86))
+  cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 12, .n 13, .n 14])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 38) "__loop15" [.n 39, .n 12, .n 23, .n 0])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 58) "__loop16" [.n 59, .n 13, .n 45, .n 56])) &&
+  cl23Else.any (stmtEqb · (.dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75])) &&
+  (atomsIn cl23Else).any (isConstAt (.n 39) 1 0) &&
+  (atomsIn cl23Else).any (isAddAt (.n 38) (.n 37) (.n 12)) &&
+  (atomsIn cl23Else).any (isConstAt (.n 37) 1 0) &&
+  (atomsIn cl23Else).any (isConstAt (.n 59) 1 0) &&
+  (atomsIn cl23Else).any (isAddAt (.n 58) (.n 57) (.n 13)) &&
+  (atomsIn cl23Else).any (isConstAt (.n 57) 1 0) &&
+  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n (24 + c)) (.n 23) c) &&
+    (atomsIn cl23Else).any (isConstAt (.n (24 + c)) 0 0)) &&
+  monoIs (atomsIn cl23Else) (.n 45) (.n 23) (.n 12) 13 &&
+  monoIs (atomsIn cl23Else) (.n 56) (.n 0) (.n 12) 544 &&
+  mono2Is (atomsIn cl23Else) (.n 65) (.n 23) (.n 12) 13 (.n 13) 13 &&
+  mono2Is (atomsIn cl23Else) (.n 73) (.n 0) (.n 12) 544 (.n 13) 68 &&
+  (atomsIn cl23Else).any (isCopyAt (.n 10) (.n 74)) &&
+  (atomsIn cl23Else).any (isCopyAt (.n 11) (.n 75))
 
 set_option maxRecDepth 100000 in
 theorem cz_ok : czOk = true := by decide +kernel
@@ -324,14 +324,14 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     obtain ⟨h23, h24, h25⟩ := habc
     simp only [maxKeys, claimGroup, bigGroups] at ha hb hc
     -- the zero state
-    have h0 : StateAt rd (σ (.n 34)) 0 (absorbChunks 0 zeroState []) := by
+    have h0 : StateAt rd (σ (.n 23)) 0 (absorbChunks 0 zeroState []) := by
       intro c
       have hl := load_sound (hzs c c.isLt).1 hat
       rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
       rw [Nat.zero_add, absorbChunks, cellsOfState_zero]
       exact hl
     -- the big frames
-    have hbig := frames_of_loop big_idx (by norm_num) big_ok big_nb (chain := σ (.n 34))
+    have hbig := frames_of_loop big_idx (by norm_num) big_ok big_nb (chain := σ (.n 23))
       (entries := σ (.n 0)) (by omega) h23 (fun hne => by
         have := (callIf_of_flat hall hlp).2
           (by rw [add_sound h49 hat, const_sound h48 hat, word_one]; exact hne)
@@ -339,12 +339,12 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     obtain ⟨ca, hla, hra, hcana, hSa⟩ := groups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
       hbig a le_rfl
     -- the groups
-    have h56 : σ (.n 56) = σ (.n 34) * gen ^ (13 * a) := by
+    have h56 : σ (.n 45) = σ (.n 23) * gen ^ (13 * a) := by
       rw [monoIs_sound hm56 hat, h23, gen_pow_pow]
-    have h67 : σ (.n 67) = σ (.n 0) * gen ^ (544 * a) := by
+    have h67 : σ (.n 56) = σ (.n 0) * gen ^ (544 * a) := by
       rw [monoIs_sound hm67 hat, h23, gen_pow_pow]
-    have hgrp := frames_of_loop grp_idx (by norm_num) grp_ok grp_nb (chain := σ (.n 56))
-      (entries := σ (.n 67)) (by omega) h24 (fun hne => by
+    have hgrp := frames_of_loop grp_idx (by norm_num) grp_ok grp_nb (chain := σ (.n 45))
+      (entries := σ (.n 56)) (by omega) h24 (fun hne => by
         have := (callIf_of_flat hall hlp2).2
           (by rw [add_sound h69 hat, const_sound h68 hat, word_one]; exact hne)
         simpa [const_sound h70 hat, word_one] using this)
@@ -366,9 +366,9 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     obtain ⟨sp, blk, hargs, hlast⟩ := claimLast_sound hj17 hcall
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
     obtain ⟨hsp, hblk⟩ := hargs
-    have h76 : σ (.n 76) = σ (.n 56) * gen ^ (13 * b) := by
+    have h76 : σ (.n 65) = σ (.n 45) * gen ^ (13 * b) := by
       rw [mono2Is_sound hm76 hat, h56, h23, h24]; simp only [gen_pow_pow]
-    have h84 : σ (.n 84) = σ (.n 67) * gen ^ (68 * b) := by
+    have h84 : σ (.n 73) = σ (.n 56) * gen ^ (68 * b) := by
       rw [mono2Is_sound hm84 hat, h67, h23, h24]; simp only [gen_pow_pow]
     have hpre : ([] ++ cellsBytes ca ++ cellsBytes cb).length = rate * (0 + 64 * a + 8 * b) := by
       rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hla, hlb]

@@ -1,23 +1,23 @@
-# usage: python3 -I genevals.py  — rewrites the data of Tables/Vt/EvalsT.lean (verify_tables' 157
+# usage: python3 -I genevals.py  — rewrites the data of Tables/Vt/EvalsT.lean (verify_tables' 159
 # table evaluations, G:2464-2472 at 5e3ade21: `fs_next` at the cursor, copied into `col_evals`; the
 # permutations between them) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, VT_LEAN
 
-CUR = 2609
+CUR = 2625
 def main():
     ev = []; perm = []
     for p in sorted(IR):
         s = IR[p]
         m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n %d\) (\d+)\)' % CUR, s)
-        if m and int(m.group(2)) == len(ev) and p > 2671:
+        if m and int(m.group(2)) == len(ev) and p > 2687:
             b = int(m.group(1)); ev.append((p, b))
             assert IR[p + 9].startswith(f'.atom (.copy (.n {b + 10}) (.n {b}))'), (p, IR[p + 9])
         m = re.match(r'\.atom \(\.keccak \[\.n (\d+).*\] \[\.n (\d+),', s)
         if m and ev and len(perm) < 39 and p > ev[-1][0] and len(ev) == 4 * (len(perm) + 1):
             perm.append((p, int(m.group(2))))
-    assert len(ev) == 157 and len(perm) == 39, (len(ev), len(perm))
+    assert len(ev) == 159 and len(perm) == 39, (len(ev), len(perm))
     return ev, perm
 
 def fmt(items, per):

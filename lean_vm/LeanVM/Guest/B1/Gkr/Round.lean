@@ -89,7 +89,7 @@ theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
   obtain ⟨hl2, pk2⟩ := f2.1
   obtain ⟨hl3, pk3⟩ := f3.1
   -- the permutation
-  obtain ⟨-, -, hcan, hout⟩ := keccakA_perm (rd := rd) (σ := σ) ⟨hk.1, hk.2.1, hk.2.2⟩
+  obtain ⟨-, -, hcan, hout⟩ := keccakA_perm (rd := rd) (σ := σ) hk
   have can : ∀ j, j = B + 7 ∨ j = B + 17 ∨ j = B + 27 ∨ j = B + 37 → IsCanonical128 (σ (.n j)) := by
     intro j hj
     apply hcan

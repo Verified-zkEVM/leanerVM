@@ -736,9 +736,9 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
     fsPackOk_of_vals fun i hi ↦ by interval_cases i <;> simp [ev, ofmVals, as],
     nextOk 0 2 (by omega) (by omega) (by omega) 0 32 (by omega) (by omega),
     nextOk 0 3 (by omega) (by omega) (by omega) 1 42 (by omega) (by omega),
-    ⟨rfl, rfl, ?_, ?_⟩, ?_,
+    keccak13_mk (rd := rd) rfl rfl ?_ ?_, ?_,
     nextF 0 (by omega) _ _ rfl (by omega), nextF 1 (by omega) _ _ (by omega) (by omega),
-    ?_, fsPackOk_of_vals fun u hu ↦ ?_, ?_, ?_, ⟨rfl, rfl, ?_, ?_⟩,
+    ?_, fsPackOk_of_vals fun u hu ↦ ?_, ?_, ?_, keccak13_mk (rd := rd) rfl rfl ?_ ?_,
     ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   all_goals try (show σ _ = σ _; simp [ev, ofmVals, as]; done)
   · simp only [List.map_cons, List.map_nil, hin0]
@@ -754,7 +754,7 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
   · intro j hj
     have hj' : j < m' := by simpa using hj
     refine ⟨fun t ht ↦ nextOk (j + 1) t (by omega) ht (by omega) _ _ (by omega) (by ring),
-      by simp [ofmRate, capIns], by simp [ofmRun], ?_, ?_⟩
+      keccak13_mk (rd := rd) (by simp [ofmRate, capIns]) (by simp [ofmRun]) ?_ ?_⟩
     · rw [hinB j hj']
       refine kcan _ ?_
       simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]

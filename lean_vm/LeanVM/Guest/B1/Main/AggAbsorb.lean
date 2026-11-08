@@ -238,7 +238,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   obtain ⟨-, hwl, hK, hP, -⟩ := DupSpec.check_facts hchk hat
   have hin := rowIn_sound hrin hat
   rw [p13] at hin
-  have hcan := (DupSpec.keccak_facts (hK 0 (by omega)).2.2).1
+  have hcan := (DupSpec.keccak_facts (hK 0 (by omega)).2.2 (hK 0 (by omega)).2.1).1
   rw [hin] at hcan
   have hperm := rowRel_perm hrow (fun c hc => hcan c (List.mem_append_left _ hc))
   rw [← hin] at hperm

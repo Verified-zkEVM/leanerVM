@@ -65,7 +65,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
     {c : ℕ}
     (hc : c < lg σ 6) :
     (decKid rd σ wV c).freshClaim.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd (σ (.n 422) * gen ^ (24 * c)) (DeferredClaim.cells (decKid rd σ wV c).freshClaim) ∧
+      ReadsAt rd (σ (.n 411) * gen ^ (24 * c)) (DeferredClaim.cells (decKid rd σ wV c).freshClaim) ∧
       verifyDeferred bytecode (decSeed σ) (statementDigest (decSeed σ) (kidStmt rd σ c))
         (decKid rd σ wV c).freshClaim (decKid rd σ wV c).proof = true := by
   have k := hK c hc
@@ -82,10 +82,10 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
   have hlen : (DeferredClaim.cells fresh).length = 24 := by
     simp [DeferredClaim.cells, hfl, bytecodeVars]
   have hfresh : (decKid rd σ wV c).freshClaim = fresh := by
-    show fixedOfCells (readCells rd (σ (.n 422) * gen ^ (24 * c)) 24) = fresh
+    show fixedOfCells (readCells rd (σ (.n 411) * gen ^ (24 * c)) 24) = fresh
     rw [readCells_of_readsAt hfr hlen, fixedOfCells_cells hfl]
   have hargs : subArgs rd σ c = [(Kr c).p0, (Kr c).p1, σ (.n 47), σ (.n 48), σ (.n 49),
-      σ (.n 422) * gen ^ (24 * c)] := by
+      σ (.n 411) * gen ^ (24 * c)] := by
     unfold subArgs
     rw [cellAt_eq_memAt, memAt_of_load k.pi0, memAt_of_load k.pi1]
   refine ⟨by rw [hfresh]; exact hfl, by rw [hfresh]; exact hfr, ?_⟩
@@ -119,17 +119,17 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     apply digestCells_inj
     rw [← hown, loadHolds_unique MF.pub.1 hp0, loadHolds_unique MF.pub.2 hp1]
     rfl
-  have hdlen : (readCells rd (σ (.n 449)) 24).length = 24 := length_readCells _ _ _
+  have hdlen : (readCells rd (σ (.n 438)) 24).length = 24 := length_readCells _ _ _
   refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, signatures_held MF hK hW hm cw, ?_, ?_⟩⟩
   · -- the deferred claim's shape
-    show (deferOfCells (readCells rd (σ (.n 449)) 24)).bytecodePoint.length = _
+    show (deferOfCells (readCells rd (σ (.n 438)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point hdlen, hlog]
   · -- the children
     intro ch hch
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hch
     rw [List.mem_range, nKids_eq] at hc
     refine ⟨?_, (kid_sub cw MF hK hW hc).2.2⟩
-    show (deferOfCells (readCells rd (σ (.n 428) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
+    show (deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point (length_readCells _ _ _), hlog]
   · -- the DA digest
     obtain ⟨hsome, hnone⟩ := da_rel MF cw
@@ -142,7 +142,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
         show (List.range (nKids σ)).map _ = []
         rw [nKids_eq, h6]; rfl
       rw [ite_pos' hnil]
-      show (deferOfCells (readCells rd (σ (.n 449)) 24)).bytecodePoint = _
+      show (deferOfCells (readCells rd (σ (.n 438)) 24)).bytecodePoint = _
       rw [hlog]
       unfold deferOfCells
       simp only
@@ -161,7 +161,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
       obtain ⟨out, hol, hor, hb⟩ := cw.agg _ _ _ _ _ (MF.agg h6) (lg σ 6) (by omega) MF.kids.2
         MF.kids.1
       have hdef : (decStmt σ rd).deferredClaim = out := by
-        show deferOfCells (readCells rd (σ (.n 449)) 24) = out
+        show deferOfCells (readCells rd (σ (.n 438)) 24) = out
         rw [readCells_of_readsAt hor (by simp [DeferredClaim.cells, hol, bytecodeVars]),
           deferOfCells_of hol]
       have hch : (decWit σ rd wX wS wD wV wA).children = (List.range (lg σ 6)).map (decKid rd σ wV) := by
@@ -176,15 +176,15 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
       have hkd := kid_digest MF hK hW hc
       simp only [digestCells, List.cons.injEq, and_true] at hkd
       refine ⟨hfl, ?_, ?_, ?_, hfr, ?_⟩
-      · show (deferOfCells (readCells rd (σ (.n 428) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
+      · show (deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
         exact deferOfCells_point (length_readCells _ _ _)
-      · show LoadHolds rd (σ (.n 416)) (2 * c)
+      · show LoadHolds rd (σ (.n 405)) (2 * c)
           (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).1
         rw [← hkd.1]; exact k.pi0
-      · show LoadHolds rd (σ (.n 416)) (2 * c + 1)
+      · show LoadHolds rd (σ (.n 405)) (2 * c + 1)
           (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).2
         rw [← hkd.2]; exact k.pi1
-      · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n 428) * gen ^ (24 * c)) 24)).cells
+      · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)).cells
         rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]
         exact k.defreads
 

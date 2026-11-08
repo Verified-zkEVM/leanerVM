@@ -55,8 +55,8 @@ structure KidRec where
 
 /-- **What child `c` establishes.** -/
 structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
-  base : LoadHolds rd (σ (.n 431)) c k.base
-  next : LoadHolds rd (σ (.n 431)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
+  base : LoadHolds rd (σ (.n 420)) c k.base
+  next : LoadHolds rd (σ (.n 420)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
   bounds : k.ex ≤ 65535 ∧ k.es ≤ 65535
   xlen : k.cellsx.length = 4 * k.ex
   xcan : AllCanonical k.cellsx
@@ -75,14 +75,14 @@ structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : 
   da0 : LoadHolds rd (σ (.n 385)) (2 * c) k.d0
   da1 : LoadHolds rd (σ (.n 385)) (2 * c + 1) k.d1
   deflen : k.defer.length = 24
-  defreads : ReadsAt rd (σ (.n 428) * gen ^ (24 * c)) k.defer
+  defreads : ReadsAt rd (σ (.n 417) * gen ^ (24 * c)) k.defer
   hdrcan : AllCanonical [σ (.n 47), σ (.n 48), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1]
   pdig : [k.p0, k.p1] = digestCells (keccak256
     (stmtBytes [σ (.n 47), σ (.n 48), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
-  pi0 : LoadHolds rd (σ (.n 416)) (2 * c) k.p0
-  pi1 : LoadHolds rd (σ (.n 416)) (2 * c + 1) k.p1
+  pi0 : LoadHolds rd (σ (.n 405)) (2 * c) k.p0
+  pi1 : LoadHolds rd (σ (.n 405)) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 422) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 411) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=

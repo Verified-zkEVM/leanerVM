@@ -52,7 +52,7 @@ random functions: each of the `Q` queries of the honest prover and the verifier 
 proof of work whose nonces all failed, a nonce failing a proof of work of `17` bits with
 probability `1 - 2^-17`. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  let Q : ℕ := 12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)
+  let Q : ℕ := 12008 + 48019 * (2 ^ 27 + 2 * fuel + 2)
   Q * (1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel
 
 /-- The permutation calls of the verifier, at most, on every statement and proof: its
@@ -63,9 +63,9 @@ bytes per instruction, at most `2^32` instructions), which is at most `⌊(2^39 
 def verifierPermCalls : ℕ := verifierQueries * 2 ^ 32
 
 /-- The permutation calls of the honest prover and the verifier together, at most: the
-`12008 + 48017 · (2^27 + 2·fuel + 2)` queries of `completenessError`, each at most `2^32`
+`12008 + 48019 · (2^27 + 2·fuel + 2)` queries of `completenessError`, each at most `2^32`
 blocks. -/
-def completenessPermCalls (fuel : ℕ) : ℕ := (12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)) * 2 ^ 32
+def completenessPermCalls (fuel : ℕ) : ℕ := (12008 + 48019 * (2 ^ 27 + 2 * fuel + 2)) * 2 ^ 32
 
 /-- The cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than
 taking them independent random functions, for an experiment of `q` permutation calls:

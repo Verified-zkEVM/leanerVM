@@ -96,8 +96,8 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     rw [gM 67 66 40 (by norm_num) (by norm_num) (by decide +kernel), v40, hO (by decide)]
     simp [mOrc]
   have vDa : σ (.n 385) = m.aDa := by rw [hO (by decide)]; simp [mOrc]
-  have v409 : σ (.n 431) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
-  have vpick : σ (.n 438) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
+  have v409 : σ (.n 420) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
+  have vpick : σ (.n 427) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
   have v384 : σ (.n 384) = gen ^ (2 * (m.nc + 1)) := by
     rw [gM 384 383 383 (by norm_num) (by norm_num) (by decide +kernel),
       gM 383 6 382 (by norm_num) (by norm_num) (by decide +kernel), v6,
@@ -108,45 +108,45 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       gM 386 6 6 (by norm_num) (by norm_num) (by decide +kernel), vDa, v6, ← pow_add, two_mul]
   have v389 : σ (.n 389) = gen ^ m.nd + gen := by
     rw [gA 389 7 388 (by decide +kernel), v7, two 388 (by decide +kernel)]
-  have v415 : σ (.n 415) = gen ^ (2 * m.nc) := by
-    rw [gM 415 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, two_mul]
-  have v421 : σ (.n 421) = gen ^ (24 * m.nc) := by
-    rw [gM 421 420 420 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 420 419 419 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 419 418 418 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 418 417 6 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 417 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
+  have v415 : σ (.n 404) = gen ^ (2 * m.nc) := by
+    rw [gM 404 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, two_mul]
+  have v421 : σ (.n 410) = gen ^ (24 * m.nc) := by
+    rw [gM 410 409 409 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 409 408 408 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 408 407 407 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 407 406 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 406 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have v427 : σ (.n 427) = gen ^ (24 * m.nc) := by
-    rw [gM 427 426 426 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 426 425 425 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 425 424 424 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 424 423 6 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 423 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
+  have v427 : σ (.n 416) = gen ^ (24 * m.nc) := by
+    rw [gM 416 415 415 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 415 414 414 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 414 413 413 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 413 412 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 412 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have v430 : σ (.n 430) = gen ^ (m.nc + 1) := by
-    rw [gM 430 6 429 (by norm_num) (by norm_num) (by decide +kernel), v6,
-      two 429 (by decide +kernel), pow_succ]
-  have v432 : σ (.n 432) = gen ^ (m.nrx + m.nrs) := by
-    rw [gM 432 2 5 (by norm_num) (by norm_num) (by decide +kernel), v2, v5, pow_add]
-  have v436 : σ (.n 436) = m.a409 * gen ^ m.nc := by
-    rw [gM 436 431 6 (by norm_num) (by norm_num) (by decide +kernel), v409, v6]
-  have v445 : σ (.n 445) = (gen ^ m.pick + gen ^ m.nc) * (gen ^ m.nd + 1) := by
-    rw [gM 445 442 444 (by norm_num) (by norm_num) (by decide +kernel),
-      gA 442 438 6 (by decide +kernel), gA 444 7 443 (by decide +kernel), vpick, v6, v7,
-      one 443 (by decide +kernel)]
-  have v448 : σ (.n 448) = m.aDa * gen ^ (2 * m.pick) := by
-    rw [gM 448 385 447 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 447 438 438 (by norm_num) (by norm_num) (by decide +kernel), vDa, vpick, ← pow_add,
+  have v430 : σ (.n 419) = gen ^ (m.nc + 1) := by
+    rw [gM 419 6 418 (by norm_num) (by norm_num) (by decide +kernel), v6,
+      two 418 (by decide +kernel), pow_succ]
+  have v432 : σ (.n 421) = gen ^ (m.nrx + m.nrs) := by
+    rw [gM 421 2 5 (by norm_num) (by norm_num) (by decide +kernel), v2, v5, pow_add]
+  have v436 : σ (.n 425) = m.a409 * gen ^ m.nc := by
+    rw [gM 425 420 6 (by norm_num) (by norm_num) (by decide +kernel), v409, v6]
+  have v445 : σ (.n 434) = (gen ^ m.pick + gen ^ m.nc) * (gen ^ m.nd + 1) := by
+    rw [gM 434 431 433 (by norm_num) (by norm_num) (by decide +kernel),
+      gA 431 427 6 (by decide +kernel), gA 433 7 432 (by decide +kernel), vpick, v6, v7,
+      one 432 (by decide +kernel)]
+  have v448 : σ (.n 437) = m.aDa * gen ^ (2 * m.pick) := by
+    rw [gM 437 385 436 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 436 427 427 (by norm_num) (by norm_num) (by decide +kernel), vDa, vpick, ← pow_add,
       two_mul]
-  have v451 : σ (.n 451) = gen ^ m.nc + 1 := by
-    rw [gA 451 6 450 (by decide +kernel), v6, one 450 (by decide +kernel)]
-  have v480 : σ (.n 480) = 1 := one 480 (by decide +kernel)
-  have v484 : σ (.n 484) = gen := by
-    rw [gM 484 482 483 (by norm_num) (by norm_num) (by decide +kernel),
-      one 482 (by decide +kernel), two 483 (by decide +kernel), one_mul]
+  have v451 : σ (.n 440) = gen ^ m.nc + 1 := by
+    rw [gA 440 6 439 (by decide +kernel), v6, one 439 (by decide +kernel)]
+  have v480 : σ (.n 469) = 1 := one 469 (by decide +kernel)
+  have v484 : σ (.n 473) = gen := by
+    rw [gM 473 471 472 (by norm_num) (by norm_num) (by decide +kernel),
+      one 471 (by decide +kernel), two 472 (by decide +kernel), one_mul]
   -- the reads
   have rdL : ∀ d p o v, Atom.load (.n d) (.n p) o ∈ mDefAtoms →
       Atom.load (.n d) (.n p) o ∉ mStoresL → LoadHolds rd (σ (.n p)) o v → σ (.n d) = v := by
@@ -154,18 +154,18 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     rcases (hD _ h : Good rd mStores (mOrc m) σ (.load _ _ _)) with h | h
     · exact absurd (by rw [mStores_eq] at h; exact h) hn
     · rw [h, rdAt_of_load hv]
-  have r437 : σ (.n 437) = gen ^ m.total :=
-    rdL 437 436 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v436]; exact hm.wN)
-  have r476 : σ (.n 476) = (digestHalves m.dap).1 :=
-    rdL 476 448 0 _ (by decide +kernel) (by simp [mStoresL]) (by
+  have r437 : σ (.n 426) = gen ^ m.total :=
+    rdL 426 425 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v436]; exact hm.wN)
+  have r476 : σ (.n 465) = (digestHalves m.dap).1 :=
+    rdL 465 437 0 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v448]; exact hm.dap 0 (by simp [digestCells]))
-  have r477 : σ (.n 477) = (digestHalves m.dap).2 :=
-    rdL 477 448 1 _ (by decide +kernel) (by simp [mStoresL]) (by
+  have r477 : σ (.n 466) = (digestHalves m.dap).2 :=
+    rdL 466 437 1 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v448]; exact hm.dap 1 (by simp [digestCells]))
-  have r481 : σ (.n 481) = (digestHalves m.sdg).1 :=
-    rdL 481 480 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v480]; exact hm.h0)
-  have r485 : σ (.n 485) = (digestHalves m.sdg).2 :=
-    rdL 485 484 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
+  have r481 : σ (.n 470) = (digestHalves m.sdg).1 :=
+    rdL 470 469 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v480]; exact hm.h0)
+  have r485 : σ (.n 474) = (digestHalves m.sdg).2 :=
+    rdL 474 473 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
   -- the carried tags
   have htags : lxTagsV.map σ = lxTagWords := by
     apply List.ext_getElem (by simp [lxTagsV, lxTagWords, lxTagVals]; decide)
@@ -242,7 +242,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [e_add_eq_zero_iff]
       rcases hok with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · rw [r437, v42]
-      · rw [v445, gC 446 (word 0 0 0) (by decide +kernel), word_zero]
+      · rw [v445, gC 435 (word 0 0 0) (by decide +kernel), word_zero]
         rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hb.nd with h | h
         · rw [h, pow_zero, show (1 : E) + 1 = 0 from e_add_eq_zero_iff.mpr rfl, mul_zero]
         · rw [hb.pickD h, show gen ^ m.nc + gen ^ m.nc = 0 from e_add_eq_zero_iff.mpr rfl,
@@ -257,12 +257,12 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
     exact this
-  have hleafc : ∀ k < 23, σ (.n (453 + k)) = 0 := by
+  have hleafc : ∀ k < 23, σ (.n (442 + k)) = 0 := by
     intro k hk
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mLeafC_ok k (List.mem_range.mpr hk))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
-    rw [show σ (.n (453 + k)) = word 0 0 0 from this, word_zero]
+    rw [show σ (.n (442 + k)) = word 0 0 0 from this, word_zero]
   have hzc : ∀ d, Atom.const (.n d) (word 0 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
     intro d h
     have h' := atom_mem_of_atomsIn' h
@@ -294,7 +294,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [hO (by decide), hbyte v hv]
       have := hm.bytes v (by simpa using hv)
       simpa [mOrc] using this
-    · show LoadHolds rd (σ (.n 431)) 0 (σ (.n 432))
+    · show LoadHolds rd (σ (.n 420)) 0 (σ (.n 421))
       rw [v409, v432]; exact hm.w0
   have mB1 : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mPre ++ mMid ++ mPost) →
       ∀ a ∈ atomsIn P, a.Holds rd σ := fun hP a ha => hB1 a (mem_atomsIn' (hP _ (atom_mem_of_atomsIn' ha)))
@@ -347,16 +347,16 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     have hown := hm.own
     simp only [MainIn.ownDa, h1, ↓reduceIte] at hown
     obtain ⟨c0, c1⟩ := mDaZC_ok
-    have z0 := hzc 413 (atomEqb_sound (List.any_eq_true.mp c0).choose_spec.2 ▸
+    have z0 := hzc 402 (atomEqb_sound (List.any_eq_true.mp c0).choose_spec.2 ▸
       (List.any_eq_true.mp c0).choose_spec.1)
-    have z1 := hzc 414 (atomEqb_sound (List.any_eq_true.mp c1).choose_spec.2 ▸
+    have z1 := hzc 403 (atomEqb_sound (List.any_eq_true.mp c1).choose_spec.2 ▸
       (List.any_eq_true.mp c1).choose_spec.1)
     have := mem_storesIn sDaZ ha haS
     simp only [List.mem_cons, List.not_mem_nil, or_false] at this
     rcases this with rfl | rfl
-    · show LoadHolds rd (σ (.n 387)) 0 (σ (.n 413))
+    · show LoadHolds rd (σ (.n 387)) 0 (σ (.n 402))
       rw [v387, z0]; exact hown 0 (by simp)
-    · show LoadHolds rd (σ (.n 387)) 1 (σ (.n 414))
+    · show LoadHolds rd (σ (.n 387)) 1 (σ (.n 403))
       rw [v387, z1]; exact hown 1 (by simp)
   have hLeaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ := by
     intro h0
@@ -366,12 +366,12 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     have := mem_storesIn sLf ha haS
     simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_singleton] at this
     rcases this with ⟨k, hk, rfl⟩ | rfl
-    · show LoadHolds rd (σ (.n 449)) k (σ (.n (453 + k)))
+    · show LoadHolds rd (σ (.n 438)) k (σ (.n (442 + k)))
       rw [hO (by decide), hleafc k hk]
       have := hm.leaf h0 k (by simp; omega)
       rw [List.getElem_append_left (by simp; omega), List.getElem_replicate] at this
       simpa [mOrc] using this
-    · show LoadHolds rd (σ (.n 449)) 23 (σ (.n 452))
+    · show LoadHolds rd (σ (.n 438)) 23 (σ (.n 441))
       rw [hO (by decide), hO (by decide)]
       have := hm.leaf h0 23 (by simp)
       simpa [mOrc] using this
@@ -385,7 +385,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     gd 377 376 2 _ (by decide +kernel) (by decide +kernel) v2, one 378 (by decide +kernel),
     gd 380 379 5 _ (by decide +kernel) (by decide +kernel) v5, one 381 (by decide +kernel),
     v384, v387, v389, v415, v421, v427, v430, v432,
-    gd 434 433 6 _ (by decide +kernel) (by decide +kernel) v6, one 435 (by decide +kernel),
+    gd 423 422 6 _ (by decide +kernel) (by decide +kernel) v6, one 424 (by decide +kernel),
     v436, v448, v451, r476, r477, v480, v484, htags⟩
 
 end
