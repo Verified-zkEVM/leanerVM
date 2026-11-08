@@ -19,8 +19,8 @@ tables of at most `2^32` rows (the layout's checks in `buildLayoutLite`), and th
 * `boundaryOfStack_cost` (`1429`), `memoryVec_cost` (`45·2^κ + 211`), **`haltLoopVec_cost`**
   (`(S + 41)·n + 19` for fuel `n`, `S` a step's price);
 * **`runWithTables_cost`**: one stack, `(runnerStepPrice κ ℓ + 41)·stepCapLite + 45·2^κ + 1738`, with
-  `runnerStepPrice κ ℓ = 365466 + 36ℓ + 936κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
-  **`runWithTables_cost_worst`**: `396611·2^35 + 45·2^32 + 1738 ≈ 2^53.60`;
+  `runnerStepPrice κ ℓ = 366000 + 36ℓ + 936κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
+  **`runWithTables_cost_worst`**: `397145·2^35 + 45·2^32 + 1738 ≈ 2^53.60`;
 * **`runner_cost`**: the tables and at most `1 + 2^12` stacks (the fast path's at most one,
   `FastInv`; the decoder's at most `2^12`, `decodeStacksDistinct_length_le_johnson`): at most
   `runnerBudget ≈ 2^65.60`.
@@ -414,7 +414,7 @@ theorem runWithTables_cost (hP : Includes P runWithTablesC.costDeps) (prog :
   omega
 
 /-- **One stack at the worst shape** (`κ, ℓ ≤ 32`, at most six tables of at most `2^32` rows):
-at most `396611·2^35 + 45·2^32 + 1738` (`≈ 2^53.60`). -/
+at most `397145·2^35 + 45·2^32 + 1738` (`≈ 2^53.60`). -/
 theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram)
     (input : PublicInput) (layout : LayoutLite) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32)
@@ -422,11 +422,11 @@ theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog
     (q : Vector K (2 ^ layout.stackLog)) :
     machineCost P runWithTablesC.costIdx
         [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
-      396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738 := by
+      397145 * 2 ^ 35 + 45 * 2 ^ 32 + 1738 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   have h := runWithTables_cost P hP prog input layout hm hb hh hl hidx q
   have hcap := stepCapLite_le layout hm hb hh hl
-  have hS : runnerStepPrice layout.logMemory prog.logSize + 41 ≤ 396611 := by unfold runnerStepPrice; omega
+  have hS : runnerStepPrice layout.logMemory prog.logSize + 41 ≤ 397145 := by unfold runnerStepPrice; omega
   have h2 : 2 ^ layout.logMemory ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hm
   have := Nat.mul_le_mul hS hcap
   omega
@@ -437,7 +437,7 @@ end Loop
 
 /-- The runner's budget at the worst shape: the tables, and `1 + 2^12` stacks. -/
 @[expose] def runnerBudget : ℕ :=
-  (4978 * 2 ^ 32 + 2693) + (2 ^ 12 + 1) * (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738)
+  (4978 * 2 ^ 32 + 2693) + (2 ^ 12 + 1) * (397145 * 2 ^ 35 + 45 * 2 ^ 32 + 1738)
 
 /-- **The runner** at the worst shape: its tables once, and at most `1 + 2^12` candidate stacks
 (at most one from the fast path, at most `2^12` from the decoder): at most `runnerBudget`
@@ -460,14 +460,14 @@ theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P ru
     Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hls)
   have h2 : (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
       [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤
-      qs.length * (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) := by
+      qs.length * (397145 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) := by
     have := List.sum_le_length_nsmul (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
       [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q])
-      (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) (fun x hx ↦ by
+      (397145 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) (fun x hx ↦ by
         obtain ⟨q, _, rfl⟩ := List.mem_map.1 hx
         exact runWithTables_cost_worst P hW prog input layout hm hb hh hl hidx q)
     simpa using this
-  have h3 := Nat.mul_le_mul_right (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) hqs
+  have h3 := Nat.mul_le_mul_right (397145 * 2 ^ 35 + 45 * 2 ^ 32 + 1738) hqs
   unfold runnerBudget
   omega
 

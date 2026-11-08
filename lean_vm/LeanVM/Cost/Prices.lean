@@ -31,7 +31,7 @@ def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
 /-- One step of a leanISA run replayed (the extractor's candidate runs, the guest decoder's
 replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
 tables. -/
-def runnerStepPrice (κ ℓ : ℕ) : ℕ := 365466 + 36 * ℓ + 936 * κ
+def runnerStepPrice (κ ℓ : ℕ) : ℕ := 366000 + 36 * ℓ + 936 * κ
 
 /-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
 def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 41) * 2 ^ 35 + 45 * 2 ^ κ + 1738
@@ -89,7 +89,7 @@ def listDecoderWorstPrice : ℕ := 1696768204877294467202512
 def listDecoderPrice : ℕ := 1751 * 2 ^ 26 + listDecoderWorstPrice + 22
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
-def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4320 * 2 ^ ℓ + 947
+def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
 
 /-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
 the fast path, the runner's tables, at most `1 + 2^12` candidate runs and the list decoder. -/
@@ -106,7 +106,7 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128025) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128227) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
       (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
