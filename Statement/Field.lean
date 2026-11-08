@@ -68,8 +68,8 @@ instance : DecidablePred IsInK :=
 instance : DecidablePred IsCanonical128 :=
   fun x ↦ inferInstanceAs (Decidable (x.limb 2 = 0))
 
-/-- `g = x`, the word `0x2` (`crates/primitives/src/field/gf2_64.rs:25`, `F64::G = F64(2)`;
-`python-verifier/verifier.py:181`, `GEN = E(2)`). Its order `2^64 - 1` is proved
+/-- `g = x`, the word `0x2` (`crates/primitives/src/field/gf2_64.rs:26`, `F64::G = F64(2)`;
+`python-verifier/verifier.py:176`, `GEN = E(2)`). Its order `2^64 - 1` is proved
 (`orderOf_g`), not assumed. -/
 def g : K := K.ofBits 0x2
 
@@ -96,13 +96,13 @@ def _root_.LeanVM.Parameters.E.toBytes (x : E) : List UInt8 :=
   K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
 
 /-- A digest as the two field elements a transcript carries it in, its 128-bit halves
-`E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:225-228`). -/
+`E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:220-223`). -/
 def digestHalves (digest : Digest) : E × E :=
   (E.ofLimbs (K.ofLane digest[0]) (K.ofLane digest[1]) 0,
     E.ofLimbs (K.ofLane digest[2]) (K.ofLane digest[3]) 0)
 
 /-- The digest two field elements encode, or `none` if either has a nonzero top limb
-(`Digest.from_halves`, `verifier.py:230-233`). -/
+(`Digest.from_halves`, `verifier.py:225-228`). -/
 def digestFromHalves (halves : E × E) : Option Digest :=
   if IsCanonical128 halves.1 ∧ IsCanonical128 halves.2 then
     some #v[(halves.1.limb 0).lane, (halves.1.limb 1).lane, (halves.2.limb 0).lane,
@@ -111,7 +111,7 @@ def digestFromHalves (halves : E × E) : Option Digest :=
 
 end LeanVM.Protocol.KeccakHash
 
-/-! ### The duplex sponge (`verifier.py:348-401`)
+/-! ### The duplex sponge (`verifier.py:343-396`)
 
 The Fiat-Shamir sponge of the leanVM verifier and of LeanDA's membership challenges, the Rust's
 (`crates/verifier/src/transcript.rs:17-75`, `Sponge`; the prover's `crates/fiat_shamir/src/lib.rs`):
@@ -121,19 +121,19 @@ with a tag, `1` for a scalar the prover sent (`DS_OBSERVE`) and `4` for a proof-
 (`DS_POW_NONCE`). A permutation writes waiting scalar `i` over lanes `4i..4i+4` (its three limbs,
 then its tag), zeroes the rest of the rate, keeps the capacity, and empties the queue; absorbing a
 fifth scalar permutes the four waiting first. The sponge starts at `π` of the IV's and the public
-input's words, the other lanes zero (`Transcript.__init__`, `verifier.py:379-384`). -/
+input's words, the other lanes zero (`Transcript.__init__`, `verifier.py:374-379`). -/
 
 namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics
 
-/-- `DS_OBSERVE`: the tag of a scalar the prover sent (`verifier.py:354`). -/
+/-- `DS_OBSERVE`: the tag of a scalar the prover sent (`verifier.py:349`). -/
 def dsObserve : ℕ := 1
 
-/-- `DS_POW_NONCE`: the tag of a proof-of-work nonce (`verifier.py:355`). -/
+/-- `DS_POW_NONCE`: the tag of a proof-of-work nonce (`verifier.py:350`). -/
 def dsPowNonce : ℕ := 4
 
-/-- `RATE_SCALARS`: the scalars that wait to be absorbed, four lanes each (`verifier.py:356`). -/
+/-- `RATE_SCALARS`: the scalars that wait to be absorbed, four lanes each (`verifier.py:351`). -/
 def rateScalars : ℕ := 4
 
 /-- The duplex sponge: the Keccak state, and the scalars waiting to be absorbed (at most
@@ -145,23 +145,23 @@ structure Sponge where
   pending : List (E × ℕ)
 
 /-- The rate lanes of the waiting scalars: each its three limbs, then its tag
-(`verifier.py:387`). -/
+(`verifier.py:382`). -/
 def pendingLanes (pending : List (E × ℕ)) : List UInt64 :=
   pending.flatMap fun (x, tag) ↦ [(x.limb 0).lane, (x.limb 1).lane, (x.limb 2).lane, tag.toUInt64]
 
 /-- The input of a permutation: the waiting scalars' lanes, zeros up to lane `16`, then the
-capacity, lanes `16..25` of the state (`_duplex`, `verifier.py:386-389`). -/
+capacity, lanes `16..25` of the state (`_duplex`, `verifier.py:381-384`). -/
 def duplexInput (sponge : Sponge) : KeccakState :=
   Vector.ofFn fun i ↦
     if i.val < 16 then (pendingLanes sponge.pending).getD i 0 else Keccak.lane sponge.state i
 
-/-- The challenge squeezed into a state: its first three lanes (`sample`, `verifier.py:401`). -/
+/-- The challenge squeezed into a state: its first three lanes (`sample`, `verifier.py:396`). -/
 def challengeOf (state : KeccakState) : E :=
   E.ofLimbs (K.ofLane (Keccak.lane state 0)) (K.ofLane (Keccak.lane state 1))
     (K.ofLane (Keccak.lane state 2))
 
 /-- The initial state's input: the IV's four words, the public input's four words, then zeros
-(`Transcript.__init__`, `verifier.py:381`). -/
+(`Transcript.__init__`, `verifier.py:376`). -/
 def seedInput (iv publicInput : Digest) : KeccakState :=
   Vector.ofFn fun i ↦
     if h : i.val < 4 then iv[i.val] else if h' : i.val < 8 then publicInput[i.val - 4] else 0
@@ -171,19 +171,19 @@ section Duplex
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- A permutation: the waiting scalars over the rate, the capacity kept, then `π`; the queue
-empties (`_duplex`, `verifier.py:386-389`). -/
+empties (`_duplex`, `verifier.py:381-384`). -/
 def duplex (sponge : Sponge) : m Sponge := do
   let state ← π (duplexInput sponge)
   pure ⟨state, []⟩
 
 /-- Absorb a scalar with a tag: a full queue is permuted first (`_absorb`,
-`verifier.py:391-394`). -/
+`verifier.py:386-389`). -/
 def absorb (sponge : Sponge) (x : E) (tag : ℕ) : m Sponge := do
   let sponge ← if sponge.pending.length = rateScalars then duplex π sponge else pure sponge
   pure { sponge with pending := sponge.pending ++ [(x, tag)] }
 
 /-- Squeeze a challenge: a permutation, then the new state's first three lanes (`sample`,
-`verifier.py:399-401`). -/
+`verifier.py:394-396`). -/
 def squeeze (sponge : Sponge) : m (E × Sponge) := do
   let sponge ← duplex π sponge
   pure (challengeOf sponge.state, sponge)
@@ -200,7 +200,7 @@ open LeanVM.Parameters
 def eOfNat (n : ℕ) : E := ofK (K.ofBits n)
 
 /-- `GEN = E(2)`, the generator `x` whose powers index the bytecode and the memory
-(`verifier.py:181`): `g` in limb `0`. -/
+(`verifier.py:176`): `g` in limb `0`. -/
 def gen : E := eOfNat 2
 
 end LeanVM.Protocol.Verifier

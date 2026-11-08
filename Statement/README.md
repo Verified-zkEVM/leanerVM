@@ -26,9 +26,10 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`5e3ade21d339a45e1b3b0dba97ad9300ab50e49b`, leanVM `main` with pull request #662 squash-merged
-(leanSPHINCS on FIPS 205's layout, its guest check hashing each tree node's children in place, on
-top of the proof's wire encoding; [`../leanvm-rev`](../leanvm-rev)): each cites
+`873ee6d8a57428e33908ecf1608a7bdd43bf832e`, the head of leanVM pull request #724 (`KECCAK` writes
+only the output cells its bytecode requests, one, two or all thirteen, and the guest program writes
+each digest as one or two cells), on top of `main`'s `8577d1e2` ([`../leanvm-rev`](../leanvm-rev)):
+each cites
 its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
@@ -39,7 +40,7 @@ honest (each step at least `1` and at least the words it writes; a carry-less pr
 operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
 transcribe their sources; and that `Data/`, the guest program's bytecode, is leanVM's (CI
 regenerates it, `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`).
-**The outer verifier** (`EthereumProof::verify`, `aggregation/proof.rs:195-212`) checks of a root
+**The outer verifier** (`EthereumProof::verify`, `aggregation/proof.rs:152-169`) checks of a root
 more than any end statement models: it recomputes the root's deferred claim (`AggregateSound`
 assumes that it holds, `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge
 from the root (no end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds,
@@ -189,8 +190,8 @@ theorems, then read the files in this order.
     output parsed, if `P`'s size and its run's price are within them. `Statement.Theorems` takes `P`
     as a parameter and does not name it (`lean_vm` names its knowledge extractor, compiled). That
     the machine's prices are honest is trusted. The size bound is `14500`: the compiled extractor's
-    `14109` and a slack of about one leanXMSS signature's encoding, so the compiled extractor could
-    carry no useful table of witnesses beside its code. The budget is a short formula,
+    `14242` and a slack of `258`, less than one leanXMSS signature's encoding, so the compiled
+    extractor could carry no useful table of witnesses beside its code. The budget is a short formula,
     `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^81` for `N ≤ 2^50`
     (the list decoder, about `2^80.49` at the worst shape) and `2^157.08` at `N = 2^128` (the
     transcript's index); `lean_vm` proves the compiled extractor's price below it at every shape the
@@ -288,7 +289,7 @@ gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
-(`14500`, the compiled `14109` and a slack of about one leanXMSS signature) leaves the compiled
+(`14500`, the compiled `14242` and a slack of less than one leanXMSS signature) leaves the compiled
 extractor no room for a useful table of witnesses; and its budget is `2^81 + O(N·log³N)` for `N`
 permutation queries (polylogarithmic per query: about `2^81` for `N ≤ 2^50`, `2^157.08` at
 `N = 2^128`; **What is trusted** says what its regime leaves out). `lean_vm` names the program
@@ -352,23 +353,24 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `1130000`) limits any program; it is the
-compiled decoder's size at leanVM `5e3ade21`, `1129545` (proved at most that and measured exactly),
-and a slack of `455`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1130500` at `834e6614`, before H_msg read the message off the claim's cells,
+**The size bound** (`guestWitnessDecoderSizeBound`, `628800`) limits any program; it is the
+compiled decoder's size at leanVM `873ee6d8`, `628372` (proved at most that and measured exactly),
+and a slack of `428`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+(the bound was `1130000` at `5e3ade21`, whose `KECCAK` wrote all thirteen output cells, which every
+certificate's frame then held, `1130500` at `834e6614`, before H_msg read the message off the claim's cells,
 `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose
 opening queries walked their Merkle paths inline, in more frame cells, and `380000` at `ed7d2b9c`,
 whose had far fewer), so no useful table of witnesses (hard-coded signatures masking a bug of the
 guest program on finitely many statements) fits there. That size counts the guest program's
 per-function tables, literals of the program, in full. It does not bound what a program written
-differently could hold: the guest's frame-cell table (`1088689` of the size, cells below `2^20`)
-packs to about a third, three cells to a limb, freeing room for about `2350` signatures' encodings.
+differently could hold: the guest's frame-cell table (`587459` of the size, cells below `2^20`)
+packs to about a third, three cells to a limb, freeing room for about `1270` signatures' encodings.
 Nor is the compiled program compact: its size also counts, a literal `0` each, the indices without a
 body left by the numbering it shares with the extractor's compiled functions
 ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the measurements). And a program
 may compute its tables from its input, which holds the guest program: one that derived the
-frame-cell table at run time instead of carrying it would free most of those `1088689`, room for up
-to about `3500` signatures' encodings (an estimate, not measured).
+frame-cell table at run time instead of carrying it would free most of those `587459`, room for up
+to about `1900` signatures' encodings (an estimate, not measured).
 
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above

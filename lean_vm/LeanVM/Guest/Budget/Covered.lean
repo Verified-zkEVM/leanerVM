@@ -85,27 +85,27 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
     omega
   · intro op
     cases op
-    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 95265)
+    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 95303)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 175466)
+    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 175498)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 47763)
+    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 47767)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 100593)
+    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 100617)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 35073)
+    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 35077)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
@@ -117,8 +117,8 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
       omega
 
 /-- **A leaf of at most `2048` raw signatures fits**: no child and no blob held directly, at
-most `2048` raw signatures, a leanSPHINCS one counted as three (`19085` words against leanXMSS's
-`6159`), at most `2048` declared claims and coverage slots. -/
+most `2048` raw signatures, a leanSPHINCS one counted as three (`899` `KECCAK`s against leanXMSS's
+`398`, `8582` words against `1551`), at most `2048` declared claims and coverage slots. -/
 theorem leaf_size_le (u : End.Work) (hxs : u.rawXmss + 3 * u.rawSphincs ≤ 2048) (hd : u.rawDa = 0)
     (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2048) (hcov : u.coverage ≤ 2048)
     (hch : u.children = 0) (hcc : u.childClaims = 0) (hsh : u.childShapes = []) :

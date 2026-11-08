@@ -6,12 +6,13 @@ public import Statement.Fast.Keccak
 /-!
 # Hash-based signatures: what leanXMSS and leanSPHINCS share
 
-Read before the two schemes, at leanVM 5e3ade21: the sizes and types both schemes use, the shape of
+Read before the two schemes, at leanVM 873ee6d8: the sizes and types both schemes use, the shape of
 their tweakable hash `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasherInput`, `truncateHash`:
 `hasher` and `truncate` of `crates/signatures/src/lib.rs`), each scheme laying out its own address;
 the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any monad (`keccakHash`), and
 the hash chains and Merkle paths every chain and path of both schemes instantiates (`walkChain`,
-`foldPath`), and leanXMSS's Merkle trees (`buildTree`; namespace `HashSig.OverPermutation`).
+`foldPath`: the crate's shared `path_fold`), and leanXMSS's Merkle trees (`buildTree`; namespace
+`HashSig.OverPermutation`).
 -/
 
 @[expose] public section
@@ -48,13 +49,13 @@ abbrev ChainStep := Fin (chainLength - 1)
 /-- A hash call's input bytes. -/
 abbrev HashInput := List UInt8
 
-/-- `Truncate_16` (`truncate`, `crates/signatures/src/lib.rs:25-28`): keep the first 16 bytes of a
+/-- `Truncate_16` (`truncate`, `crates/signatures/src/lib.rs:46-49`): keep the first 16 bytes of a
 hash output, the low 128 bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
 
 /-- leanXMSS's public key `pk = (root, P)` (`LeanXmssPublicKey`,
-`crates/signatures/src/lean_xmss/scheme.rs:15-18`); leanSPHINCS's is `Sphincs.PublicKey`. -/
+`crates/signatures/src/lean_xmss/scheme.rs:13-16`); leanSPHINCS's is `Sphincs.PublicKey`. -/
 structure PublicKey where
   /-- The Merkle root over the key's one-time public keys. -/
   root : Digest
@@ -121,7 +122,8 @@ def nodePayload (left right : Digest) : HashInput :=
 
 /-- Fold the leaf at index `leafIndex` and its path, the sibling at level `l` being
 `siblingAtLevel l`, up `levels` levels: the node at level `l + 1` is
-`node l (leafIndex / 2^(l + 1))` of its children in index order. -/
+`node l (leafIndex / 2^(l + 1))` of its children in index order (`path_fold`,
+`crates/signatures/src/lib.rs:25-44`, both schemes' Merkle paths). -/
 def foldPath {m : Type → Type} [Monad m] (node : Nat → Nat → HashInput → m Digest)
     (leafIndex : Nat) (siblingAtLevel : Nat → Digest) : Nat → Digest → m Digest
   | 0, value => pure value

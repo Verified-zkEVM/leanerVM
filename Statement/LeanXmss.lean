@@ -8,7 +8,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanXMSS
 
-The leanXMSS scheme at leanVM 5e3ade21 (key generation, signing, verification, hashing with
+The leanXMSS scheme at leanVM 873ee6d8 (key generation, signing, verification, hashing with
 Keccak-256 over a permutation `π`), on what it shares with leanSPHINCS
 (`Statement/HashSignatures.lean`, namespace `HashSig`), the SUF-CMA game of `Statement/SufCma.lean`
 instantiated with it, and the end statement
@@ -75,7 +75,7 @@ abbrev ChainPairIndex := Fin (chainCount / 2)
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
 
-/-- The secret key (`LeanXmssSecretKey`, `scheme.rs:122-130`): the key's seed `S_0`, which the
+/-- The secret key (`LeanXmssSecretKey`, `scheme.rs:120-128`): the key's seed `S_0`, which the
 crate's key serializes and from which it derives every secret, and the public parameter `P`, which
 key generation derived from it. The crate's key also holds the top tree and the bottom tree it
 last signed in, hashes that this signer computes again. -/
@@ -204,7 +204,7 @@ open HashSig.OverPermutation
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- `Th(P, A, M) = Truncate_16(H(P || A || M))` (`th`, `hash.rs:94-97`, with `truncate` of
-`lib.rs:25-28`). -/
+`lib.rs:46-49`). -/
 def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
   return truncateHash (← keccakHash π (thInput parameter fields payload))
 
@@ -292,13 +292,14 @@ def otsLeaf (parameter : PublicParameter) (layer : Layer) (key : KeyIndex) (mess
 
 /-! #### The trees -/
 
-/-- `Tree.fold`: fold a key's leaf and path into its tree's root. -/
+/-- `Tree.fold`: fold a key's leaf and path into its tree's root (`path_fold`, `lib.rs:25-44`). -/
 def treeFold (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
     (path : Fin layerHeight → Digest) : Nat → Digest → m Digest :=
   foldPath (fun level nodeIndex ↦ tweakableHash π parameter (.node layer (level + 1) nodeIndex))
     key.val fun level ↦ if h : level < layerHeight then path ⟨level, h⟩ else 0
 
-/-- The root a layer's signature by key `e` reaches from `message`, or nothing (`layer_root`). -/
+/-- The root a layer's signature by key `e` reaches from `message`, or nothing (`layer_root`,
+`scheme.rs:318-334`). -/
 def layerRoot (parameter : PublicParameter) (layer : Layer) (key : KeyIndex) (message : HashInput)
     (layerSignature : LayerSignature) : m (Option Digest) := do
   let some leaf ← otsLeaf π parameter layer key message layerSignature.randomizer
@@ -394,7 +395,7 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
 def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
   th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
 
-/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:173-191`): hash the seed `S_0` into `S`
+/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:171-189`): hash the seed `S_0` into `S`
 (`scheme_seed`, `hash.rs:121-125`), derive the public parameter and build the top tree; the secret
 key is `S_0` and the public parameter. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
@@ -423,8 +424,8 @@ def signWithSchemeSeed (seed : MasterSeed) (parameter : PublicParameter) (leafIn
     | return none
   return some ⟨leafIndex, fun layer => if layer = bottomLayer then bottom else top⟩
 
-/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:196-248`): the scheme seed
-`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:121-125`, `scheme.rs:236`), then
+/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:194-246`): the scheme seed
+`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:121-125`, `scheme.rs:234`), then
 the two layers' signatures with `S` and the key's public parameter. -/
 def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     m (Option Signature) := do

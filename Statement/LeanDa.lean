@@ -106,10 +106,10 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 ## LeanDA
 
 The erasure code commitment of `crates/lean_da` at leanVM
-`5e3ade21d339a45e1b3b0dba97ad9300ab50e49b`, specified in `doc/leanvm/body/10-ethereum.tex`
+`873ee6d8a57428e33908ecf1608a7bdd43bf832e`, specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
-* **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
+* **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
   the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
   codeword is that polynomial's evaluations on all `2^15` points (`encodeRow`): the inverse
   additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
@@ -117,7 +117,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   transcribed here.
 * **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
   at position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs:1-127`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs:1-130`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
   commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
@@ -131,13 +131,14 @@ The erasure code commitment of `crates/lean_da` at leanVM
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`, `membership.rs:56-66`). The challenge is drawn
+  `da_verify`; the crate's test `check_membership`, `membership.rs:58-65`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:14-17`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
   input (`verifier/src/transcript.rs:32-46`, `Field.lean`'s `Sponge`), squeezed once; the end
   statements draw it by this duplex over the permutation (`membershipChallengeWith`).
 
-The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:40-45`);
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:59-63`;
+`commit` rejects any other payload with a `BlobSizeError`, `commit.rs:42-50`, `lib.rs:40-57`);
 completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
 (`maxRows`). The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
