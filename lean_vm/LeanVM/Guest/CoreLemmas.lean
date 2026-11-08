@@ -338,6 +338,12 @@ A `KECCAK` atom writes one, two or all thirteen output cells (`Op::Keccak`'s `ou
 
 section Keccak
 
+/-- One, two and thirteen are the written cells' counts. -/
+theorem exists_cellCount {n : Nat} (h : n = 1 ∨ n = 2 ∨ n = 13) :
+    ∃ oc : KeccakOutputCells, n = oc.cellCount := by
+  rcases h with rfl | rfl | rfl
+  exacts [⟨.one, rfl⟩, ⟨.two, rfl⟩, ⟨.all, rfl⟩]
+
 /-- The written cells' count names the `out_cells`. -/
 theorem cellCount_injective {oc oc' : KeccakOutputCells} (h : oc.cellCount = oc'.cellCount) :
     oc = oc' := by
