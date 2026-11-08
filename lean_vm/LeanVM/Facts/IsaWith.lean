@@ -22,7 +22,7 @@ open LeanVM.Parameters
 /-!
 # Executions under any `KECCAK` semantics
 
-The relation `KECCAK` checks of its twenty-six cells is a parameter of the machine here
+The relation `KECCAK` checks of its cells is a parameter of the machine here
 (`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCellsRelation`; the reduction-blind one,
 `keccakFree`, only asks what the bus enforces of a `KECCAK` row when the proof does not bind the
 row to the permutation: the cells read are canonical, and the cells written are canonical with
@@ -31,36 +31,41 @@ check replaced, and is that one at `keccakDeployed` (`executeWithB_deployed`, `r
 `validExecutionB_deployed`). -/
 
 /-- **A semantics of `KECCAK`**: the relation of the cells read in a layout and the cells written
-in a layout, decidable. -/
+in a layout, of which the instruction writes the first `outCells.cellCount`, decidable. -/
 structure KeccakSem where
   /-- The relation. -/
-  check : (Fin 13 → E) → Bool → (Fin 13 → E) → Bool → Prop
+  check : (Fin 13 → E) → Bool → (Fin 13 → E) → Bool → KeccakOutputCells → Prop
   /-- It is decidable. -/
-  dec : ∀ input inOdd output outOdd, Decidable (check input inOdd output outOdd)
+  dec : ∀ input inOdd output outOdd outCells, Decidable (check input inOdd output outOdd outCells)
 
 /-- The deployed semantics: Keccak-f[1600] (`KeccakCellsRelation`). -/
-def keccakDeployed : KeccakSem := ⟨KeccakCellsRelation, fun _ _ _ _ ↦ inferInstance⟩
+def keccakDeployed : KeccakSem := ⟨KeccakCellsRelation, fun _ _ _ _ _ ↦ inferInstance⟩
 
 /-- The limb of the cells written that holds no lane in the layout `odd` is zero: cell `0`'s
-low limb in the odd layout, cell `8`'s high limb in the even one. -/
-def FreeLimbZero (output : Fin 13 → E) (odd : Bool) : Prop :=
-  if odd then (output 0).limb 0 = 0 else (output 8).limb 1 = 0
+low limb in the odd layout, cell `8`'s high limb in the even one, when the instruction writes
+cell `8` (`outCells` is `all`). -/
+def FreeLimbZero (output : Fin 13 → E) (odd : Bool) (outCells : KeccakOutputCells) : Prop :=
+  if odd then (output 0).limb 0 = 0 else 8 < outCells.cellCount → (output 8).limb 1 = 0
 
-instance {output : Fin 13 → E} {odd : Bool} : Decidable (FreeLimbZero output odd) := by
+instance {output : Fin 13 → E} {odd : Bool} {outCells : KeccakOutputCells} :
+    Decidable (FreeLimbZero output odd outCells) := by
   unfold FreeLimbZero; infer_instance
 
-/-- The cells read and written are canonical, and the limb of the cells written holding no lane
-is zero: all `keccakFree` asks. -/
-def CanonicalKeccak (input : Fin 13 → E) (_inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
-    Prop :=
-  (∀ c, IsCanonical128 (input c)) ∧ (∀ c, IsCanonical128 (output c)) ∧ FreeLimbZero output outOdd
+/-- The cells read and the cells written are canonical, and the limb of the cells written holding
+no lane is zero: all `keccakFree` asks. A cell past the first `outCells.cellCount` is not
+written, and nothing is asked of it. -/
+def CanonicalKeccak (input : Fin 13 → E) (_inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
+    (outCells : KeccakOutputCells) : Prop :=
+  (∀ c, IsCanonical128 (input c)) ∧
+    (∀ c : Fin 13, c.val < outCells.cellCount → IsCanonical128 (output c)) ∧
+    FreeLimbZero output outOdd outCells
 
-instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool} :
-    Decidable (CanonicalKeccak input inOdd output outOdd) := by
+instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool}
+    {outCells : KeccakOutputCells} : Decidable (CanonicalKeccak input inOdd output outOdd outCells) := by
   unfold CanonicalKeccak; infer_instance
 
 /-- **The reduction-blind semantics**: any canonical output with its free limb zero. -/
-def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ ↦ inferInstance⟩
+def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ _ ↦ inferInstance⟩
 
 /-- `executeWith` under the semantics `S`. -/
 def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : LeanIsaInstruction → Option (Registers K)
@@ -93,10 +98,11 @@ def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : Lea
     let f ← read (r.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
-  | .keccak om otail ob8 ocap oout inOdd outOdd => do
+  | .keccak om otail ob8 ocap oout inOdd outOdd outCells => do
     let input ← readCells read r.fp (keccakInputCellOffset om otail ob8 ocap)
-    let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
-    @guard Option _ (S.check input inOdd output outOdd) (S.dec input inOdd output outOdd)
+    let output ← readFirstCells read r.fp (fun c ↦ g ^ c.val * oout) outCells.cellCount
+    @guard Option _ (S.check input inOdd output outOdd outCells)
+      (S.dec input inOdd output outOdd outCells)
     pure r.next
 
 /-- One step under the semantics `S`. -/
