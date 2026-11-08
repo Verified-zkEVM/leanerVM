@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Arithmetization.Soundness.MemChannel
+public import LeanVM.Arithmetization.Soundness.Bus
+public import LeanVM.Arithmetization.Soundness.Lookup
 
 @[expose] public section
 

@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Arithmetization.Soundness.BytecodeChannel
+public import LeanVM.Arithmetization.Soundness.MemChannel
 public import LeanVM.Arithmetization.Soundness.Walk
 
 @[expose] public section
