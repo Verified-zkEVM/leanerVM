@@ -322,13 +322,15 @@ def weightAt (κ q : ℕ) (pt : List E) : E :=
 #guard pythonWeights.all fun (κ, q, pt, w) ↦ weightAt κ q pt = w
 
 /- The roots to stage 30, past the largest deployed block log (26), and the column weight's
-extension at five deployed level shapes, `(22, 1)` the largest, evaluated as a verifier does,
-through `columnWeightMle`, in under a second. -/
+extension at five deployed level shapes, `(22, 1)` the largest, evaluated by the product
+`columnWeightMle` and by `columnWeight`'s `mle` field, which compiled code, a verifier's
+included, runs as `columnWeightFast`. -/
 #guard (List.range 31).map subspaceRoot = pythonRootsDeployed
 
 #guard pythonWeightsDeployed.all fun (κ, R, q, pt, w) ↦
-  columnWeightMle (algebraMap K E) κ R ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-    (Vector.ofFn fun i : Fin κ ↦ pt.getD i 0) = w
+  let v : Fin (2 ^ (κ + R)) := ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
+  let r := Vector.ofFn fun i : Fin κ ↦ pt.getD i 0
+  columnWeightMle (algebraMap K E) κ R v r = w ∧ (columnWeight (algebraMap K E) κ R v).mle r = w
 
 /- From stage `64` on the root is `0`, where `U_k` is all of `K`; the theorems bound the stage. -/
 #guard subspaceRoot 63 ≠ 0 ∧ subspaceRoot 64 = 0
@@ -446,46 +448,42 @@ message agree exactly at `x_1 = 1`, so `2 ^ κ - 1` agreeing positions do not fi
 `X_1 = Ŵ_0` and `X_2 = Ŵ_1` differ at `x_5`. -/
 #guard enc32 (unitMessage 3 1) 5 ≠ enc32 (unitMessage 3 2) 5
 
-/-! ## The compiled indexed recurrence -/
+/-! ## The column weight in compiled code -/
 
-/-- An independently assembled copy of the reference product. It deliberately does not call
-`columnWeightMle`, whose compiled call sites the new `csimp` theorem replaces. -/
+/-- The product of `columnWeightMle`, assembled here so that no `@[csimp]` theorem replaces it. -/
 private def referenceWeight (κ R q seed : ℕ) : E :=
   let v : Fin (2 ^ (κ + R)) := ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
   let r : Vector E κ := Vector.ofFn fun i ↦
     E.ofLimbs (K.ofBits (seed + i + 1)) (K.ofBits (3 * i + 5)) (K.ofBits (seed + 7))
   ∏ k : Fin κ, ((1 - r[k]) + r[k] * (algebraMap K E) (normW k (domainPt v)))
 
-/-- The public evaluator route used by a column-weight consumer. -/
+/-- The column weight's extension, which compiled code runs as `columnWeightFast`. -/
 private def fastWeight (κ R q seed : ℕ) : E :=
   let v : Fin (2 ^ (κ + R)) := ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
   let r : Vector E κ := Vector.ofFn fun i ↦
     E.ofLimbs (K.ofBits (seed + i + 1)) (K.ofBits (3 * i + 5)) (K.ofBits (seed + 7))
   (columnWeight (algebraMap K E) κ R v).mle r
 
--- Ordinary sizes, the basis boundary, and the reference function's zero-root default.
+/- Ordinary sizes, the largest deployed `κ` (22), and the zero roots from stage `64` on. -/
 #guard [0, 1, 2, 8, 22, 64, 65].all fun κ ↦
   [0, 1, 5, 0x1234].all fun q ↦
     [0, 17].all fun seed ↦ fastWeight κ 1 q seed = referenceWeight κ 1 q seed
 
-/-- A wrong root index is observable at an ordinary non-Boolean point. -/
+/-- The product read one stage too high, as a recurrence with its root index off by one gives. -/
 private def shiftedWeight : E :=
   let r : Vector E 2 := #v[E.ofLimbs (K.ofBits 3) (K.ofBits 5) 0,
     E.ofLimbs (K.ofBits 7) (K.ofBits 11) 0]
   ∏ k : Fin 2, ((1 - r[k]) + r[k] * (algebraMap K E) (normW (k + 1) (K.ofBits 5)))
 
-private def indexedWeight : E :=
+/-- The compiled extension at the same point. -/
+private def compiledWeight : E :=
   let r : Vector E 2 := #v[E.ofLimbs (K.ofBits 3) (K.ofBits 5) 0,
     E.ofLimbs (K.ofBits 7) (K.ofBits 11) 0]
-  columnWeightMleFast (algebraMap K E) 2 1 ⟨5, by decide⟩ r
+  (columnWeight (algebraMap K E) 2 1 ⟨5, by decide⟩).mle r
 
-#guard indexedWeight ≠ shiftedWeight
-
--- The universal equation carries no size bound or extra certificate assumption.
-example {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
-    (v : Fin (2 ^ (κ + R))) (r : Vector S κ) :
-    columnWeightMleFast φ κ R v r = columnWeightMle φ κ R v r :=
-  columnWeightMleFast_eq φ κ R v r
+/- A wrong root index changes the value at this non-Boolean point, so the agreement above would
+detect it. -/
+#guard compiledWeight ≠ shiftedWeight
 
 end
 end LeanerVMTests.Protocol
