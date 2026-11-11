@@ -83,10 +83,3 @@ root = "LeanerVMVerify"
 name = "leanervm-prove"
 srcDir = "bench"
 root = "LeanerVMProve"
-
-[[lean_exe]]
-# The column-weight evaluator against its reference product; see bench/README.md.
-# Not a default target.
-name = "novelBasisBench"
-srcDir = "bench"
-root = "NovelBasisBench"
