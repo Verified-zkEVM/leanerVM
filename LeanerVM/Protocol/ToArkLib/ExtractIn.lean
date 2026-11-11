@@ -144,5 +144,13 @@ theorem FullTranscript.fst_heq {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂
   unfold FullTranscript.fst
   exact cast_heq _ _
 
+/-- The second half of a transcript of two schedules in sequence, at a round, is the transcript
+at that round, up to the cast of the schedule. -/
+theorem FullTranscript.snd_heq {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+    (T : FullTranscript (pSpec₁ ++ₚ pSpec₂)) (i : Fin n) :
+    HEq (T.snd i) (T (Fin.natAdd m i)) := by
+  unfold FullTranscript.snd
+  exact cast_heq _ _
+
 end
 end LeanerVM.Protocol

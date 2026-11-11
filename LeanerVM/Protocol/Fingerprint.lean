@@ -63,6 +63,82 @@ def fingerprint (α : Fin 4 → E) (t : Vector K 16) : E :=
   let w := fingerprintWeights α
   ∑ i : Fin 16, w[i.val] * ofK t[i]
 
+/-- Limb `l` of the fingerprint at the weights `w`: `Σ_i t_i·(limb l of w_i)`, in `K`, the zero
+coordinates skipped. -/
+def fingerprintLimb (w : CMlPolynomialEval E 4) (t : Vector K 16) (l : Fin 3) : K :=
+  Fin.foldl 16 (fun acc i ↦ if t[i] = 0 then acc else acc + t[i] * (w[i.val]).limb l) 0
+
+/-- The fingerprint at the weights `w`, limb by limb: at most `48` products in `K`, where the sum
+in `E` takes `16` products in `E`. What a prover computing many fingerprints at one `α` uses,
+the weights computed once (`fingerprintWith_eq`). -/
+def fingerprintWith (w : CMlPolynomialEval E 4) (t : Vector K 16) : E :=
+  E.ofLimbs (fingerprintLimb w t 0) (fingerprintLimb w t 1) (fingerprintLimb w t 2)
+
+/-- At the fingerprint's weights, `fingerprintWith` is the fingerprint. -/
+theorem fingerprintWith_eq (α : Fin 4 → E) (t : Vector K 16) :
+    fingerprintWith (fingerprintWeights α) t = fingerprint α t := by
+  have hl : ∀ l, fingerprintLimb (fingerprintWeights α) t l =
+      ∑ i : Fin 16, t[i] * ((fingerprintWeights α)[i.val]).limb l := fun l ↦ by
+    have h : ∀ (acc : K) (i : Fin 16),
+        (if t[i] = 0 then acc else acc + t[i] * ((fingerprintWeights α)[i.val]).limb l) =
+          acc + t[i] * ((fingerprintWeights α)[i.val]).limb l := fun acc i ↦ by
+      split_ifs with h0 <;> simp [h0]
+    simp only [fingerprintLimb, h]
+    rw [foldl_add_eq_add_sum, zero_add]
+  apply E.ext
+  intro l
+  have hm : ∀ (x : E) (a : K), (x * ofK a).limb l = a * x.limb l := fun x a ↦ by
+    rw [mul_comm, limb_ofK_mul]
+  rw [fingerprintWith, limb_ofLimbs, fingerprint]
+  change _ = (∑ i : Fin 16, (fingerprintWeights α)[i.val] * ofK t[i]).limb l
+  simp only [limb_sum, hm]
+  fin_cases l <;> simp [hl]
+
+/-! ### On machine words -/
+
+open FastBF64 in
+/-- The weights' limbs as machine words, limb by limb: what `fingerprintWord` reads. -/
+def fingerprintWordsOf (w : CMlPolynomialEval E 4) : Vector (Vector UInt64 16) 3 :=
+  Vector.ofFn fun l ↦ Vector.ofFn fun i : Fin 16 ↦ toWord ((w[i.val]).limb l)
+
+open FastBF64 in
+/-- `Σ_i t_i·w_i` in `K` on machine words: carry-less products and exclusive or. -/
+def limbWord (wl ts : Vector UInt64 16) : K :=
+  ofWord (Fin.foldl 16 (fun acc i ↦ acc ^^^ if ts[i] = 0 then 0 else mulWord ts[i] wl[i]) 0)
+
+open FastBF64 in
+/-- The fingerprint at the weights whose words are `W`, on machine words. -/
+def fingerprintWord (W : Vector (Vector UInt64 16) 3) (t : Vector K 16) : E :=
+  let ts := t.map toWord
+  E.ofLimbs (limbWord W[0] ts) (limbWord W[1] ts) (limbWord W[2] ts)
+
+open FastBF64 in
+/-- On the words of the weights, `fingerprintWord` is `fingerprintWith`. -/
+theorem fingerprintWord_eq (w : CMlPolynomialEval E 4) (t : Vector K 16) :
+    fingerprintWord (fingerprintWordsOf w) t = fingerprintWith w t := by
+  have hl : ∀ l : Fin 3, limbWord (fingerprintWordsOf w)[l] (t.map toWord) =
+      fingerprintLimb w t l := fun l ↦ by
+    have h : ∀ (acc : K) (i : Fin 16),
+        (if t[i] = 0 then acc else acc + t[i] * (w[i.val]).limb l) =
+          acc + ofWord (if (t.map toWord)[i] = 0 then 0
+            else mulWord (t.map toWord)[i] (fingerprintWordsOf w)[l][i]) := fun acc i ↦ by
+      have hw : (t.map toWord)[i] = 0 ↔ t[i] = 0 := by
+        rw [Fin.getElem_fin, Vector.getElem_map, ← Fin.getElem_fin]
+        exact ⟨fun h ↦ toWord_injective (h.trans rfl), fun h ↦ by rw [h]; rfl⟩
+      by_cases ht : t[i] = 0
+      · have ht' := hw.mpr ht
+        simp only [ht, ht', ite_true, ofWord_zero, add_zero]
+      · have ht' : ¬ (t.map toWord)[i] = 0 := fun h ↦ ht (hw.mp h)
+        simp only [ht, ht', ite_false, ofWord_mulWord]
+        simp [fingerprintWordsOf]
+    rw [limbWord, ofWord_foldl_xor, fingerprintLimb, ofWord_zero, zero_add]
+    simp only [h]
+    rw [foldl_add_eq_add_sum, zero_add]
+  simp only [fingerprintWord, fingerprintWith]
+  rw [show (fingerprintWordsOf w)[0] = (fingerprintWordsOf w)[(0 : Fin 3)] from rfl, hl,
+    show (fingerprintWordsOf w)[1] = (fingerprintWordsOf w)[(1 : Fin 3)] from rfl, hl,
+    show (fingerprintWordsOf w)[2] = (fingerprintWordsOf w)[(2 : Fin 3)] from rfl, hl]
+
 /-- The fingerprint is the extension of the tuple, read as a table on four variables, at `α`. -/
 theorem fingerprint_eq_eval₂Mle (α : Fin 4 → E) (t : Vector K 16) :
     fingerprint α t = eval₂Mle (n := 4) t (algebraMap K E) (Vector.ofFn α) := by

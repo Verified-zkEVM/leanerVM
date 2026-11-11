@@ -13,7 +13,8 @@ import LeanerVM.Protocol.LeanIsa
   table below eight rows and a stack above `2^28` are rejected, and so is the WHIR rate `5`.
 * **The public lines and the bus.** The third line is `MEM_TOP` with cells `0, 0`, not sent;
   six boundary blocks, three per side; the Flock region is `QFLOCK` with `2^τ_BLAKE2S` blocks.
-* **The relation is decidable, and the instance meets the bus phase's conditions.**
+* **The relation is decidable.** That the instance meets the bus phase's conditions is tested
+  with the oracle protocol, in `LeanIsaComplete`.
 * **Not evaluated: a witness stacked and read back.** Even the smallest shape, a stack of
   `2^15` cells with one Flock block, does not evaluate in fifteen minutes: the stacking, the
   column reads and the Flock region's honest column (`F.gen`, the BLAKE2s trace) are written
@@ -103,11 +104,6 @@ def offsets (prog : Program) (s : Sizes) : List (Option ℕ) :=
 
 -- The instance's count columns are the opcode tables' read counts.
 #guard (List.finRange 9).map (fun j ↦ (counts j).length) = [0, 0, 0, 4, 4, 2, 4, 4, 10]
-
-/-- The instance meets the bus phase's conditions and the degree bound at every size. -/
-example (F : FlockSpec) (prog : Program) (s : Sizes) :
-    Bus.Conditions (leanIsaInstance F prog s) ∧ (leanIsaInstance F prog s).d ≤ 2 :=
-  ⟨leanIsa_conditions F prog s, le_rfl⟩
 
 /-- The relation is decidable, by instance search. -/
 example (F : FlockSpec) (prog : Program) (s : Sizes) (input : PublicInput)

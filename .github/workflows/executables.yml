@@ -1,0 +1,54 @@
+name: Executables
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  executables:
+    runs-on: ubuntu-24.04
+    # Linking compiles every transitive module, Mathlib's included, to C and then to objects.
+    timeout-minutes: 180
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Lean
+        uses: leanprover/lean-action@v1.7.0
+        with:
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: true
+          use-mathlib-cache: auto
+      - name: Build the executables
+        run: lake build leanervm-verify leanervm-prove
+      - name: Verifier on the Rust proof and its mutations
+        run: .lake/build/bin/leanervm-verify 1
+      - name: Verifier on the committed vector and its mutations
+        run: |
+          gunzip -c tests/vectors/fill.proof.gz > "$RUNNER_TEMP/committed.proof"
+          .lake/build/bin/leanervm-verify 1 "$RUNNER_TEMP/committed.proof"
+      # The prover is deterministic, so it must write the committed vector byte for byte.
+      - name: Prover regenerates the committed vector
+        run: |
+          .lake/build/bin/leanervm-prove "$RUNNER_TEMP/fill.proof" 1
+          cmp "$RUNNER_TEMP/fill.proof" "$RUNNER_TEMP/committed.proof"
+      - name: Extractor on the honest prover's query log
+        run: .lake/build/bin/leanervm-prove log "$RUNNER_TEMP/fill.proof"
+      - name: Prover with one message changed in each front phase
+        run: .lake/build/bin/leanervm-prove tamper "$RUNNER_TEMP/fill.proof"
+      - name: The witness's stack satisfies the protocol relation
+        run: .lake/build/bin/leanervm-prove m3
+      - name: Proof of a statement with no execution
+        run: .lake/build/bin/leanervm-prove sentinel

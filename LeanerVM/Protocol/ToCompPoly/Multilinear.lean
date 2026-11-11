@@ -9,6 +9,7 @@
 module
 
 public import CompPoly.Multilinear.Basic
+public import LeanerVM.Protocol.ToCompPoly.Doubling
 import Mathlib.Algebra.BigOperators.Fin
 
 /-!
@@ -35,6 +36,9 @@ Nothing here transcribes a source.
   identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
   `sumCube_placeSlice` are its converse. `sliceLow t i` is the strided subcube whose low bits
   are `i`, one entry every `2 ^ k`, and `evalMle_boolVec_append` its selection identity.
+* **Compiled decoding.** `boolIndexFast` decodes a cube point by a loop, where `boolIndex`
+  copies the point's tail at every coordinate; `boolIndex_eq_boolIndexFast` is a `@[csimp]`
+  theorem.
 * **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
   `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
   coordinates: its extension ignores them (`evalMle_repeatHigh`).
@@ -256,6 +260,34 @@ def boolIndex [DecidableEq R] : {m : ℕ} → Vector R m → Fin (2 ^ m)
   | 0, _ => 0
   | m + 1, p => ⟨(if p[0] = 1 then 1 else 0) + 2 * (boolIndex p.tail).val,
       ite_add_two_mul_lt_two_pow_succ (boolIndex p.tail).isLt⟩
+
+/-- The index of a cube point as a number, by a loop over the coordinates, highest first. -/
+def boolIndexNat [DecidableEq R] {m : ℕ} (p : Vector R m) : ℕ :=
+  Fin.foldr m (fun i acc ↦ (if p[i] = 1 then 1 else 0) + 2 * acc) 0
+
+private theorem boolIndexNat_succ [DecidableEq R] {m : ℕ} (p : Vector R (m + 1)) :
+    boolIndexNat p = (if p[0] = 1 then 1 else 0) + 2 * boolIndexNat p.tail := by
+  unfold boolIndexNat
+  rw [Fin.foldr_succ]
+  simp only [Fin.val_zero, Fin.getElem_fin, Vector.getElem_tail, Fin.val_succ]
+  rfl
+
+/-- The loop computes the index. -/
+theorem boolIndexNat_eq [DecidableEq R] : ∀ {m : ℕ} (p : Vector R m),
+    boolIndexNat p = (boolIndex p).val
+  | 0, _ => rfl
+  | m + 1, p => by
+    rw [boolIndexNat_succ, boolIndexNat_eq p.tail]
+    rfl
+
+/-- `boolIndex` by a loop, without the tails the recursion copies. -/
+def boolIndexFast [DecidableEq R] {m : ℕ} (p : Vector R m) : Fin (2 ^ m) :=
+  ⟨boolIndexNat p, by rw [boolIndexNat_eq]; exact (boolIndex p).isLt⟩
+
+/-- Compiled code decodes a cube point by a loop. -/
+@[csimp] theorem boolIndex_eq_boolIndexFast : @boolIndex = @boolIndexFast := by
+  funext R _ _ m p
+  exact Fin.ext (boolIndexNat_eq p).symm
 
 /-- The all-ones index of the cube `{0,1}^m`. -/
 def onesIndex (m : ℕ) : Fin (2 ^ m) :=

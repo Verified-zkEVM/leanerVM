@@ -8,8 +8,8 @@ the tree-mode `last_node` flag. Both outputs are pasted verbatim into the Lean s
 in the output header; this script is the record of how they were produced.
 
 Usage:
-    python3 scripts/dump-blake2s.py constants [path/to/rfc7693.txt]
-    python3 scripts/dump-blake2s.py vectors
+    uv run --no-project --python 3.12 python scripts/dump-blake2s.py constants [path/to/rfc7693.txt]
+    uv run --no-project --python 3.12 python scripts/dump-blake2s.py vectors
 
 Without a path, `constants` downloads https://www.rfc-editor.org/rfc/rfc7693.txt.
 """

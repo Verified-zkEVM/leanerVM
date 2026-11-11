@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Regression tests for the dependency-free build timing helper."""
 
 from __future__ import annotations

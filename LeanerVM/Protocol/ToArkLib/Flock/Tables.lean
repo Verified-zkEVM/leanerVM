@@ -4,7 +4,7 @@
   The tables of a Flock argument for a batch of Boolean R1CS blocks, and the identities its
   zerocheck and lincheck rest on: the constraint residuals, the univariate skip's polynomial and
   its interpolation, the lincheck's tables and the block-diagonal identity, and the native
-  lincheck terminal. Candidate for ArkLib.
+  lincheck terminal with a supplied walk of the matrices. Candidate for ArkLib.
 -/
 
 module
@@ -480,27 +480,37 @@ theorem evalMle_sliceLow_zTable (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ
   refine Finset.sum_congr rfl fun jin _ ↦ ?_
   rw [sliceLow_getElem, zTable_cubeIndex, mul_comm]
 
-/-- The column weights `w(j) = s_{jsk} · eq(p, jin)` of the claimed slices `s` at `p`. -/
+/-- The column weights `w(j) = s_{jsk} · eq(p, jin)` of the claimed slices `s` at `p`, the
+equality kernel built once. -/
 def wCol (sv : Vector F (2 ^ s)) (p : Vector F m) : CMlPolynomialEval F (s + m) :=
-  Vector.ofFn fun j ↦
-    sv[((cubeSplit s m).symm j).1] * (lagrangeBasis p)[((cubeSplit s m).symm j).2]
+  let Lp := lagrangeBasis p
+  Vector.ofFn fun j ↦ sv[((cubeSplit s m).symm j).1] * Lp[((cubeSplit s m).symm j).2]
 
 theorem wCol_cubeIndex (sv : Vector F (2 ^ s)) (p : Vector F m) (i : Fin (2 ^ s))
     (jin : Fin (2 ^ m)) : (wCol sv p)[cubeIndex i jin] = sv[i] * (lagrangeBasis p)[jin] := by
   simp only [wCol, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, cubeSplit_symm_cubeIndex]
 
-/-- The native lincheck terminal (Annex C, §C.3.1): one forward walk of the circuit at the column
-weights `w`, `⟨e, A w⟩ + α ⟨e, B w⟩`, the identity's term by tensors,
+/-- The lincheck terminal with the circuit's matrices evaluated by the walk `rows`:
+`⟨e, A w⟩ + α ⟨e, B w⟩` at the column weights `w`, the identity's term by tensors,
 `α² · eq(χin, p) · Σ_i L_i(Y) s_i`, and the constant position's, `α³ · w(cpos)`. -/
-def linTerminal (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
-    (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F) (p : Vector F m)
-    (sv : Vector F (2 ^ s)) : F :=
+def linTerminalWith (rows : CMlPolynomialEval F (s + m) →
+      CMlPolynomialEval F (s + m) × CMlPolynomialEval F (s + m))
+    (nodes : SkipDomain F s) (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F)
+    (p : Vector F m) (sv : Vector F (2 ^ s)) : F :=
   let e := eRow nodes Y χin
   let w := wCol sv p
-  let rw := C.rows w
+  let rw := rows w
   let L := skipWeights nodes Y
   (∑ k : Fin (2 ^ (s + m)), e[k] * rw.1[k]) + α * (∑ k : Fin (2 ^ (s + m)), e[k] * rw.2[k]) +
     α ^ 2 * (eqTilde χin p * ∑ i : Fin (2 ^ s), L[i] * sv[i]) + α ^ 3 * w[cpos]
+
+/-- The native lincheck terminal (Annex C, §C.3.1): one forward walk of the circuit at the column
+weights, its block R1CS's own walk. A verifier supplies a faster walk of the same matrices to
+`linTerminalWith`. -/
+def linTerminal (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
+    (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F) (p : Vector F m)
+    (sv : Vector F (2 ^ s)) : F :=
+  linTerminalWith C.rows nodes cpos Y χin α p sv
 
 /-- The native terminal is the lincheck summand's terminal value at the claimed slices. -/
 theorem linTerminal_eq (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
@@ -524,13 +534,49 @@ theorem linTerminal_eq (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
     simp only [eRow_cubeIndex, wCol_cubeIndex, Finset.mul_sum]
     refine Finset.sum_congr rfl fun i _ ↦ ?_
     ring
-  rw [hsum, linTerminal]
+  rw [hsum, linTerminal, linTerminalWith]
   simp only [mTable_getElem, add_mul, Finset.sum_add_distrib, mul_assoc, ite_mul, one_mul,
     zero_mul, skipWeights_getElem]
   rw [← C.sum_mul_rows_fst]
   simp only [← Finset.mul_sum]
   rw [← C.sum_mul_rows_snd, heq, Finset.sum_ite_eq']
   simp
+
+/-- `⟨eRow, t⟩` by tensors: `Σ_jin eq(χin, jin) · Σ_i L_i(Y) · t(i, jin)`. -/
+private theorem sum_eRow_mul (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
+    (t : CMlPolynomialEval F (s + m)) :
+    ∑ k : Fin (2 ^ (s + m)), (eRow nodes Y χin)[k] * t[k] = ∑ jin : Fin (2 ^ m),
+      (lagrangeBasis χin)[jin] *
+        ∑ i : Fin (2 ^ s), (skipWeights nodes Y)[i] * t[cubeIndex i jin] := by
+  rw [sum_cube_split]
+  refine Finset.sum_congr rfl fun jin _ ↦ ?_
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  simp only [eRow, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, cubeSplit_symm_cubeIndex]
+  ring
+
+/-- `linTerminalWith` as compiled code evaluates it: the row weights' sums by tensors
+(`sum_eRow_mul`), without the table `eRow`, the skip weights computed once and `eq(χin, p)` as a
+product. -/
+def linTerminalWithFast (rows : CMlPolynomialEval F (s + m) →
+      CMlPolynomialEval F (s + m) × CMlPolynomialEval F (s + m))
+    (nodes : SkipDomain F s) (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F)
+    (p : Vector F m) (sv : Vector F (2 ^ s)) : F :=
+  let L := skipWeights nodes Y
+  let Lin := lagrangeBasis χin
+  let w := wCol sv p
+  let rw := rows w
+  let dot := fun t : CMlPolynomialEval F (s + m) ↦
+    ∑ jin : Fin (2 ^ m), Lin[jin] * ∑ i : Fin (2 ^ s), L[i] * t[cubeIndex i jin]
+  dot rw.1 + α * dot rw.2 +
+    α ^ 2 * ((∏ k : Fin m, (χin[k] * p[k] + (1 - χin[k]) * (1 - p[k]))) *
+      ∑ i : Fin (2 ^ s), L[i] * sv[i]) + α ^ 3 * w[cpos]
+
+/-- Compiled code evaluates the terminal by `linTerminalWithFast`. -/
+@[csimp] theorem linTerminalWith_eq_linTerminalWithFast :
+    @linTerminalWith.{u_1} = @linTerminalWithFast.{u_1} := by
+  funext F _ s m rows nodes cpos Y χin α p sv
+  simp only [linTerminalWith, linTerminalWithFast, sum_eRow_mul, eqTilde_eq_prod]
 
 end
 

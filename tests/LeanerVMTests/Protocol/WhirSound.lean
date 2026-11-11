@@ -16,9 +16,9 @@ a plaintext table of one variable.
 * **The theorem applies.** `soundOpen` is the security half of `whirOpen` on the toy chain, at the
   errors `openErr`.
 * **The errors are the pinned entries.** At the first fold challenge the error is `2 L / |E|` plus
-  `2 ^ (ℓ - 1) N / |E|` (`foldErr_eq`), and the query positions' is `(a / 2 ^ (κ + R)) ^ t`, here
-  `1`: at exact agreement every position is among those a cheating prover needs, and the bound is
-  the trivial one (`positions_err_eq`).
+  `2 ^ (ℓ - 1) N / |E|` (`foldErr_eq`), and the query positions' is
+  `((a - 1) / 2 ^ (κ + R)) ^ t`, here `7 / 8`: at exact agreement a word outside the list relation
+  misses some position, and one query finds it with probability `1 / 8` (`positions_err_eq`).
 -/
 
 namespace LeanerVMTests.Protocol.WhirSoundToy
@@ -76,10 +76,13 @@ example : foldErr soundPar0 0 = (2 * 1 : NNReal) / (Nat.card E : NNReal) +
   have := foldErr_eq soundPar0 0
   simpa [soundPar0] using this
 
--- the positions' error is `(a / N) ^ t`
-example : ((soundPar0.a ^ sound0.t : ℕ) : NNReal) /
+-- the positions' error is `((a - 1) / N) ^ t`
+example : (((soundPar0.a - 1) ^ sound0.t : ℕ) : NNReal) /
     (Nat.card (Fin sound0.t → Fin (2 ^ (Kap sound1 (0 + 1) + sound0.R))) : NNReal) =
-      ((soundPar0.a : NNReal) / (2 ^ (Kap sound1 (0 + 1) + sound0.R) : ℕ)) ^ sound0.t :=
+      (((soundPar0.a - 1 : ℕ) : NNReal) / (2 ^ (Kap sound1 (0 + 1) + sound0.R) : ℕ)) ^ sound0.t :=
   positions_err_eq _ _ _
+
+example : soundPar0.a - 1 = 7 ∧ 2 ^ (Kap sound1 (0 + 1) + sound0.R) = 8 ∧ sound0.t = 1 := by
+  decide
 
 end LeanerVMTests.Protocol.WhirSoundToy

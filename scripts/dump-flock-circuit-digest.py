@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Digest the rows of the Flock BLAKE2s circuit as the pinned Python verifier walks them.
 
 `python-verifier/verifier.py` evaluates the circuit's two matrices only through
@@ -12,7 +12,7 @@ the digest with the Lean circuit's rows (`rowsDigest`). The script also prints t
 statistics.
 
 Usage:
-    python3 scripts/dump-flock-circuit-digest.py path/to/leanVM
+    uv run --no-project --python 3.12 python scripts/dump-flock-circuit-digest.py path/to/leanVM
 
 The leanVM checkout must be at the pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The output
 at the pin is `digest 4056851438423586957`, `nonzero rows 15873`, `total terms 89305416`.
