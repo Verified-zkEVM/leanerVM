@@ -1,8 +1,10 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands at the reviewed `main` baseline
-`a37b2b045b6e6c8e70697c5332ae04683b157b55` (2026-10-22), checked on 2026-10-28. This file says what is built and what the built work still owes the
-blueprint. What is wanted is the blueprint's; who is taking which hole is issue
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main`. The table below lists the
+merges up to `90846cd` (2026-11-11). A paragraph marked *on merge* was written with its pull
+request and says what that pull request adds; every one of them is now on `main`. This file says
+what is built and what the built work still owes the blueprint. What is wanted is the
+blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
@@ -47,25 +49,28 @@ and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review
 | the adaptor: the leanISA instance, its stack and the witness read off it (Layer 3) | #97 | `c29a7c12` | 2026-10-19 |
 | the adaptor: soundness, discharging the BLAKE2s validity (Layer 3) | #98 | `cb977a75` | 2026-10-19 |
 | the adaptor: completeness and the witness read back (Layer 3) | #99 | `3e455705` | 2026-10-19 |
+| Merkle trees, the BLAKE2s byte hasher and the WHIR parameters (Layer 11) | #67 | `751d3d88` | 2026-10-22 |
+| the novel basis, the Reed–Solomon encoder and the column weights (Layer 11) | #103 | `30813407` | 2026-10-22 |
+| WHIR's opening as an oracle reduction, with perfect completeness (Layer 11) | #108 | `f44135e0` | 2026-10-22 |
+| WHIR's opening: round-by-round soundness for the list relation (Layer 11) | #109 | `b9b4ab33` | 2026-10-22 |
+| WHIR: a weight's cube values built lazily (Layer 11) | #110 | `b68a399c` | 2026-10-22 |
+| no hole: leanISA constraint soundness and the computable trace (issue #4) | #166 | `a2d532b7` | 2026-11-06 |
+| proved fast paths and cached honest provers | #168 | `a9b475f2` | 2026-11-06 |
+| Merkle trees, the Fiat–Shamir chain, the proof object and Merkle binding | #169 | `826b10fc` | 2026-11-06 |
+| soundness at leanVM's parameters, list binding, and the random-oracle groundwork | #170 | `e30539dd` | 2026-11-06 |
+| the executable non-interactive verifier | #171 | `bcf369e7` | 2026-11-06 |
+| the random-oracle bound at leanVM | #172 | `e163beed` | 2026-11-06 |
+| the honest prover, its completeness, and the verifier read as the compiled oracle verifier | #173 | `632e695e` | 2026-11-06 |
+| the core and the headline theorems | #174 | `3fd40e49` | 2026-11-06 |
+| adaptive knowledge soundness, where the adversary chooses the statement | #175 | `ce67112b` | 2026-11-06 |
+| the headline theorems over leanISA executions | #185 | `25da57d3` | 2026-11-06 |
 
-The newer encoder/opening work is also on this baseline: the executable novel-basis encoder
-and column weights (`NovelBasis.lean`, #103, `30813407`), BLAKE2s byte hashing and Merkle/WHIR
-parameters (#67, `751d3d88`), the oracle WHIR opening and perfect completeness
-(`Whir/Open.lean`, `Whir.whirOpen_perfectCompleteness`, #108, `f44135e0`), its round-by-round
-security for the list relation (`Whir/OpenSound.lean`, `Whir.whirOpen_rbrSoundness`, #109,
-`b9b4ab33`), and lazy weight tables (#110, `b68a399c`). The list relation and the ideal oracle
-interfaces are part of those statements. They do not supply a compiled Rust-verifier
-refinement or the open same-oracle recursive extraction bridge. The blueprint retains those
-as separate obligations. The detailed historical development record below should be read
-with this current baseline summary.
-
-The two master theorems are proved over an abstract instance; their concrete phase assembly is
-on this baseline in `Piop.lean`. The component-level statements remain conditional on their
-relations and side conditions. On `main`, the public-input phase is built, with the specification's
+The two master theorems are proved over an abstract instance and are conditional on the five
+phases after the commitment; on `main`, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers, the bus phase, both halves, with #79 and
 #80, the table sumcheck, both halves, with #85 and #87, and the opening phase, both halves, with
-#81. With the Flock phase (#86, #88), all five are built, and `Piop.lean`
-instantiates the master theorems at leanVM's phases (`Protocol/Piop.lean`: `leanVmPhases`,
+#81. With the Flock phase (#86, #88), all five are built, and #95 instantiates the master
+theorems at leanVM's phases (`Protocol/Piop.lean`: `leanVmPhases`,
 `leanVmComplete`, `leanVmSecurity`, `leanVm_perfectCompleteness`, `leanVm_rbrKnowledgeSoundness`)
 for every instance meeting the bus phase's conditions and the degree bound `I.d ≤ 2`. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
@@ -137,7 +142,7 @@ from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
 the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). The byte
 hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parameters
-(`Parameters/Whir.lean`) are on `main` (#67). *On merge* of #169, the Merkle trees over a byte
+(`Parameters/Whir.lean`) are on `main` (#67). #169 adds the Merkle trees over a byte
 hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root (`merkleRootWith`,
 `merkleRoot`), a phase's pruned opening as the verifier checks it (`merkleVerifyWith`,
 `merkleVerify`), the prover's commitment, with the tree built once, and its openings
@@ -736,7 +741,7 @@ accepted adversary (state-function completeness on the honest transcript), compl
 (the honest query bound and the random-oracle bound on the grind), and deployed values of `fuel` and
 `ρ`. leanISA owes the decidable `checkSatisfiedBy` that generated test vectors need.
 
-*On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
+With #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
 extension (`Protocol/NovelBasis.lean`: `encode`, `encode_eq_eval`, `encode_eq_of_agree`,
 `encode_injective`, `encodeLinear`, `columnWeight`, `columnWeightMle`, `vanish_eq`). The blueprint
@@ -744,7 +749,7 @@ then owes two edits: its `novelBasis` is `basisElt` (the novel basis is `novelPo
 row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test against
 `computableAdditiveNTT`, with the polynomial half restated at `K` (the module docstring says why).
 
-*On merge* of #108, the opening of WHIR and its completeness are on `main`: `whirOpen` and
+With #108, the opening of WHIR and its completeness are on `main`: `whirOpen` and
 `whirOpen_perfectCompleteness` for any chain of levels (`Protocol/Whir/Open.lean`, `Ladder`), with
 the fold identities and the stack's relayout (`Protocol/WhirFold.lean`, `Protocol/Whir/`), and the
 generic components it is built from, which are upstream candidates (`queryRecord`,
@@ -759,7 +764,7 @@ weight's table is lazy (`Weight.cube`), and the verifier folds each queried row 
 verifier runs at a deployed size: the test runs the chain of `(28, 1)` at one query per level
 (`tests/LeanerVMTests/Protocol/WhirDeployed.lean`).
 
-*On merge* of #109, the soundness of the opening is on `main`: `whirOpen_rbrSoundness`,
+With #109, the soundness of the opening is on `main`: `whirOpen_rbrSoundness`,
 round-by-round soundness for the list relation, at the errors of Annex B's `thm:rbr` per challenge
 (`Protocol/Whir/OpenSound.lean`), with the lists of a word, the fold-list lemma and the counting it
 rests on (`Whir/Lanes.lean`, `Stage.lean`, `Counting.lean`) and the security half of each generic

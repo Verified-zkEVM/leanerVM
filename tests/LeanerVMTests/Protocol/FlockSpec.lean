@@ -114,8 +114,8 @@ def columnDigest {n : ℕ} (c : Column n) : ℕ :=
 
 -- The honest column of the executor's row, the RFC's and six padding rows is the region the
 -- pinned prover commits for the same compressions (`scripts/dump-flock-column-rust.sh`):
--- a modular weighted checksum of the packing, gate witness and output matches the prover's.
--- This finite regression check does not establish cellwise equality of the complete columns.
+-- a weighted checksum mod `2 ^ 64 - 59` of the packing, the gate witness and the output matches
+-- the prover's.
 /-- The eight rows. -/
 def eightRows : Vector (Fin 18 → K) (2 ^ 3) :=
   Vector.ofFn fun t ↦ if t.val = 0 then rustRow else if t.val = 1 then abcRow else padRow

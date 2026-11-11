@@ -9,8 +9,8 @@ import LeanerVM.Protocol.Blake2sCircuit
   (the row table: the recorded gate, else the constant, input or zero row); the value is the one
   `scripts/dump-flock-circuit-digest.py` prints for the pinned Python verifier's
   `blake2s_row_values` (leanVM `a386121f`). The row table agrees with `rowOf`, which the
-  theorems are about, on a position of every row kind. The checksum comparison is finite
-  regression evidence; it does not establish equality of every matrix entry.
+  theorems are about, on a position of every row kind. The checksum is test evidence, not a
+  theorem.
 * **The trace computes `compress`.** On the RFC 7693 Appendix B vector (`BLAKE2s-256("abc")`) and
   on pseudo-random inputs, the output words of the trace are `compress` of the inputs, and the
   trace satisfies every row.
