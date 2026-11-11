@@ -457,7 +457,7 @@ private def referenceWeight (κ R q seed : ℕ) : E :=
     E.ofLimbs (K.ofBits (seed + i + 1)) (K.ofBits (3 * i + 5)) (K.ofBits (seed + 7))
   ∏ k : Fin κ, ((1 - r[k]) + r[k] * (algebraMap K E) (normW k (domainPt v)))
 
-/-- The column weight's extension, which compiled code runs as `columnWeightFast`. -/
+/-- The column weight's extension; compiled code runs it as `columnWeightFast`. -/
 private def fastWeight (κ R q seed : ℕ) : E :=
   let v : Fin (2 ^ (κ + R)) := ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
   let r : Vector E κ := Vector.ofFn fun i ↦
@@ -469,21 +469,17 @@ private def fastWeight (κ R q seed : ℕ) : E :=
   [0, 1, 5, 0x1234].all fun q ↦
     [0, 17].all fun seed ↦ fastWeight κ 1 q seed = referenceWeight κ 1 q seed
 
-/-- The product read one stage too high, as a recurrence with its root index off by one gives. -/
-private def shiftedWeight : E :=
-  let r : Vector E 2 := #v[E.ofLimbs (K.ofBits 3) (K.ofBits 5) 0,
-    E.ofLimbs (K.ofBits 7) (K.ofBits 11) 0]
-  ∏ k : Fin 2, ((1 - r[k]) + r[k] * (algebraMap K E) (normW (k + 1) (K.ofBits 5)))
+/-- `referenceWeight` read one stage too high, as a recurrence with its root index off by one
+gives. -/
+private def shiftedWeight (κ R q seed : ℕ) : E :=
+  let v : Fin (2 ^ (κ + R)) := ⟨q % 2 ^ (κ + R), Nat.mod_lt _ (Nat.two_pow_pos _)⟩
+  let r : Vector E κ := Vector.ofFn fun i ↦
+    E.ofLimbs (K.ofBits (seed + i + 1)) (K.ofBits (3 * i + 5)) (K.ofBits (seed + 7))
+  ∏ k : Fin κ, ((1 - r[k]) + r[k] * (algebraMap K E) (normW (k + 1) (domainPt v)))
 
-/-- The compiled extension at the same point. -/
-private def compiledWeight : E :=
-  let r : Vector E 2 := #v[E.ofLimbs (K.ofBits 3) (K.ofBits 5) 0,
-    E.ofLimbs (K.ofBits 7) (K.ofBits 11) 0]
-  (columnWeight (algebraMap K E) 2 1 ⟨5, by decide⟩).mle r
-
-/- A wrong root index changes the value at this non-Boolean point, so the agreement above would
-detect it. -/
-#guard compiledWeight ≠ shiftedWeight
+/- A wrong root index changes the value at one of the agreement's points, so the agreement above
+would detect it. -/
+#guard referenceWeight 2 1 5 0 ≠ shiftedWeight 2 1 5 0
 
 end
 end LeanerVMTests.Protocol
