@@ -1,9 +1,9 @@
 # Status: the leanVM proof system on ArkLib
 
 Where the [protocol blueprint](protocol-blueprint.md) stands on `main`. The table below lists the
-merges up to `90846cd` (2026-11-11). A paragraph marked *on merge* was written with its pull
-request and says what that pull request adds; every one of them is now on `main`. This file says
-what is built and what the built work still owes the blueprint. What is wanted is the
+built work merged up to `90846cd` (2026-11-11). A paragraph marked *on merge* was written with its
+pull request and says what that pull request adds; every one of them is now on `main`. This file
+says what is built and what the built work still owes the blueprint. What is wanted is the
 blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -126,11 +126,11 @@ slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers follo
 zero-round step whose verifier asks an input oracle one question and checks the answer
 (`ToArkLib/QueryCheck.lean`: `Component.queryCheck`, and the composition
 `Component.batchQuery` with its two halves and its refutation), on the inner-product weights
-combined by powers (`ToArkLib/WeightBatch.lean`). On the branch of #86, the Flock phase's
+combined by powers (`ToArkLib/WeightBatch.lean`). With #86, the Flock phase's
 definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
-at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on the branch of
-#88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
+at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); with #88,
+stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
 branches stacked on the oracle protocol's, the Clean bridge (`ToClean/ComponentPolynomial.lean`:
 `Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over
