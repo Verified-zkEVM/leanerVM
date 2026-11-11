@@ -45,7 +45,7 @@ def holdsB (c : ProductCircuit m) (z : Form m) : Bool :=
     z.getLsbD k == (g.a.evalB z && g.b.evalB z)
 
 /-- The product gates. -/
-def productGates : Array (Pos m × Gate m) := (compressW.run ⟨gateBase, #[]⟩).2.gates
+def productGates : Array (Pos m × Gate m) := ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.gates
 
 /-- `Σ_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P` over the row table, `P = 2 ^ 64 - 59`: a
 prime modulo which the powers `2 ^ j`, `j < 2 ^ 14`, are distinct. -/
@@ -78,7 +78,7 @@ def outWords (z : Form m) : Vector UInt32 8 :=
 #guard blake2sCircuit.gates.size == 14720 + 256
 #guard decide blake2sCircuit.Bounded
 
-example : (compressW.run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
+example : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
 
 /-! ## The rows against the deployed walk -/
 

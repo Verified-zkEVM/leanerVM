@@ -30,9 +30,10 @@ challenge space.
   that is not zero on a partial point is zero on one more coordinate at one value at most
   (`natCard_restrictedZero_update_le`), one value per unordered pair. Summed over the `ν`
   coordinates this is the pinned `C(L, 2) · ν / |E|`, the error spread over the draws;
-* `card_positions_le` (the query positions): `t` independent positions all fall in a set of
-  fewer than `a` of the `N` positions in at most `a ^ t` of the `N ^ t` choices, so with
-  probability less than `(a / N) ^ t = (1 - γ) ^ t`.
+* `card_positions_le` (the query positions): `t` independent positions all fall in a set of at
+  most `a` of the `N` positions in at most `a ^ t` of the `N ^ t` choices, so with probability at
+  most `(a / N) ^ t`; a set of agreements below the threshold has at most `a - 1`, and
+  `((a - 1) / N) ^ t < (1 - γ) ^ t`.
 -/
 
 namespace LeanerVM.Protocol
@@ -124,7 +125,7 @@ theorem card_ood_bad_le {ν : ℕ} (𝓛 : Finset (CMlPolynomialEval E ν)) (σ 
         · exact absurd rfl hne
     _ = 𝓛.card.choose 2 := by simp [Finset.card_powersetCard]
 
-/-- A set of fewer than `a` positions out of `N` holds `t` independent positions in at most
+/-- A set of at most `a` positions out of `N` holds `t` independent positions in at most
 `a ^ t` of the `N ^ t` choices. -/
 theorem card_positions_le {N t a : ℕ} (S : Finset (Fin N)) (hS : S.card ≤ a) :
     Nat.card {pos : Fin t → Fin N // ∀ q, pos q ∈ S} ≤ a ^ t := by
@@ -135,8 +136,9 @@ theorem card_positions_le {N t a : ℕ} (S : Finset (Fin N)) (hS : S.card ≤ a)
   simp only [Nat.card_eq_fintype_card, Fintype.card_fun, Fintype.card_coe, Fintype.card_fin]
   exact Nat.pow_le_pow_left hS t
 
-/-- The error of the query positions is `(a / N) ^ t`, that is `(1 - γ) ^ t` for the threshold
-`a = (1 - γ) N`. -/
+/-- `a ^ t` choices of `t` positions out of `N ^ t` have probability `(a / N) ^ t`. The query
+positions' error counts `a - 1` agreements for the threshold `a = ⌈(1 - γ) N⌉`, below
+`(1 - γ) ^ t`. -/
 theorem positions_err_eq (a N t : ℕ) :
     ((a ^ t : ℕ) : ℝ≥0) / (Nat.card (Fin t → Fin N) : ℝ≥0) = ((a : ℝ≥0) / (N : ℝ≥0)) ^ t := by
   rw [Nat.card_fun, Nat.card_eq_fintype_card, Fintype.card_fin, Nat.card_eq_fintype_card,

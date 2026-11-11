@@ -47,6 +47,16 @@ def bitWeight (w : R × R) (b : Bool) : R := if b then w.2 else w.1
 def cubeWeight {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) : R :=
   ∏ a : Fin k, bitWeight (w a) (x.val.testBit a)
 
+/-- `cubeWeight` by a loop over the coordinates, without the list a `Finset` product builds. -/
+def cubeWeightFast {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) : R :=
+  Fin.foldl k (fun acc a ↦ acc * bitWeight (w a) (x.val.testBit a)) 1
+
+/-- Compiled code takes a cube point's weight by a loop. -/
+@[csimp] theorem cubeWeight_eq_cubeWeightFast : @cubeWeight = @cubeWeightFast := by
+  funext R _ k w x
+  rw [cubeWeightFast, foldl_mul_eq_mul_prod, one_mul]
+  rfl
+
 /-- The weighted sum of `g` over the cube: `Σ_x (∏_k w_k(x_k)) · g(x)`. -/
 def weightedCubeSum {k : ℕ} (w : Fin k → R × R) (g : Vector R k → R) : R :=
   ∑ x : Fin (2 ^ k), cubeWeight w x * g (boolVec x)

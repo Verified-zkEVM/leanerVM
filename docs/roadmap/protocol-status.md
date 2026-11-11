@@ -7,9 +7,9 @@ blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly
-`572f9973`, Clean `42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
-([dependencies.md](../dependencies.md#lean-434-port-review)).
+The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly `572f9973`,
+Clean `ce2eee63`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
+and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review)).
 
 ## On `main`
 
@@ -116,19 +116,27 @@ at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on
 #88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
 branches stacked on the oracle protocol's, the Clean bridge (`ToClean/ComponentPolynomial.lean`:
-`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over a
-verbatim copy of Clean's expression polynomials in `ToClean/ExpressionPolynomial.lean`) and the
+`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over
+Clean's expression polynomials `Clean.Circuit.ExpressionPolynomial`) and the
 adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.lean`:
 `leanIsaInstance`, `witnessOf`, `stackOf`, `leanIsa_conditions`), its soundness
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
 from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
-the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). *On
-merge* of #67: the Merkle trees over BLAKE2s with completeness and binding as a computed collision
-(`Protocol/Merkle.lean`, generic in `ToArkLib/Merkle.lean`), the byte hasher and the digest
-encoding (`Protocol/Blake2sHash.lean`), and the WHIR parameters (`Parameters/Whir.lean`). Nothing
-else is built: the other generic components, the WHIR opening, the compiled verifier and the base
-theorems.
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). The byte
+hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parameters
+(`Parameters/Whir.lean`) are on `main` (#67). *On merge* of #169, the Merkle trees over a byte
+hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root (`merkleRootWith`,
+`merkleRoot`), a phase's pruned opening as the verifier checks it (`merkleVerifyWith`,
+`merkleVerify`), the prover's commitment, with the tree built once, and its openings
+(`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness (`merkleVerifyWith_merkleOpen`),
+the node query model (`nodeModel`), and the reading as VCVio's batch opening for every hash
+(`toBatchOpening`, `merkle_fits`); they replace the single-path check of #67 and its binding as a
+computed collision. With them, their binding by replaying the hash log
+(`Protocol/MerkleBinding.lean`, generic in `ToVCVio/MerkleLog.lean`): the rows read off a log
+(`extractRows`, in one pass `extractAllRows`), `binding_of_log`, which equates an accepted
+opening's rows with them unless the log is inconsistent or shows a collision or a fresh hit, and
+`extractRows_determined`.
 
 ## What the built work owes the blueprint
 
@@ -507,6 +515,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     deployed `blake2s_row_values`, `verifier.py:1180-1295`, and the Rust `marginal_walk`) are owed
     by the leanISA instance, whose region they evaluate; they enter through
     `FlockSpec.compress_of_region` and `region_holds_gen`, which need only the matrices to agree.
+    The forward walk is the verifier's `blake2sRows`, proved equal (`blake2sRows_eq`).
   - The honest run is on a tiny argument (two skipped values, two blocks of four wires): an
     `E` multiplication costs about 2 ms in the interpreter and an inversion about 1 s, and
     leanVM's sizes are a block of `2^14` positions. The slot's typing, the constants and the zero
@@ -613,11 +622,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; on Clean's main, but in no Clean revision built for Lean 4.34). Until the pin contains
-  it, `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module, deleted at the
-  bump (the watch list). Where it differs from the sketch:
-  - Tables are generic over the type of bus sides; leanISA's carry the arithmetization's
-    `Direction`, mapped to the spine's `Side` by the instance. The counted channels are a
+  by #28; upstream at the Clean pin `ce2eee63`, which the bridge imports; the verbatim copy
+  kept until then is deleted). Where it differs from the sketch:
+  - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
+    (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
     predicate, and the count columns are listed in column order, each once, as the Rust's
     `count_columns()` are.
   - Flushes drop Clean's multiplicities; `UnitMultiplicities`, which the kernel checks for
@@ -639,21 +647,81 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     admits the directory.
   - `leanIsaRefinement` is the adaptor as the spine's `Refinement` from `M3Rel` to
     `SatisfiedBy`. Owed: the sizes `piopError_le` assumes, at admissible sizes (`μ_bus ≤ 30`
-    follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone); the
-    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 12) and
-    on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
-    `EnsembleWitness` is.
-- **The Merkle trees (Layer 11)** fix BLAKE2s as the hash, and `merkleVerify` checks one path
-  (`Protocol/Merkle.lean`, over the generic tree of `ToArkLib/Merkle.lean`), with binding as a
-  computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
-  `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
-  `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
+    follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone). The base
+    theorems apply `satisfiedBy_witnessOf` inside their event, so no knowledge transport along it
+    is owed.
+- **The Merkle trees (Layer 11)** are the Rust's over a byte hash, read as VCVio's (decision 32),
+  in `Protocol/Merkle.lean`. `merkleVerifyWith` is a phase's pruned opening in any monad, calling
+  the hash once per stored row and once per rebuilt node, in the Rust's order (nine calls for the
+  octopus of the Rust's test). Where it differs from the sketch:
+  - `merkle_fits` reads the result through `Id.run`, and its row conjunct includes
+    `rowWords ≤ leafWords`, without which it is false (a four-word row in three-word leaves has
+    itself as its leaf image); the blueprint's sketch now says so.
+  - The Rust's checks that the leaf count is a power of two and that some query is made are
+    subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
+    to read at the top. The Rust also returns each query's full path, which is dropped.
+  - The single-path check, its completeness and its binding as a computed collision are deleted.
+  - Binding is log replay (`Protocol/MerkleBinding.lean`), deterministic and over any encoding
+    of leaves and nodes into one query domain (`ToVCVio/MerkleLog.lean`). `extractTree` reads a
+    tree top-down off a log, a node's children those of the first logged query answered by it
+    that parses as a node (`nodePreimage`), and `leafPreimage` a leaf's payload; `extractLeaves`
+    does it for every position in one pass, by hash maps (`extractLeaves_eq`).
+    `MerkleTree.binding_of_log`: if the walk over a pruned opening at
+    strictly increasing positions in the tree, every hash answered from the log
+    `logA ++ logV`, reaches `root`, the log is `Consistent`, has no collision (`HasCollision`) and
+    no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
+    node query of `logA`), then every opened payload is the one read off `logA` at its position.
+    `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
+    off the whole log under a root are those read off `logA`. A fresh hit grows with `logV`, the
+    roots and `logA`'s known digests, and is a hit at the first occurrence of its input
+    (`FreshHit.mono_logV`, `FreshHit.mono_roots`, `Known.mono`, `Fresh.anti`, `FreshHit.first`).
+    Each condition has a toy mutation in which the check accepts a payload other than the
+    extracted one, or with none extracted, and only that condition fails
+    (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
+    leanVM's instance (`Protocol/MerkleBinding.lean`): `extractRows` takes the row width as well
+    as the leaf width, since a row may begin with zero words, and is `none` where the leaf query
+    found is not a row's leaf image; `binding_of_log` is stated for `merkleVerifyWith` run in
+    `Option` with every hash answered by a partial oracle whose answers are logged, and equates
+    the rows it returns with the leaf images of the rows read off `logA` at the queries;
+    `extractRows_determined` is the instance of `extractLeaf_determined`.
+  - Where binding differs from the docs pull request's sketch: the module is
+    `ToVCVio/MerkleLog.lean`; the known digests are the roots and the children of `logA`'s node
+    queries only (an answer of `logA` hit by a fresh query is a collision, and the extraction never
+    descends into a sibling), and only fresh queries of `logV` are constrained; consistency is a
+    hypothesis, since an input answered in `logV` other than in `logA` defeats the extraction.
+    `fold_map` (the walk commutes with a map of node algebras) is added to `ToVCVio/Merkle.lean`.
+  - Owed: `merkle_fits` is the reading as VCVio's and is not on the binding path; that
+    `toBatchOpening` selects exactly the queried positions, with their leaf digests as values, is
+    tested and not proved. The blueprint's decision 32 and the hashed-leaf hole are revised in the
+    docs pull request. In Layer 12: that `merkleVerifyWith` run with the hash as a random-oracle
+    query answered by BLAKE2s is `merkleVerify`; the probability of a collision or a fresh hit on
+    the logged game. A root is never a 32-byte block of a query: the chain absorbs it as two
+    scalars, each in an observe block (`transcript.rs:52`, `lib.rs:85`), so the in-play digests of
+    a prefix must include the digest decoded from two consecutive observe blocks of its chain for
+    a fresh hit on a root to be a hit.
+- **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
+  advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
+  honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
+  (`leanVmFastProver_run`), so `leanVmFast_perfectCompleteness` is the master theorem's
+  completeness for it, with the same verifier. It carries prover state through the bus phase, the
+  table sumcheck and the Flock phase (`Component.Cached`); the commitment, the public-input check
+  and the opening run their honest provers. The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
+  on the compiled circuit's words (`blake2sR1CS_eq_blake2sR1CSFast`, `@[csimp]`). WHIR's opening
+  has a cached prover, `whirOpenCached` (`Protocol/Whir/Cached.lean`), whose run is
+  `whirOpen`'s. At the smallest admissible size the whole oracle protocol's prover runs in 25 s in
+  a process that has compiled the BLAKE2s circuit and built its R1CS's row table (about 6.6 s, once
+  per process), the opening's batched weight takes 4 s, and WHIR at that size (`μ = 19`) 7 s to
+  encode the committed word and 18 s to open (`bench/README.md`). Owed: a prover of the compiled
+  protocol (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
 
 ## What can start now
 
-The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening, the Merkle trees with the WHIR parameters, and Merkle extraction with hashed leaves
-(Layer 11).
+The WHIR opening and the Merkle trees are on `main`; their binding by log replay lands with #169,
+the charged invariant with #170, the headline with #174 and its execution form with #185, the
+stack's top. On that top, what can start is what *Also owed* below names: the hypothesis met by an
+accepted adversary (state-function completeness on the honest transcript), completeness's remainder
+(the honest query bound and the random-oracle bound on the grind), and deployed values of `fuel` and
+`ρ`. leanISA owes the decidable `checkSatisfiedBy` that generated test vectors need.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -686,9 +754,775 @@ component. It takes, per level, `Par`: a threshold, a list bound and a bound on 
 counting form (`ListBound`, `McaBound`), inhabited at exact agreement and, for the list bound, at
 unique decoding (`Whir/Exact.lean`); `stackRel_subset_relOpen` shows the honest inputs are in the
 relation. The blueprint's Layer 11 is updated with it (the theorem's statement and the interfaces).
-It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) to `ListBound` and
-`McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
-interface; the theorem is not knowledge soundness.
+The theorem is not knowledge soundness.
+
+*On merge* of the Johnson-regime pull request (branch `feat/protocol-mca-johnson`), the opening is
+round-by-round sound at leanVM's parameters with no hypothesis: `deployed_rbrSoundness`
+(`Protocol/Whir/Deployed.lean`) is `whirOpen_rbrSoundness` at the chain of every admissible
+`(μ, R)`, each level's `Par` built by `johnsonPar` (`Protocol/Whir/Johnson.lean`) from the level's
+slack. The threshold is the exact `⌈(√ρ + η)·n⌉₊`, computed in naturals (`threshold`,
+`threshold_eq_ceil`); the list bound is ArkLib's pairwise Johnson bound,
+`L = ⌊n(a − D)/(a² − nD)⌋` (`listBound_johnson`); the bad folds are `mcaCount κ R η`, Annex B's
+constant rounded up from rational bounds so that every parameter is computed
+(`mcaConstant_le_mcaCount`), from `mcaJohnson_annexB` through `mcaBound_of_mcaJohnson`, the encoder's code being ArkLib's
+Reed–Solomon code (`encode_mem_code`, `exists_encode_of_mem_code`). The generic half is
+`ToArkLib/McaJohnson.lean`: `McaJohnson`, its inhabitant at [BCHKS25]'s constant,
+`mcaError_foldLine_eq_affineLine`, and the count of bad seeds an error bound gives. The slacks are
+the Rust's doubles, dumped (`Parameters/Whir.lean`, `slacks`). The tests
+(`tests/LeanerVMTests/Protocol/WhirJohnson.lean`) check `mcaConstant` against Annex B's formula,
+that all 224 levels fit, and that `2^{ℓ−1}·mcaConstant ≤ 2^{64}` at each; `L_0` is 23 to 122 (the
+Annex's `1/(2η₀√ρ₀)` is 110 to 648). Still owed: the wiring into the opening phase (the `K`-to-`E`
+lift of the witness), and knowledge soundness through list binding (Layer 12).
+
+*On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
+the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,
+`observe`, `sample`, `powBase`, `powOk`, `grind`, `checkPow`), every operation generic in the
+64-byte hash `H : List UInt8 → m Digest` with the deployed instances in `Deployed`, and the
+statement's constants computed by `blake2sBytes` directly, never through `H` (`programHash`, the
+hash of the stacked bytecode table; `fsSeed`, `fs_seed`'s 78-byte preimage hashed; and the
+starting state `FsState.seed`, the hash of `fsSeed` and the public input's lanes);
+`FsState.checkPow_of_grind`: the verifier's check accepts the prover's nonce and lands in its
+state, for every hash function. The tests are known answers dumped from the pinned Rust
+(`scripts/dump-fs-chain-rust.sh`): the program hash, the seed, observes, squeezes, the grinding
+base and an 8-bit grind (nonce 262). The chain computes the Rust's values; it differs only in that
+the prover's nonce search takes fuel, where the Rust loops, and that at `bits ≥ 64`, outside the
+Rust's debug assertion and far above the deployed `17`, `powOk` asks for a zero first word where a
+release build of the Rust masks the shift.
+
+*On merge* of the proof object's pull request, stacked on the chain's: the proof and its
+transcript, transcribed from `fiat_shamir/src/transcript.rs` and `cpu/mod.rs:108-178`
+(`Protocol/Proof.lean`). `Proof M` is a stream of `E` and the opening phases, generic in the
+opening type `M`, which the Merkle trees will fix. The reader (`ReaderState`, `ReadM` over the
+hash's monad, failing with a `ReadError`) has `nextScalar(s)`, `nextRoot`, `nextRoundPoly`,
+`sample`, `checkPow`, `nextOpening` (with an authenticator), `finish` and `readSizes` (the
+announced sizes and `read_public`'s setup checks, `setupOk`); the writer (`WriteM`) mirrors it.
+`Proof.announced?` and `Proof.sizes?` read the sizes off the stream, and
+`announced?_of_readSizes` says the reader accepts only those. `RoundPoly.decode` derives the
+dropped coefficient from the claim as `transcript.rs:289-309` does (`c_1` in a plain round, `c_0`
+with the equality weight factored out); `decode_encode`, `encode_decode` and `check_of_decode`
+make it an injection onto the polynomials that pass the round's check, and
+`Reader.nextRoundPoly_eq` says that reading a round is reading `d` scalars and decoding them, so
+its chain effect does not depend on the claim. The round trip is
+`ReadsBack`, proved for each pair of mirrored operations at every hash function in `Id` and
+composed along `bind`; `runRead_runWrite`: the reader run on what the writer wrote returns the
+related value and the writer's chain state, with nothing left over. The tests read the Rust's
+transcript (a root, a cubic plain and a quartic factored round, a grind) back to the Rust's
+values and challenges, and each reader check rejects its mutation. The transcript differs from
+the Rust's in no accepted proof: a memory log-size of `0` fails `Proof.announced?` where the Rust
+fails its window; a round takes its degree where the Rust takes its number of coefficients, and at
+degree `0`, where the Rust asserts, the reader rejects and the writer writes a wire the reader
+rejects; a round's coefficients are observed as they are read, as in the Python verifier; and the
+sizes' limbs are checked after all eight are read. The blueprint's Layer 12 sketch owes these
+edits:
+- `Proof` is generic in its opening type.
+- `RoundPoly.decode` takes the factored weight `eq?` and returns `Vector E (d + 1)`, the type of
+  `SumcheckRound.Message`, not `Fin (d + 1) → E`.
+- The sizes come with the rate (`Proof.announced?`), and `Proof.sizes?` is their first component.
+- The prover's grind takes fuel and returns the nonce (`grind fuel s bits`); the verifier's check
+  takes it (`checkPow s bits nonce`).
+- The chain's names: the 64-byte step is `FsState.stepBytes` (the sketch's `Block` and `step`),
+  absorbed by `observe`, `sample` and `absorbNonce`; the grinding predicate (`grinds`) is
+  `powOk`; the challenge of a digest (`chalOfDigest`) is `FsState.challengeOf`.
+
+*On merge* of the chain-history pull request, the hash oracle and the chain read off a log are on
+`main` (`Protocol/RandomOracle.lean`). The oracle is `hashSpec` (`List UInt8 →ₒ Digest`), queried
+by `hashQuery`, run by `runBlake2s` (every query answered by `blake2sBytes`) or `runRandom`
+(VCVio's lazy random oracle from the empty cache, with the final cache); a uniform digest is
+VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest` counts `2^256`.
+`prEvent_challengeOf`: the challenge of a uniform digest is uniform on `E`;
+`prEvent_lowBitsZero`: a grinding check of `bits ≤ 64` bits passes on a uniform digest with
+probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
+(`Transcript.lean`: `Block.input`, `FsState.step` and its agreement with `observe`, `sample` and
+`absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
+`digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
+state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
+generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
+a hit is a fresh answer in play after the entries before it, for an in-play function of the
+prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
+fixed roots (none at leanVM's), the halves of every logged 64-byte input, the program hash every
+logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
+absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the
+charged invariant needs.
+`chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
+and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
+collision and no hit, the history is in the log before any query from the chain's last state that
+is none of its steps: the next step, `chainHistory_take_of_step`, the grinding base or the
+grinding check); `chainHistory_determined`. A Merkle node, a 64-byte input of the same oracle, may
+parse as a step and is one more entry of the log. The tests: the random oracle's answer to a fresh
+query is uniform, a repeated query is answered from the cache, the log of an honest chain (with a
+node beside it) gives back its blocks and states, also before the grinding base, and a collision,
+an answer equal to the seed, a state produced after the query using it, and a fresh node answered
+by an absorbed root each break the history or are a hit. It still owes `decodePrefix`, the lemma
+that the verifier's chain walk logs its chain, and the lemma that `HasCollision`, `HasHit` and
+`chainHistory` read the same on the game's `withQueryLog` log (repeats included) and on the
+charged invariant's log of fresh queries, given `Consistent`; it is stated once both branches are
+on `main`.
+
+*On merge* of the sharper query-error pull request, WHIR's query positions cost
+`((a − 1) / n)^t` instead of `(a / n)^t`, `a` the level's threshold and `n` its positions:
+`card_agree_folded_lt` (`Protocol/Whir/FoldSound.lean`) proves that a table satisfying the residual
+claim outside its language agrees with the folded word on fewer than `a` positions, which its
+argument already derived, and `card_positions_bad_le`, `card_final_positions_le`,
+`positionsSecurity`, `finalPositionsSecurity`, `levelErr` and `finalErr` (hence `openErr` and
+`listBindingError`) count `(a − 1)^t` choices. Annex B's `thm:rbr` states `(1 − γ_i)^{t_i}`; with
+`a = ⌈(1 − γ) n⌉`, `a − 1 < (1 − γ) n`, so the entry is below the Annex's at every level. With
+`a^t` the entry exceeded `2^-111` at 48 of the 224 deployed levels, the threshold rounding up past
+the `(1 − γ) n` the query counts were optimised for (worst `2^-110.34`: stack size `16`, rate
+`2⁻¹`, level `2`, `t = 30`, `a = 40`, `n = 2^9`), so the 17 bits of grinding gave `2^-127.34`;
+with `(a − 1)^t` every level is below `2^-111` (worst `2^-111.0002`, stack size `23`, rate `2⁻²`,
+level `0`), so `2^-128` after grinding.
+
+*On merge* of the charged-budgets pull request, the generic probability the random-oracle bound of
+`verify_knowledgeSound` (Layer 12, toward T4) consumes is on `main` beside the charged invariant
+(`ToVCVio/ChargedInvariant.lean`, `ToVCVio/UniformSample.lean`, `ToVCVio/EventExpectation.lean`).
+Budgets: `expected_charge_le_of_isQueryBound` (a charge paid by a query bound of VCVio's general
+form, its budget priced) and `expected_charge_le_sum` (a sum of components, component `j` at most
+`κ j` on the queries satisfying `p j` and zero elsewhere, has expected total at most
+`∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
+input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
+The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
+`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so
+`niError_le`'s term is `(Q + V)·2^-128`, not `(Q + rounds)·2^-128`, beside a `hashTerm` that
+already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
+event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
+on its bad event and of the second run's bound otherwise;
+`QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
+leaves, so the groups the adversary leaves open are counted once; the supremum form
+`prEvent_simulateQ_bind_le_add_iSup` would count them twice.
+Uniform laws: the first half of a bijection, coordinatewise on tuples, low digits, first entries,
+and digits in chunks are uniform. In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the
+challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` and
+`challengePositions` (WHIR's positions, `sample_queries_ordered`, faithful for `1 ≤ b < 64`, which
+the tests check of every deployed level), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the
+`t` positions of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the
+positions against the Rust's two-limb read by hand-computed values. It still owes the lemma that
+the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, and
+`misbehaves_rom` itself; the step of the potential is in the next paragraph.
+
+*On merge* of the random-oracle potential pull request, the potential and its step are on `main`.
+`Protocol/ChainGroups.lean` reads a chain history through a `SlotReader` (the protocol at an
+announcement, the longest transcript prefix a history reads, each challenge as a `SqueezeSlot`, the
+marks and the bad challenges, with the decoder facts as fields) and defines the group of queries
+fixing a challenge (its squeezes, and the base, check and nonce step before a marked one), its
+status in a log, `Flips`/`FlipAt` (a group closed on a bad challenge, its proof of work passing),
+the probability `π` that it closes on one, and what one more clean query changes
+(`flipAt_append`, `openGroups_append_subset`). `Protocol/RandomOracleBound.lean`: the potential
+`Φ` (the open groups' `π`, `1` off a clean log), the charge (`|B|/2^256` for the answers to avoid,
+plus the groups the query opens), `potential_step`, the step of
+`QueryHistory.potential_le_expected_charge`, and `charge_le`
+(`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
+generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
+`HashChain.history_dedupKeys`, `UniformCondition.lean`). `Protocol/HashMisbehaves.lean`:
+`misbehaves_rom`, for a statement fixed before the prover runs (selective: the chain's first state
+is BLAKE2s of the statement outside the oracle), any reader `R` from that first state whose bad
+challenges have density at most `ε` (`SlotReader.Density`, a marked one after a uniform check
+passes), a prover of `Q` queries, a verifier of at most `V` queries on every proof and proofs of at
+most six roots, bounds the probability of `HashMisbehaves rootsOf R.Flip` in `loggedGame` by
+`niError ε V Q = (Q + V)·ε + (Q + V)(4(Q + V) + 8)/2^256`, with `ε = 2^-128` at `εquery`;
+`misbehaves_rom_coins` gives a prover with coins the same bound. The game's fresh log is its joint
+log deduplicated (Mathlib's `List.dedupKeys`), a misbehaving hash leaves it unclean
+(`badLog_of_hashMisbehaves`, through `flipAt_dedupKeys`, `extractRows_dedupKeys` and
+`mem_drop_dedupKeys`), and the potential bounds the two runs in sequence. Under BLAKE2s, a prover
+that hashes in its own code rather than through the oracle makes a hit with probability `1` (the
+verifier's query on a node it hashed itself is fresh and answered by the proof's root), so it fails
+the headline's hypothesis. Still owed: the `SlotReader` of the deployed protocol over the
+transcript decoder (its density bound from `bad_density` and the per-challenge budgets, its
+`sampleable` the very instance of `bad_density`'s uniform challenge, and a check over the window
+that every challenge reads a squeeze), the executable verifier's query bound and the proof's
+roots.
+
+*On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
+is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in
+`Protocol/Whir/Word.lean`, and the generic `ToArkLib/Relist.lean`, `ToArkLib/SendEncoded.lean`,
+`ToArkLib/MapOracles.lean`, `ToArkLib/FirstRound.lean`, `ToCompPoly/LinearSolve.lean`).
+`listBinding_compile` is the security of `commitWord ⟫ fronts ⟫ batch ⟫ openInput ⟫ whirOpen L`
+from `M3Rel I` to acceptance at `listBindingError`: `L₀` times the oracle protocol's errors on its
+challenges, `L₀` level 0's list bound, and `openErr L ps` on WHIR's; for every bundle of phases
+with its security, every chain with its parameters and every `ListDecoder` at level 0's threshold
+`(L.headPar ps).a`. The extractor list-decodes the committed `K` word and picks the first stack
+satisfying `M3Holds` (`commitPick`): the stack it returns is that one whenever there is one
+(`listBinding_extractedStack_eq`), and at round `1` the state function holds exactly when there is
+one (`listBinding_kSF_one`), so a failed extraction leaves the state function false for every
+witness. `ListDecoder` is specified by WHIR's list relation (`mem_iff`); its inhabitants are
+`ListDecoder.bruteForce` (Gaussian elimination over `K` on every set of `2 ^ κ` positions),
+`ListDecoder.exactFirst` (the exact path, `exactFast_eq`, then a fallback) and, at exact
+agreement, `ListDecoder.exact`; `isInK_of_cl` makes the members of a `K` word's list `K`-valued.
+The exact path is one elimination over `K` with all lanes as one right-hand side,
+`O(2^(3κ) + 2^(2κ+ℓ))` operations, and a check of the whole word, `2^(κ+R+ℓ)` encodings of
+`O(κ · 2^κ)` operations each; it is not the deployed prover's inverse transform.
+`Component.Front.relist` is the generic step. `listBinding_perfectCompleteness` is the other half,
+from the phases' completeness: each carries over to the phase over the word
+(`Component.Front.overComplete`) at its seam read on the honest word, and WHIR's opening receives
+the honest word of the stack in `E` (`kwordOf_lift`). The shapes differ from the blueprint's sketch
+in four places: `relist` takes the front component over the new oracles with a proof that its
+check and verdict are the old ones (`Front.over` builds it, answering the oracle queries the front
+verifier never makes), and the list is a `List` with a length bound; the committed word is a `K`
+word (`KWord`), so that every member of its list is a stack, and a zero-round step `openInput`
+reads it in `E` for WHIR (a virtual output oracle, `Component.mapOracles`), whose security is the
+seam to `relOpen` (`relist_of_relOpen`); `listBinding_compile` takes the height equation
+`κ + sh.ℓ = I.μ`; `exactFast_eq` holds at every threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`, with no
+unique-decoding condition. It still owes the inverse additive transform for a fast exact path at
+deployed sizes and the instantiation at the deployed chain with a Johnson list bound; and, since
+the committed word is a `K` word, the links between `verify` and the compiled verifier must read
+the level-0 rows of a proof as `K` symbols (the deployed commitment's leaves), not as `E` ones
+(they do: `Compile.laneRow_level0`).
+
+*On merge* of the deployed list-binding branch (`feat/protocol-list-binding-deployed`, stacked on
+the list-binding and Johnson-regime branches), the compilation holds at leanVM with no hypothesis:
+`listBinding_deployed` (`Protocol/ListBindingDeployed.lean`) is `listBinding_compile` at the
+leanISA instance of every program and admissible announcement, at every valid rate, with
+`leanVmPhases`, `leanVmSecurity` (`leanIsa_conditions`, `I.d ≤ 2`), WHIR's `deployedChain` and its
+parameters, and `deployedDecoder`; `listBinding_deployed_rbrKnowledgeSoundness` and
+`listBinding_deployed_perfectCompleteness` are its halves. Since the Johnson branch computes each
+level's bad-fold count (`mcaCount`), the chain is data and `listBinding_deployed` is a definition
+with no `noncomputable`: its extractor compiles. Level 0 of the chain is also computed on its own
+(`deployedHeadShape`, `deployedHeadKap`, `deployedHeadThreshold` in `Protocol/Whir/Deployed.lean`;
+`deployedChain_head` decides on the window that the chain's level 0 is that one: six folds,
+`μ − 6` variables left, `johnsonPar`'s threshold, 726 at `μ = 15` and rate `2⁻¹`).
+`deployedDecoder` is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`, built at those indices,
+and `deployedPick` is the commitment's extractor there, which compiles without building the chain
+(`deployedPick_eq_commitPick`); `listBinding_deployed_kSF_one` (at round `1`, for every witness,
+the state function holds exactly when `deployedPick` succeeds) and
+`listBinding_deployed_extractedStack_eq` (the extracted stack is the pick) are stated with it, and
+`commitPick_eq_some` gives `M3Holds` of what it returns. The generic `listBinding_kSF_one` takes a
+symbolic round `k` with `k.val = 1`: a literal round makes the elaborator evaluate the schedule's
+length, through the chain, at the deployed instance. The fast exact path is the additive transform
+(`Protocol/Whir/Transform.lean`: `fwd`, `inv`, `encodeFast`, proved against `encode` by
+`fwd_getElem`, `fwd_inv`, `inv_fwd`, `encodeFast_getElem`; `encodeMatrix` is its row
+`novelAt`), and `exactNtt` (`Protocol/Whir/DecodeNtt.lean`) interpolates each lane on the first
+coset and checks it on every coset; `ListDecoder.decode_eq_of_codeword` makes its candidate the
+whole list. `kwordOfFast` is the honest word by the same transform (`kwordOfFast_eq`). Measured in
+compiled code (a local harness, not committed) on the honest word of a random stack, with this
+branch's field arithmetic (the specification's; the compiled fast paths are another branch): at
+`μ = 15` the decode takes 45 s at rate `2⁻¹` and 80 s at `2⁻²`, the honest word 7 s and 14 s; at
+`μ = 16`, 106 s and 192 s, the word 17 s and 38 s; the list is the stack every time. The brute
+force behind the exact path is exact but runs on toy words only, so a dishonest word at a deployed
+size has no executable extraction. Still owed: an efficient list decoder for words off the code.
+
+*On merge* of the random-oracle definitions pull request, the game and the per-challenge budgets
+are on `main`. `Protocol/RandomOracleGame.lean`: `loggedGame V prog input A` runs the adversary
+(`A : OracleComp hashSpec (Proof PrunedMerklePaths)`) logged, then `V hashQuery prog input proof`
+logged, with `V` any function of `verifyWith`'s shape (`VerifierWith`) until the executable
+verifier lands; `Run` holds the proof, the two logs and the verdict. `extract F prog input proof
+log` is computable: the announcement through `setupOk`'s checks, the level-0 root from stream
+scalars `8, 9`, every level-0 row under it by `extractAllRows` at `level0Lanes` words in leaves of
+`2^ℓ` words, a missing row zero, the stored row's lanes reversed as the Rust stores them
+(`laneRow`, `whir.rs:1305-1316`), then `deployedPick`; `extracts_iff_isSome` makes `Extracts`'s
+`M3Holds` automatic. `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters,
+since both read the verifier's chain walk; `core` instantiates the flip with the transcript
+decoder's clause. `Bad` and `bad_density` are the event and the bound of `listBinding_deployed`'s
+`rbr` at the unit shared oracle. `Protocol/ListBindingBudget.lean`,
+`Protocol/Whir/DeployedBudget.lean` and the generic `ToArkLib/ScheduleBounds.lean`:
+`listBindingMark` marks WHIR's query positions, and `listBindingError_deployed_le` bounds every
+other challenge by `2^-128` and the query positions by `2^-111`, so by `2^-128` after the 17 bits
+of grinding, at every admissible announcement and rate (`Whir.deployed_fits` decides the window,
+`L₀ ≤ 122`; `leanIsa_μBus_le`, `leanIsa_B_le`, `leanIsa_poolSize_le` bound the front at leanISA).
+The executable verifier must read the level-0 openings at the wire shape `extract` reads: rows of
+`level0Lanes prog s (deployedHeadKap μ ρ)` words, leaves of `2^ℓ` words for level 0's fold `ℓ`
+(`deployedHeadShape μ ρ`), depth `deployedHeadKap μ ρ + (deployedHeadShape μ ρ).R`.
+`deployedHeadKap_eq` decides `deployedHeadKap μ ρ = μ − initialFold` on the window, so
+`level0Lanes` is the verifier branch's `Verify.nLanes`, which `extract` takes at assembly. The
+blueprint has the three edits these definitions asked of it: Layer 11's threshold is
+`a = ⌈(1 − γ) 2^{κ+R}⌉`, its `thm:rbr` query entry is `((a − 1) / n)^t`, and Layer 12's `Hit` and
+`HashMisbehaves` take the proof's roots and the flip as parameters, with no "earlier answer" in play
+(an earlier answer to another input is a collision). Still owed: the flip, the proof's roots,
+`core` and `misbehaves_rom`.
+
+*On merge* of the executable verifier's stacked pull requests (on the proof object's and the
+Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's verifier is on
+`main`, slice by slice.
+
+- **The setup** (`Protocol/Verify/Setup.lean`): `setup?` reads the announced sizes and rate off
+  the stream and makes `read_public`'s checks before any hash; `leanVm prog s`, `stackMu`,
+  `nLanes` (the level-0 rows' committed lanes, `witness.rs:97-101`) and `ladderOf` are what they
+  fix; `walkSetup` observes the sizes and reads the root; `samples`, `readRound(s)` and
+  `replayRounds` are the walk's primitives and the algebra's round decoding. Two changes keep the
+  verifier from building what it never reads: a known boundary coordinate carries its column as a
+  thunk and the evaluator of its extension (`Coord.known`, `Coord.ofColumn`; leanISA's
+  `idxCoord`, the closed form `idxColumnEval`, and `entryCoord`), so that the leanISA instance's
+  boundary no longer computes the `2^logMem` index column; and two `@[csimp]` theorems
+  (`LeanIsa.opcodeTable_eq_tab`, `LeanIsa.width_eq_tab`: each opcode table is converted from its
+  component once), beside the stateful provers' `Blocks.selectorWeight_eq_selectorWeightFast` (a
+  block's selector weight is a product, not an entry of a whole Lagrange basis). The fixture:
+  `scripts/dump-proof-rust.sh` proves the
+  division program of the Rust suite (`lean_compiler/tests/suite/field_div.rs`, with its fill
+  blocks, 2048 instructions) at the test rate and prints the program, its hash, the public input,
+  the stream (770 scalars) and the pruned openings (four levels) as the text of
+  `tests/LeanerVMTests/Protocol/RustProofData.lean`; `RustProof.lean` loads it, checks the
+  program against the Rust's program hash, and checks the setup against the second verifier's
+  reading (`μ = 20`, 33 lanes, queries `224, 56, 32, 22`, `μ_bus = 18`, five boundary columns,
+  104 column values) and its rejections.
+- **The bus phase** (`Protocol/Verify/Bus.lean`): `walkBus` reads `α`, `β`, the two roots, the
+  combiners and the layers from the root down (`gkrRadices`: one binary layer first at an odd
+  depth) and the boundary values; `busReplay` checks the count root and replays the layers at
+  the shapes the depth fixes (`replayGkr`: each round decoded with the point's equality weights,
+  the descendants checked by the oracle verifier's `Gkr.combineCheck`, the next statement its
+  `Gkr.interpDone`), and `busStep` hands on the oracle verifier's own `Bus.busOut`, generic over
+  the instance. At leanISA's instance (`leanVmBus`) the two bytecode blocks' entry columns enter
+  the totals as one value, the program's share `B̃(ζ_{<κ_bc}, α)`, which `settleFixedClaims`
+  evaluates (`busOutWith`; `bytecodeShare_eq`: it is `Σ_k eq(α, 3 + k)·P̃_k(ζ_{<κ_bc})`, what the
+  instance's known coordinates evaluate column by column), so a recursive verifier defers that
+  one claim. On the fixture the walk squeezes the second verifier's challenges, the nine layers
+  replay to its bus point, the three totals are its totals, and the totals with the settled
+  share are `Bus.busOut`'s (`tests/LeanerVMTests/Protocol/VerifyBus.lean`, with the zero count, a
+  flipped descendant, a flipped round coefficient, a changed root, a layer of another shape, a
+  missing layer, a missing value and another share rejected or changing the totals).
+- **The table sumcheck and the public input** (`Protocol/Verify/Tables.lean`): `walkTables` and
+  `walkPub`; `tableStep` is the oracle verifier's (the target batched from the totals, the rounds
+  decoded, `Sumcheck.finalCheck` of the table summand, `TableSumcheck.tableOut`), `pubStep` the
+  deployed one in its guarded form (`PublicInput.accepts` of `checkWords`, `verdict` of
+  `pooledFrom`). The fixture found the `DEREF` table's
+  flush order differing from the Rust's ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin));
+  the leanISA table now reads in the Rust's order, and on the fixture both phases pass
+  (`VerifyTables.lean`, with a flipped column value, a flipped round coefficient, a missing value,
+  a flipped public value and a third public value rejected).
+- **The Flock phase** (`Protocol/Verify/Flock.lean`, `Verify/Blake2sWalk.lean`): `walkFlock`
+  reads the zerocheck, the lincheck and the six ring-switching coefficients; `flockStep` replays
+  the oracle verifier's steps (`skipClaim`, the normalized rounds, `termNext`, `alphaNext`, the
+  lincheck rounds, `linNext`, `ringWeight` and `ringTarget`, `FlockPhase.finish`), the lincheck's
+  check made as `Flock.linCheck` makes it, from the step's own statement, with the circuit's
+  matrices evaluated by a supplied walk (`Flock.linTerminalWith rows`). The region's block R1CS
+  (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry, `2^28` terms each, which
+  nothing can run; the verifier runs the circuit's own builder on the column weights instead
+  (`blake2sRows`: the gadgets are written over a carrier of linear values, and the circuit is
+  their run on GF(2) forms). `blake2sRows_eq` proves
+  `blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w` for every `w`, by the builder's
+  naturality under evaluation at `w` (`blake2sGates_map`, `evalAt_hom`, `toBlockR1CS_rows`); the
+  tests also check the walk at `E` at rows of every kind, and the Rust proof's lincheck passes on
+  it. On the fixture the phase hands
+  on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
+  value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
+- **WHIR, the openings and the verifier** (`Protocol/Verify/Whir.lean`, `Protocol/Verify.lean`):
+  `levelShapes` and `openingsOk` (the number and shapes of the openings, before any hash);
+  `walkWhir` (the fold rounds, the next roots, the out-of-domain samples, the grinding checks, the
+  query positions, `⌊192/(κ + R)⌋` to a squeeze, the batching challenges, the tail rounds) and
+  `walkOpenings` (each level's pruned opening by `merkleVerifyWith`, after the walk: level 0's
+  rows `nLanes` words of `K`, its leaves `2^ℓ` words, its tree of depth `κ + R`, the rows read in
+  reverse, one lane a word, as the Rust does); `whirCheck`, WHIR's algebra on the oracle
+  reduction's weights (`relayoutWeight`, `Whir.foldWeight`, `Whir.gluedWeight`,
+  `Whir.queryWeight`, `Whir.foldRow`, `Whir.batchMessage`) with the terminal check;
+  `openingClaim`, the pool of `Opening.poolList` batched by `λ`; and
+  `verifyWith H prog input proof`, total and structurally recursive, in the four stages, with
+  `verify := verifyWith (m := Id) blake2sBytes`. The wire transcript (`Wire`) holds, per phase,
+  the scalars read (round wires raw, the dropped coefficient left to the algebra), the
+  challenges, the nonces, the roots and the positions. **`verify` accepts the Rust proof**, in
+  about 80 s interpreted (`tests/LeanerVMTests/Protocol/Verify.lean`) and about 1.8 s compiled
+  (`leanervm-verify`). The executable runs every mutation with the stage that rejects it
+  (`outcome`): the setup rejects a nonzero upper limb in a size, a size above its cap and a rate
+  outside its window; the openings' shapes a row of the wrong width at level 0 and after, more
+  rows than queries, a missing and a surplus opening; the reads a nonzero third limb in a half of
+  the commitment root and of a level's root, a wrong grinding nonce at each level, a wrong
+  sibling, a truncated path, a surplus sibling, a duplicated position, a missing row, a changed
+  stored word, a trailing scalar and a truncated stream. A flipped scalar in a phase before a
+  level's grinding nonce moves the chain and is rejected by that level's grinding check; the
+  last level's query message and the last round's coefficient come after the last grinding
+  check and are rejected by WHIR's terminal check. The phases' own checks are exercised on the
+  honest wire: the phase tests above, and WHIR's algebra, which rejects a flipped stored word at
+  levels 0 and 2, the last level's residual value and batching challenge, level 1's out-of-domain
+  value, coordinate and round polynomial, a fold challenge of level 0, and level 2's batching
+  challenge and query message. One out-of-domain sample a level after the first is the Rust's
+  derived count: `scripts/whir-mca-budget.py` finds it at all 168 such levels of the window, one
+  sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module
+  checks the honest proof and the mutations rejected before the walk passes its setup's reads;
+  the executable also rejects a changed input lane and a changed instruction (the seed moves) and
+  two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. It owed
+  `verifierQueries`, `proofDigests`, `rounds` and their bounds, `decodePrefix` and
+  `verify_iff_compiled`. Later branches of the stack build `verifierQueries` with
+  `verifierQueries_bound` and `verifierQueries_le_bound` (`Protocol/VerifierQueries.lean`,
+  `Protocol/LeanVmReader.lean`), `proofDigests` with `ProofRoots.length_rootsOf_le`, and
+  `DecodeChain.decodePrefix` (`Protocol/DecodeChain.lean`). `rounds` and its bound are not needed:
+  the random-oracle bound charges `εquery` to every query. The biconditional `verify_iff_compiled`
+  is not built, and neither headline theorem needs it: soundness uses one direction on decoded
+  transcripts, inside `core` (`ChainLog.accepts_of_replay`, `Core.solved_of_decode`,
+  `Compile.compiled_of_algebra`), and completeness the other on accepted ones
+  (`Compile.phasesAgree`). Both rest on `blake2sRows_eq` and the instance's known-coordinate
+  evaluators equal to the extensions (they are, by the field `ext_eq`). The bus phase's algebra with
+  the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
+
+- **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
+  `Protocol/Verify/Hom.lean`): every walk is written once over `ChainOps n`, the five primitives
+  in any monad (read a scalar, squeeze a challenge, read a root, read and check a grinding nonce,
+  which returns the nonce, and open the next commitment); `readerOps H` is the proof reader's,
+  `ChainOps.logged` records any reader's steps, and `walkProof` is the verifier's reads in their
+  stages, the whole chain walk before any opening (on the fixture the logged walk reads the whole
+  stream, checks four nonces and opens the four commitments last). `verifyWith_hom`: for a monad
+  morphism `φ`, `φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input
+  proof`, proved through every walk along any morphism of its primitives (`walkProof_hom`), the
+  reader's operations along the lifted morphism (`ReadM.mapHom`), the chain's steps and the
+  Merkle check (`MerkleTree.octopusRoot_hom`, generic); `verifyWith_simulateQ` is its instance at
+  `simulateQ impl` for the hash oracle `List UInt8 →ₒ Digest` of the random-oracle game.
+
+*On merge* of the prover's branch (`feat/protocol-prover`, on the verifier's and the stateful
+provers'), Layer 13's honest prover and its test vectors are on `main`. No target theorem
+advances; `baseProver_complete` holds modulo `PhasesAgree`, which the compiled verifier's branch
+below proves.
+
+- **The prover** (`Protocol/Prove.lean`, `Protocol/Prove/`): `proveWith H fuel F prog input w ρ`
+  reads the sizes off the witness, checks them with the rate, announces them, runs the compiled
+  protocol's prover against the chain, and opens every committed word at its level's positions;
+  `prove` is it at BLAKE2s-256 and the deployed Flock specification, `honestAdversary` the prover
+  in the random-oracle game. The prover is `compiledProver`, the cached prover of `listBindingDef`
+  (the bus phase, the table sumcheck, the Flock phase and WHIR's opening cached, the level-0 word's
+  rows by the transform), whose run is `listBindingDef`'s honest prover's
+  (`compiledProver_run`). It runs against the wire of its schedule, `compiledCodec`, written over
+  the writer's primitives (`WireOps`) phase by phase as the verifier's walk reads it, by
+  `Prover.runWith` (`ToArkLib/RunCodec.lean`), which runs an ArkLib prover round by round in any
+  monad as `Prover.run` does. Where it differs from the sketch: `proveWith` takes the Flock
+  specification, which the stack's layout reads, and `prove` fixes the deployed one; the oracle
+  protocol's nonce message is replaced on the wire by the grind's nonce, which no oracle verifier
+  reads.
+- **Words as data.** Compiled code expands a closure that returns a word (a one-field structure
+  of a function) to take the position as one more argument, so an honest prover whose message is
+  such a closure rebuilds the word at every row read; the honest level-0 commitment did not finish
+  in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
+  read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
+- **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
+  constraint statement tests' witness at the smallest admissible sizes in 52.7 s (1.06 GB at the
+  peak), writes the proof in the dump format, and checks that `verify` accepts it (0.6 s) and
+  rejects every mutation of `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The
+  witness is the hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`); leanISA's
+  decidable `checkSatisfiedBy`, which generated witnesses would need, is still owed. Beside the
+  proof's mutations, both executables run the algebra on the honest wire with one message changed
+  in each front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper`
+  changes one front phase's message as the prover sends it and checks that each phase rejects its
+  own.
+  The prover is about 15 times slower than the Rust's on another program at the same sizes,
+  within the blueprint's two orders of magnitude, since the transform builds each half once a
+  step (`fwd_eq_fwdFast`) and the Flock and WHIR provers run on words; the Flock phase and WHIR
+  dominate (`bench/README.md`, 2026-10-25).
+- **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
+  not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
+  oracle protocol's completeness reaches `runWith` through the run on given challenges,
+  `Prover.runWithChallenges`: `runWith_eq_runWithChallenges` (whatever the wire, a run's
+  transcript and output are the run on the transcript's own challenges),
+  `simulateQ_run_eq_runWithChallenges` (`Prover.run`, the challenge oracle answered off a vector,
+  is that run) and `accepts_of_perfectCompleteness` (a perfectly complete reduction with no shared
+  oracle accepts on every challenge vector: the run on given challenges is reachable under
+  uniform challenges, `mem_support_simulateQ_challenges`, and a probability-one event holds on
+  every reachable outcome).
+- **`baseProver_complete_of_agree`, modulo the phases' agreement** (`Protocol/Prove/Complete.lean`):
+  for every byte hash `H` and fuel, `proveWith (m := Id) H fuel blake2sFlockSpec prog input w ρ = some
+  proof → verifyWith (m := Id) H prog input proof = true` for a witness with `SatisfiedBy`, given
+  `PhasesAgree prog s hs ρ hρ input` at every admissible `s` and valid `ρ`: on every full
+  transcript of the compiled protocol (`listBindingDef` at leanVM's instance and WHIR's deployed
+  chain) that its verifier accepts on the public input, `Verify.algebra` accepts the transcript's
+  wire (`DecodeChain.wireOf`, `Verify/WireOf.lean`, the chain-history decoder's functions) and
+  its words' rows at its positions (`rowsOf`). The proof composes:
+  - *The run is the honest run on its challenges*: every run against a wire, in a monad that runs
+    from state to state, steps through the wire on its transcript (`Prover.runWith_runsAs`,
+    `RoundCodec.RunsAs.append_inv`, `ToArkLib/RunTrace.lean`), and the transcript is the honest
+    prover's on its own challenges (`runWith_eq_runWithChallenges`, `compiledProver_run`,
+    `runWithChallenges_eq_of_run_eq`).
+  - *The honest transcript is accepted*: `accepts_of_run` (by `accepts_of_perfectCompleteness`)
+    at `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`);
+    then `PhasesAgree`.
+  - *The nonces, the roots and the positions*: the walk's wire is the transcript's but for the
+    roots (the transcript carries words), the grinding nonces (the oracle prover sends `0`, the
+    proof the grind's nonce) and the positions' reduction, none of which the algebra reads
+    (`Verify.algebra_erase`, `Verify/Erase.lean`). So the agreement is applied at the honest
+    transcript and the compiled verifier's independence of the nonce rounds is not needed.
+  - *The wire read back by the walk* (`Prove/ReadBack.lean`): the writer's primitives read back by
+    the walk's (`back_send`, `back_sample`, `back_grind`, `runs_commit`, `runs_positions`), each
+    phase's wire by its walk (`back_bus`, `back_table`, `back_pub`, `back_flock`, `back_level`,
+    `back_final`, `back_ladder`), the whole chain (`walkChain_reads`), the book keeping the
+    commitments and positions in order. The public input's message has one value per sent line
+    because the algebra accepts it (`pubLength_of_algebra`).
+  - *The openings and the setup* (`Prove/Openings.lean`): `hintOpenings` against `walkOpenings`
+    by `merkleVerifyWith_merkleOpen` (`reads_openings`), `openingsOk` at the honest openings
+    (`openingsOk_openings`, the siblings at most the queries' paths' nodes), the announcement
+    (`setup?_of_announce`), the verifier's ladder walking the deployed chain's shapes
+    (`leanIsaChain_walk`, by `chainOf`'s structure and one decision on the window), the stream
+    and openings consumed (`run_of_reads`). Level 0's rows carry only the committed lanes; the
+    honest word's lanes past them vanish (`level0Word_honest`, by `runWithChallenges_append_fst`;
+    `kwordOf_stackOf_high`), so the rows read are the word's.
+  - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
+    the wire but the grind runs from every state, the grind from every state at which it finds a
+    nonce, so the run returns or its first rounds reach a state at which a grind fails
+    (`Prover.runWith_total_or`, `RoundCodec.Every`, `ToArkLib/RunTrace.lean`); the book keeps as
+    many commitments as positions (`book_compiled`), so the openings' size check never fails:
+    `proveWith` returns `none` only when the witness gives no sizes, its sizes are not admissible,
+    the rate is not valid, or a grind finds no nonce within its fuel at a chain state the run
+    reaches (`Prove.RunReaches`: the writer's state after the announcement and some first rounds
+    of the compiled protocol's honest prover, at every round boundary, so a superset of the
+    states the grinds start at).
+  - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
+    fuel; the headline's branch below states both.
+
+*On merge* of the compiled verifier's branch (`feat/protocol-verify-compiled`, on the prover's and
+the chain-history decoder's), the executable verifier's algebra and the compiled oracle verifier
+agree on a transcript's wire, and `Prove.baseProver_complete` holds with no hypothesis. No target
+theorem advances.
+
+- **The phases on the wire** (`Protocol/Compile/`): the compiled verifier is a guarded verifier,
+  a check and a verdict built from its components' (`listBindingGuarded`). On a transcript a front
+  phase's oracle verifier accepts, the phase's algebra accepts the transcript's wire (`busWireOf`,
+  `tableWireOf`, `pubWireOf`, `flockWireOf`, the decoder's readers) with the oracle verifier's
+  output (`busStep_busWireOf`, `tableStep_tableWireOf`, `flockStep_flockWireOf`); the public
+  input's algebra is its oracle verifier's run on every transcript (`pubStep_pubWireOf`). WHIR's
+  algebra accepts what the opening's guarded verifier accepts, level by level
+  (`whirCheck_of_run`). The wire carries a round polynomial
+  without its dropped coefficient, which the algebra derives from the running claim, so the
+  algebra accepts round polynomials the oracle verifier rejects
+  (`tests/LeanerVMTests/Protocol/CompileWhir.lean`).
+- **Solved transcripts**: a transcript whose round polynomials pass their checks, each against its
+  running claim (`RoundsSolved`, `BusSolved`, `TableSolved`, `FlockSolved`, `LevelSolved`,
+  `FinalSolved`, `LadderSolved`, `WhirSolved`, and `Solved` for the whole protocol), which every
+  accepted transcript is (`*_of_check`, `whirSolved_of_run`). On a solved transcript the converse
+  holds: each phase's algebra is its oracle verifier's run (`*_of_solved`), the opening's guarded
+  verifier accepts when WHIR's algebra does (`whirOpenGuarded_run_of_whirCheck`), and the compiled
+  verifier accepts when the algebra does (`compiled_of_algebra`, `Compile/Agree.lean`).
+- **The phases agree** (`Compile/Agree.lean`): `phasesAgree` proves `PhasesAgree`, so
+  `Prove.baseProver_complete` needs no hypothesis (`baseProver_complete_of_agree` is the form
+  that takes it).
+- Not built: the biconditional `verify_iff_compiled`, which neither headline theorem needs. The
+  headline uses its two directions separately: on a solved transcript the compiled verifier
+  accepts what the algebra accepts (`compiled_of_algebra`, inside `core`, for soundness), and on
+  an accepted transcript the algebra accepts (`phasesAgree`, for completeness). That the
+  decoder's transcripts are solved (it decodes each dropped coefficient from the running claim,
+  `RoundPoly.check_of_decode`), which `compiled_of_algebra` needs, is met on the core's branch
+  below (`Core.solved_of_decode`).
+
+*On merge* of the core's branch (`feat/protocol-core`, on the compiled verifier's), the
+deterministic heart of the random-oracle theorems and knowledge soundness in the random-oracle
+model are on `main` (`Protocol/Core.lean`, `Protocol/Core/`). `core`: on a run of the logged game
+whose joint log is consistent and whose verifier, replayed on that log, accepts, either the
+extractor finds a stack with `M3Holds` from the prover's log (`Extracts`), or the hash misbehaves
+(`HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip`: a collision, a hit or a
+flip). `core_of_mem_support` is its form on a possible run of the game, the form the headline
+theorems below use; a run under BLAKE2s or under the lazy random oracle is one
+(`mem_support_runBlake2s` in `Protocol/Replay.lean`, `mem_support_runRandom` in
+`Protocol/HashMisbehaves.lean`). `verify_knowledgeSound_rom` bounds the probability that the
+verifier accepts while the extractor fails by `(Q + 13697)/2^128 + hashTerm 13697 Q`, from `core`
+and `leanVm_misbehaves_rom_closed`. `#print axioms` gives the kernel's three axioms for each. The
+argument, with no collision, hit or flip:
+
+- *The replay* (`ChainLog.accepts_of_replay`): the accepted replay walks the chain, then the
+  openings, and the algebra accepts their wire and rows. The walk's grinding checks pass in the
+  log (`Core/Grinding.lean`).
+- *The history* (`Core/History.lean`): its first ten readings are the announced sizes and the
+  commitment's root, so its announcement and level-0 root are the proof's.
+- *The decoded transcript* (`Core/Decoded.lean`, `Core/Solved.lean`): the history decodes, with
+  the words read off the joint log under the roots it carries, to a transcript that carries those
+  words and whose round polynomials all pass their checks (`front_of_decode`, `words_of_decode`,
+  `solved_of_decode`: the decoder's running claims are the oracle verifier's). This meets the
+  compiled verifier's branch's owed item that decoded transcripts are solved: on them the
+  algebra's acceptance is the compiled verifier's.
+- *The rows* (`Core/Openings.lean`): the replayed openings accept every level; by Merkle binding
+  on the log their rows are the transcript's words' rows at the positions the walk read
+  (`rows_eq_ladderRows`). So the algebra accepts the transcript's wire and rows, and the compiled
+  verifier accepts it (`compiled_of_algebra`).
+- *The walk back* (`ToArkLib/StateWalk.lean`, `Core/Flip.lean`): the state function of
+  `listBinding_deployed`, true at the end, stays true back to the commitment unless a challenge
+  turns it, and a challenge that turns it is bad at the prefix before it, whose group flips
+  (`flipAt_of_bad`).
+- *The extraction*: after the commitment the state function says the commitment's pick finds a
+  stack in the committed word, the level-0 word read off the joint log under the proof's level-0
+  root; with no hit it is the word read off the prover's log (`extractRows_determined`), the word
+  `extract` picks from.
+
+The statements take no hypothesis beyond the run's. Elaboration: the compiled protocol's schedule
+has two spellings, `deployedSpec` (the bad sets, the decoder) and `listBindingSpec` at
+`leanIsaInstance` (`listBinding_deployed`); where both meet inside the state function or the
+extractor, unification evaluates the stack's size on a symbolic program, so `Core.lean` crosses
+them by `dsimp only [deployedSpec]` on both sides, and seals `leanIsaμ` and `blocks`.
+
+*On merge* of the headline's branch (`feat/protocol-headline`, on the core's):
+`Protocol/Headline.lean` proves Layer 13's soundness theorems, each for a statement fixed before the
+adversary runs. Each is unconditional but for the query bound or a named hypothesis on BLAKE2s:
+`BlakeMisbehaves`, or for the comparison form `Blake2sActsAsRandomOracle`.
+`baseVerifier_extractsWitness_rom` is the random-oracle form at `(Q + 13697)/2^128 + hashTerm 13697
+Q`, for an adversary of at most `Q` queries; `baseVerifier_extractsWitness` and
+`baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`, for a program with `SentinelSafe`)
+are the deployed forms under `BlakeMisbehaves`; `baseVerifier_extractsWitness_coins` is the witness
+form for an adversary with coins (a `ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged
+over the coins, by the headline at each coin-free adversary integrated over the draw;
+`blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
+query bound. `prove_complete` is completeness for the deployed pair, `Prove.baseProver_complete` at
+BLAKE2s: for a witness with `SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog
+input proof = true`. `prove` returns no proof in four cases only (`Prove.proveWith_eq_none`): the
+witness's memory log-size is `0`, so `Sizes.ofWitness` reads no sizes; the sizes are not admissible;
+the rate is not valid; or a grind finds no nonce among its `fuel` candidates at a chain state the
+prover's run reaches (`ProveReaches`); `prove_ne_none` says the same as a sufficient condition.
+`mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle a possible
+run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s verdict; on such a
+run `Core.core_of_mem_support` puts an accepted proof whose extraction fails inside
+`HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into
+`SatisfiedBy`. `#print axioms` gives the kernel's three axioms for each, and for the replayer
+theorem. The wall's allow-list names `Headline.lean` for the base theorems, where it named
+`Soundness.lean`. The tests: `extract_nil` (nothing is extracted from the empty log, whatever the
+proof: the zero word decodes to the zero stack, whose read counts are zero) and the replayer theorem
+`replayer_not_blakeMisbehaves` (acceptance test 36), whose one premise, `verify` accepting, holds
+natively on the Rust fixture and the test vector; `leanervm-prove log`, the honest run on the test
+vector with every hash logged (487250 prover and 3291 verifier queries), with no collision and no
+hit (test 37, reduced: the flip clause is not decidable), and `extract` on the prover's log
+returning the witness's sizes and stack (in 22 s compiled, `M3Holds` decided by sorting the bus's
+tuples); `verify` as `verifyWith` at BLAKE2s and `verifyWith_simulateQ` (test 38). Owed:
+`extract_honest` (completeness from an execution is now `prove_complete_of_execution`, below), that
+`extract` on a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test
+24 needs at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three
+pieces: on a codeword the deployed decoder's list is the exact path's singleton
+(`ListDecoder.nttFirst`, `exactNtt_of_codeword`); the pick keeps the honest stack, which satisfies
+`M3Holds` from `SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the honest prover's
+log holds every level-0 leaf query in the layout `extractAllRows` and `laneRow` read (the zero
+prefix, the lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` runs
+`extract` on the test vector's honest log natively, and it returns the witness's sizes and stack; no
+theorem states the three pieces yet.
+
+*On merge* of the adaptive branch (`stack/45-adaptive-blake2s`, on the headline's): the BLAKE2s
+forms of the headline are adaptive. An adaptive adversary (`AdaptiveAdversary`) outputs the
+program and the public input with its proof, and the verifier runs on the statement it output
+(`adaptiveGame`, `Protocol/AdaptiveGame.lean`). A run of that game is a run of the selective game
+at the chosen statement (`mem_support_loggedGame_of_adaptive`, `mem_support_runBlake2s_adaptive`),
+so `core` applies unchanged: `baseVerifier_extractsWitness_adaptive`, its coins form, and
+`baseVerifier_extractsExecution_adaptive` (`SentinelSafe` of the chosen program a conjunct of the
+event) with the corollary `baseVerifier_extractsExecution_adaptive_wellFormed` for an adversary whose
+programs are all `WellFormedBytecode` (`Semantics/FillBlocks.lean`: `SentinelSafe` and the fill
+blocks). `#print axioms` gives the kernel's three axioms for each. The
+hypothesis is `BlakeMisbehavesAdaptive`, which at a fixed statement is `BlakeMisbehaves`
+(`blakeMisbehavesAdaptive_const`); the adaptive replayer fails it (`adaptiveReplayer_not_blakeMisbehaves`).
+Constraint soundness cannot drop `SentinelSafe`: the sentinel tests' program, whose sentinel slot is
+a `JUMP` and whose run's `JUMP` reads its destination and frame from cells `SET_CONSTANT` pins, has
+a witness of the constraint statement and no valid execution on any memory
+(`exists_satisfiedBy_without_execution`, generic in the image), and `verify` accepts every proof
+`prove` returns for it (`verify_accepts_without_execution`); natively, `leanervm-prove sentinel`
+proves it in 60 s and `verify` accepts. That the execution form itself fails without the condition
+is not proved: it would need an adversary outputting that program that meets
+`BlakeMisbehavesAdaptive`, which waits on the owed item below (the hypothesis met by an accepted
+adversary).
+
+*On merge* of the adaptive random-oracle branches (`stack/46-statement-hashes`,
+`stack/47-start-reader` and `stack/48-adaptive-rom`, on the adaptive branch): the random-oracle
+forms are adaptive too. The verifier and the prover compute the statement's seed through the hash
+(`FsState.seedWith`: the program's bytes, the seed's 78-byte preimage, the first state's input), so
+`verifyWith` and `proveWith` ask three more queries and `verify` and `prove` keep their values
+(`FsState.seedWith_blake2sBytes`); natively the proof stays byte-identical to the test vector. The
+reader of chain histories is one for every statement (`leanVmReader`): a history reads back to a
+start test before its steps (`HashChain.history`), a state is a start when the log holds a
+statement's three seed entries answered into it (`Protocol/StatementSeeds.lean`, `stmtOf`, unique on
+a log with no collision by `programBytes_injective`), and the announcement carries the statement. A
+logged 78-byte input puts its program hash in play (`programHashSlot`): a later answer completes a
+statement's seed only as the slot of a logged preimage or the half of a logged first-state input,
+both in play, so one more clean query opens no statement but at its answer (`stmtOf_append`). No
+root is in play at the start (`HashMisbehavesFrom []`; `seedDigests`, `Hit` and `HashMisbehaves` are
+gone), the starts are safe with none (`leanVmReader_startsSafe`: the empty history announces
+nothing, which covers a first state that answers a grinding base, the lanes `0, 0, 0, 3`), and the
+charge stays `ε` per query. The verifier's bound is `13700`, its seed's three queries added
+(`verifierQueriesBound_eq`). `core` concludes
+`HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))` from the
+verifier's first state, which opens its statement while no later state of its chain opens one
+(`start_of_seedWith`): the flipping group's history starts there, so the flip is on the chain of
+`(prog, input)` (`SlotReader.FlipFor`), and its chain step is a step of the verifier's walk, so a
+query of `g.logV`, which holds every step of the history (`flipAt_of_bad` at `lV := g.logV`,
+`SlotReader.FlipAtForIn`): the verifier itself asked the group (`SlotReader.VerifierFlipFor`,
+`Group.stepInput`). `misbehaves_rom_adaptive` bounds the adaptive
+game (`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q` with the flips on every statement's
+chain (`leanVmReader.Flip`), which contain those (`flip_of_verifierFlipFor`,
+`HashMisbehavesFrom.mono`), and `baseVerifier_extractsWitness_rom_adaptive`,
+`baseVerifier_extractsExecution_rom_adaptive`, its `_wellFormed` corollary and
+`blakeMisbehavesAdaptive_of_comparison` follow at `(Q + 13700)/2^128 + hashTerm 13700 Q`;
+`misbehaves_rom_adaptive_coins`, `baseVerifier_extractsWitness_rom_adaptive_coins` and
+`baseVerifier_extractsExecution_rom_adaptive_coins` average the three bounds over an adversary's
+coins. The theorems at a fixed statement keep their names and are
+their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`.
+`BlakeMisbehaves prog input A δ` keeps its form; its meaning changed in its hits and in its flips.
+The joint log now holds the verifier's three seed queries, the program hash a logged seed preimage
+carries is in play (`programHashSlot`), and the chain's first state is no longer in play from the
+start (it was the one root, `seedDigests`), only once a logged input carries it as a half. Its
+flips are those on the chain of `(prog, input)` alone, read from the first state at which the log
+holds that statement's three seed hashes (`stmtOf`) rather than from the first state computed
+outside the oracle, and only on a group the verifier itself asked
+(`leanVmReader.VerifierFlipFor (prog, input)`, decision 44: the group's nonce step or first
+squeeze is one of the verifier's queries); `BlakeMisbehavesAdaptive` reads them on the chosen
+statement's chain. A flip on another statement's chain does not count: counted, it would fail the
+hypothesis for an adversary that explores a cheating chain of another statement and then outputs an
+honest proof (a toy reader with two starts shows the restriction, `not_flipAtFor_true`). Nor does a
+flip on a chain of `(prog, input)` the adversary explored and the verifier never walked: counted,
+it would fail the hypothesis for an adversary that abandons a cheating chain of the statement and
+outputs an honest proof, though `core`'s conclusion holds of it (the toy reader's
+`not_verifierFlipFor_proverRun` against `flipFor_proverRun`). The broad event `FlipFor` stays,
+with `flipFor_of_verifierFlipFor` between them, and the random-oracle bounds still count every flip.
+Tests: an adversary that picks one of two statements from one hash is bounded at `Q = 1`, the
+adaptive replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before
+its program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,
+`leanervm-verify` accepts the Rust fixture and the test vector and rejects every mutation,
+`leanervm-prove` writes the vector byte for byte, and `leanervm-prove log` finds no collision and no
+hit in the honest run (487253 prover and 3294 verifier queries).
+
+Also owed:
+
+- **The hypothesis met by an accepted adversary.** `BlakeMisbehaves` is shown falsifiable (the
+  replayer) but not satisfiable by any adversary whose proof `verify` accepts. On an accepted run
+  the last challenge is bad as soon as the state function of `listBinding_deployed` is false, at
+  the round before it, at the extractor's witness; if some phase's state function failed on honest
+  transcripts, every accepted run would flip, and `baseVerifier_extractsWitness` would hold only of
+  rejected adversaries. Acceptance test 37 is met on the collision and hit clauses only, natively.
+  In the random-oracle model that scenario is excluded once the honest query bound and the grind
+  bound below land, with the identity of the honest run under a consistent log and
+  `proveWith (m := Id)` at that log's answers: the honest adversary is then accepted except when a
+  grind fails, so `misbehaves_rom` forbids every accepted run flipping. `δ = 0` at BLAKE2s on the
+  test vector stays open; only the first route below gives it. Two routes:
+  - *State-function completeness on the honest transcript* (the cheaper and the one to build): one
+    lemma per phase family (`BusSolved`, `TableSolved`, `FlockSolved` and `WhirSolved` carry the
+    per-round claims) giving `∀ i, kSF i (tr.take i) w_i` on the honest prover's transcript `tr`,
+    with `w_i` the extractor's witnesses down from the honest witness. Inverting `flipAt_of_bad`
+    (`Core/Flip.lean`) then gives `¬ Flip` on the honest run: no group of the honest chain flips,
+    for `SatisfiedBy prog input w` and `prove fuel prog input w ρ = some proof`. With the collision
+    and hit clauses decided natively, the test vector's honest run then meets `BlakeMisbehaves` at
+    `δ = 0`. It is the same piece `extract_honest` needs; build it once.
+  - *`blakeMisbehaves_of_comparison` at the honest adversary*: under `Blake2sActsAsRandomOracle`
+    for its game, `BlakeMisbehaves prog input (honestAdversary fuel prog input w ρ)
+    ((Q + 13700)/2^128 + hashTerm 13700 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
+    prog input w ρ) Q` (below), and stays conditional on the comparison.
+- **Completeness's remainder.** `prove_complete` says nothing of how often `prove` returns no
+  proof.
+  - *The honest query bound*: `IsTotalQueryBound (honestAdversary fuel prog input w ρ) Q` for an
+    explicit `Q` in `fuel` and the sizes (the test vector's honest run makes 487253 queries).
+    Without it neither the random-oracle bound nor the comparison route above applies to the
+    honest adversary.
+  - *The random-oracle bound on the grind*: for `w` with `SatisfiedBy`, admissible sizes and a valid
+    rate, `Pr{let z ← runRandom (loggedGame verifyWith prog input (honestAdversary fuel prog input
+    w ρ))}[z.1.ok = false] ≤ L · (1 − 2^-17)^fuel`, with `L` the number of grinds (one a WHIR
+    level, three to six). Route: `findNonce`'s candidates are distinct fresh inputs answered
+    uniformly (`prEvent_lowBitsZero` gives `2^-17` each), a geometric bound per grind, a union over
+    the levels, then `verifyWith_simulateQ` and `baseProver_complete` on the runs where every grind
+    succeeds. Moderate cost: the first probabilistic argument about the prover's run. At
+    `fuel = 2^24` the bound is `L · 2^-184.7`. At BLAKE2s no bound can be proved.
+- **`fuel` and `ρ` are parameters everywhere.** No module of `LeanerVM/` fixes either to a deployed
+  value: `prove` and `proveWith` take both, and the values appear only as defaults of
+  `bench/LeanerVMProve.lean` (fuel `2^24`, rate `1`). The rate `1` is the Rust test suite's
+  `LOG_INV_RATE_0`, not a deployed constant (`Parameters/Whir.lean`; the rate is announced with the
+  sizes), and the Rust's nonce search is unbounded over `u64`. Route: a `Parameters/` constant for
+  the deployed rate, taken from the pinned Rust's configuration, and a fuel at which the grind's
+  random-oracle bound is negligible, with `prove_complete` and that bound stated at them.
+
+*On merge* of the headline over executions (`feat/headline-execution`, PR A's leanISA on Clean main
+merged into the adaptive stack's tip): the headline theorems speak about leanISA executions.
+Soundness: every form has its execution form, the trace `extractExecution` reads off the
+adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_rom`,
+`baseVerifier_extractsExecution_coins`, `baseVerifier_extractsExecution_adaptive_coins` and
+`baseVerifier_extractsExecution_rom_adaptive_coins`, and
+`baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
+`baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
+Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
+and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
+constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
+accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
+grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
+proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
+witness exists and is not computed (leanISA's padded witness reads the image through the classical
+`MemImage.read`). The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
+stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
+check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
+proof":
+  - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
+    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
+    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
+    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
+    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
+  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
+    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
+    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
 
 ## Upstream watch
 
@@ -696,23 +1530,28 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
-| ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
-| ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
-| ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
+| ArkLib #615, #1295 (merged after the pin) | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | a verbatim copy of #1295 at the next refactor; deleted at the bump that contains it |
+| ArkLib's typed framework (its roadmap items 3–4; a knowledge notion since #1259–#1260) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
+| ArkLib #1263, #1264 (merged after the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
+| ArkLib #1349 (merged after the pin; #1245 closed unmerged) | none | the round-by-round-to-plain corollary, as guarded bridges, which no theorem here uses | reference only |
+| ArkLib #1413 (merged after the pin) | every `Security` field; the knowledge-soundness composition | the fixed-prefix names: `rbrKnowledgeSoundnessWorstCaseWith` becomes `rbrKnowledgeSoundnessWith` | at the bump that contains it, rename every consumer |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
 | ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
+| ArkLib's compiled snocs and appends of `Fin` tuples (ArkLib #1344, from `scaraven/ArkLib` branch `perf/fin-append-compiled-forms`, `f1a1e7deb`; merged on 2026-10-27 as `1beb99cc`, after the pin, with the same names); the pin's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `OracleInterface` instance) and `FullTranscript.append` | every phase run through `Prover.run` or an appended transcript | `ToArkLib/TupleCompiledForms.lean`, a verbatim copy of the proposal: `Fin.vconcat`, `Fin.fconcat`, `Fin.fconcat₂`, `Fin.hconcat`, `Fin.fappend`, `Fin.fappend₂` and `Fin.happend` read by one comparison, by `@[csimp]`; compiled as defined they are exponential in the length of the second tuple (261 s for 9 trivial sumcheck rounds, each prepended to the rest). `ToArkLib/AppendLazy.lean` compiles the pin's instances and `FullTranscript.append` again after them | a pin contains `1beb99cc` (49 commits past the pin, ArkLib there on Lean v4.35.0: a toolchain drift review); then delete both files, and their importers import `ArkLib.Data.Fin.Tuple.Lemmas` |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
-| VCVio #571 | Merkle extraction with hashed leaves; the random-oracle theorems | `ToVCVio/MerkleLeaves.lean`; the reduction from an adversary with coins | VCVio proves extraction with hashed leaves, or for an adversary with coins |
-| Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
-| Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
-| Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
+| VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
+| VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
+| VCVio #823, #824, #826 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
+| CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
+| ArkLib (none opened yet): generic upstream candidates written for this protocol | the phases' provers and verifiers, the Flock phase, the compiled verifier | `ToArkLib/`: cached honest provers and rounds (`CachedProver`, `CachedRounds`, `CachedSteps`, `SumcheckCached`, `ProductSumCached`, `GrandProductCached`, `ProductSumcheck`, `GrandProductRun`, `WeightCombination`); transcripts read back from a flat list of readings (`DecodeSteps`, `DecodeTranscript`, `StepSchedule`, `QueryRecord`, `ExtractIn`); oracle plumbing (`Oracles`, `KeepOracles`, `SendOracle`, `SendOracleBeside`, `MapWitness`, `PassCheck`, `PushSecurity`, `FrontRun`, `FrontVerifier`); the Flock argument (`Flock/BlockR1CS`, `Cached`, `CircuitFast`, `FrobeniusMap`, `Lincheck`, `Reduction`, `RingSwitch`, `Rounds`, `Run`, `Tables`, `Zerocheck`) | proposed upstream one module family at a time; each module deleted at the bump whose pin contains it |
+| CompPoly (none opened yet): generic polynomial algorithms | the honest provers' speed | `ToCompPoly/`: `AmbientStacking`, `BindStep`, `Doubling` (with its `lagrangeBasis`, `evalMle` and `eval₂Mle` substitutions), `EqBatch`, `FinLoop`, `Frobenius`, `HighSum`, `Interpolation`, `MvEval` (with its `CMvPolynomial.eval` and `eval₂` substitutions), `PlainSum`, `ProductLevels`, `TableFold` | as for ArkLib's |
+| VCVio (none opened yet): oracle-computation tools | the random-oracle theorems | `ToVCVio/`: `LogReplay` (replaying a logged run), `MerkleQueries`, `MonadRel` (relations preserved by `pure` and `bind`), `UniformCondition` | as for ArkLib's |
 
-One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
-any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
+Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
 budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
 (least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
 ([whir-mca-budget.md](../reviews/whir-mca-budget.md)).

@@ -1,6 +1,6 @@
 name = "leanerVM"
 version = "0.1.0"
-defaultTargets = ["LeanerVM"]
+defaultTargets = ["LeanerVM", "LeanerVMBench"]
 # The test driver is the test library, not an executable: an executable linking
 # historical `Fintype BF64` instance enumerated `2^64` elements at startup (finding P3 in
 # docs/roadmap/leanisa-status.md); the current field enumeration is proof-only. Tests are
@@ -27,7 +27,7 @@ rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
 [[require]]
 name = "Clean"
 git = "https://github.com/Verified-zkEVM/clean"
-rev = "42fe4b268132a46604d40cc73f642a1995f26547"
+rev = "ce2eee63870e258eb56b2d1c58083b579a584049"
 
 # Root requirements select the reviewed current source revisions over inherited
 # manifests. Mathlib stays on the matching Lean 4.34.1 release; see docs/dependencies.md.
@@ -56,7 +56,37 @@ name = "LeanerVMTests"
 srcDir = "tests"
 allowNonModules = true
 
-# Local native microbenchmark, not part of the proof-only default target.
+[[lean_lib]]
+# The benchmark source as a library, a default target: every build elaborates it without
+# linking, so it cannot fall behind the APIs it times. Timing needs the executable below.
+name = "LeanerVMBench"
+srcDir = "bench"
+allowNonModules = true
+
 [[lean_exe]]
+# Steady-state timings of compiled arithmetic, hashing and evaluation; see bench/README.md.
+# Not a default target: linking it compiles every transitive module to C.
+name = "leanervm-bench"
+srcDir = "bench"
+root = "LeanerVMBench"
+
+[[lean_exe]]
+# The executable verifier on the Rust proof fixture, compiled; see bench/README.md.
+# Not a default target.
+name = "leanervm-verify"
+srcDir = "bench"
+root = "LeanerVMVerify"
+
+[[lean_exe]]
+# The honest prover on the constraint statement tests' witness, compiled: writes and checks the
+# test vectors; see bench/README.md. Not a default target.
+name = "leanervm-prove"
+srcDir = "bench"
+root = "LeanerVMProve"
+
+[[lean_exe]]
+# The column-weight evaluator against its reference product; see bench/README.md.
+# Not a default target.
 name = "novelBasisBench"
-root = "bench.NovelBasisBench"
+srcDir = "bench"
+root = "NovelBasisBench"

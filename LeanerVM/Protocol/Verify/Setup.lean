@@ -1,0 +1,218 @@
+/-
+  LeanerVM.Protocol.Verify.Setup
+
+  The executable verifier's setup: the announced sizes and rate checked before any hash, the
+  instance and the stack shape they fix, the commitment root, and the reading primitives of the
+  chain walk.
+-/
+
+module
+
+public import LeanerVM.Protocol.Proof
+public import LeanerVM.Protocol.Merkle
+public import LeanerVM.Protocol.FlockSpec
+public import LeanerVM.Parameters.Whir
+
+/-!
+# The verifier's setup and the chain walk's primitives
+
+The executable verifier `verifyWith` (`LeanerVM.Protocol.Verify`) runs in four stages: the
+setup, the chain walk, the Merkle openings and the algebra. This module is the first stage and
+the vocabulary of the second. Transcribed from the pinned leanVM
+(`a386121f84292f6fa663aaa3e570c15bc0240ea2`): the stream order of
+`crates/lean_vm/src/cpu/mod.rs:695-735` (`verify`), as the second verifier writes it out
+(`python-verifier/verifier.py:1365-1407`, `verify_execution`).
+
+**The setup** (`setup?`). The stream opens with the memory log-size, the six opcode tables'
+log-heights and the WHIR rate, each a scalar with zero upper limbs (`read_public`,
+`cpu/mod.rs:144-176`). The verifier reads them off the head of the stream and makes every check
+`read_public` makes of them (`setupOk`) before the first hash, so that a proof with inadmissible
+sizes costs no query. They fix the instance (`leanVm prog s`, the leanISA instance at the
+deployed Flock specification), its stack (`stackMu`, `nLanes`) and the WHIR ladder
+(`ladderOf`). The chain walk then observes the eight scalars and reads the commitment root, a
+digest as two scalars whose top limbs are zero (`pcs::read_commitment`; `verifier.py:1381-1382`).
+
+**The walk's primitives** (`ChainOps`): read a scalar, squeeze a challenge, read a root, read
+and check a grinding nonce, and open the next commitment. Every walk is written once over them,
+in any monad: the proof reader (`readerOps`, over the reader `ReadM` of
+`LeanerVM.Protocol.Proof`, an opening checked by `merkleVerifyWith`) answers them from a proof,
+and `ChainOps.logged` records each step of any other reader, so that the same walk runs on the
+proof, on a history of the chain's steps, or with a log. Over them: `samples n` squeezes `n`
+challenges; `readRound d` reads the `d` wire coefficients of a round polynomial, observing them,
+then squeezes its challenge, the order of every sumcheck of the bus and the table phases
+(`verifier.py:452-459`); a round whose challenge comes first is WHIR's and is read by its own
+walk. The walk records the wire scalars raw: the dropped coefficient is the algebra's to derive
+(`RoundPoly.decode`), since the chain never reads it.
+
+**Differences from the Rust.** None in what is accepted. The Rust checks each size as it reads
+it; here the eight are checked before the walk starts, which rejects the same proofs earlier.
+-/
+
+namespace LeanerVM.Protocol
+
+open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash LeanIsa
+
+@[expose] public section
+
+namespace Verify
+
+/-! ## The setup -/
+
+/-- The instance a proof of `prog` at the announced sizes `s` is about: leanISA's, at the
+deployed Flock specification. -/
+abbrev leanVm (prog : Program) (s : Sizes) : M3Instance :=
+  leanIsaInstance Blake2sFlock.blake2sFlockSpec prog s
+
+/-- The announced sizes and rate when they pass the setup checks, read off the head of the
+stream without a hash; `none` otherwise (`read_public`, `cpu/mod.rs:144-176`). -/
+def setup? {M : Type} (prog : Program) (p : Proof M) : Option (Sizes × ℕ) :=
+  match p.announced? with
+  | some (s, ρ) => if setupOk prog s ρ then some (s, ρ) else none
+  | none => none
+
+/-- The stack's number of variables at the announced sizes (`placements_of`,
+`witness.rs:97`). -/
+abbrev stackMu (prog : Program) (s : Sizes) : ℕ := leanIsaμ prog s
+
+/-- The number of lanes of `2 ^ (μ - 6)` cells the committed columns occupy, at least one: the
+level-0 rows carry only these, the rest of their leaf image being a zero prefix
+(`witness.rs:97-101`, `StackShape::n_lanes`). -/
+def nLanes (prog : Program) (s : Sizes) : ℕ :=
+  max 1 (((LeanIsa.blocks prog s).total + 2 ^ (stackMu prog s - Whir.initialFold) - 1) /
+    2 ^ (stackMu prog s - Whir.initialFold))
+
+/-- The WHIR ladder of the stack at the announced rate (`derive_config`, `verifier.py:920-935`):
+`none` outside the stacking and rate windows, which the setup checks exclude. -/
+def ladderOf (prog : Program) (s : Sizes) (ρ : ℕ) : Option (List Whir.Level) :=
+  Whir.ladder (stackMu prog s) ρ
+
+/-! ## The chain walk's primitives -/
+
+/-- The chain walk's five primitives in a monad `n`, on which every walk is written. -/
+structure ChainOps (n : Type → Type) where
+  /-- Read the next scalar, observed. -/
+  nextScalar : n E
+  /-- Squeeze a challenge. -/
+  sample : n E
+  /-- Read a digest as two observed scalars. -/
+  nextRoot : n Digest
+  /-- Read a grinding nonce, check that it clears the given number of bits and absorb it: the
+  nonce. -/
+  checkPow : ℕ → n E
+  /-- The next commitment's opening against `root`, for a tree of `2 ^ depth` leaves of
+  `leafWords` words whose stored rows are `rowWords` wide, at the given positions: the leaf
+  images, in position order. -/
+  nextOpening : (root : Digest) → (depth rowWords leafWords : ℕ) → List ℕ → n (List (List K))
+
+/-- The next `k` scalars, in order. -/
+def ChainOps.nextScalars {n : Type → Type} [Monad n] (ops : ChainOps n) : ℕ → n (List E)
+  | 0 => pure []
+  | k + 1 => do
+    let x ← ops.nextScalar
+    let xs ← ops.nextScalars k
+    return x :: xs
+
+/-- One step of a walk, as `ChainOps.logged` records it. -/
+inductive ChainEvent where
+  /-- A scalar read. -/
+  | scalar (x : E)
+  /-- A challenge squeezed. -/
+  | sample (x : E)
+  /-- A root read. -/
+  | root (d : Digest)
+  /-- A grinding nonce read and checked at the given number of bits. -/
+  | nonce (bits : ℕ) (x : E)
+  /-- A commitment opened against its root, for a tree of `2 ^ depth` leaves of `leafWords`
+  words whose stored rows are `rowWords` wide, at the given positions: the call, so that a log
+  determines the walk's openings. -/
+  | opening (root : Digest) (depth rowWords leafWords : ℕ) (positions : List ℕ)
+
+/-- A step `x`, its result logged by `ev` after it runs. -/
+def ChainOps.logStep {n : Type → Type} [Monad n] {α : Type} (ev : α → ChainEvent) (x : n α) :
+    StateT (Array ChainEvent) n α := do
+  let a ← x
+  modify (·.push (ev a))
+  return a
+
+/-- The primitives `ops`, each step appended to a log after it runs. -/
+def ChainOps.logged {n : Type → Type} [Monad n] (ops : ChainOps n) :
+    ChainOps (StateT (Array ChainEvent) n) where
+  nextScalar := logStep .scalar ops.nextScalar
+  sample := logStep .sample ops.sample
+  nextRoot := logStep .root ops.nextRoot
+  checkPow bits := logStep (.nonce bits) (ops.checkPow bits)
+  nextOpening root depth rowWords leafWords ps :=
+    logStep (fun _ ↦ .opening root depth rowWords leafWords ps)
+      (ops.nextOpening root depth rowWords leafWords ps)
+
+/-- The chain walk's monad on a proof: the transcript reader over the deployed proof, whose
+openings are pruned Merkle paths. -/
+abbrev Walk (m : Type → Type) : Type → Type := ReadM m PrunedMerklePaths
+
+/-- The proof reader's primitives, every hash answered by `H`: the reader's operations on the
+proof (`Reader`), an opening checked by `merkleVerifyWith`. -/
+def readerOps {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) : ChainOps (Walk m) where
+  nextScalar := Reader.nextScalar H
+  sample := Reader.sample H
+  nextRoot := Reader.nextRoot H
+  checkPow := Reader.checkPow H
+  nextOpening root depth rowWords leafWords ps :=
+    Reader.nextOpening (merkleVerifyWith H root depth rowWords leafWords ps)
+
+/-- One sumcheck round as read: the wire coefficients, low degree first with the dropped one
+missing, and the challenge drawn after them. -/
+structure Round where
+  /-- The wire coefficients. -/
+  wire : List E
+  /-- The challenge. -/
+  chal : E
+  deriving Inhabited
+
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
+
+/-- `k` challenges, squeezed in order (`samples`). -/
+def samples : ℕ → n (List E)
+  | 0 => pure []
+  | k + 1 => do
+    let x ← ops.sample
+    let xs ← samples k
+    return x :: xs
+
+/-- A round whose `d` wire coefficients are read, and observed, before its challenge is
+squeezed (`sumcheck`, `verifier.py:452-459`). -/
+def readRound (d : ℕ) : n Round := do
+  let wire ← ops.nextScalars d
+  let chal ← ops.sample
+  return ⟨wire, chal⟩
+
+/-- `k` rounds of `d` wire coefficients each. -/
+def readRounds (d : ℕ) : ℕ → n (List Round)
+  | 0 => pure []
+  | k + 1 => do
+    let r ← readRound ops d
+    let rs ← readRounds d k
+    return r :: rs
+
+/-- The setup's reads: the eight announced scalars, observed, then the commitment root
+(`read_public`, `read_commitment`). -/
+def walkSetup : n Digest := do
+  let _ ← ops.nextScalars 8
+  ops.nextRoot
+
+/-! ## The rounds' decoding -/
+
+/-- The round polynomials of a run of sumcheck rounds, decoded from their wires and the running
+claim, each challenge evaluating the decoded polynomial into the next claim: the final claim and
+the challenges, or `none` if a wire has the wrong length. `eq? j` is the equality weight of
+round `j`, `none` for a plain round. -/
+def replayRounds (d : ℕ) (eq? : ℕ → Option E) : ℕ → E → List Round → Option (E × List E)
+  | _, claim, [] => some (claim, [])
+  | j, claim, r :: rs => do
+    let c ← RoundPoly.decode d claim (eq? j) r.wire
+    let (final, cs) ← replayRounds d eq? (j + 1) (RoundPoly.eval c r.chal) rs
+    return (final, r.chal :: cs)
+
+end Verify
+
+end
+end LeanerVM.Protocol

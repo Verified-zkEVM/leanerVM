@@ -13,6 +13,11 @@ instance is proof-only; whether the tests can again be an executable is unchecke
 module may be a `module` or plain, and a plain one can decide `E` arithmetic in the kernel,
 which a `module` cannot.
 
+`vectors/` holds proofs written by the honest prover, checked by the `leanervm-prove` and
+`leanervm-verify` executables rather than by `lake test` (see
+[`vectors/README.md`](vectors/README.md)); the `Executables` workflow runs them (see
+[`../docs/ci.md`](../docs/ci.md)).
+
 As executable definitions arrive, add focused unit, differential, and mutation tests here.
 Put their modules under `tests/LeanerVMTests/` and import each one from `LeanerVMTests.lean`.
 Tests must not be imported by the production `LeanerVM/` library.
@@ -125,6 +130,6 @@ deferred-claim rejection. Bind vectors to the revision in
 
 The executable ISA checker and its proved contracts are documented in
 [`docs/leanisa-checker.md`](../docs/leanisa-checker.md). The optional
-`python3 scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
+`uv run --no-project --python 3.12 python scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
 in `tests/rust/` and validates their actual exports in Lean. It requires the pinned source
 commit and an offline Cargo cache; the ordinary Lean gate does not depend on a Rust checkout.

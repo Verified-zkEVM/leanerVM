@@ -13,11 +13,17 @@ public import LeanerVM.Protocol.ToArkLib.Flock.Circuit
 /-!
 # Building product-gate circuits
 
-A gadget is a program in `Builder m`, a state monad over the next free position and the gates
-recorded so far. Its one effect, `mul a b`, records the gate `(a, b)` at the next position and
-returns that position's form. Linear operations need no effect: they are XORs of forms.
+A gadget is a program in `BuilderOf m α`, a state monad over the next free position and the
+gates recorded so far, written over a carrier `L : Lin m α` of the linear values. Its one effect,
+`mul L a b`, records the gate `(a, b)` at the next position and returns that position's value.
+Linear operations need no effect: they are sums of values. On forms (`Builder m`, at
+`formLin m`) a program builds a circuit; at another carrier it computes that circuit's rows there.
 
-Two contracts compose through `bind`:
+`Natural φ f ma mb`: run from a state carried by `φ`, `mb` records `ma`'s gates carried by `φ`
+and returns `f` of `ma`'s result. `natural_bind`, `natural_pure`, `natural_map` and `natural_mul`
+(for a map of carriers) compose it, so one program at two carriers is natural gadget by gadget.
+
+Two contracts on forms compose through `bind`:
 
 * `Sound w mb P`: whenever the gates a run of `mb` records hold at the block `w`, its result
   satisfies `P`. With `Grows` (a program only appends gates), `sound_bind` composes them.
@@ -41,32 +47,78 @@ variable {m : ℕ}
 
 /-! ## The builder -/
 
-/-- The builder's state: the next free position and the gates recorded so far. -/
-structure BuildState (m : ℕ) where
+/-- The builder's state at a carrier `α`: the next free position and the gates recorded so far. -/
+structure BuildStateOf (m : ℕ) (α : Type) where
   /-- The next gate position. -/
   next : ℕ
   /-- The gates recorded so far, in evaluation order. -/
-  gates : Array (Pos m × Gate m)
+  gates : Array (Pos m × GateOf α)
 
-/-- A circuit-building program. -/
-abbrev Builder (m : ℕ) := StateM (BuildState m)
+/-- The builder's state on forms. -/
+abbrev BuildState (m : ℕ) := BuildStateOf m (Form m)
 
-/-- Record the gate `(a, b)` at the next position and return that position's form. -/
-def mul (a b : Form m) : Builder m (Form m) :=
+/-- A circuit-building program at a carrier `α`. -/
+abbrev BuilderOf (m : ℕ) (α : Type) := StateM (BuildStateOf m α)
+
+/-- A circuit-building program on forms. -/
+abbrev Builder (m : ℕ) := BuilderOf m (Form m)
+
+/-- Record the gate `(a, b)` at the next position and return that position's value. -/
+def mul {α : Type} (L : Lin m α) (a b : α) : BuilderOf m α α :=
   modifyGet fun s ↦
-    (Form.var (pos s.next), { next := s.next + 1, gates := s.gates.push (pos s.next, ⟨a, b⟩) })
+    (L.var (pos s.next), { next := s.next + 1, gates := s.gates.push (pos s.next, ⟨a, b⟩) })
 
 /-- One `mul`: the gate at `next`, and `next` advanced. -/
-theorem run_mul (a b : Form m) (σ : BuildState m) :
-    (mul a b).run σ =
-      (Form.var (pos σ.next), { next := σ.next + 1, gates := σ.gates.push (pos σ.next, ⟨a, b⟩) }) :=
+theorem run_mul {α : Type} (L : Lin m α) (a b : α) (σ : BuildStateOf m α) :
+    (mul L a b).run σ =
+      (L.var (pos σ.next), { next := σ.next + 1, gates := σ.gates.push (pos σ.next, ⟨a, b⟩) }) :=
   rfl
 
-private theorem run_bind' {α β : Type} (mb : Builder m α) (f : α → Builder m β) (σ : BuildState m) :
-    (mb >>= f).run σ = (f (mb.run σ).1).run (mb.run σ).2 := rfl
+private theorem run_bind' {γ α β : Type} (mb : BuilderOf m γ α) (f : α → BuilderOf m γ β)
+    (σ : BuildStateOf m γ) : (mb >>= f).run σ = (f (mb.run σ).1).run (mb.run σ).2 := rfl
 
-private theorem run_map' {α β : Type} (mb : Builder m α) (f : α → β) (σ : BuildState m) :
-    (f <$> mb).run σ = (f (mb.run σ).1, (mb.run σ).2) := rfl
+private theorem run_map' {γ α β : Type} (mb : BuilderOf m γ α) (f : α → β)
+    (σ : BuildStateOf m γ) : (f <$> mb).run σ = (f (mb.run σ).1, (mb.run σ).2) := rfl
+
+/-! ## Carrying a program to another carrier -/
+
+section Natural
+
+variable {α β : Type}
+
+/-- The state with its gates' values carried by `φ`. -/
+def BuildStateOf.map (φ : α → β) (σ : BuildStateOf m α) : BuildStateOf m β :=
+  ⟨σ.next, σ.gates.map (mapGate φ)⟩
+
+/-- `mb` is `ma` with its values carried by `φ`: run from the carried state, it records the
+carried gates and returns `f` of `ma`'s result. -/
+def Natural {X Y : Type} (φ : α → β) (f : X → Y) (ma : BuilderOf m α X) (mb : BuilderOf m β Y) :
+    Prop :=
+  ∀ σ : BuildStateOf m α, mb.run (σ.map φ) = (f (ma.run σ).1, (ma.run σ).2.map φ)
+
+variable {φ : α → β} {X Y X' Y' : Type}
+
+theorem natural_pure {f : X → Y} {a : X} {b : Y} (h : f a = b) :
+    Natural (m := m) φ f (pure a) (pure b) := fun _ ↦ by rw [← h]; rfl
+
+theorem natural_bind {f : X → Y} {g : X' → Y'} {ma : BuilderOf m α X} {mb : BuilderOf m β Y}
+    {ka : X → BuilderOf m α X'} {kb : Y → BuilderOf m β Y'} (hm : Natural φ f ma mb)
+    (hk : ∀ a, Natural φ g (ka a) (kb (f a))) : Natural φ g (ma >>= ka) (mb >>= kb) := fun σ ↦ by
+  rw [run_bind', run_bind', hm σ]
+  exact hk _ _
+
+theorem natural_map {f : X → Y} {f' : X' → Y'} {ma : BuilderOf m α X} {mb : BuilderOf m β Y}
+    {g : X → X'} {g' : Y → Y'} (hm : Natural φ f ma mb) (h : ∀ a, f' (g a) = g' (f a)) :
+    Natural φ f' (g <$> ma) (g' <$> mb) := fun σ ↦ by
+  rw [run_map', run_map', hm σ, h]
+
+/-- `mul` at `M` of the carried values is `mul` at `L`, carried. -/
+theorem natural_mul {L : Lin m α} {M : Lin m β} (h : L.Hom M φ) {a b : α} {a' b' : β}
+    (ha : φ a = a') (hb : φ b = b') : Natural φ φ (mul L a b) (mul M a' b') := fun σ ↦ by
+  rw [run_mul, run_mul, h.var]
+  simp [BuildStateOf.map, mapGate, GateOf.map, ha, hb]
+
+end Natural
 
 /-! ## Soundness -/
 
@@ -93,7 +145,7 @@ theorem grows_pure {α : Type} (a : α) : Grows (pure a : Builder m α) := fun _
 theorem grows_map {α β : Type} {mb : Builder m α} (f : α → β) (hm : Grows mb) :
     Grows (f <$> mb) := fun σ kg h ↦ by rw [run_map']; exact hm σ kg h
 
-theorem grows_mul (a b : Form m) : Grows (mul a b) := fun σ kg h ↦ by
+theorem grows_mul (a b : Form m) : Grows (mul (formLin m) a b) := fun σ kg h ↦ by
   rw [run_mul]; exact Array.mem_push_of_mem _ h
 
 theorem sound_bind {α β : Type} {w : Pos m → Bool} {mb : Builder m α} {f : α → Builder m β}
@@ -114,7 +166,7 @@ theorem sound_map {α β : Type} {w : Pos m → Bool} {mb : Builder m α} {f : �
 
 /-- The gate `mul` records holds: its result evaluates to the product of its forms. -/
 theorem sound_mul {w : Pos m → Bool} (a b : Form m) :
-    Sound w (mul a b) (fun o ↦ o.eval w = (a.eval w && b.eval w)) := fun σ h ↦ by
+    Sound w (mul (formLin m) a b) (fun o ↦ o.eval w = (a.eval w && b.eval w)) := fun σ h ↦ by
   rw [run_mul] at h ⊢
   rw [eval_var]
   exact h _ (Array.mem_push_self ..)
@@ -258,7 +310,7 @@ theorem ok_map {α β : Type} {n₀ k : ℕ} {mb : Builder m α} {f : α → β}
 
 /-- `mul` records one gate, and its result is available after it. -/
 theorem ok_mul {n₀ : ℕ} {a b : Form m} (ha : S.SubN a n₀) (hb : S.SubN b n₀) :
-    S.Ok n₀ (mul a b) 1 (fun o n ↦ S.SubN o n) := by
+    S.Ok n₀ (mul (formLin m) a b) 1 (fun o n ↦ S.SubN o n) := by
   intro σ hσ hn hle
   rw [run_mul]
   refine ⟨inv_push hσ (by omega) (ha.mono hn) (hb.mono hn), rfl, subN_var ?_⟩

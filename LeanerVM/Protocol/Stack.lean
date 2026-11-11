@@ -143,6 +143,46 @@ def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
   extend := B.extendPoint hμ
   read_eval := fun q b z ↦ by rw [readWith_extendPoint]; exact B.readColumn_eval hμ q b z
 
+/-- Every block's selector bits, as arrays. -/
+def selectorBits (hμ : B.total ≤ 2 ^ μ) : Array (Array E) :=
+  Array.ofFn fun b : Fin B.n ↦ (boolVec (B.selector hμ b) : Vector E (μ - B.size b)).toArray
+
+/-- Block `b`'s selector bits have `μ - size_b` entries. -/
+theorem size_selectorBits (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
+    ((B.selectorBits hμ).getD b.val #[]).size = μ - B.size b := by
+  simp [selectorBits, Array.getD_eq_getD_getElem?]
+
+/-- The lift of the aligned blocks, the selector bits given as arrays
+(`extendFast_selectorBits`). -/
+def extendFast (sels : Array (Array E))
+    (hsel : ∀ b : Fin B.n, (sels.getD b.val #[]).size = μ - B.size b) (hμ : B.total ≤ 2 ^ μ)
+    (b : Fin B.n) (z : Vector E (B.size b)) : Vector E μ :=
+  Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+    (z ++ (⟨sels.getD b.val #[], hsel b⟩ : Vector E (μ - B.size b)))
+
+/-- With the blocks' selector bits, the lift is `extendPoint`. -/
+theorem extendFast_selectorBits (hμ : B.total ≤ 2 ^ μ) :
+    B.extendFast (B.selectorBits hμ) (B.size_selectorBits hμ) hμ = B.extendPoint hμ := by
+  funext b z
+  unfold extendFast extendPoint
+  congr 2
+  apply Vector.ext
+  intro i hi
+  simp [selectorBits, Array.getD_eq_getD_getElem?]
+
+/-- The aligned blocks' reading law with every block's selector bits computed once, where
+`layout` computes a block's offset and its bits on every lift. -/
+def layoutFast (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
+  extend := B.extendFast (B.selectorBits hμ) (B.size_selectorBits hμ) hμ
+  read_eval := by
+    rw [extendFast_selectorBits]
+    exact (B.layout hμ).read_eval
+
+/-- Compiled code lifts through selector bits computed once. -/
+@[csimp] theorem layout_eq_layoutFast : @layout = @layoutFast := by
+  funext B μ hμ
+  simp only [layout, layoutFast, extendFast_selectorBits]
+
 /-! ## Strided slots of a block -/
 
 /-- Reading through a strided lift: the column at slot `slot c` of block `b` is the low slice
@@ -178,6 +218,18 @@ def stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
       ← eval₂Mle_cast (algebraMap K E) (h c)]
     simp only [Vector.cast_cast, Vector.cast_rfl]
     rw [eval₂Mle, eval₂Mle, sliceLow_map, evalMle_boolVec_append]
+
+/-- The strided slots' reading law with the block's selector bits computed once, where
+`stridedLayout` computes them on every lift, and the slot's bits through `boolVecE`. -/
+def stridedLayoutFast (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type} {κ : ι → ℕ}
+    (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = k + κ c) : Layout μ ι κ :=
+  let sel : Vector E (μ - B.size b) := boolVec (B.selector hμ b)
+  { extend := fun c z ↦ Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+      (Vector.cast (h c).symm (boolVecE (slot c) ++ z) ++ sel)
+    read_eval := (B.stridedLayout hμ b k slot h).read_eval }
+
+/-- Compiled code lifts a strided slot through selector bits computed once. -/
+@[csimp] theorem stridedLayout_eq_stridedLayoutFast : @stridedLayout = @stridedLayoutFast := rfl
 
 /-- A strided slot's cell `x` is the block's cell `slot + x · 2 ^ k`, at the block's offset. -/
 theorem get_stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
