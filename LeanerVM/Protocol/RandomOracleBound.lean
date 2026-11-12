@@ -340,9 +340,8 @@ private theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : Qu
 /-- A uniform digest is one of `B` with probability at most `|B| / 2^256`. -/
 private theorem prEvent_mem_le (B : List Digest) :
     Pr{let u ← $ᵗ Digest}[u ∈ B] ≤ (B.length : ℝ≥0∞) / 2 ^ 256 := by
-  have h := (SampleableType.prEvent_uniformSample_le_div_iff (· ∈ B) (c := B.length)).mpr
-    ((congrArg Finset.card (Finset.ext fun _ ↦ by simp)).trans_le B.toFinset_card_le)
-  rwa [card_digest, Nat.cast_pow, Nat.cast_ofNat] at h
+  have h := SampleableType.prEvent_uniformSample_exists_eq_le B.get
+  simpa only [← List.mem_iff_get, card_digest, Nat.cast_pow, Nat.cast_ofNat] using h
 
 /-- A group open in a log starts from a digest in play. -/
 private theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :

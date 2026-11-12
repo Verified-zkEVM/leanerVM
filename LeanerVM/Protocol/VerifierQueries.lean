@@ -64,18 +64,13 @@ private theorem runAt_bind {α β : Type} (a : W α) (f : α → W β)
   funext r
   cases r <;> rfl
 
-/-- `pure` asks no query. -/
-private theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
-    IsTotalQueryBound (pure x : OracleComp hashSpec α) n :=
-  isQueryBound_pure x n _ _
-
 /-- **The walks that ask at most `n` queries** on every run, from any state, and leave the
 openings unread. -/
 def queryGrade : MonadGrade W where
   P a n := ∀ st, IsTotalQueryBound (runAt a st) n ∧
     ∀ r ∈ support (runAt a st), ∀ p, r = .ok p → p.2.merkle = st.merkle
   pure x st := by
-    refine ⟨isTotalQueryBound_pure _ _, fun r hr p hp ↦ ?_⟩
+    refine ⟨isQueryBound_pure _ _ _ _, fun r hr p hp ↦ ?_⟩
     rw [runAt_pure, mem_support_pure_iff] at hr
     subst hr
     cases hp
@@ -85,7 +80,7 @@ def queryGrade : MonadGrade W where
     refine ⟨isTotalQueryBound_bind (ha st).1 fun r ↦ ?_, fun r hr p hp ↦ ?_⟩
     · cases r with
       | ok p => exact (hf p.1 p.2).1
-      | error e => exact isTotalQueryBound_pure _ _
+      | error e => exact isQueryBound_pure _ _ _ _
     · rw [mem_support_bind_iff] at hr
       obtain ⟨r₁, hr₁, hr⟩ := hr
       cases r₁ with
@@ -100,7 +95,7 @@ private theorem pure_grade {α : Type} {a : W α}
     (f : ReaderState PrunedMerklePaths → Except ReadError (α × ReaderState PrunedMerklePaths))
     (ha : ∀ st, runAt a st = pure (f st)) (hf : ∀ st p, f st = .ok p → p.2.merkle = st.merkle) :
     queryGrade.P a 0 := fun st ↦
-  ⟨by rw [ha]; exact isTotalQueryBound_pure _ _, fun r hr p hp ↦ by
+  ⟨by rw [ha]; exact isQueryBound_pure _ _ _ _, fun r hr p hp ↦ by
     rw [ha, mem_support_pure_iff] at hr
     subst hr
     exact hf st p hp⟩
@@ -118,7 +113,7 @@ private theorem throw_grade {α : Type} (e : ReadError) : queryGrade.P (throw e 
 /-- Oracle computations that ask at most `n` queries. -/
 private def ocGrade : MonadGrade (OracleComp hashSpec) where
   P c n := IsTotalQueryBound c n
-  pure x := isTotalQueryBound_pure x 0
+  pure x := isQueryBound_pure x 0 _ _
   bind ha hf := isTotalQueryBound_bind ha hf
 
 private theorem runAt_monadLift {α : Type} (c : OracleComp hashSpec α)
@@ -142,11 +137,8 @@ private theorem lift_grade {α : Type} {c : OracleComp hashSpec α} {n : ℕ} (h
 
 /-- A hash is one query. -/
 theorem isTotalQueryBound_hashQuery (t : List UInt8) :
-    IsTotalQueryBound (hashQuery t) 1 := by
-  have h := (isTotalQueryBound_query_bind_iff (spec := hashSpec) (t := t)
-    (mx := (pure : Digest → OracleComp hashSpec Digest)) (n := 1)).mpr
-    ⟨Nat.one_pos, fun u ↦ isTotalQueryBound_pure u 0⟩
-  rwa [bind_pure] at h
+    IsTotalQueryBound (hashQuery t) 1 :=
+  (isQueryBound_query_iff _ _ _ _).mpr Nat.one_pos
 
 private theorem hashQuery_grade (t : List UInt8) : ocGrade.P (hashQuery t) 1 :=
   isTotalQueryBound_hashQuery t
@@ -225,7 +217,7 @@ private theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : Lis
     IsTotalQueryBound (hashRowsWith hashQuery rowWords leafWords rows) rows.length ∧
       ∀ r ∈ support (hashRowsWith hashQuery rowWords leafWords rows), ∀ ds,
         r = some ds → ds.length = rows.length
-  | [] => ⟨isTotalQueryBound_pure _ _, fun r hr ds hds ↦ by
+  | [] => ⟨isQueryBound_pure _ _ _ _, fun r hr ds hds ↦ by
       rw [hashRowsWith, mem_support_pure_iff] at hr
       subst hr
       cases hds
@@ -235,7 +227,7 @@ private theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : Lis
     rw [hashRowsWith]
     split
     · refine ⟨(isTotalQueryBound_bind (isTotalQueryBound_hashQuery _) fun _ ↦
-        isTotalQueryBound_bind ih.1 fun _ ↦ isTotalQueryBound_pure _ 0).mono
+        isTotalQueryBound_bind ih.1 fun _ ↦ isQueryBound_pure _ 0 _ _).mono
           (by simp only [List.length_cons]; omega), fun r hr ds hds ↦ ?_⟩
       simp only [mem_support_bind_iff, mem_support_pure_iff] at hr
       obtain ⟨d, -, ds', hds', rfl⟩ := hr
@@ -244,7 +236,7 @@ private theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : Lis
       | some ds' =>
         cases hds
         simp [ih.2 _ hds' ds' rfl]
-    · exact ⟨isTotalQueryBound_pure _ _, fun r hr ds hds ↦ by
+    · exact ⟨isQueryBound_pure _ _ _ _, fun r hr ds hds ↦ by
         rw [mem_support_pure_iff] at hr
         subst hr
         cases hds⟩
@@ -258,20 +250,20 @@ private theorem isTotalQueryBound_merkleVerifyWith (root : Digest) (depth rowWor
   unfold merkleVerifyWith
   dsimp only
   split
-  · exact isTotalQueryBound_pure _ _
+  · exact isQueryBound_pure _ _ _ _
   · refine (isTotalQueryBound_bind_of_mem_support
       (hashRowsWith_queries rowWords leafWords paths.leafData).1
       (suffixBound := depth * paths.leafData.length) fun r hr ↦ ?_).mono (by ring_nf; omega)
     rcases r with _ | leaves
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · simp only
       split
-      · exact isTotalQueryBound_pure _ _
+      · exact isQueryBound_pure _ _ _ _
       · have hl := (hashRowsWith_queries rowWords leafWords paths.leafData).2 _ hr leaves rfl
         refine (isTotalQueryBound_bind (n₂ := 0) (MerkleTree.prunedRoot_queries
           (fun l r ↦ hashQuery (nodeBytes l r)) (fun _ _ ↦ isTotalQueryBound_hashQuery _) depth
           _ paths.siblingHashes) fun r ↦ ?_).mono ?_
-        · rcases r with _ | r <;> exact isTotalQueryBound_pure _ _
+        · rcases r with _ | r <;> exact isQueryBound_pure _ _ _ _
         · simp only [List.length_zip, hl, Nat.add_zero]
           exact Nat.mul_le_mul_left _ (min_le_right _ _)
 
@@ -294,9 +286,9 @@ private theorem nextOpening_queries {α : Type}
     fun r ↦ ?_).mono
     (by omega), fun r hr q hq ↦ ?_⟩
   · rcases r with _ | ⟨x, s⟩
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · simp only
-      split <;> exact isTotalQueryBound_pure _ _
+      split <;> exact isQueryBound_pure _ _ _ _
   · simp only [mem_support_bind_iff, support_map, Set.mem_image] at hr
     obtain ⟨_, ⟨o, -, rfl⟩, hr⟩ := hr
     simp only at hr
@@ -322,8 +314,8 @@ private theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root :
     openingsOk nLanes first shs st.merkle = true →
     IsTotalQueryBound (runAt (walkOpenings (readerOps hashQuery) nLanes first root shs ls) st)
       (openingsCount shs)
-  | _, _, [], _, _, _ => isTotalQueryBound_pure _ _
-  | _, _, _ :: _, [], _, _ => isTotalQueryBound_pure _ _
+  | _, _, [], _, _, _ => isQueryBound_pure _ _ _ _
+  | _, _, _ :: _, [], _, _ => isQueryBound_pure _ _ _ _
   | first, root, sh :: shs, l :: ls, st, hok => by
     obtain ⟨p, ps, hst⟩ : ∃ p ps, st.merkle = p :: ps := by
       rcases h : st.merkle with _ | ⟨p, ps⟩
@@ -340,14 +332,14 @@ private theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root :
     refine (isTotalQueryBound_bind_of_mem_support h₁.1 (suffixBound := openingsCount shs)
       fun r hr ↦ ?_).mono ?_
     · rcases r with _ | ⟨rows, st'⟩
-      · exact isTotalQueryBound_pure _ _
+      · exact isQueryBound_pure _ _ _ _
       · simp only
         rw [runAt_bind]
         refine (isTotalQueryBound_bind (n₂ := 0)
           (walkOpenings_queries nLanes false _ shs ls st' ?_) fun r ↦ ?_).mono (by omega)
         · rw [h₁.2 _ hr _ rfl]
           exact hrest
-        · rcases r with _ | ⟨rest, st''⟩ <;> exact isTotalQueryBound_pure _ _
+        · rcases r with _ | ⟨rest, st''⟩ <;> exact isQueryBound_pure _ _ _ _
     · simp only [openingsCount]
       exact Nat.add_le_add_right (Nat.mul_le_mul_right _ hq) _
 
@@ -378,13 +370,13 @@ private theorem isTotalQueryBound_walk (prog : Program) (s : Sizes) (input : Pub
   rw [runAt_bind]
   refine isTotalQueryBound_bind_of_mem_support hc.1 fun r hr ↦ ?_
   rcases r with _ | ⟨w, st'⟩
-  · exact isTotalQueryBound_pure _ _
+  · exact isQueryBound_pure _ _ _ _
   · simp only
     rw [runAt_bind]
     refine (isTotalQueryBound_bind (n₂ := 0) (walkOpenings_queries _ _ _ shs _ st'
       (by rw [hc.2 _ hr _ rfl]; exact hok)) fun r ↦ ?_).mono (by omega)
     rcases r with _ | ⟨rows, st''⟩
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · exact ((queryGrade.bind (k := 0) finish_grade fun _ ↦ queryGrade.pure _) st'').1
 
 /-- **The seed's hashes at the random oracle** are three queries. -/
@@ -408,7 +400,7 @@ private theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState
   rw [hs]
   simp only [hl]
   split
-  · exact isTotalQueryBound_pure _ _
+  · exact isQueryBound_pure _ _ _ _
   · rename_i hok
     simp only [Bool.not_eq_true', Bool.not_eq_false] at hok
     refine isTotalQueryBound_bind hk fun fs ↦ ?_
@@ -418,7 +410,7 @@ private theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState
     · rw [StateT.run'_eq, ExceptT.run_map]
       exact (isQueryBound_map_iff _ _ _ _ _).mpr
         (isTotalQueryBound_walk prog s input _ ⟨fs, proof.stream, proof.merkle⟩ hok)
-    · rcases r with _ | ⟨w, rows⟩ <;> exact isTotalQueryBound_pure _ _
+    · rcases r with _ | ⟨w, rows⟩ <;> exact isQueryBound_pure _ _ _ _
 
 /-! ## The maximum over the admissible sizes -/
 
@@ -485,12 +477,12 @@ private theorem verifierQueries_bound_from {seed : OracleComp hashSpec FsState} 
       (k + verifierQueries prog input) := by
   rcases hs : setup? prog proof with _ | ⟨s, ρ⟩
   · rw [verifyFrom_of_setup _ _ hs]
-    exact isTotalQueryBound_pure _ _
+    exact isQueryBound_pure _ _ _ _
   rcases hl : ladderOf prog s ρ with _ | levels
   · unfold verifyFrom
     rw [hs]
     simp only [hl]
-    exact isTotalQueryBound_pure _ _
+    exact isQueryBound_pure _ _ _ _
   refine (isTotalQueryBound_verifyFrom hk hs hl).mono (Nat.add_le_add_left ?_ k)
   have h := queryCountAt_le (input := input) (setupOk_of_setup hs)
   simp only [queryCountAt, hl] at h
