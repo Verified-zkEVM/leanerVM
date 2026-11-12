@@ -110,8 +110,7 @@ def kwordOf (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) : KWord ℓ 
 private theorem relayout_map {R S : Type} [CommRing R] [CommRing S] (φ : R →+* S) {κ ℓ : ℕ}
     (q : CMlPolynomialEval R (κ + ℓ)) :
     relayout (CMlPolynomialEval.map φ q) = CMlPolynomialEval.map φ (relayout q) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp [relayout, CMlPolynomialEval.map]
 
 /-- The honest `K` word of a stack, read in `E`, is the honest word of the stack in `E`. -/
@@ -121,8 +120,7 @@ theorem kwordOf_lift (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) :
   unfold KWord.lift kwordOf wordOf
   congr 1
   funext y
-  apply Vector.ext
-  intro u hu
+  refine Vector.ext fun u hu ↦ ?_
   simp only [Vector.getElem_map, Vector.getElem_ofFn]
   rw [← encode_ofK, relayout_map, sliceLow_map]
 

@@ -44,11 +44,6 @@ section Halves
 
 variable {α : Type*} {j : ℕ}
 
-/-- Two halves of `2 ^ (j + 1)`. -/
-theorem two_pow_add_two_pow (j : ℕ) : 2 ^ j + 2 ^ j = 2 ^ (j + 1) := by
-  rw [pow_succ]
-  omega
-
 /-- The first half of a vector of `2 ^ (j + 1)` entries. -/
 def lowHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
   Vector.ofFn fun i ↦ v[i.val]'(by have := i.isLt; rw [pow_succ]; omega)
@@ -59,7 +54,7 @@ def highHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
 
 /-- Two halves joined. -/
 def joinHalves (a b : Vector α (2 ^ j)) : Vector α (2 ^ (j + 1)) :=
-  (a ++ b).cast (two_pow_add_two_pow j)
+  (a ++ b).cast (Nat.two_pow_succ j).symm
 
 /-- The entries of the first half. -/
 @[simp] theorem lowHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
@@ -120,7 +115,7 @@ def twiddle (j : ℕ) (s : K) : K :=
   if h : j < 64 then vanish s j * rootInvs[j] else normW j s
 
 /-- The twiddle is `Ŵ_j(s)`. -/
-theorem twiddle_eq (j : ℕ) (s : K) : twiddle j s = normW j s := by
+private theorem twiddle_eq (j : ℕ) (s : K) : twiddle j s = normW j s := by
   unfold twiddle normW
   split
   · rw [rootInvs, Vector.getElem_ofFn, div_eq_mul_inv]
@@ -190,25 +185,25 @@ theorem inv_fwd : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), inv φ j (fwd φ
 /-! ## The values -/
 
 /-- A novel polynomial of `j + 1` variables: the one of `j`, times `Ŵ_j` when bit `j` is set. -/
-theorem novelAt_succ (j : ℕ) (x : K) (u : ℕ) :
+private theorem novelAt_succ (j : ℕ) (x : K) (u : ℕ) :
     novelAt φ (j + 1) x u = novelAt φ j x u * if u.testBit j then φ (normW j x) else 1 := by
   unfold novelAt
   rw [Fin.prod_univ_castSucc]
   rfl
 
 /-- Bit `j` does not change the first `j` factors. -/
-theorem novelAt_add_two_pow {j i : ℕ} (x : K) :
+private theorem novelAt_add_two_pow {j i : ℕ} (x : K) :
     novelAt φ j x (i + 2 ^ j) = novelAt φ j x i := by
   unfold novelAt
   refine Finset.prod_congr rfl fun k _ ↦ ?_
   rw [add_comm, Nat.testBit_two_pow_add_gt k.isLt]
 
 /-- The polynomial of `j + 1` variables is its low half plus `Ŵ_j` times its high half. -/
-theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
+private theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
     novelEval φ (j + 1) m x =
       novelEval φ j (lowHalf m) x + φ (normW j x) * novelEval φ j (highHalf m) x := by
   unfold novelEval
-  rw [← Fin.sum_congr' _ (two_pow_add_two_pow j), Fin.sum_univ_add, Finset.mul_sum]
+  rw [← Fin.sum_congr' _ (Nat.two_pow_succ j).symm, Fin.sum_univ_add, Finset.mul_sum]
   congr 1
   · refine Finset.sum_congr rfl fun i _ ↦ ?_
     simp only [Fin.getElem_fin, Fin.val_cast, Fin.val_castAdd, novelAt_succ,
@@ -223,7 +218,7 @@ theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
     ring
 
 /-- The polynomial is linear in its coefficients. -/
-theorem novelEval_ofFn_add_mul (j : ℕ) (p q : Fin (2 ^ j) → S) (c : S) (x : K) :
+private theorem novelEval_ofFn_add_mul (j : ℕ) (p q : Fin (2 ^ j) → S) (c : S) (x : K) :
     novelEval φ j (Vector.ofFn fun i ↦ p i + c * q i) x =
       novelEval φ j (Vector.ofFn p) x + c * novelEval φ j (Vector.ofFn q) x := by
   simp only [novelEval, Fin.getElem_fin, Vector.getElem_ofFn, Finset.mul_sum,

@@ -38,7 +38,7 @@ def evalMonomialFast {n : ℕ} (vals : Fin n → R) (m : CMvMonomial n) : R :=
     if e = 0 then acc else if e = 1 then acc * vals i else acc * vals i ^ e) 1
 
 /-- `evalMonomialFast` is the monomial's value. -/
-theorem evalMonomialFast_eq {n : ℕ} (vals : Fin n → R) (m : CMvMonomial n) :
+private theorem evalMonomialFast_eq {n : ℕ} (vals : Fin n → R) (m : CMvMonomial n) :
     evalMonomialFast vals m = MonoR.evalMonomial vals m := by
   have h : ∀ (acc : R) (i : Fin n),
       (if m.get i = 0 then acc else if m.get i = 1 then acc * vals i else acc * vals i ^ m.get i) =

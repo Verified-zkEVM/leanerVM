@@ -57,7 +57,7 @@ def relayoutWeight {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) : Weight S (ℓ + κ
     rw [h, W.mle_eq]
 
 /-- The relayout's values, as built. -/
-theorem relayoutWeight_onCube {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) :
+private theorem relayoutWeight_onCube {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) :
     (relayoutWeight W).onCube = relayout W.onCube := rfl
 
 /-- The weighted claim of the relayout against the relayout of a table is the weighted claim of

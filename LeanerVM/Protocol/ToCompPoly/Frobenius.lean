@@ -44,7 +44,7 @@ variable [CharP R 2]
 
 /-- On a cube index, the Lagrange basis at `r`, raised to `2 ^ k`, is the Lagrange basis at the
 point raised coordinatewise. -/
-theorem lagrangeBasis_frob {n : ℕ} (k : ℕ) (r : Vector R n) (i : Fin (2 ^ n)) :
+private theorem lagrangeBasis_frob {n : ℕ} (k : ℕ) (r : Vector R n) (i : Fin (2 ^ n)) :
     (lagrangeBasis r)[i] ^ 2 ^ k = (lagrangeBasis (frobPoint k r))[i] := by
   rw [lagrangeBasis_getElem, lagrangeBasis_getElem, ← Finset.prod_pow]
   refine Finset.prod_congr rfl fun j _ ↦ ?_

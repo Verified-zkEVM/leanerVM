@@ -35,15 +35,13 @@ namespace Whir
 /-- The low coordinate of a point with one more challenge pushed is the earlier point. -/
 private theorem lowVec_push {j : ℕ} (cs : Vector E j) (c : E) :
     lowVec (m := 1) (cs.push c) = cs := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp [lowVec]
 
 /-- The high coordinate of a point with one more challenge pushed is that challenge. -/
 private theorem highVec_push {j : ℕ} (cs : Vector E j) (c : E) :
     highVec (k := j) (m := 1) (cs.push c) = #v[c] := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have : i = 0 := by omega
   subst this
   simp [highVec]
@@ -136,8 +134,7 @@ theorem foldM_push {j κ ℓ : ℕ} (m : ℕ) (cs : Vector E j) (c : E) (g : Msg
     foldM m (cs.push c) g u = comb (1 - c) c
       (foldM (m + 1) cs g ⟨2 * u.val, two_mul_lt (b := 0) u (by norm_num)⟩)
       (foldM (m + 1) cs g ⟨2 * u.val + 1, two_mul_lt (b := 1) u (by norm_num)⟩) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [comb, Vector.getElem_ofFn]
   exact foldM_getElem_push m cs c g u ⟨i, hi⟩
 
@@ -184,8 +181,7 @@ theorem foldW_lane0 {ℓ b t : ℕ} (r : Vector E ℓ) (w : Word ℓ b t) (y : F
 /-- The message of a single lane folded at all the lanes is the folded table. -/
 theorem foldM_zero {ℓ κ : ℕ} (r : Vector E ℓ) (g : Msgs ℓ κ) :
     foldM 0 r g ⟨0, by norm_num⟩ = foldTable (ofLanes g) r := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have h := foldM_getElem 0 r g ⟨0, by norm_num⟩ ⟨i, hi⟩
   have h2 := foldTable_getElem (ofLanes g) r ⟨i, hi⟩
   refine h.trans (Eq.trans ?_ h2.symm)

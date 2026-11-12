@@ -45,8 +45,8 @@ def highSum {m : ℕ} (g : Vector R m → R) (j : ℕ) (c : Vector R j) : R :=
   if hj : j ≤ m then ∑ x : Fin (2 ^ (m - j)), g (highFix hj c (boolVec x)) else 0
 
 omit [CommRing R] in
-theorem highFix_getElem {m j : ℕ} (hj : j ≤ m) (c : Vector R j) (x : Vector R (m - j)) (i : ℕ)
-    (hi : i < m) :
+private theorem highFix_getElem {m j : ℕ} (hj : j ≤ m) (c : Vector R j) (x : Vector R (m - j))
+    (i : ℕ) (hi : i < m) :
     (highFix hj c x)[i] =
       if h : i < m - j then x[i] else c[j - 1 - (i - (m - j))]'(by omega) := by
   simp only [highFix, Vector.getElem_cast, Vector.getElem_append, Vector.getElem_reverse]
@@ -67,8 +67,7 @@ theorem highSum_self {m : ℕ} (g : Vector R m → R) (c : Vector R m) :
     ⟨⟨⟨0, by omega⟩⟩, fun x ↦ Fin.ext (by have := x.isLt; omega)⟩
   rw [Fintype.sum_unique]
   congr 1
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [highFix_getElem, dite_eq_right (by omega), Vector.getElem_reverse]
   congr 1
   omega
@@ -77,8 +76,7 @@ theorem highSum_self {m : ℕ} (g : Vector R m → R) (c : Vector R m) :
 theorem highFix_push_set {m j : ℕ} (hj : j < m) (c : Vector R j) (x : Vector R (m - (j + 1)))
     (X : R) :
     highFix hj (c.push X) x = (highFix hj (c.push 0) x).set (m - (j + 1)) X (by omega) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [Vector.getElem_set, highFix_getElem, highFix_getElem]
   by_cases h1 : i < m - (j + 1)
   · rw [dite_eq_left h1, dite_eq_left h1, ite_eq_right (by omega)]
@@ -105,8 +103,7 @@ private theorem highFix_boolVec_top {m j : ℕ} (hj : j < m) (c : Vector R j)
     (hx : x'.val + (if b then 2 ^ (m - (j + 1)) else 0) < 2 ^ (m - j)) :
     highFix hj.le c (boolVec (⟨x'.val + (if b then 2 ^ (m - (j + 1)) else 0), hx⟩ :
       Fin (2 ^ (m - j)))) = highFix hj (c.push (if b then 1 else 0)) (boolVec x') := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [highFix_getElem, highFix_getElem]
   simp only [boolVec, Vector.getElem_ofFn]
   by_cases h1 : i < m - (j + 1)

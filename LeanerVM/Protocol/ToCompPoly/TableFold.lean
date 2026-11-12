@@ -145,7 +145,7 @@ def bindLow {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (r : R) : CMlPolynomialE
   Vector.ofFn (bindLowAt t r)
 
 /-- `bindLow` is CompPoly's interpolation layer `evalMleLayer`, with one product. -/
-theorem bindLow_eq_evalMleLayer {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (r : R) :
+private theorem bindLow_eq_evalMleLayer {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (r : R) :
     bindLow t r = evalMleLayer t r := by
   refine Vector.ext fun x hx ↦ ?_
   have h := evalMleLayer_get t r ⟨x, hx⟩
@@ -155,7 +155,7 @@ theorem bindLow_eq_evalMleLayer {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (r :
 
 /-- The lowest coordinate first: the extension at `(a, z)`, the point cast to `k + 1`
 coordinates, is the extension of the table with its lowest coordinate bound to `a` at `z`. -/
-theorem evalMle_cons {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (a : R) (z : Vector R k) :
+private theorem evalMle_cons {k : ℕ} (t : CMlPolynomialEval R (k + 1)) (a : R) (z : Vector R k) :
     evalMle t (Vector.cast (Nat.add_comm 1 k) (#v[a] ++ z)) = evalMle (bindLow t a) z := by
   rw [evalMle_succ, bindLow_eq_evalMleLayer]
   congr
@@ -198,7 +198,7 @@ theorem evalMle_append_eq_bindLows {k : ℕ} :
 
 /-- A table bound on its low `j` coordinates to `c`, read at the Boolean point `x` above its free
 coordinate, with that one at `a`: an entry of the line through two entries of the bound table. -/
-theorem evalMle_fixLow_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
+private theorem evalMle_fixLow_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (a : R) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (fixLow hj (c.push a) (boolVec x)) =
       bindLowAt (bindLows (k := n - (j + 1) + 1)
@@ -268,7 +268,7 @@ theorem highFix_push_append {n j : ℕ} (hj : j < n) (c : Vector R j) (a : R)
 
 /-- The extension at a Boolean point below the next coordinate `a` and `c` above is an entry of
 the line through two entries of the bound table. -/
-theorem evalMle_highFix_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
+private theorem evalMle_highFix_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (a : R) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (highFix (Nat.succ_le_of_lt hj) (c.push a) (boolVec x)) =
       bindHighAt (bindHighsNext hj t c) a x := by
@@ -305,7 +305,8 @@ def foldHalves {k : ℕ} (wk : R × R) (v : Vector R (2 ^ (k + 1))) : Vector R (
       wk.1 * v[x.val]'(lt_two_pow_succ_of_lt x.isLt) +
         wk.2 * v[x.val + 2 ^ k]'(add_two_pow_lt x.isLt)
 
-theorem foldHalves_getElem {k : ℕ} (wk : R × R) (v : Vector R (2 ^ (k + 1))) (x : Fin (2 ^ k)) :
+private theorem foldHalves_getElem {k : ℕ} (wk : R × R) (v : Vector R (2 ^ (k + 1)))
+    (x : Fin (2 ^ k)) :
     (foldHalves wk v)[x] = wk.1 * v[x.val]'(lt_two_pow_succ_of_lt x.isLt) +
       wk.2 * v[x.val + 2 ^ k]'(add_two_pow_lt x.isLt) := by
   unfold foldHalves
@@ -322,7 +323,7 @@ def weightFold : {k : ℕ} → (Fin k → R × R) → Vector R (2 ^ k) → R
   | k + 1, w, v => weightFold (fun a ↦ w a.castSucc) (foldHalves (w (Fin.last k)) v)
 
 /-- The fold is the weighted sum of the values. -/
-theorem weightFold_eq_sum : {k : ℕ} → (w : Fin k → R × R) → (v : Vector R (2 ^ k)) →
+private theorem weightFold_eq_sum : {k : ℕ} → (w : Fin k → R × R) → (v : Vector R (2 ^ k)) →
     weightFold w v = ∑ x : Fin (2 ^ k), cubeWeight w x * v[x]
   | 0, w, v => by simp [weightFold, cubeWeight]
   | k + 1, w, v => by
@@ -360,7 +361,7 @@ without a product at `0` and at `1`. -/
 def lineAt (w : R × R) (z : R) : R :=
   if z == 0 then w.1 else if z == 1 then w.2 else (1 - z) * w.1 + z * w.2
 
-theorem lineAt_eq (w : R × R) (z : R) : lineAt w z = (1 - z) * w.1 + z * w.2 := by
+private theorem lineAt_eq (w : R × R) (z : R) : lineAt w z = (1 - z) * w.1 + z * w.2 := by
   unfold lineAt
   split_ifs <;> simp_all
 

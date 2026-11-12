@@ -52,7 +52,7 @@ def partialSum {m : ℕ} (g : Vector R m → R) (r : Vector R m) (j : ℕ) (c : 
 /-! ## Nothing fixed -/
 
 omit [CommRing R] in
-private theorem fixLow_zero {m : ℕ} (x : Vector R (m - 0)) :
+theorem fixLow_zero {m : ℕ} (x : Vector R (m - 0)) :
     fixLow (Nat.zero_le m) (#v[] : Vector R 0) x = x :=
   Vector.ext fun i hi ↦ by simp [fixLow]
 
@@ -65,15 +65,14 @@ theorem partialSum_zero {m : ℕ} (g : Vector R m → R) (r : Vector R m) :
     partialSum g r 0 #v[] = evalMle (Vector.ofFn fun x ↦ g (boolVec x)) r := by
   rw [partialSum, dite_eq_left (Nat.zero_le m), drop_zero]
   congr 1
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [restrictTable, Vector.getElem_ofFn]
   rw [fixLow_zero]
 
 /-! ## Everything fixed -/
 
 omit [CommRing R] in
-private theorem fixLow_self {m : ℕ} (c : Vector R m) (x : Vector R (m - m)) :
+theorem fixLow_self {m : ℕ} (c : Vector R m) (x : Vector R (m - m)) :
     fixLow le_rfl c x = c :=
   Vector.ext fun i hi ↦ by simp [fixLow, hi]
 
@@ -92,13 +91,12 @@ theorem partialSum_self {m : ℕ} (g : Vector R m → R) (r : Vector R m) (c : V
 /-! ## One more coordinate -/
 
 /-- Extending `c` by `0` and then by `x'` is extending `c` by the point `2x'`. -/
-private theorem fixLow_push_zero {m j : ℕ} (hj : j < m) (c : Vector R j)
+theorem fixLow_push_zero {m j : ℕ} (hj : j < m) (c : Vector R j)
     (x' : Fin (2 ^ (m - (j + 1))))
     (hb : 2 * x'.val < 2 ^ (m - j)) :
     fixLow hj (c.push 0) (boolVec x') =
       fixLow hj.le c (boolVec (⟨2 * x'.val, hb⟩ : Fin (2 ^ (m - j)))) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [fixLow, Vector.getElem_cast, Vector.getElem_append, Vector.getElem_push, boolVec,
     Vector.getElem_ofFn]
   by_cases h1 : i < j
@@ -111,13 +109,12 @@ private theorem fixLow_push_zero {m j : ℕ} (hj : j < m) (c : Vector R j)
       simp only [h1, h2, dite_false, hs, Nat.testBit_succ, Nat.mul_div_cancel_left _ two_pos]
 
 /-- Extending `c` by `1` and then by `x'` is extending `c` by the point `2x' + 1`. -/
-private theorem fixLow_push_one {m j : ℕ} (hj : j < m) (c : Vector R j)
+theorem fixLow_push_one {m j : ℕ} (hj : j < m) (c : Vector R j)
     (x' : Fin (2 ^ (m - (j + 1))))
     (hb : 2 * x'.val + 1 < 2 ^ (m - j)) :
     fixLow hj (c.push 1) (boolVec x') =
       fixLow hj.le c (boolVec (⟨2 * x'.val + 1, hb⟩ : Fin (2 ^ (m - j)))) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [fixLow, Vector.getElem_cast, Vector.getElem_append, Vector.getElem_push, boolVec,
     Vector.getElem_ofFn]
   by_cases h1 : i < j
@@ -133,8 +130,7 @@ private theorem fixLow_push_one {m j : ℕ} (hj : j < m) (c : Vector R j)
 /-- Extending `c` by `X` is extending it by `0` and then setting coordinate `j` to `X`. -/
 theorem fixLow_push_set {m j : ℕ} (hj : j < m) (c : Vector R j) (x : Vector R (m - (j + 1)))
     (X : R) : fixLow hj (c.push X) x = (fixLow hj (c.push 0) x).set j X hj := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [fixLow, Vector.getElem_cast, Vector.getElem_append, Vector.getElem_push,
     Vector.getElem_set]
   by_cases h1 : i < j
@@ -160,8 +156,7 @@ theorem partialSum_split {m : ℕ} (g : Vector R m → R) (r : Vector R m) {j : 
   have hhead : (Vector.cast hm (r.drop j)).head = r[j] := by
     simp [Vector.head]
   have htail : (Vector.cast hm (r.drop j)).tail = r.drop (j + 1) := by
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     simp only [Vector.tail_eq_cast_extract, Vector.getElem_cast, Vector.getElem_extract,
       Vector.getElem_drop]
     exact getElem_congr_idx (by omega)
@@ -169,8 +164,7 @@ theorem partialSum_split {m : ℕ} (g : Vector R m → R) (r : Vector R m) {j : 
   -- The layer at `r_j` interpolates the two restricted tables.
   have hlayer : evalMleLayer (Vector.cast (congrArg (2 ^ ·) hm) (restrictTable g hj.le c)) r[j] =
       (1 - r[j]) • restrictTable g hj (c.push 0) + r[j] • restrictTable g hj (c.push 1) := by
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     rw [← Vector.get_eq_getElem _ ⟨i, hi⟩, evalMleLayer_get]
     simp only [Vector.get_eq_getElem, Vector.getElem_cast, Vector.getElem_add, Vector.getElem_smul,
       smul_eq_mul, restrictTable, Vector.getElem_ofFn]

@@ -83,7 +83,7 @@ variable (hash : D → D → OracleComp spec D) (hh : ∀ a b, IsTotalQueryBound
 include hh
 
 /-- One level of the walk asks at most one query per node and returns at most as many parents. -/
-theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
+private theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
     IsTotalQueryBound (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs) nodes.length ∧
       ∀ r ∈ support (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs), ∀ p,
         r = some p → p.1.length ≤ nodes.length := by

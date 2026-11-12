@@ -74,8 +74,7 @@ private theorem boolVec_cubeIndex_push {k : ℕ} (i : Fin (2 ^ k)) (b : Fin (2 ^
     (boolVec (cubeIndex i b) : Vector R (k + 1)) =
       (boolVec i : Vector R k).push (if b.val.testBit 0 then 1 else 0) := by
   rw [← boolVec_append]
-  apply Vector.ext
-  intro a ha
+  refine Vector.ext fun a ha ↦ ?_
   rw [Vector.getElem_append, Vector.getElem_push]
   by_cases h : a < k
   · simp only [h, dite_true]
@@ -140,7 +139,7 @@ def prodWeight {k : ℕ} (w : Fin k → R × R) (z : Vector R k) : R :=
   ∏ a : Fin k, ((1 - z[a]) * (w a).1 + z[a] * (w a).2)
 
 /-- At a cube point, the weight is the cube point's weight. -/
-theorem prodWeight_boolVec {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) :
+private theorem prodWeight_boolVec {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) :
     prodWeight w (boolVec x) = cubeWeight w x := by
   refine Finset.prod_congr rfl fun a _ ↦ ?_
   simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn, bitWeight]
@@ -173,8 +172,7 @@ theorem weightedCubeSum_lowCoords {k n : ℕ} (h : k ≤ n) (w : Fin n → R × 
       one_mul]
     have hlow : ∀ v : Vector R (k + m), lowCoords h (v.push 1) =
         lowCoords (Nat.le_add_right k m) v := fun v ↦ by
-      apply Vector.ext
-      intro a ha
+      refine Vector.ext fun a ha ↦ ?_
       rw [getElem_lowCoords _ _ ha, getElem_lowCoords _ _ ha, Vector.getElem_push_lt]
     simp only [hlow]
     exact ih (Nat.le_add_right k m) _ (fun b hb ↦ hw _ hb)
