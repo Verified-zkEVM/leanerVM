@@ -233,8 +233,9 @@ theorem leanVmFront_checks_of_solved (prog : Program) (s : Sizes) (input : Publi
   obtain ⟨ct, rfl⟩ := (Component.Front.run_eq_some_iff _).mp ht
   rw [pubStep_pubWireOf] at hp
   obtain ⟨cp, rfl⟩ := (Component.Front.run_eq_some_iff _).mp hp
-  rw [flockStep_flockWireOf_of_solved _ _ rfl blake2sRows (blake2sRows_eq_region prog s) _ _ hF]
-    at hf
+  rw [flockStep_flockWireOf_of_solved (leanVm prog s)
+    (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows
+    (blake2sRows_eq_region prog s) _ _ hF] at hf
   obtain ⟨cf, rfl⟩ := (Component.Front.run_eq_some_iff _).mp hf
   exact ⟨cb, ct, cp, cf, rfl⟩
 
