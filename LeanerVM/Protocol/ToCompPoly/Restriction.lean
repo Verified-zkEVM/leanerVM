@@ -173,8 +173,7 @@ theorem diffTable_restrictedZero_empty_iff {n : ℕ} (t t' : CMlPolynomialEval R
   rw [restrictedZero_empty_iff]
   constructor
   · intro h
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     have := h ⟨i, hi⟩
     simp only [diffTable, Fin.getElem_fin, Vector.getElem_ofFn] at this
     exact sub_eq_zero.mp this
@@ -194,8 +193,7 @@ theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partia
 private theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n) (c : R)
     (b : Fin (2 ^ n)) :
     Partial.point (Function.update σ k (some c)) b = (σ.point b).set k c := by
-  apply Vector.ext
-  intro j hj
+  refine Vector.ext fun j hj ↦ ?_
   by_cases hjk : j = k
   · subst hjk
     simp [Partial.point]
@@ -237,8 +235,7 @@ private theorem testBit_setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : 
 private theorem Partial.point_set_bool {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
     (hσ : σ k = Option.none) (b : Fin (2 ^ n)) (β : Bool) :
     (σ.point b).set k (if β then 1 else 0) = σ.point (setBitIndex b k hk β) := by
-  apply Vector.ext
-  intro j hj
+  refine Vector.ext fun j hj ↦ ?_
   by_cases hjk : j = k
   · subst hjk
     simp [Partial.point, hσ, boolVec, testBit_setBitIndex]

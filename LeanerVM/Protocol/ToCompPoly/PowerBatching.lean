@@ -77,27 +77,19 @@ theorem evalMle_batchWeight (w : Fin J → CMlPolynomialEval R μ) (ρ : R) (r :
   rw [Finset.sum_comm]
   simp_rw [mul_right_comm _ (ρ ^ _) _]
 
-/-- A family of true weighted claims always produces a true batch. -/
-theorem sumCube_hadamard_batchWeight_of_forall (w : Fin J → CMlPolynomialEval R μ)
-    (q : CMlPolynomialEval R μ) (v : Fin J → R)
-    (h : ∀ j, sumCube (hadamard (w j) q) = v j) (ρ : R) :
-    sumCube (hadamard (batchWeight w ρ) q) = powerBatch v ρ := by
-  rw [pairing_batchWeight]
-  simp_rw [h]
-
 /-- The polynomial whose coefficients are the differences of the individual claims. -/
 noncomputable def batchDifference (a v : Fin J → R) : Polynomial R :=
   ∑ j : Fin J, Polynomial.monomial j.val (a j - v j)
 
 /-- The coefficient at index `j` is precisely the difference of claim `j`. -/
-theorem coeff_batchDifference (a v : Fin J → R) (j : Fin J) :
+private theorem coeff_batchDifference (a v : Fin J → R) (j : Fin J) :
     (batchDifference a v).coeff j.val = a j - v j := by
   classical
   simp [batchDifference, Polynomial.finsetSum_coeff, Polynomial.coeff_monomial,
     Fin.val_inj]
 
 /-- A false component makes the difference polynomial nonzero. -/
-theorem batchDifference_ne_zero (a v : Fin J → R) (h : ∃ j, a j ≠ v j) :
+private theorem batchDifference_ne_zero (a v : Fin J → R) (h : ∃ j, a j ≠ v j) :
     batchDifference a v ≠ 0 := by
   obtain ⟨j, hj⟩ := h
   intro hp
@@ -106,7 +98,7 @@ theorem batchDifference_ne_zero (a v : Fin J → R) (h : ∃ j, a j ≠ v j) :
   exact hj (sub_eq_zero.mp hc.symm)
 
 /-- Evaluation of the difference polynomial is the difference of the two batches. -/
-theorem eval_batchDifference (a v : Fin J → R) (ρ : R) :
+private theorem eval_batchDifference (a v : Fin J → R) (ρ : R) :
     (batchDifference a v).eval ρ = powerBatch a ρ - powerBatch v ρ := by
   simp [batchDifference, powerBatch, Polynomial.eval_finsetSum,
     Polynomial.eval_monomial, Finset.sum_sub_distrib]
@@ -126,6 +118,13 @@ theorem singleton_batch_ne (a v : Fin 1 → R) (h : a 0 ≠ v 0) (ρ : R) :
 /-- The empty batch is the trivial zero target. -/
 @[simp] theorem empty_powerBatch (a : Fin 0 → R) (ρ : R) : powerBatch a ρ = 0 := by
   simp [powerBatch]
+
+/-- A batch with an entry in front: the entry, then the rest batched one power up. -/
+theorem powerBatch_cons (x : R) (a : Fin J → R) (ρ : R) :
+    powerBatch (Fin.cons x a : Fin (J + 1) → R) ρ = x + ρ * powerBatch a ρ := by
+  rw [powerBatch, powerBatch, Fin.sum_univ_succ, Finset.mul_sum]
+  simp only [Fin.cons_zero, Fin.cons_succ, Fin.val_zero, pow_zero, mul_one, Fin.val_succ, pow_succ]
+  exact congrArg (x + ·) (Finset.sum_congr rfl fun _ _ ↦ by ring)
 
 /-! ## Compiled forms -/
 

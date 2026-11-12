@@ -168,7 +168,7 @@ def constValue : Expression F → Option F
 
 omit [DecidableEq F] in
 /-- An expression with a value evaluates to it in every environment. -/
-theorem eval_of_constValue {e : Expression F} {m : F} (h : e.constValue = some m)
+private theorem eval_of_constValue {e : Expression F} {m : F} (h : e.constValue = some m)
     (env : Environment F) : e.eval env = m := by
   induction e generalizing m with
   | var v => simp [constValue] at h
@@ -205,12 +205,11 @@ def flushTuple (sep : RawChannel F → F) (i : Interaction F) : Vector F 16 :=
 
 /-- The flush polynomials evaluate, at a row, to the tuple of the interaction evaluated on the
 row. -/
-theorem flushPolys_eval (sep : RawChannel F → F) {n : ℕ} (row : Fin n → F)
+private theorem flushPolys_eval (sep : RawChannel F → F) {n : ℕ} (row : Fin n → F)
     (data : ProverData F) (i : AbstractInteraction F) :
     (flushPolys sep n i).map (·.eval row) =
       flushTuple sep (i.eval (Environment.fromArray (Array.ofFn row) data)) := by
-  apply Vector.ext
-  intro k hk
+  refine Vector.ext fun k hk ↦ ?_
   simp only [flushPolys, flushTuple, Vector.getElem_map, Vector.getElem_ofFn]
   split_ifs
   · exact CMvPolynomial.eval_C _ _
@@ -228,7 +227,8 @@ def tupleMsg (a : ℕ) (v : Vector F 16) : Array F := Array.ofFn fun k : Fin a �
 omit [DecidableEq F] in
 /-- A message of at most fifteen coordinates is read back off its tuple: the tuple determines
 the message, given its length. -/
-theorem tupleMsg_flushTuple (sep : RawChannel F → F) (i : Interaction F) (h : i.msg.size ≤ 15) :
+private theorem tupleMsg_flushTuple (sep : RawChannel F → F) (i : Interaction F)
+    (h : i.msg.size ≤ 15) :
     tupleMsg i.msg.size (flushTuple sep i) = i.msg := by
   apply Array.ext (by simp [tupleMsg])
   intro k _ hk
@@ -239,7 +239,8 @@ theorem tupleMsg_flushTuple (sep : RawChannel F → F) (i : Interaction F) (h : 
 
 /-- The flush polynomials' total degree is at most `d` when every message coordinate's
 syntactic degree is: the separator is a constant, the padding zero. -/
-theorem totalDegree_flushPolys_le (sep : RawChannel F → F) {n d : ℕ} (i : AbstractInteraction F)
+private theorem totalDegree_flushPolys_le (sep : RawChannel F → F) {n d : ℕ}
+    (i : AbstractInteraction F)
     (h : ∀ e ∈ i.msg.toList, e.degreeBound ≤ d) (k : Fin 16) :
     ((flushPolys sep n i).get k).totalDegree ≤ d := by
   simp only [flushPolys, Vector.get_ofFn]
@@ -361,7 +362,7 @@ instance : Decidable (UnitMultiplicities c) :=
   inferInstanceAs (Decidable (∀ i ∈ c.rowOperations.interactions, _))
 
 /-- When counts are variables, every counted interaction has a count column. -/
-theorem exists_count_of_counted (h : CountsAreVariables c counted)
+private theorem exists_count_of_counted (h : CountsAreVariables c counted)
     {i : AbstractInteraction F} (hi : i ∈ c.rowOperations.interactions)
     (hc : counted i) :
     ∃ k ∈ (c.toM3 sep side counted).count, countVar c.width i = some k := by
@@ -371,7 +372,7 @@ theorem exists_count_of_counted (h : CountsAreVariables c counted)
 omit [DecidableEq F] in
 /-- Coordinate `1` of an interaction whose count column is `k` evaluates, on a row, to the
 row's cell `k`. -/
-theorem msg_one_of_countVar {n : ℕ} {i : AbstractInteraction F} {k : Fin n}
+private theorem msg_one_of_countVar {n : ℕ} {i : AbstractInteraction F} {k : Fin n}
     (h : countVar n i = some k) (row : Fin n → F) (data : ProverData F) :
     (i.eval (Environment.fromArray (Array.ofFn row) data)).msg[1]? = some (row k) := by
   unfold countVar at h

@@ -124,8 +124,7 @@ private theorem evalMle_replicate_one {n : ℕ} (x : Vector R n) :
     rw [evalMle_succ]
     have h : evalMleLayer (Vector.replicate (2 ^ (n + 1)) (1 : R)) x.head =
         Vector.replicate (2 ^ n) 1 := by
-      apply Vector.ext
-      intro j hj
+      refine Vector.ext fun j hj ↦ ?_
       rw [← Vector.get_eq_getElem _ ⟨j, hj⟩, evalMleLayer_get]
       simp only [Vector.get_replicate, Vector.getElem_replicate]
       ring
@@ -165,7 +164,7 @@ def cubeIndex {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) : Fin (2 ^ (k + m)
 @[simp] theorem cubeIndex_val {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val = i.val + 2 ^ k * j.val := rfl
 
-theorem cubeIndex_div {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
+private theorem cubeIndex_div {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val / 2 ^ k = j.val := by
   rw [cubeIndex_val, Nat.add_mul_div_left _ _ (Nat.two_pow_pos k), Nat.div_eq_of_lt i.isLt,
     zero_add]
@@ -217,8 +216,7 @@ omit [CommRing R] in
 /-- A point is its low coordinates followed by its high coordinates. -/
 theorem lowVec_append_highVec {k m : ℕ} (w : Vector R (k + m)) :
     lowVec w ++ highVec w = w := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [Vector.getElem_append]
   split
   · simp [lowVec]
@@ -301,12 +299,11 @@ theorem boolVec_onesIndex {m : ℕ} :
   Vector.ext fun b hb ↦ by simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
 
 /-- The tail of a cube point is the cube point of the index halved. -/
-theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
+private theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
     (boolVec j : Vector R (m + 1)).tail =
       boolVec (⟨j.val / 2, Nat.div_lt_of_lt_mul (by rw [← pow_succ']; exact j.isLt)⟩ :
         Fin (2 ^ m)) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [boolVec, Vector.getElem_tail, Vector.getElem_ofFn, Nat.testBit_add_one]
 
 /-- On the cube, the decoder inverts the encoder. -/
@@ -344,8 +341,7 @@ theorem boolVec_cast {m m' : ℕ} (h : m = m') (j : Fin (2 ^ m)) :
 /-- Two cube points side by side are the cube point of the combined index. -/
 theorem boolVec_append {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (boolVec i : Vector R k) ++ (boolVec j : Vector R m) = boolVec (cubeIndex i j) := by
-  apply Vector.ext
-  intro a ha
+  refine Vector.ext fun a ha ↦ ?_
   simp only [boolVec, Vector.getElem_append, Vector.getElem_ofFn, testBit_cubeIndex]
   split <;> rfl
 
@@ -453,8 +449,7 @@ def placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
 /-- Slicing a placed table gives the table at its index and zero at every other index. -/
 theorem slice_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j h : Fin (2 ^ m)) :
     slice (placeSlice t j) h = if h = j then t else Vector.replicate (2 ^ k) 0 := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have hdiv := cubeIndex_div (⟨i, hi⟩ : Fin (2 ^ k)) h
   simp only [cubeIndex_val] at hdiv
   by_cases hh : h = j
@@ -566,10 +561,9 @@ def repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (_ : k ≤ n) : CMlPolyno
 
 omit [CommRing R] in
 /-- Every slice of a repeated table is the table. -/
-theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+private theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
     slice (repeatHigh t (Nat.le_add_right k m)) j = t := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [← Fin.getElem_fin _ ⟨i, hi⟩, slice_getElem]
   simp only [repeatHigh, Fin.getElem_fin, Vector.getElem_ofFn, cubeIndex_mod]
 

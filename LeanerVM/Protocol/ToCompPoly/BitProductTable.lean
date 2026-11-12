@@ -54,10 +54,6 @@ theorem bitProductTable_getElem {n : ℕ} (f : Fin n → Bool → R) {i : ℕ} (
   funext R _ n f
   exact Vector.ext fun i hi ↦ by rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
 
-theorem map_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R) :
-    CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) :=
-  Vector.ext fun i hi ↦ by simp [CMlPolynomialEval.map, bitProductTable]
-
 /-- The extension of a table that factors over the index bits factors over the coordinates. -/
 theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector R n) :
     evalMle (bitProductTable f) x =
@@ -69,8 +65,7 @@ theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector
     have hstep : evalMleLayer (bitProductTable f) x.head =
         ((1 - x.head) * f 0 false + x.head * f 0 true) •
           bitProductTable (fun k ↦ f k.succ) := by
-      apply Vector.ext
-      intro j hj
+      refine Vector.ext fun j hj ↦ ?_
       rw [← Vector.get_eq_getElem _ ⟨j, hj⟩, evalMleLayer_get, Vector.getElem_smul]
       simp only [bitProductTable, Vector.get_ofFn, Vector.getElem_ofFn, smul_eq_mul]
       rw [Fin.prod_univ_succ, Fin.prod_univ_succ]
@@ -86,15 +81,8 @@ theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector
     congr 1
     exact Finset.prod_congr rfl fun k _ ↦ by simp [Nat.add_comm]
 
-/-- The extension at a point of another ring, after mapping the entries. -/
-theorem eval₂Mle_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R)
-    (x : Vector S n) :
-    eval₂Mle (bitProductTable f) φ x =
-      ∏ k : Fin n, ((1 - x[k]) * φ (f k false) + x[k] * φ (f k true)) := by
-  rw [eval₂Mle, map_bitProductTable, evalMle_bitProductTable]
-
 /-- The Lagrange basis factors over the index bits. -/
-theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
+private theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
     lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] :=
   Vector.ext fun i hi ↦ by rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
 
@@ -129,14 +117,13 @@ theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
 def powersTable (a : R) (n : ℕ) : CMlPolynomialEval R n :=
   Vector.ofFn fun i ↦ a ^ i.val
 
-theorem powersTable_eq_bitProductTable (a : R) (n : ℕ) :
+private theorem powersTable_eq_bitProductTable (a : R) (n : ℕ) :
     powersTable a n = bitProductTable fun k b ↦ if b then a ^ 2 ^ k.val else 1 := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [bitProductTable_getElem _ hi, ← pow_eq_prod_testBit a hi]
   simp [powersTable]
 
-theorem map_powersTable (φ : R →+* S) (a : R) (n : ℕ) :
+private theorem map_powersTable (φ : R →+* S) (a : R) (n : ℕ) :
     CMlPolynomialEval.map φ (powersTable a n) = powersTable (φ a) n :=
   Vector.ext fun i hi ↦ by simp [CMlPolynomialEval.map, powersTable]
 

@@ -108,11 +108,11 @@ theorem total_eq_sum : B.total = ∑ b : Fin B.n, 2 ^ B.size b := by
   rw [total, offsetNat, ← Fin.sum_univ_eq_sum_range]
   exact Finset.sum_congr rfl fun b _ ↦ dite_eq_left b.isLt
 
-theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
+private theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
     B.offsetNat (k + 1) = B.offsetNat k + 2 ^ B.size ⟨k, hk⟩ := by
   simp [offsetNat, Finset.sum_range_succ, hk]
 
-theorem offsetNat_mono : Monotone B.offsetNat := fun _ _ hab ↦
+private theorem offsetNat_mono : Monotone B.offsetNat := fun _ _ hab ↦
   Finset.sum_le_sum_of_subset (Finset.range_mono hab)
 
 /-- Windows of distinct blocks are disjoint and in order. -/
@@ -205,8 +205,7 @@ theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) (
     (pad : R) :
     CMlPolynomialEval.map φ (B.stackAt t μ pad) =
       B.stackAt (fun b ↦ CMlPolynomialEval.map φ (t b)) μ (φ pad) := by
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   simp only [CMlPolynomialEval.map, Vector.getElem_map, stackAt, Vector.getElem_ofFn]
   change φ (if B.total ≤ x then pad else ∑ b : Fin B.n,
       if B.InWindow b x then ((t b)[x - B.offset b]?).getD 0 else 0) =
@@ -229,7 +228,7 @@ def concatBlocks (t : B.Tables R) : (k : ℕ) → k ≤ B.n → Array R
 
 omit [CommRing R] in
 /-- The first `k` blocks end to end have their offset's length. -/
-theorem size_concatBlocks (t : B.Tables R) :
+private theorem size_concatBlocks (t : B.Tables R) :
     ∀ (k : ℕ) (h : k ≤ B.n), (B.concatBlocks t k h).size = B.offsetNat k
   | 0, _ => by simp [concatBlocks, offsetNat]
   | k + 1, h => by
@@ -238,7 +237,7 @@ theorem size_concatBlocks (t : B.Tables R) :
 
 omit [CommRing R] in
 /-- A cell of the first `k` blocks, end to end, is the cell of its block. -/
-theorem getElem_concatBlocks (t : B.Tables R) :
+private theorem getElem_concatBlocks (t : B.Tables R) :
     ∀ (k : ℕ) (h : k ≤ B.n) (b : Fin B.n), b.val < k → ∀ (x : ℕ) (hx : B.InWindow b x)
       (hlt : x < (B.concatBlocks t k h).size),
       (B.concatBlocks t k h)[x] = (t b)[x - B.offset b]'(by have := hx.2; omega)
@@ -353,8 +352,7 @@ theorem unstack_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomial
 /-- Reading a block off the stack returns the block. -/
 @[simp] theorem unstack_stackAt (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R)
     (b : Fin B.n) : B.unstack hμ (B.stackAt t μ pad) b = t b := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [B.unstack_getElem hμ _ b hi]
   have hx : i + B.offset b < 2 ^ μ := by
     have := B.offset_add_pow_le_total b
@@ -363,28 +361,14 @@ theorem unstack_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomial
   simp
 
 /-- Mapping the entries commutes with reading a block. -/
-theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+private theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
     (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n) :
     B.unstack hμ (CMlPolynomialEval.map φ q) b =
       CMlPolynomialEval.map φ (B.unstack hμ q b) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [B.unstack_getElem hμ _ b hi]
   simp only [CMlPolynomialEval.map, Vector.getElem_map]
   exact congrArg φ (B.unstack_getElem hμ q b hi).symm
-
-omit [CommRing R] in
-/-- Two tables that agree on a block's window read the same block. -/
-theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
-    (q r : CMlPolynomialEval R μ) (b : Fin B.n)
-    (h : ∀ x : Fin (2 ^ μ), B.InWindow b x.val → q[x] = r[x]) :
-    B.unstack hμ q b = B.unstack hμ r b := by
-  apply Vector.ext
-  intro i hi
-  rw [B.unstack_getElem hμ q b hi, B.unstack_getElem hμ r b hi]
-  apply h ⟨i + B.offset b, by have := B.offset_add_pow_le_total b; omega⟩
-  change B.offset b ≤ i + B.offset b ∧ i + B.offset b < B.offset b + 2 ^ B.size b
-  constructor <;> omega
 
 /-! ## The selection identity -/
 
@@ -487,10 +471,9 @@ def Blocks.stackAtFast {S : Type*} [CommRing S] (B : Blocks) (t : B.Tables S) (�
   Vector.ofFn fun x ↦ all.getD x.val pad
 
 /-- The stack built once is the stack. -/
-theorem Blocks.stackAtFast_eq (B : Blocks) (t : B.Tables R) (μ : ℕ) (pad : R) :
+private theorem Blocks.stackAtFast_eq (B : Blocks) (t : B.Tables R) (μ : ℕ) (pad : R) :
     B.stackAtFast t μ pad = B.stackAt t μ pad := by
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   have hs := B.size_concatBlocks t B.n le_rfl
   simp only [Blocks.stackAtFast, Vector.getElem_ofFn, Array.getD_eq_getD_getElem?]
   by_cases hT : B.total ≤ x

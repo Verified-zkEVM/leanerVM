@@ -76,7 +76,7 @@ theorem lagrangeWeight_eq (x : Vector F N) (z : F) (i : Fin N) :
   rw [Finset.prod_mul_distrib, Finset.prod_inv_distrib, mul_comm]
 
 /-- The interpolated value is Mathlib's interpolant at `z`. -/
-theorem interpolateAt_eq (x v : Vector F N) (z : F) :
+private theorem interpolateAt_eq (x v : Vector F N) (z : F) :
     interpolateAt x v z =
       (Lagrange.interpolate Finset.univ (fun j : Fin N ↦ x[j]) (fun j : Fin N ↦ v[j])).eval z := by
   simp only [interpolateAt, Lagrange.interpolate_apply, eval_finsetSum, eval_mul, eval_C,
