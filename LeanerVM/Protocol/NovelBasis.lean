@@ -17,7 +17,6 @@ import Mathlib.LinearAlgebra.StdBasis
 import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Algebra.Polynomial.BigOperators
 import Mathlib.Algebra.Polynomial.Eval.Algebra
-import Mathlib.Data.Nat.BitIndices
 
 /-!
 # The novel basis, the encoder and the column weights
@@ -155,14 +154,6 @@ theorem domainPt_add_mul {w j : ℕ} (hw : w < 2 ^ j) (c : ℕ) :
   · simp [h, Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hw (Nat.pow_le_pow_right (by norm_num) h))]
   · simp [h]
 
-/-- Positions below `2 ^ 64` are distinct points of `K`. -/
-theorem domainPt_injOn {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
-    (h : domainPt a = domainPt b) : a = b := by
-  have h' : BitVec.ofNat 64 a = BitVec.ofNat 64 b := congrArg BF64.toBitVec h
-  have := congrArg BitVec.toNat h'
-  simp only [BitVec.toNat_ofNat] at this
-  rwa [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
-
 /-- The basis element `e_k = g ^ k` is the point of position `2 ^ k`. -/
 theorem basisElt_eq_domainPt : ∀ k < 64, basisElt k = domainPt (2 ^ k) := by decide +kernel
 
@@ -249,7 +240,7 @@ theorem subspaceRoot_ne_zero {k : ℕ} (hk : k < 64) : subspaceRoot k ≠ 0 := b
   refine AdditiveNTT.Coset.vanishing_basis_ne_zero _ (fun i hi m hm h ↦ ?_) hk
   have hlt : 2 ^ i < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hi
   rw [← domainPt_eq_point hi.le hm, basisElt_eq_domainPt i hi] at h
-  exact absurd (domainPt_injOn (hm.trans hlt) hlt h) hm.ne
+  exact absurd (K.ofBits_inj (hm.trans hlt) hlt h) hm.ne
 
 /-- `Ŵ_k(e_k) = 1`. -/
 theorem normW_basisElt {k : ℕ} (hk : k < 64) : normW k (basisElt k) = 1 := by
@@ -498,17 +489,6 @@ private theorem natDegree_normWPoly {k : ℕ} (hk : k < 64) : (normWPoly k).natD
 noncomputable def novelPoly (κ j : ℕ) : K[X] :=
   ∏ k ∈ (Finset.range κ).filter (j.testBit ·), normWPoly k
 
-/-- The binary expansion of `j < 2 ^ κ`: the powers of its bits sum to `j`. -/
-private theorem sum_testBit_two_pow (κ j : ℕ) (hj : j < 2 ^ κ) :
-    ∑ k ∈ (Finset.range κ).filter (j.testBit ·), 2 ^ k = j := by
-  have h : (Finset.range κ).filter (j.testBit ·) = j.bitIndices.toFinset := by
-    ext k
-    simp only [Finset.mem_filter, Finset.mem_range, List.mem_toFinset, Nat.mem_bitIndices,
-      and_iff_right_iff_imp]
-    exact fun hk ↦
-      (Nat.pow_lt_pow_iff_right (by decide)).1 ((Nat.ge_two_pow_of_testBit hk).trans_lt hj)
-  rw [h, List.sum_toFinset _ Nat.bitIndices_nodup, Nat.sum_map_two_pow_bitIndices]
-
 /-- `deg X_j = j` for `j < 2 ^ κ`: the novel basis is triangular (`def:enc`). -/
 theorem natDegree_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) :
     (novelPoly κ j).natDegree = j := by
@@ -516,7 +496,7 @@ theorem natDegree_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) :
   rw [natDegree_prod _ _ fun k hk ↦ normWPoly_ne_zero (by
     have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)]
   refine Eq.trans (Finset.sum_congr rfl fun k hk ↦ natDegree_normWPoly (by
-    have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)) (sum_testBit_two_pow κ j hj)
+    have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)) (sum_testBit_two_pow hj)
 
 private theorem novelPoly_ne_zero {κ j : ℕ} (hκ : κ ≤ 64) : novelPoly κ j ≠ 0 :=
   Finset.prod_ne_zero_iff.mpr fun k hk ↦ normWPoly_ne_zero (by
@@ -568,7 +548,7 @@ private theorem eq_of_agree {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* 
   have hP : P = 0 := by
     refine eq_zero_of_natDegree_lt_card_of_eval_eq_zero P
       (f := fun v : T ↦ φ (domainPt v)) (fun i j hij ↦ ?_) (fun i ↦ ?_) ?_
-    · exact Subtype.ext (Fin.ext (domainPt_injOn (hT64 _ i.2) (hT64 _ j.2) (hφ hij)))
+    · exact Subtype.ext (Fin.ext (K.ofBits_inj (hT64 _ i.2) (hT64 _ j.2) (hφ hij)))
     · have := encode_sub_eq_eval φ hκ m m' i.1
       rw [h _ i.2, sub_self] at this
       exact this.symm

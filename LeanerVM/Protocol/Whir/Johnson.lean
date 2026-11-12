@@ -65,7 +65,7 @@ private theorem lt_two_pow_64 {κ R : ℕ} (hb : κ + R ≤ 64) (v : Fin (2 ^ (�
 def domainEmb (κ R : ℕ) (hb : κ + R ≤ 64) : Fin (2 ^ (κ + R)) ↪ E where
   toFun v := algebraMap K E (domainPt v)
   inj' v w h := by
-    exact Fin.ext (domainPt_injOn (lt_two_pow_64 hb v) (lt_two_pow_64 hb w)
+    exact Fin.ext (K.ofBits_inj (lt_two_pow_64 hb v) (lt_two_pow_64 hb w)
       ((algebraMap K E).injective h))
 
 open Polynomial in

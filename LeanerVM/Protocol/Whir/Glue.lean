@@ -67,11 +67,6 @@ private theorem sum_powerBatch_mul {J : ℕ} {α : Type} (s : Finset α) (a : α
   refine Finset.sum_congr rfl fun i _ ↦ Finset.sum_congr rfl fun x _ ↦ ?_
   ring
 
-/-- Batching commutes with differences. -/
-theorem powerBatch_sub {J : ℕ} (a b : Fin J → E) (ρ : E) :
-    powerBatch a ρ - powerBatch b ρ = powerBatch (fun i ↦ a i - b i) ρ := by
-  simp only [powerBatch, ← Finset.sum_sub_distrib, sub_mul]
-
 /-- Batching commutes with sums. -/
 private theorem powerBatch_add {J : ℕ} (a b : Fin J → E) (ρ : E) :
     powerBatch a ρ + powerBatch b ρ = powerBatch (fun i ↦ a i + b i) ρ := by
