@@ -286,8 +286,8 @@ theorem bad_density (st : (leanIsaInstance F prog s).Stmt × ∀ i, NoOracle i)
         (leanIsaChain prog s hs ρ hρ).pars i := by
   have h := (listBinding_deployed F prog s hs ρ hρ).rbr (pure ()) noSharedOracle st i tr
   unfold Bad
-  simp only [Set.mem_ofPred_eq]
   convert h using 5
+  simp only [Set.mem_ofPred_eq]
 
 end Bad
 
