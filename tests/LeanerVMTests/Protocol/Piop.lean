@@ -9,11 +9,11 @@ import Mathlib.Algebra.MvPolynomial.CommRing
 
 * **The side conditions have inhabitants, with and without a Flock region.** The toy instance
   (no Flock region, so the Flock phase is the pass-through) and `blocky`, one table of `2 ^ 8`
-  rows with matching push and pull flushes whose whole column is a Flock region with the
+  rows that pushes and pulls one tuple per row and whose whole column is a Flock region with the
   BLAKE2s circuit's R1CS, both meet the bus phase's conditions and the degree bound. At `blocky`
-  the Flock slot is the Flock phase itself. Its concrete honest stack satisfies the entire
-  relation; the zero stack fails the Flock constant-position condition. Count-column behavior
-  is exercised by the separate toy and spine tests.
+  the Flock slot is the Flock phase itself.
+* **`blocky`'s relation is inhabited.** The honest column of one BLAKE2s block satisfies
+  `M3Holds blocky`; the zero column fails it at the Flock predicate alone.
 * **The statements, by type.** The two master theorems at both instances, with the relation, the
   seam, the extractor and the error spelled out: a change to their hypotheses or conclusions
   fails here.
@@ -65,29 +65,29 @@ theorem readWith_id (q : Column 8) (c : blockyShape.ColumnId) :
   rw [Vector.getElem_ofFn, boolIndex_boolVec]
   rfl
 
-/-- The tuple `(X₀, 0, …)` used on both sides of the bus. -/
-def flush : Side × Vector (CMvPolynomial 1 K) 16 :=
-  (.push, Vector.ofFn fun k ↦ if k.val = 0 then CMvPolynomial.X 0 else 0)
+/-- The tuple `(X₀, 0, …)`, flushed on both sides of the bus. -/
+def tuple : Vector (CMvPolynomial 1 K) 16 :=
+  Vector.ofFn fun k ↦ if k.val = 0 then CMvPolynomial.X 0 else 0
 
-theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤ 2 := by
+theorem tuple_totalDegree (k : Fin 16) : (tuple.get k).totalDegree ≤ 2 := by
   rw [totalDegree_equiv (S := K)]
-  simp only [flush, Vector.get_ofFn]
+  simp only [tuple, Vector.get_ofFn]
   split
   · simp [CMvPolynomial.fromCMvPolynomial_X]
   · simp
 
-/-- The instance: matching pushes and pulls of its column, a Flock region of one block with the
-BLAKE2s circuit's R1CS. The region includes zero cells, so it is not also a count column. -/
+/-- The instance: its column pushes and pulls `tuple` on every row and is a Flock region of one
+block with the BLAKE2s circuit's R1CS. It has no count column: an honest region has zero cells. -/
 abbrev blocky : M3Instance where
   toShape := blockyShape
   Stmt := Unit
   constraints := fun _ ↦ []
-  flushes := fun _ ↦ [flush, (.pull, flush.2)]
+  flushes := fun _ ↦ [(.push, tuple), (.pull, tuple)]
   d := 2
   constraints_degree := fun _ _ h ↦ absurd h (List.not_mem_nil)
   flushes_degree := fun _ f h k ↦ by
     simp only [List.mem_cons, List.not_mem_nil, or_false] at h
-    rcases h with rfl | rfl <;> exact flush_totalDegree k
+    rcases h with rfl | rfl <;> exact tuple_totalDegree k
   counts := fun _ ↦ []
   boundary := []
   μ := 8
@@ -105,10 +105,10 @@ theorem blocky_conditions : Bus.Conditions blocky where
 
 example : blocky.flock.isSome := rfl
 
-/-- Every stack balances this fixture's identical push and pull lists. -/
+/-- Every stack balances the bus: the push and pull lists are one list. -/
 theorem blocky_balanced (q : Column blocky.μ) : blocky.Balanced q := by
   have h : blocky.tuples q .push = blocky.tuples q .pull := by
-    simp [M3Instance.tuples, M3Instance.flushTuples, M3Instance.boundaryTuples, blocky, flush]
+    simp [M3Instance.tuples, M3Instance.flushTuples, M3Instance.boundaryTuples, blocky]
   unfold M3Instance.Balanced
   rw [h]
 
@@ -141,37 +141,13 @@ theorem blocky_honest : M3Holds blocky () blockyHonest := by
     rw [blocky_flockColumn]
     exact Blake2sFlock.blake2sFlockSpec.holds_gen (κ := 0) #v[fun _ ↦ 0]
 
-/-- The zero stack preserves bus balance but violates the Flock constant position. -/
+/-- The zero stack fails the Flock predicate at the circuit's constant position. The other
+clauses do not reject it: the bus balances for every stack, and the rest are empty. -/
 theorem blocky_zero_rejected : ¬ M3Holds blocky () ⟨Vector.replicate _ 0⟩ := by
-  intro h
-  have hf := h.2.2.2.2 ⟨⟨0, 0⟩, 0, rfl, Blake2sFlock.blake2sFlockSpec.r1cs⟩ (by simp [blocky])
-  have h1 := (hf 0).2
-  rw [Blake2sFlock.batchBlock_bitTable] at h1
-  simp [ProductCircuit.liftBlock, ProductCircuit.ofBool, Blake2sFlock.blockBits,
-    blockCell, M3Instance.flockColumn, M3Instance.column, blocky, Layout.read,
-    readWith_id] at h1
-
-/-- The original fixture, retained only to show why its old completeness example was vacuous. -/
-private abbrev unbalancedBlocky : M3Instance :=
-  { blocky with
-    flushes := fun _ ↦ [flush]
-    flushes_degree := fun _ f h k ↦ by
-      rw [List.mem_singleton.mp h]
-      exact flush_totalDegree k
-    counts := fun _ ↦ [0] }
-
-/-- Natural-number multiset lengths rule out every stack for the original fixture. -/
-theorem original_blocky_unsatisfiable (q : Column unbalancedBlocky.μ) :
-    ¬ M3Holds unbalancedBlocky () q := by
-  intro h
-  have hl := h.2.1.length_eq
-  have hp : (unbalancedBlocky.tuples q .push).length = 256 := by
-    simp [M3Instance.tuples, M3Instance.flushTuples, M3Instance.boundaryTuples,
-      unbalancedBlocky, blocky, flush, blockyShape, List.length_flatMap, List.length_map]
-  have hn : (unbalancedBlocky.tuples q .pull).length = 0 := by
-    simp [M3Instance.tuples, M3Instance.flushTuples, M3Instance.boundaryTuples,
-      unbalancedBlocky, blocky, flush, blockyShape]
-  omega
+  rintro ⟨-, -, -, -, hf⟩
+  have h1 := (hf _ rfl 0).2
+  rw [blocky_flockColumn, Blake2sFlock.batchBlock_bitTable] at h1
+  simp [ProductCircuit.liftBlock, ProductCircuit.ofBool, Blake2sFlock.blockBits, blockCell] at h1
 
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (leanVmPiop (leanVmPhases blocky blocky_conditions)).perfectCompleteness init impl
