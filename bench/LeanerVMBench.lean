@@ -1,11 +1,11 @@
 /-
   LeanerVMBench
 
-  Steady-state timings of the field arithmetic, the BLAKE2s hasher, a Merkle root and a
-  multilinear evaluation, the sumcheck provers' round messages, one-shot timings of the honest
-  provers' tables (the Lagrange basis, the leanISA stack, the bus leaves, a grand-product layer),
-  and runs of the honest provers through ArkLib's `Prover.run`, as compiled into the
-  `leanervm-bench` executable.
+  Steady-state timings of the field arithmetic, the BLAKE2s hasher, a Merkle root, a
+  multilinear evaluation and a column weight's extension, the sumcheck provers' round messages,
+  one-shot timings of the honest provers' tables (the Lagrange basis, the leanISA stack, the bus
+  leaves, a grand-product layer), and runs of the honest provers through ArkLib's `Prover.run`, as
+  compiled into the `leanervm-bench` executable.
 -/
 
 import LeanerVM.Protocol.Field
@@ -135,6 +135,13 @@ def runArith (seed : UInt64) (percent : Nat) : IO Unit := do
   timeLoop "evalMle 2^16 E-table" (n 2) (0 : E)
     (fun i acc ↦ acc + CMlPolynomialEval.evalMle table (point.set 0 (point[0] + eOf i.toUInt64)))
     toString
+  -- The column weight's extension on 22 variables at rate 1/2, the largest deployed level
+  let z : Vector E 22 ← force <| Vector.ofFn fun i ↦ eOf (xs (seed * 5 + i.val.toUInt64))
+  let col (i : Nat) : Fin (2 ^ (22 + 1)) := Fin.ofNat _ (xs (seed + i.toUInt64)).toNat
+  timeLoop "column weight mle 22" (n 1000) (0 : E)
+    (fun i acc ↦ acc + (columnWeight (algebraMap K E) 22 1 (col i)).mle z) toString
+  timeLoop "column weight product 22" (n 1000) (0 : E)
+    (fun i acc ↦ acc + columnWeightMle (algebraMap K E) 22 1 (col i) z) toString
 
 /-! ## Sumcheck provers -/
 
