@@ -296,9 +296,7 @@ private theorem nextOpening_queries {α : Type}
   · rcases r with _ | ⟨x, s⟩
     · exact isTotalQueryBound_pure _ _
     · simp only
-      split
-      · exact isTotalQueryBound_pure _ _
-      · exact isTotalQueryBound_pure _ _
+      split <;> exact isTotalQueryBound_pure _ _
   · simp only [mem_support_bind_iff, support_map, Set.mem_image] at hr
     obtain ⟨_, ⟨o, -, rfl⟩, hr⟩ := hr
     simp only at hr

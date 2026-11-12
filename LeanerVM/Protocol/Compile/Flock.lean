@@ -68,9 +68,7 @@ private theorem replayRounds_append {d : ℕ} {eq? : ℕ → Option E} :
     · rfl
     simp only [Option.bind_some, List.length_cons]
     rw [show j + (rs₁.length + 1) = j + 1 + rs₁.length by omega]
-    rcases replayRounds d eq? (j + 1 + rs₁.length) c₁ rs₂ with _ | ⟨c₂, cs₂⟩
-    · rfl
-    · rfl
+    rcases replayRounds d eq? (j + 1 + rs₁.length) c₁ rs₂ with _ | ⟨c₂, cs₂⟩ <;> rfl
 
 /-- A replay whose challenges fit no vector of the given length leaves nothing to read. -/
 private theorem ofList?_eq_none_of_length {n : ℕ} {l : List E} (h : l.length ≠ n) :

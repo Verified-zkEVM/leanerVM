@@ -195,9 +195,7 @@ private theorem replayGkr_cons (ρ : ℕ) (ρs : List ℕ) (m : ℕ) {S : Type}
     · rfl
     simp only [Option.bind_some, Option.map_some]
     rw [Gkr.run_layerStepFront, hrun, Option.bind_some]
-    by_cases hc : Gkr.combineCheck 3 ρ m ((inp s, lam), (v, final)) ch = true
-    · simp [hc]
-    · simp [hc]
+    by_cases hc : Gkr.combineCheck 3 ρ m ((inp s, lam), (v, final)) ch = true <;> simp [hc]
 
 /-- The executable's grand product keeps the public data. -/
 private theorem replayGkr_fst : ∀ (ρs : List ℕ) (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (lam : E)
@@ -604,9 +602,7 @@ private theorem busStep_eq (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire)
   · by_cases hc : w.count = 0
     · simp [hc]
     · rcases (gkrFront 3 I.μBus (Bus.leaves I)).run ((input, (fun i ↦ α[i], w.beta)),
-          ![w.shared, w.shared, w.count]) g with _ | ℓ
-      · simp [hc]
-      · simp [hc]
+          ![w.shared, w.shared, w.count]) g with _ | ℓ <;> simp [hc]
   simp only [Option.map_some, Option.bind_some]
   rw [run_busPhase]
   by_cases hc : w.count = 0

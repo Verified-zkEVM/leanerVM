@@ -120,9 +120,7 @@ theorem runReplay_liftM {α : Type} (c : StateT (List UInt8 →ₒ Digest).Query
 
 theorem run_replayImpl (t : List UInt8) (log : (List UInt8 →ₒ Digest).QueryLog) :
     (QueryLog.replayImpl ans t).run log = (ans t).bind fun u ↦ some (u, log ++ [⟨t, u⟩]) := by
-  rcases h : ans t with _ | u
-  · simp [QueryLog.replayImpl, h]
-  · simp [QueryLog.replayImpl, h]
+  rcases h : ans t with _ | u <;> simp [QueryLog.replayImpl, h]
 
 /-- A replayed scalar: one observe step, answered from the log and recorded. -/
 theorem replay_nextScalar (fs : FsState) (y : E) (rest : List E)

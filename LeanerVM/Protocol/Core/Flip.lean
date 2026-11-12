@@ -524,10 +524,7 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
       (D (R.wordsAt a l c)).decodePrefix c = (D W).decodePrefix c)
     {tr : (R.spec a).FullTranscript} (hdec : (D W).decode hist = some tr)
     (i : (R.spec a).ChallengeIdx) (hbad : R.BadIn tr i) : R.FlipAtForIn l st lV := by
-  have hcut := challenge_cut (hS W) (hO W) hP hdec i
-  obtain ⟨c, hcut⟩ := hcut
-  obtain ⟨ds₀, hcut⟩ := hcut
-  obtain ⟨rest, hl₀, hpre₀, hchal₀⟩ := hcut
+  obtain ⟨c, ds₀, rest, hl₀, hpre₀, hchal₀⟩ := challenge_cut (hS W) (hO W) hP hdec i
   have hpre : R.decodePrefix a (R.wordsAt a l c) c = some (R.prefixOf tr i) :=
     ((hD _ _).trans (hwords c _ hl₀)).trans hpre₀
   set ds : Fin (R.slot a i).m → Digest := fun j ↦ ds₀ (Fin.cast (hm i) j) with hds_def

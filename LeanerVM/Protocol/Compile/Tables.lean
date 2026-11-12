@@ -97,9 +97,7 @@ private theorem run_tableSumcheck (s : I.Stmt × BusOut I) (ξ : E)
   simp only [ite_true, Option.bind_some]
   rcases (Sumcheck.roundsFront (TableSumcheck.tableSummand I) Sumcheck.unitWeights
       TableSumcheck.nodes).run
-      (TableSumcheck.start I s ξ (powerBatch (TableSumcheck.claimed I s) ξ)) R with _ | st
-  · rfl
-  · rfl
+      (TableSumcheck.start I s ξ (powerBatch (TableSumcheck.claimed I s) ξ)) R with _ | st <;> rfl
 
 /-- **The executable verifier's table sumcheck is the oracle verifier's**: its algebra on the
 wire is the table sumcheck's guarded verifier run on the transcript the wire decodes to. -/
