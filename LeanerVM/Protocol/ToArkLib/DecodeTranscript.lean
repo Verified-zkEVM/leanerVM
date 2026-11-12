@@ -601,6 +601,10 @@ instance : Monad (Slot α) where
 @[simp] theorem read_bind (s : Slot α β) (f : β → Slot α γ) (l : List α) :
     (s >>= f).read l = (s.read l).bind fun p ↦ (f p.1).read p.2 := rfl
 
+@[simp] theorem read_fail (l : List α) : (fail : Slot α β).read l = none := rfl
+
+@[simp] theorem read_next_nil (f : α → Option β) : (next f).read [] = none := rfl
+
 @[simp] theorem read_next_cons (f : α → Option β) (a : α) (r : List α) :
     (next f).read (a :: r) = (f a).map (·, r) := rfl
 
