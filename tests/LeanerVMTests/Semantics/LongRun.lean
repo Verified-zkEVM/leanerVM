@@ -198,14 +198,16 @@ theorem pc33_ne (prog : Program) (sh : Shape prog) (j : ℕ) :
 /-- One iteration that loops. -/
 theorem run_iter (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J)
     (hne : j ≠ J - 1) :
-    run prog (img fin) 33 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ :=
-  run_trans (run_body prog fin sh hj)
+    run prog (img fin) 33 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ := by
+  rw [show 33 = 32 + 1 from rfl]
+  exact run_trans (run_body prog fin sh hj)
     (run_one (pc33_ne prog sh j) (jump_loop prog fin hj hne sh.jump))
 
 /-- The last iteration, which jumps to the sentinel. -/
 theorem run_last (prog : Program) (fin : K) (sh : Shape prog) :
     run prog (img fin) 33 ⟨gpow 1, gpow (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
   have hJ : J - 1 < J := by unfold J; omega
+  rw [show 33 = 32 + 1 from rfl]
   exact run_trans (run_body prog fin sh hJ)
     (run_one (pc33_ne prog sh (J - 1)) (jump_last prog fin sh.jump))
 

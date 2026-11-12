@@ -7,7 +7,8 @@
 
 module
 
-public import LeanerVM.Parameters.CleanField
+public import LeanerVM.Parameters.Field
+public import Clean.Utils.BinaryField
 public import LeanerVM.Semantics.Step
 public import LeanerVM.Arithmetization.Bytecode
 public import Clean.Circuit.Basic

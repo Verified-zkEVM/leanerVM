@@ -1,12 +1,13 @@
-import LeanerVM.Parameters.CleanField
+import LeanerVM.Parameters.Field
+import Clean.Utils.BinaryField
 
 /-!
 # Layer 0 tests: Clean's field interface, and what a plain file can decide
 
-A classic test for kernel evaluation. Guards on `instFiniteFieldK`; the check that instance
-search for `Field K` still finds CompPoly's structure now that Clean's `FiniteField.toField` is
-in scope; and kernel checks of `E` arithmetic that only a plain file can run (roadmap status
-finding P1).
+A classic test for kernel evaluation. Guards on Clean's `FiniteField BF64` instance at `K`, whose
+`val` is the word's value and `fromNat` is `K.ofBits`; the check that its field structure, and
+instance search for `Field K`, are CompPoly's now that Clean's `FiniteField.toField` is in scope;
+and kernel checks of `E` arithmetic that only a plain file can run (roadmap status finding P1).
 -/
 
 namespace LeanerVMTests.Parameters
@@ -20,6 +21,12 @@ open LeanerVM.Parameters
 
 /-- The size Clean sees is `2^64`. -/
 example : FiniteField.size K = 2 ^ 64 := rfl
+
+/-- `fromNat` is the wire decoding `K.ofBits`. -/
+example : (FiniteField.fromNat : ℕ → K) = K.ofBits := rfl
+
+/-- The interface introduces no second field structure: its `Field K` is CompPoly's. -/
+example : (instFiniteFieldBF64.toField : Field K) = BF64.instField := rfl
 
 /-- With Clean's `FiniteField.toField` in scope, instance search still finds CompPoly's field. -/
 example : (inferInstance : Field K) = BF64.instField := rfl

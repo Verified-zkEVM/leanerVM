@@ -45,12 +45,13 @@ def bProg : Program := ⟨1, by decide, ![.xor (gpow 2) (gpow 3) (gpow 4), .jump
 
 /-- The prover data: the memory block's four rows `(g^i, 1, mem[i])`, matched on arity so that
 the kernel never compares names (as in the Layer 5 and 6 tests). -/
-def bData : ProverData K := fun _ n ↦
-  match n with
-  | 5 => #[#v[gpow 0, 1, 1, K.ofBits 2, K.ofBits 3],
-      #v[gpow 1, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6],
-      #v[gpow 2, 1, K.ofBits 7, K.ofBits 8, K.ofBits 9], #v[gpow 3, 1, 0, 0, 0]]
-  | _ => #[]
+def bData : ProverData K where
+  tables _ n := match n with
+    | 5 => #[#v[gpow 0, 1, 1, K.ofBits 2, K.ofBits 3],
+        #v[gpow 1, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6],
+        #v[gpow 2, 1, K.ofBits 7, K.ofBits 8, K.ofBits 9], #v[gpow 3, 1, 0, 0, 0]]
+    | _ => #[]
+  publicInput := #[]
 
 theorem bData_logSize : (imageOf bData).1 = 2 := imageOf_fst (by decide) (by decide +kernel)
 

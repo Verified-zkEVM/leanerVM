@@ -73,13 +73,13 @@ example : ∀ i ∈ rowInts xorT (rawRow xorRow) ++ rowInts jumpT (jumpRaw jumpR
 example : SendsOpcode xorT (rawRow xorRow) (xorSends xorRow) := by
   have h := xor_sendsOpcode (t := xorT) rfl (rawRow xorRow)
   rwa [show valueFromOffset XorRow 0 (xorT.environment (rawRow xorRow)) = xorRow from
-    rowAt_toElements _ xorRow] at h
+    ProvableType.valueFromOffset_zero_fromInput_eq xorRow _] at h
 
 /-- The `BLAKE2S` row sends `blake2sSends` of itself. -/
 example (j : Fin 8) : SendsOpcode blakeT (rawRow (blakeRow j)) (blake2sSends (blakeRow j)) := by
   have h := blake2s_sendsOpcode (t := blakeT) rfl (rawRow (blakeRow j))
   rwa [show valueFromOffset Blake2sRow 0 (blakeT.environment (rawRow (blakeRow j))) =
-    blakeRow j from rowAt_toElements _ (blakeRow j)] at h
+    blakeRow j from ProvableType.valueFromOffset_zero_fromInput_eq (blakeRow j) _] at h
 
 /-- The `JUMP` row's indicator is the raw cell after its columns and its inverse witness. -/
 example : (Statement.jumpRaw jumpRow3)[size JumpRow + 1]?.getD 0 = 1 := by decide +kernel
@@ -130,10 +130,12 @@ example : viaClean (memT memCnt) (rawRow memRow4) =
 /-- The same by the closed form, which sends nothing on the state channel. -/
 example : rowMessagesOn (memT memCnt) (rawRow memRow4) MemChannel.toRaw .pull =
     [#[gpow 4, g, mulXY.limb 0, mulXY.limb 1, mulXY.limb 2]] := by
-  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements _ memRow4)]
+  rw [memBlock_rowMessagesOn rfl (rawRow memRow4)
+    (ProvableType.valueFromOffset_zero_fromInput_eq memRow4 _)]
   decide +kernel
 example : rowMessagesOn (memT memCnt) (rawRow memRow4) StateChannel.toRaw .pull = [] := by
-  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements _ memRow4)]
+  rw [memBlock_rowMessagesOn rfl (rawRow memRow4)
+    (ProvableType.valueFromOffset_zero_fromInput_eq memRow4 _)]
   decide +kernel
 
 /-- The verifier of the fixture's program pulls the sentinel `(g^31, 1)` and pushes `(1, 1)`,

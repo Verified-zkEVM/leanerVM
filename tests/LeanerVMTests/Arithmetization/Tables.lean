@@ -102,10 +102,11 @@ def memTable : Array (Vector K 3) :=
 /-- The prover data of an image: the memory block's rows holding its words (the address and
 count columns, which `imageOf` does not read, at `0`), matched on arity so that the kernel never
 compares names (as in the Layer 5 tests). -/
-def dataOf (mem : Array (Vector K 3)) : ProverData K := fun _ n ↦
-  match n with
-  | 5 => mem.map fun v ↦ toElements (⟨0, 0, v⟩ : MemRow K)
-  | _ => #[]
+def dataOf (mem : Array (Vector K 3)) : ProverData K where
+  tables _ n := match n with
+    | 5 => mem.map fun v ↦ toElements (⟨0, 0, v⟩ : MemRow K)
+    | _ => #[]
+  publicInput := #[]
 
 /-- The fixture's prover data. -/
 def tabData : ProverData K := dataOf memTable
@@ -477,8 +478,8 @@ example : ConstraintsHold.Completeness
 
 -- Clean's array generator computes the same two witnesses as `jumpEnv` holds: `w = 1⁻¹ = 1`,
 -- `b = 1` on the taken row, `w = 0`, `b = 0` on the untaken one (compiled).
-#guard (jumpTable.main (const jumpRow)).witgen default #[] = #[1, 1]
-#guard (jumpTable.main (const jumpRow0)).witgen default #[] = #[0, 0]
+#guard (jumpTable.main (const jumpRow)).witgen (.empty K) default #[] = #[1, 1]
+#guard (jumpTable.main (const jumpRow0)).witgen (.empty K) default #[] = #[0, 0]
 
 example : (jumpEnv tabData jumpRow).get 0 = 1 ∧ (jumpEnv tabData jumpRow).get 1 = 1 := by
   decide +kernel

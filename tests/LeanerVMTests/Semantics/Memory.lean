@@ -40,7 +40,9 @@ example : gLog? 0 1 = some 0 := (gLog?_spec (by decide)).mpr (pow_zero g).symm
 example : gLog? minLogMem (gpow 4000) = some ⟨4000, by decide⟩ := (gLog?_spec (by decide)).mpr rfl
 
 /-- A one-cell memory has no second address. -/
-example : gLog? 0 g = none := gLog?_gpow_eq_none (j := 1) (by decide) (by decide)
+example : gLog? 0 g = none := by
+  rw [← pow_one g]
+  exact gLog?_gpow_eq_none (by decide) (by decide)
 
 /-- One past the end of a sixteen-cell memory is no address. -/
 example : gLog? 4 (gpow 16) = none := gLog?_gpow_eq_none (by decide) (by decide)
