@@ -45,21 +45,24 @@ multiplicities and the permutation of the active messages, with no bound on the 
 interactions (Clean `21247235`). `SatisfiedBy` is unchanged in text and logically equivalent to
 its reading at `ce2eee63`: the old bound follows from the `caps` field on each of the three
 channels, which the test theorem `interactionsWith_length_lt`
-(`tests/LeanerVMTests/Protocol/LeanIsaSound.lean`) proves. `ProverData` is the
-structure `{tables, publicInput}`, and `Circuit.witgen` and `proverEnvironment` take the data
-(Clean #511). The `FiniteField K` instance is Clean's `instFiniteFieldBF64`
-(`Clean.Utils.BinaryField`, imported by `Arithmetization/Channels.lean`), with the same `val`,
-`fromNat = K.ofBits` and `size = 2^64`; `LeanerVM/Parameters/CleanField.lean` and
-`instFiniteFieldK` are deleted, and the test `tests/LeanerVMTests/Parameters/CleanField.lean`
+(`tests/LeanerVMTests/Protocol/LeanIsaSound.lean`) proves.
+
+At the new Clean pin `ProverData` is the structure `{tables, publicInput}`, and `Circuit.witgen`
+and `proverEnvironment` take the data (Clean #511). The `FiniteField K` instance is Clean's
+`instFiniteFieldBF64` (`Clean.Utils.BinaryField`, imported by `Arithmetization/Channels.lean`),
+with the same `val`, `fromNat = K.ofBits` and `size = 2^64`; `LeanerVM/Parameters/CleanField.lean`
+and `instFiniteFieldK` are deleted, and the test `tests/LeanerVMTests/Parameters/CleanField.lean`
 keeps its guards against Clean's instance. Consumers of the deleted `rowAt_toElements` use
 Clean's `ProvableType.valueFromOffset_zero_fromInput_eq`. `jumpEnv` is deleted and
 `jump_env_iff` is a test theorem (with `jump_proverEnvironment_slots`, the honest witnesses of
 Clean's environment on every row): `jump_exec_complete` is stated in Clean's honest environment
 `jumpTable.proverEnvironment row data default` and closed by
-`constraintsHold_of_usesLocalWitnesses`. Lean `v4.35.0` exposes core's `DecidableEq` for
-`Vector` and `Array` and makes `Fin.foldl` structural, so findings L1 and L2 below no longer
-hold. The elaborator's `rfl` and `decide` on `K` arithmetic can now exhaust the recursion depth;
-those sites rewrite first or use `decide +kernel`.
+`constraintsHold_of_usesLocalWitnesses`.
+
+Lean `v4.35.0` exposes core's `DecidableEq` for `Vector` and `Array` and makes `Fin.foldl`
+structural, so findings L1 and L2 below no longer hold. The elaborator's `rfl` and `decide` on
+`K` arithmetic can now exhaust the recursion depth; those sites rewrite first or use
+`decide +kernel`.
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 8
 (built and proved on top of `main` at `42bbd51`, where Layer 7 landed as PR #21 on 2026-09-16;

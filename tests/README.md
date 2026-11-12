@@ -25,8 +25,7 @@ Tests must not be imported by the production `LeanerVM/` library.
 In a `module` test file, a `#guard` needs a `meta import` of the module it evaluates. Since
 Lean `v4.35.0`, core exposes the `DecidableEq` instances of `Vector` and `Array`, so `decide` and
 the kernel reduce an equality of vectors in a `module` too (finding L1 is fixed upstream).
-Decide such checks directly; the `Vector.toList_inj` detour and list-comparing `Decidable`
-instances are no longer needed.
+Decide such checks directly.
 
 A kernel check of an equality on a structure over `K` or `E` goes through that structure's
 `DecidableEq` instance, and a *derived* instance decides its later fields under `h ▸` for the
