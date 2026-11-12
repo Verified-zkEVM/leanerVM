@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Protocol.DecodeWalk
 public import LeanerVM.Protocol.Replay
+import Mathlib.Control.Lawful
 
 /-!
 # The chain in the replayed log
