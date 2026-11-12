@@ -97,6 +97,18 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   deleted: ArkLib's `@[csimp]` forms of `Fin` tuple appends (`ArkLib.Data.Fin.Tuple.Lemmas`) read an
   entry by one comparison with the seam, and ArkLib compiles its appended-schedule instances and
   `FullTranscript.append` after them.
+* **ArkLib #1423 and `ReduceClaim`, adopted.** The commit phase's component
+  (`ToArkLib/SendOracle.lean`) is `SendSingleWitness.Adapter` at the identity: the adapter's
+  prover, verifier, transcript extractor, knowledge state function, zero-error bound and perfect
+  completeness. The pass-through and map-witness components (`ToArkLib/PassThrough.lean`,
+  `ToArkLib/MapWitness.lean`) are `ReduceClaim.oracleReduction` at the identity embedding of the
+  oracles, with its completeness, `ReduceClaim.extractor` and its knowledge state function. The
+  verifiers are definitionally the old ones and their pure forms keep their verdicts; the
+  pass-through and map-witness provers equal the old ones, and the commit prover keeps the
+  statement beside the message (`(S × ∀ i, NoOracle i) × M` for `S × M`) with the same run. The
+  extractors return the same values. One signature narrows: `Component.mapWitness`'s witness map
+  reads the statement and the witness (`StmtIn → W → W'`), not the oracles, as `ReduceClaim`'s
+  does; all three consumers ignored the oracles, and their statements are unchanged.
 * **VCVio's measure-only probability API** (#829–#837, names standardized by #839). The discrete
   layer is removed. `prEvent mx` is the mass the output measure of a `Prop`-valued computation puts
   on `True`, and `Pr{let x ← mx}[p x]` elaborates the last draw to a map, `prEvent (p <$> mx)`; the

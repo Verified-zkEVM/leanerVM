@@ -7,6 +7,7 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
 public import LeanerVM.Protocol.ToArkLib.SendOracle
 public import LeanerVM.Protocol.ToArkLib.Schedule
 

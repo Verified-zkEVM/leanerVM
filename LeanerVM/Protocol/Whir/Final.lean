@@ -148,7 +148,7 @@ def glueFinal :=
     (fun s ↦ (((Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam, s.ff),
       (#v[], powerBatch ![s.c, powerBatch s.cq s.lam] s.lam)),
       batchMessage ![s.p1, s.p3] s.lam))
-    (fun _ ↦ ())
+    (fun _ _ ↦ ())
 
 /-- The first challenge of the tail: the polynomial of the first round is already received. -/
 def tailFirst : Component.Def (SumcheckRound.MidStmt (TX (nf + 1)) E 0 2) (OneW sh (nf + 1)) Unit

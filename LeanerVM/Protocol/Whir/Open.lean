@@ -116,7 +116,7 @@ def stackRelayout :=
   Component.mapWitness (StmtIn := Weight E (κ + sh.ℓ) × E)
     (StmtOut := Weight E (sh.ℓ + κ) × E) (W := Tab (κ + sh.ℓ)) (W' := Tab (sh.ℓ + κ))
     (OneW sh κ)
-    (fun s ↦ (relayoutWeight s.1, s.2)) (fun p ↦ relayout p.2)
+    (fun s ↦ (relayoutWeight s.1, s.2)) (fun _ w ↦ relayout w)
 
 /-- The first message: the first-round polynomial of the opening claim, checked against its
 value. -/
