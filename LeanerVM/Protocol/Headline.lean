@@ -80,7 +80,8 @@ the run, so every round boundary, a superset of the states the grinds start at).
 **The stack of an execution** (`LeanerVM.Protocol.LeanIsa.ExecutionStack`). `StackFits prog t`
 says that leanVM's stack at the sizes of the generated witness has at most `2^maxMu` cells. It
 fails from `t.κ ≥ 25` on (`not_stackFits_of_le`), holds for short runs (`StackFits.of_short`),
-implies `Trace.Fits` (`StackFits.fits`), and is decided on a valid execution by `stackFitsB`.
+implies `Trace.Fits` (`StackFits.fits`) and at most `2^25` steps (`StackFits.steps_le`), and is
+decided on a valid execution by `stackFitsB`.
 
 ## Completeness in the random-oracle model
 
@@ -88,8 +89,8 @@ implies `Trace.Fits` (`StackFits.fits`), and is decided on a valid execution by 
 (`StackFits`), and a valid rate, the honest run from the execution (`honestExecutionGame`: the
 witness generator, the deployed prover with every hash a query to one lazy random oracle, then the
 verifier on its proof at the same oracle) is rejected with probability at most
-`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, `N = 264246250 + 6 · fuel`; below `2^-154`
-at the default fuel `2^24` (`proveExecution_rom_complete_default`). It is proved from the
+`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, `N = 264246250 + 6 · fuel`; at most
+`2^-154` at the default fuel `2^24` (`proveExecution_rom_complete_default`). It is proved from the
 constraint form `honestGame_rom_rejects_le` (`LeanerVM.Protocol.HonestGame`): for a witness of
 the constraint statement whose sizes keep the stack within `2^maxMu`, at a valid rate, the
 deployed prover and then the verifier on its proof, both asking one lazy random oracle
@@ -156,10 +157,11 @@ The broader event, a flip on any chain of the statement (`leanVmReader.FlipFor`)
 that every proof `proveExecution` returns is accepted, and when it returns one, not that it does: at
 BLAKE2s nothing bounds how often a grind on the run runs out of fuel (the random-oracle bound above
 is about a random function), and `Trace.Fits` does not keep the stack within `2^maxMu`: from
-`t.κ ≥ 25` on it never fits (`not_stackFits_of_le`), and `proveExecution` returns none at every
-fuel and rate. The generated witness represents the
-padded trace, not the given one: the proof is of the same steps over a memory with the fill frames
-above the image. -/
+`t.κ ≥ 25` on it never fits (`not_stackFits_of_le`), and on a valid execution whose stack does
+not fit `proveExecution` returns none at every fuel and rate
+(`proveExecution_eq_none_of_not_stackFits`). The generated witness represents the padded trace,
+not the given one: the proof is of the same steps over a memory with the fill frames above the
+image. -/
 
 namespace LeanerVM.Protocol
 
@@ -665,13 +667,15 @@ def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trac
     Option (Proof PrunedMerklePaths) :=
   proveExecutionWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input t ρ
 
-/-- The hypotheses of the random-oracle completeness from an execution, decided: first the
-constant-time bounds of a stack that fits (`StackFits.bounds`), so that no check below reads a
-memory or bytecode too large to fit, then well-formed bytecode (`wellFormedB`), a valid execution
-(`checkTrace`), a stack that fits (`stackFitsB`) and a valid rate. -/
+/-- The hypotheses of the random-oracle completeness from an execution, decided: first, in
+constant time, a valid rate and the bounds a stack that fits puts on the memory, the bytecode
+(`StackFits.bounds`) and the run (`StackFits.steps_le`), so that no check below reads a memory or
+bytecode too large to fit or steps a run longer than such a stack allows; then well-formed
+bytecode (`wellFormedB`), a valid execution (`checkTrace`) and a stack that fits
+(`stackFitsB`). -/
 def checkExecution (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) : Bool :=
-  decide (t.κ ≤ 24 ∧ prog.logSize ≤ 27) && wellFormedB prog && checkTrace prog input t &&
-    stackFitsB prog t && decide (validRate ρ)
+  decide (t.κ ≤ 24 ∧ prog.logSize ≤ 27 ∧ t.steps ≤ 2 ^ 25 ∧ validRate ρ) && wellFormedB prog &&
+    checkTrace prog input t && stackFitsB prog t
 
 /-- **leanVM's honest prover from an execution, guarded**: `proveExecution` when the hypotheses
 of completeness pass their checks (`checkExecution`), none otherwise. -/
@@ -774,7 +778,7 @@ theorem proveExecution_rom_complete (fuel : ℕ) {prog : Program} {input : Publi
   exact honestGame_rom_rejects_le fuel hsat hs hμ hρ
 
 /-- **Completeness from an execution in the random-oracle model at the default fuel `2^24`**: the
-honest run of `proveExecution_rom_complete` is rejected with probability below `2^-154`. -/
+honest run of `proveExecution_rom_complete` is rejected with probability at most `2^-154`. -/
 theorem proveExecution_rom_complete_default {prog : Program} {input : PublicInput}
     {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
     (hstack : StackFits prog t) (hρ : validRate ρ) :
@@ -792,8 +796,10 @@ satisfies the constraint statement and represents `t'`. At every fuel and rate, 
 every proof `proveExecution` returns; it returns none only when the stack does not fit
 (`StackFits`), the rate is not valid, or a grind runs out of fuel at a chain state the prover's
 run reaches; the last conjunct says the same as a sufficient condition for a proof. `Trace.Fits`
-does not keep the stack within `2^maxMu`: from `t.κ ≥ 25` on it is not (`not_stackFits_of_le`).
-At the witness's sizes the stack condition is `leanIsaμ prog s ≤ maxMu` (`stackFits_iff`). -/
+does not keep the stack within `2^maxMu`: the stack does not fit from `t.κ ≥ 25` on
+(`not_stackFits_of_le`), and then `proveExecution` returns none
+(`proveExecution_eq_none_of_not_stackFits`). At the witness's sizes the stack condition is
+`leanIsaμ prog s ≤ maxMu` (`stackFits_iff`). -/
 theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trace prog}
     (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t) (hfit : t.Fits) :
     let t' := padTrace t (fillStarts prog)
@@ -823,6 +829,22 @@ theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trac
   obtain rfl := Option.some.inj (hs.symm.trans hs')
   exact hc.imp_left not_le.mpr
 
+/-- **A stack that does not fit gets no proof**: on a valid execution whose stack does not fit,
+`proveExecution` returns none at every fuel and rate, since the generated witness's sizes put the
+stack above `2^maxMu` and `prove` checks them first. -/
+theorem proveExecution_eq_none_of_not_stackFits (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (ht : ValidExecution prog input t) (h : ¬ StackFits prog t) :
+    proveExecution fuel prog input t ρ = none := by
+  unfold proveExecution proveExecutionWith
+  split
+  · next w hw =>
+    obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+    simp only [proveWith, proveFrom, hs]
+    split_ifs with ha
+    · exact absurd ⟨τ, hτ, ha.1.2.2.2.2⟩ h
+    · rfl
+  · rfl
+
 /-- The checks of `checkExecution` decide the hypotheses of the random-oracle completeness from an
 execution. -/
 theorem checkExecution_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace prog}
@@ -831,10 +853,11 @@ theorem checkExecution_eq_true_iff {prog : Program} {input : PublicInput} {t : T
   simp only [checkExecution, Bool.and_eq_true, decide_eq_true_eq, wellFormedB_eq_true_iff,
     checkTrace_eq_true_iff]
   constructor
-  · rintro ⟨⟨⟨⟨-, hwf⟩, ht⟩, hst⟩, hρ⟩
+  · rintro ⟨⟨⟨⟨-, -, -, hρ⟩, hwf⟩, ht⟩, hst⟩
     exact ⟨hwf, ht, (stackFitsB_eq_true_iff ht).mp hst, hρ⟩
   · rintro ⟨hwf, ht, hst, hρ⟩
-    exact ⟨⟨⟨⟨hst.bounds, hwf⟩, ht⟩, (stackFitsB_eq_true_iff ht).mpr hst⟩, hρ⟩
+    exact ⟨⟨⟨⟨hst.bounds.1, hst.bounds.2, hst.steps_le ht.2, hρ⟩, hwf⟩, ht⟩,
+      (stackFitsB_eq_true_iff ht).mpr hst⟩
 
 /-- **Every proof the guarded prover returns is accepted**, with no hypothesis: it proves only
 after its checks pass, and then `proveExecution_complete` applies. -/

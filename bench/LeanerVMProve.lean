@@ -431,11 +431,12 @@ def executionChecks (fuel ρ steps : ℕ) : IO UInt32 := do
   let t : Trace ladderJumpProg := ⟨minLogMem, badImage (gpow 2047), steps⟩
   let mut failed : UInt32 := 0
   for (name, check) in [
-      ("bounds", fun _ : Unit ↦ decide (t.κ ≤ 24 ∧ ladderJumpProg.logSize ≤ 27)),
+      ("bounds", fun _ : Unit ↦
+        decide (t.κ ≤ 24 ∧ ladderJumpProg.logSize ≤ 27 ∧ t.steps ≤ 2 ^ 25)),
+      ("validRate", fun _ ↦ decide (validRate ρ)),
       ("wellFormedB", fun _ ↦ wellFormedB ladderJumpProg),
       ("checkTrace", fun _ ↦ checkTrace ladderJumpProg badInput t),
-      ("stackFitsB", fun _ ↦ stackFitsB ladderJumpProg t),
-      ("validRate", fun _ ↦ decide (validRate ρ))] do
+      ("stackFitsB", fun _ ↦ stackFitsB ladderJumpProg t)] do
     let c0 ← IO.monoNanosNow
     let ok ← force (check ())
     let c1 ← IO.monoNanosNow

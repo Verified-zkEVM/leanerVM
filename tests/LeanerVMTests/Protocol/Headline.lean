@@ -54,8 +54,9 @@ import LeanerVMTests.Protocol.LogScan
   memory log-size `25` has a stack that fits (`not_stackFits_of_le`), and the check `stackFitsRowsB`
   fails there and on a `BLAKE2S` table of `2^20` rows, whose Flock region alone is `2^28` cells.
   The guarded prover is `proveExecution` on the one-step trace, and returns none at an invalid
-  rate, at memory log-size `25` (by its first check), on a trace that is no execution, and on
-  ill-formed bytecode.
+  rate, at memory log-size `25` and on a trace announcing `2^40` steps of a run that never halts
+  (both by its first, constant-time check), on a trace that is no execution, and on ill-formed
+  bytecode.
 -/
 
 namespace LeanerVMTests.Protocol.Headline
@@ -405,6 +406,14 @@ example (fuel : ℕ) : proveChecked fuel ladderJumpProg badInput ⟨25, fun _ �
 -- prover returns none; so it does on ill-formed bytecode (no `XOR` block), with the same image.
 #guard (proveChecked 0 ladderJumpProg badInput ⟨badTrace.κ, badTrace.image, 0⟩ 1).isNone
 #guard (proveChecked 0 ladderNoXor badInput ⟨badTrace.κ, badTrace.image, 1⟩ 1).isNone
+
+/-- The one-step trace's image with the word that makes the ladder's `JUMP` jump back to itself
+in the same frame, so the run never halts, announced at `2^40` steps. -/
+def loopTrace : Trace ladderJumpProg :=
+  ⟨minLogMem, LeanerVMTests.Semantics.PaddedImageRefutation.badImage (gpow 0), 2 ^ 40⟩
+
+-- The guarded prover rejects it at once, by the bound on the steps, without stepping the run.
+#guard (proveChecked 0 ladderJumpProg badInput loopTrace 1).isNone
 
 /-! ## The adaptive theorems -/
 

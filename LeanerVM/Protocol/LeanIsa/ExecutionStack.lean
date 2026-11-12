@@ -22,10 +22,12 @@ the `JUMP` exponent (`LeanIsa.blocks_total_eq`). `StackFits prog t` says it is a
 * It fails from `t.κ ≥ 25` on (`not_stackFits_of_le`: the four memory columns alone hold
   `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is more), and holds when `t.κ ≤ 24`, the
   program has at most `2^25` slots and the run at most `2^16` steps (`StackFits.of_short`).
-* It implies `Trace.Fits` (`StackFits.fits`), so a theorem that assumes it needs no `Fits`.
+* It implies `Trace.Fits` (`StackFits.fits`), so a theorem that assumes it needs no `Fits`, and
+  on a run it bounds the steps by `2^25` (`StackFits.steps_le`).
 * `stackFitsB` decides it on a valid execution (`stackFitsB_eq_true_iff`) by one forward pass,
-  after the constant-time bounds `t.κ ≤ 24` and `prog.logSize ≤ 27` (`StackFits.bounds`), so that
-  no table of powers is built for a trace whose memory or bytecode alone is too large.
+  after the constant-time bounds `t.κ ≤ 24`, `prog.logSize ≤ 27` (`StackFits.bounds`) and
+  `t.steps ≤ 2^25`, so that no table of powers is built and no run is stepped for a trace whose
+  memory, bytecode or announced length alone is too large.
 -/
 
 namespace LeanerVM.Protocol
@@ -127,6 +129,47 @@ theorem StackFits.fits {prog : Program} {t : Trace prog} (h : StackFits prog t) 
   · exact absurd rfl hop
   · rw [hb]; norm_num at hμ; omega
 
+/-- **A stack that fits bounds the run**: at most `2^25` steps. Each step is a row of one of the
+six opcode tables, each table is at most its filled height, and every table has at least eight
+columns, so the tables' heights add up to at most `2^28 / 8`. -/
+theorem StackFits.steps_le {prog : Program} {t : Trace prog} {rf : Regs K} (hst : StackFits prog t)
+    (h : run prog t.image t.steps Regs.initial = some rf) : t.steps ≤ 2 ^ 25 := by
+  obtain ⟨τ, hτ, hμ⟩ := hst
+  obtain ⟨-, howed, -⟩ := jumpHeight_spec hτ
+  have hle : ∀ op, t.runRows op ≤ 2 ^ tableLog t.runRows τ op := fun op ↦ by
+    rw [← tableHeight_eq_pow]
+    by_cases hj : op = .jump
+    · subst hj
+      simp only [tableHeight, ↓reduceIte]
+      exact (Nat.le_add_right _ _).trans howed
+    · simp only [tableHeight, hj, ↓reduceIte]
+      exact le_fillTarget _ _
+  rw [leanIsaμ_le_iff, blocks_total_eq] at hμ
+  simp only [execSizes, maxMu] at hμ
+  change 4 * 2 ^ (t.κ + 1) + 2 ^ prog.logSize + 2 ^ (8 + tableLog t.runRows τ .blake2s) +
+    15 * 2 ^ tableLog t.runRows τ .xor + 15 * 2 ^ tableLog t.runRows τ .mulNative +
+    8 * 2 ^ tableLog t.runRows τ .setConstant + 15 * 2 ^ tableLog t.runRows τ .deref +
+    14 * 2 ^ tableLog t.runRows τ .jump + 19 * 2 ^ tableLog t.runRows τ .blake2s ≤ 2 ^ 28 at hμ
+  rw [← t.sum_runRows h]
+  simp only [fillTables, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+  have e0 := hle .xor
+  have e1 := hle .mulNative
+  have e2 := hle .setConstant
+  have e3 := hle .deref
+  have e4 := hle .jump
+  have e5 := hle .blake2s
+  generalize 2 ^ tableLog t.runRows τ .xor = x at hμ e0
+  generalize 2 ^ tableLog t.runRows τ .mulNative = m at hμ e1
+  generalize 2 ^ tableLog t.runRows τ .setConstant = sc at hμ e2
+  generalize 2 ^ tableLog t.runRows τ .deref = dd at hμ e3
+  generalize 2 ^ tableLog t.runRows τ .jump = jj at hμ e4
+  generalize 2 ^ tableLog t.runRows τ .blake2s = bb at hμ e5
+  generalize 2 ^ (8 + tableLog t.runRows τ .blake2s) = ff at hμ
+  generalize 2 ^ prog.logSize = pl at hμ
+  generalize 2 ^ (t.κ + 1) = X at hμ
+  norm_num at hμ ⊢
+  omega
+
 /-- **A short run's stack fits**: a run of at most `2^16` steps over a memory of log-size at most
 `24`, of a program of at most `2^25` slots. A sufficient condition, so `25` is the exact bound on
 `t.κ`. -/
@@ -180,11 +223,12 @@ theorem stackFitsRowsB_eq_true_iff {prog : Program} (t : Trace prog) :
   unfold stackFitsRowsB StackFits Trace.owed
   rcases jumpHeight (jumpOwed t.runRows) with _ | τ <;> simp
 
-/-- Whether the stack of a trace fits: first the bounds `StackFits.bounds`, in constant time,
-then the run's rows counted by the generator's forward pass, through a table of powers as large
-as the address space. -/
+/-- Whether the stack of a trace fits: first, in constant time, the bounds a stack that fits puts
+on the memory, the bytecode (`StackFits.bounds`) and the run (`StackFits.steps_le`), then the
+run's rows counted by the generator's forward pass, through a table of powers as large as the
+address space. -/
 def stackFitsB (prog : Program) (t : Trace prog) : Bool :=
-  decide (t.κ ≤ 24 ∧ prog.logSize ≤ 27) &&
+  decide (t.κ ≤ 24 ∧ prog.logSize ≤ 27 ∧ t.steps ≤ 2 ^ 25) &&
     stackFitsRowsB prog t.κ
       (countsOf (runCountTableBy prog t (powTable (2 ^ max t.κ prog.logSize))))
 
@@ -193,7 +237,7 @@ theorem stackFitsB_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace
     (h : ValidExecution prog input t) : stackFitsB prog t = true ↔ StackFits prog t := by
   rw [stackFitsB, countsOf_runCountTableBy h, Bool.and_eq_true, decide_eq_true_eq,
     stackFitsRowsB_eq_true_iff]
-  exact ⟨And.right, fun hs ↦ ⟨hs.bounds, hs⟩⟩
+  exact ⟨And.right, fun hs ↦ ⟨⟨hs.bounds.1, hs.bounds.2, hs.steps_le h.2⟩, hs⟩⟩
 
 /-- **`StackFits` is the stack of the generated witness fitting**: for well-formed bytecode and
 a valid execution, it holds exactly when the generator returns a witness whose sizes keep the
