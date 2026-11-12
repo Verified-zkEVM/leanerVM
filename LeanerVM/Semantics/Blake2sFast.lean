@@ -161,15 +161,6 @@ private theorem toVector_roundWords (v : Words) (m : Vector UInt32 16) (s : Vect
     mixFast_toVector_4, mixFast_toVector_5, mixFast_toVector_6, mixFast_toVector_7]
   rfl
 
-/-- `round` through `roundWords`. -/
-def roundFast (v m : Vector UInt32 16) (s : Vector (Fin 16) 16) : Vector UInt32 16 :=
-  (roundWords (.ofVector v) m s).toVector
-
-/-- `roundFast` is `round`. -/
-theorem roundFast_eq : roundFast = round := by
-  funext v m s
-  rw [roundFast, toVector_roundWords, toVector_ofVector]
-
 end Blake2s
 
 /-- `compress` on native rotations and unboxed working words. -/

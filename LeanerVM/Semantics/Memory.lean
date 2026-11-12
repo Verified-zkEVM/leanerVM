@@ -162,11 +162,6 @@ theorem MemImage.read_eq_some_iff {κ : ℕ} (hκ : κ < 64) (L : MemImage κ) {
     L.read a = some v ↔ ∃ i : Fin (2 ^ κ), a = gpow i ∧ L i = v := by
   simp only [MemImage.read, Option.map_eq_some_iff, gLog?_spec hκ]
 
-/-- A read fails exactly at the addresses that are no power below `2 ^ κ`. -/
-theorem MemImage.read_eq_none_iff {κ : ℕ} (L : MemImage κ) {a : K} :
-    L.read a = none ↔ ∀ i : Fin (2 ^ κ), a ≠ gpow i := by
-  rw [MemImage.read, Option.map_eq_none_iff, gLog?_eq_none_iff]
-
 /-- Address `0` reads nothing (roadmap acceptance test 2). -/
 theorem MemImage.read_zero {κ : ℕ} (L : MemImage κ) : L.read 0 = none := by
   rw [MemImage.read, gLog?_zero, Option.map_none]
