@@ -59,8 +59,8 @@ theorem lowBitsZero_zeroDigest (bits : ℕ) : FsState.lowBitsZero zeroDigest bit
   simp [FsState.lowBitsZero, zeroDigest]
 
 /-- The proof-of-work search of a grind of `bits` bits with `fuel` candidates: the bases are the
-answers to grinding-base queries `stepBytes cv 0 3`, a candidate is `stepBytes b (nonceOf n) 4`,
-and the zero digest is counted from the start. -/
+answers to grinding-base queries `stepBytes cv 0 powBaseTag`, a candidate is
+`stepBytes b (nonceOf n) powNonceTag`, and the zero digest is counted from the start. -/
 def grindSearch (fuel bits : ℕ) : PowSearch (List UInt8) Digest where
   isBase x := ∃ cv, x = baseInput cv
   cand b n := checkInput b (FsState.nonceOf n)
