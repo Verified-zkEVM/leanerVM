@@ -900,18 +900,18 @@ level `0`), so `2^-128` after grinding.
 (`ToVCVio/ChargedInvariant.lean`, `ToVCVio/UniformSample.lean`, `ToVCVio/EventExpectation.lean`).
 Since the Lean 4.35 bump, the charged invariant is VCVio's budgeted supermartingale bound
 `OracleComp.lintegral_run_le_of_isQueryBoundP` (VCVio #766) at a potential on the record of queries
-(`QueryHistory.lintegral_le_of_potential`): a step bound `κ` per fresh query that need hold only
-within the budget of `n` queries gives `Φ s + n * κ`, and the per-kind budgets, the charged oracle
+(`QueryHistory.lintegral_le_of_potential`). A step bound `κ` per fresh query, which need hold only
+within the budget of `n` queries, gives `Φ s + n * κ`. The per-kind budgets, the charged oracle
 and its expected-charge bounds of the charged-budgets pull request are deleted. The adversary's run
 is budgeted by its `Q` queries.
 The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
 `left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so
 `niError_le`'s term is `(Q + V)·2^-128`, not `(Q + rounds)·2^-128`, beside a `hashTerm` that
-already carries `Q + V`. Two runs in sequence: `QueryHistory.prEvent_bind_le_of_potential`, for
-`oa >>= ob` with `oa` within the budget and the second run's event probability at most `Φ` plus
-`ε` from every reachable end of the first, gives `Φ s + n * κ + ε`: the second run starts from the
-potential the first leaves, in expectation, so the groups the adversary leaves open are counted
-once; a supremum over the first run's ends would count them twice.
+already carries `Q + V`. Two runs in sequence: `QueryHistory.prEvent_bind_le_of_potential` takes
+`oa >>= ob` with `oa` within the budget, and the second run's event probability at most `Φ` plus
+`ε` from every reachable end of the first, and gives `Φ s + n * κ + ε`. The second run starts from
+the potential the first leaves, in expectation, so the groups the adversary leaves open are
+counted once; a supremum over the first run's ends would count them twice.
 Uniform laws: the first half of a bijection, coordinatewise on tuples, low digits, first entries,
 and digits in chunks are uniform. In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the
 challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` and
