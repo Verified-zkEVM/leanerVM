@@ -855,9 +855,9 @@ probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or 
 (`Transcript.lean`: `Block.input`, the parser `Block.parse?` with `parse?_input`, over the byte
 decoders `digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back
 from a state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
-generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
-a hit is a fresh answer in play after the entries before it, for an in-play function of the
-prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
+generic log predicates `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`; a hit is a
+fresh answer in play after the entries before it, for an in-play function of the prefix) and
+VCVio's `QueryLog.Consistent`, in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
 fixed roots (none at leanVM's), the halves of every logged 64-byte input, the program hash every
 logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
 absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the

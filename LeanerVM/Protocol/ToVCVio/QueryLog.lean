@@ -10,6 +10,7 @@ module
 
 public import Mathlib.Data.Nat.Notation
 public import Mathlib.Data.List.Sigma
+public import VCVio.OracleComp.QueryTracking.QueryLogCheck
 import Mathlib.Data.List.Induction
 
 /-!
@@ -17,9 +18,9 @@ import Mathlib.Data.List.Induction
 
 A log is the list of a run's queries with their answers, in the order asked:
 `List ((_ : Q) × D)`, to which VCVio's `(Q →ₒ D).QueryLog` and `MerkleTreeExtractor.QueryLog Q D`
-both unfold. Every predicate here is decidable.
+both unfold. Every predicate here is decidable, and so is VCVio's `QueryLog.Consistent` (no input
+appears with two answers; the log is the trace of a function), which the lemmas below assume.
 
-* `Consistent`: no input appears with two answers; the log is the trace of a function.
 * `HasCollision`: two different inputs have one answer. On `(Q →ₒ D).QueryLog` it is equivalent
   to VCVio's `OracleComp.LogHasCollision`, stated by log positions with `HEq` answers over a
   dependent range; the form here, by entries over a plain range, needs no `OracleSpec`.
@@ -37,15 +38,34 @@ hit, being at a first occurrence, survives deduplication when the values in play
 (`hasHit_dedupKeys`).
 -/
 
+universe u v
+
+namespace OracleSpec.QueryLog
+
+@[expose] public section
+
+variable {ι : Type u} {spec : OracleSpec.{u, v} ι}
+
+instance [DecidableEq ι] [∀ t, DecidableEq (spec.Range t)] (log : QueryLog spec) :
+    Decidable log.Consistent := by
+  unfold Consistent; infer_instance
+
+/-- A consistent log's prefix is consistent. -/
+theorem Consistent.of_prefix {log log' : QueryLog spec} (hcons : log.Consistent)
+    (h : log' <+: log) : log'.Consistent :=
+  fun e₁ h₁ e₂ h₂ ↦ hcons e₁ (h.subset h₁) e₂ (h.subset h₂)
+
+end
+
+end OracleSpec.QueryLog
+
 namespace LeanerVM.Protocol.QueryLog
+
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 
 variable {Q D : Type}
-
-/-- No input appears in the log with two answers: the log is the trace of a function. -/
-def Consistent (log : List ((_ : Q) × D)) : Prop :=
-  ∀ e₁ ∈ log, ∀ e₂ ∈ log, e₁.1 = e₂.1 → e₁.2 = e₂.2
 
 /-- A collision: two different inputs of the log with one answer. -/
 def HasCollision (log : List ((_ : Q) × D)) : Prop :=
@@ -62,9 +82,6 @@ def HasHit (inPlay : List ((_ : Q) × D) → List D) (log : List ((_ : Q) × D))
 section Decidable
 
 variable [DecidableEq Q] [DecidableEq D]
-
-instance (log : List ((_ : Q) × D)) : Decidable (Consistent log) := by
-  unfold Consistent; infer_instance
 
 instance (log : List ((_ : Q) × D)) : Decidable (HasCollision log) := by
   unfold HasCollision; infer_instance
@@ -94,7 +111,7 @@ theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈
     ∃ (p : ℕ) (hp : p < log.length), Fresh (log.take p) e.1 ∧ log[p] = e := by
   have hp := List.findIdx_lt_length_of_exists (p := fun x ↦ x.1 = e.1) ⟨e, he, by simp⟩
   have hq := of_decide_eq_true (List.findIdx_getElem (w := hp))
-  refine ⟨_, hp, fun x hx ↦ ?_, Sigma.ext hq (heq_of_eq (hcons _ (List.getElem_mem _) e he hq))⟩
+  refine ⟨_, hp, fun x hx ↦ ?_, hcons _ (List.getElem_mem _) e he hq⟩
   obtain ⟨j, hj, rfl⟩ := List.mem_take_iff_getElem.mp hx
   simpa using List.not_of_lt_findIdx (Nat.lt_min.mp hj).1
 
@@ -196,29 +213,17 @@ section DedupConsistent
 
 variable {log : List ((_ : Q) × D)}
 
-omit [DecidableEq Q] in
-/-- An entry of a consistent log is the entry at its input's first logged occurrence. -/
-private theorem eq_of_consistent (hcons : Consistent log) {e x : (_ : Q) × D} (he : e ∈ log)
-    (hx : x ∈ log) (h : x.1 = e.1) : x = e :=
-  Sigma.ext h (heq_of_eq (hcons x hx e he h))
-
 /-- In a consistent log, every entry is kept by deduplication. -/
 private theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
     e ∈ List.dedupKeys log := by
   obtain ⟨x, hx, hxe⟩ := List.mem_map.mp
     ((mem_keys_dedupKeys log e.1).mpr (List.mem_map_of_mem (f := (·.1)) he))
-  rwa [eq_of_consistent hcons he ((dedupKeys_sublist log).subset hx) hxe] at hx
+  rwa [hcons _ ((dedupKeys_sublist log).subset hx) _ he hxe] at hx
 
 /-- A consistent log and its deduplication have the same entries. -/
 theorem mem_dedupKeys_iff (hcons : Consistent log) {e : (_ : Q) × D} :
     e ∈ List.dedupKeys log ↔ e ∈ log :=
   ⟨fun h ↦ (dedupKeys_sublist log).subset h, mem_dedupKeys_of_mem hcons⟩
-
-omit [DecidableEq Q] in
-/-- A consistent log's prefix is consistent. -/
-theorem Consistent.of_prefix {log' : List ((_ : Q) × D)} (hcons : Consistent log)
-    (h : log' <+: log) : Consistent log' :=
-  fun e₁ h₁ e₂ h₂ ↦ hcons e₁ (h.subset h₁) e₂ (h.subset h₂)
 
 /-- A search along a consistent log finds what it finds along the deduplicated log. -/
 theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
@@ -231,8 +236,8 @@ theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
     split
     · rename_i h
       obtain ⟨x, hx, hxe⟩ := List.mem_map.mp h
-      obtain rfl := eq_of_consistent hcons (List.mem_append_right l (List.mem_singleton_self e))
-        (List.mem_append_left _ hx) hxe
+      obtain rfl := hcons _ (List.mem_append_left _ hx) _
+        (List.mem_append_right l (List.mem_singleton_self e)) hxe
       rw [ih hl, List.findSome?_append]
       rcases hf : l.findSome? f with _ | y
       · simp [List.findSome?_eq_none_iff.mp hf x hx]

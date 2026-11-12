@@ -52,6 +52,7 @@ cuts the history short.
 namespace LeanerVM.Protocol.HashChain
 
 open QueryLog
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 

@@ -406,7 +406,8 @@ end Cut
 
 /-! ## The squeezes of a chain in a log -/
 
-private theorem squeezeRun_of_chain {l : hashSpec.QueryLog} (hc : QueryLog.Consistent l) :
+private theorem squeezeRun_of_chain {l : hashSpec.QueryLog}
+    (hc : OracleSpec.QueryLog.Consistent l) :
     ∀ (x : Digest) (ds : List Digest),
       (∀ e ∈ HashChain.queries Block.input x (squeezeBlocks ds), e ∈ l) →
       squeezeRun l x ds.length = ds
@@ -488,7 +489,8 @@ proof of work passing, and its history starts at that start: a flip on the chain
 group whose chain step is one of the history's steps, so that a log `lV` holding the history's
 steps asked it. -/
 private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotReader)
-    {l : hashSpec.QueryLog} {st : R.Stmt} {lV : hashSpec.QueryLog} (hc : QueryLog.Consistent l)
+    {l : hashSpec.QueryLog} {st : R.Stmt} {lV : hashSpec.QueryLog}
+    (hc : OracleSpec.QueryLog.Consistent l)
     (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest} (hσ : R.stmtAt l σ = some st) {a : R.Ann}
     {hist : List Reading}
     (hstates : ∀ x ∈ hist.map (·.2), R.isStart l x = false)
@@ -641,7 +643,7 @@ bad at the prefix before it is closed on it, its proof of work passing, and its 
 `σ`: a flip on the chain of `(prog, input)`, on a group whose chain step is one of the history's
 steps, so that a log `lV` holding the history's steps, such as the verifier's, asked it. -/
 theorem flipAt_of_bad {prog : Program} {input : PublicInput} {l lV : hashSpec.QueryLog}
-    (hc : QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest}
+    (hc : OracleSpec.QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest}
     (hσ : stmtOf l σ = some (prog, input)) {a : Ann prog} {hist : List Reading}
     (hstates : ∀ x ∈ hist.map (·.2), stmtOf l x = none)
     (hchain : ∀ e ∈ HashChain.queries Block.input σ hist, e ∈ l)
