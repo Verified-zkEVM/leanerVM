@@ -64,7 +64,7 @@ and Mathlib `v4.35.0` ([dependencies.md](../dependencies.md#lean-435-port-review
 | the core and the headline theorems | #174 | `3fd40e49` | 2026-11-06 |
 | adaptive knowledge soundness, where the adversary chooses the statement | #175 | `ce67112b` | 2026-11-06 |
 | the headline theorems over leanISA executions | #185 | `25da57d3` | 2026-11-06 |
-| the witness generator, and completeness from an execution in the random-oracle model | #192 | on merge | on merge |
+| the witness generator, and completeness from an execution in the random-oracle model | #192 | `3f557382` | 2026-11-12 |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
