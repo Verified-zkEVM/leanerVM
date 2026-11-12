@@ -284,9 +284,8 @@ def RoundCodec.ofChallenges {n : ℕ} {pSpec : ProtocolSpec n} (ch : pSpec.Chall
 /-- An oracle computation with no oracle is pure: its value is the one it returns in `Id`. -/
 theorem runNoOracle_eq_pure {w : Type → Type} [Monad w] [LawfulMonad w] {α : Type}
     (oa : OracleComp []ₒ α) : runNoOracle (w := w) oa = pure (Id.run (runNoOracle oa)) := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp [runNoOracle]
-  | query_bind t _ _ => exact isEmptyElim t
+  rw [OracleComp.eq_pure_runEmpty oa]
+  simp [runNoOracle]
 
 /-- A verifier with no oracle whose run on a transcript returns `so` in `Id` outputs, under any
 implementation and initial state, a statement satisfying every property of `so` with positive
