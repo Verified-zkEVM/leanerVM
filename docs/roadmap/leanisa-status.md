@@ -43,16 +43,18 @@ declare `Vector.get_eq_getElem`; the fix is Clean PR #513, open, and the Clean p
 merge commit when it merges. At the new Clean pin `Balance.multiset` is the `0`/`1`
 multiplicities and the permutation of the active messages, with no bound on the number of
 interactions (Clean `21247235`). `SatisfiedBy` is unchanged in text and logically equivalent to
-its reading at `ce2eee63`: the old bound followed from the `caps` field on each of the three
-channels, which is what the deleted `interactionsWith_length_lt` proved. `ProverData` is the
+its reading at `ce2eee63`: the old bound follows from the `caps` field on each of the three
+channels, which the test theorem `interactionsWith_length_lt`
+(`tests/LeanerVMTests/Protocol/LeanIsaSound.lean`) proves. `ProverData` is the
 structure `{tables, publicInput}`, and `Circuit.witgen` and `proverEnvironment` take the data
 (Clean #511). The `FiniteField K` instance is Clean's `instFiniteFieldBF64`
 (`Clean.Utils.BinaryField`, imported by `Arithmetization/Channels.lean`), with the same `val`,
 `fromNat = K.ofBits` and `size = 2^64`; `LeanerVM/Parameters/CleanField.lean` and
 `instFiniteFieldK` are deleted, and the test `tests/LeanerVMTests/Parameters/CleanField.lean`
 keeps its guards against Clean's instance. Consumers of the deleted `rowAt_toElements` use
-Clean's `ProvableType.valueFromOffset_zero_fromInput_eq`. `jumpEnv` and `jump_env_iff` are
-deleted: `jump_exec_complete` is stated in Clean's honest environment
+Clean's `ProvableType.valueFromOffset_zero_fromInput_eq`. `jumpEnv` is deleted and
+`jump_env_iff` is a test theorem (with `jump_proverEnvironment_slots`, the honest witnesses of
+Clean's environment on every row): `jump_exec_complete` is stated in Clean's honest environment
 `jumpTable.proverEnvironment row data default` and closed by
 `constraintsHold_of_usesLocalWitnesses`. Lean `v4.35.0` exposes core's `DecidableEq` for
 `Vector` and `Array` and makes `Fin.foldl` structural, so findings L1 and L2 below no longer
@@ -144,8 +146,9 @@ honest prover's row of a valid execution (`*RowOf mem …`, `*RowOf_refines`, `*
 `blake2sRow_complete` for the
 boundary), `storeCoords_eval` (the `DEREF` store coordinates are `derefSource` at each flag
 setting), `flags_sound` and `flags_complete` (the two `JUMP` residuals force the indicator),
-and `jumpEnv` with `jump_env_iff` (the witness discipline; deleted at the Clean `a985c76c` bump,
-where `jump_exec_complete` moved to Clean's `proverEnvironment`); the limb arithmetic
+and `jumpEnv` with `jump_env_iff` (the witness discipline; at the Clean `a985c76c` bump, where
+`jump_exec_complete` moved to Clean's `proverEnvironment`, `jumpEnv` is deleted and `jump_env_iff`
+moves to the tests); the limb arithmetic
 (`add_limbs`, `mul_limbs`, `E.ofCell`) is Layer 0's and the image read-back (`MemImage.limbsAt`,
 `MemImage.cellAt`) Layer 2's. `LeanerVM/Arithmetization/Boundary.lean` defines the public input
 of the constraint system `PublicIO` (the four lanes; `PublicIO.ofInput input`), the two seed
@@ -622,17 +625,18 @@ module (P3).
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
   The name clash of C13 is resolved upstream (Clean #497), so no Clean item is owed.
-- **What the Clean pin `a985c76c` brought** (the Lean `v4.35.0` bump): `21247235` (2026-11-02)
-  drops `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions per channel,
-  so `interactionsWith_length_lt`, which derived it from the caps, is deleted and `SatisfiedBy`
-  keeps its meaning; Clean PR [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged
-  2026-11-02) moved Clean to Lean `v4.34.1`, and `a985c76c` builds on `v4.35.0`, the root
-  toolchain; `ProverData` became the structure `{tables, publicInput}`, with
-  `deriveProverData` taking the public input; and Clean #511 passes the data to
-  `Circuit.witgen` and gives each circuit an honest environment, `proverEnvironment`, which
-  `jump_exec_complete` now uses in place of `jumpEnv`. Clean PR #513, open, removes
-  Clean's copy of Batteries' `Vector.get_eq_getElem`, which breaks any module importing Clean
-  and CompPoly's multivariate polynomials; the pin moves to its merge commit when it merges.
+- **What the Clean pin `a985c76c` brought** (the Lean `v4.35.0` bump): `21247235` (2026-11-02) drops
+  `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions per channel, so
+  `interactionsWith_length_lt`, which derives it from the caps, moves from the library to the tests
+  and `SatisfiedBy` keeps its meaning; Clean PR
+  [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moved Clean to Lean
+  `v4.34.1`, and `a985c76c` builds on `v4.35.0`, the root toolchain; `ProverData` became the
+  structure `{tables, publicInput}`, with `deriveProverData` taking the public input; and Clean #511
+  passes the data to `Circuit.witgen` and gives each circuit an honest environment,
+  `proverEnvironment`, which `jump_exec_complete` now uses in place of `jumpEnv`. Clean PR #513,
+  open, removes Clean's copy of Batteries' `Vector.get_eq_getElem`, which breaks any module
+  importing Clean and CompPoly's multivariate polynomials; the pin moves to its merge commit when it
+  merges.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound

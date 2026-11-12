@@ -22,7 +22,8 @@ the kernel, which also names the successor `main` returns), and every valid exec
 fixture yields a satisfying row from the execution alone (`*_exec_complete`, on the row
 `*RowOf` reads back from the image): the `DEREF` executions in the three store modes, the `JUMP`
 executions on both branches in Clean's honest prover environment, whose two witness slots are
-what the witness programs compute (`#guard`, compiled, as Clean's array generator
+the honest inverse and indicator on every row (`jump_proverEnvironment_slots`) and, on the two
+fixture rows, what the witness programs compute (`#guard`, compiled, as Clean's array generator
 `Circuit.witgen` does).
 
 Rejections use actual rows and the tables' own theorems: the review's counterexample to the
@@ -484,6 +485,42 @@ example : Operations.ConstraintsHold
 #guard (jumpTable.proverEnvironment jumpRow0 tabData default).get (size JumpRow + 1) = 0
 #guard (jumpTable.main (const jumpRow)).witgen (.empty K) default #[] = #[1, 1]
 #guard (jumpTable.main (const jumpRow0)).witgen (.empty K) default #[] = #[0, 0]
+
+/-- A witness program's conditional on a decided field equality is the conditional on the
+equality of the evaluations. Applied before `circuit_norm` descends into the `decide` (the `↓`
+below): rewriting underneath a `decide` leaves its `Decidable` instance behind, an ill-typed
+term no later rewrite can touch. -/
+private theorem ite_feq {α : Type} (ctx : Witgen.Ctx K) (x y : Witgen.FExpr K) (a b : α) :
+    (if (Witgen.BExpr.feq x y).eval ctx = true then a else b) =
+      if x.eval ctx = y.eval ctx then a else b := by
+  simp only [Witgen.BExpr.eval_feq_iff]
+
+/-- A prover environment uses the two local witnesses of a `JUMP` row exactly when slot
+`offset` is the honest inverse and slot `offset + 1` the honest indicator of the condition. -/
+theorem jump_env_iff (env : ProverEnvironment K) (offset : ℕ) (r : Var JumpRow K) :
+    env.UsesLocalWitnessesCompleteness offset ((jumpTable.main r).operations offset) ↔
+      env.get offset = (if (eval env r).vcond = 0 then 0 else (eval env r).vcond⁻¹) ∧
+        env.get (offset + 1) = (if (eval env r).vcond = 0 then 0 else 1) := by
+  -- The row destructured into its columns, the table unfolded by `dsimp` (by `simp` it exhausts
+  -- the recursion depth), then `circuit_norm`, `ite_feq` first.
+  obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := r
+  dsimp only [jumpTable]
+  simp only [↓ite_feq, circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
+  -- The two sides differ only in the instance paths of `K`'s field structure.
+  exact Iff.rfl
+
+/-- On every row and data, Clean's honest environment holds the honest witnesses: the inverse
+`v_cond⁻¹` (`0` at `v_cond = 0`) and the indicator `[v_cond ≠ 0]`, the values `flags_sound`
+makes the only ones `b` can take. -/
+theorem jump_proverEnvironment_slots (r : JumpRow K) (data : ProverData K) :
+    (jumpTable.proverEnvironment r data default).get (size JumpRow) =
+        (if r.vcond = 0 then 0 else r.vcond⁻¹) ∧
+      (jumpTable.proverEnvironment r data default).get (size JumpRow + 1) =
+        (if r.vcond = 0 then 0 else 1) := by
+  have h := (jump_env_iff _ _ _).mp ((jumpTable.proverEnvironment r data default
+    ).can_replace_usesLocalWitnessesCompleteness (jumpTable.subcircuitsConsistent _ _)
+    (jumpTable.proverEnvironment_usesLocalWitnesses r data default))
+  rwa [jumpTable.eval_proverEnvironment] at h
 
 /-- With `v_cond = 0` the two residuals `main` asserts force `b = 0`, whatever the inverse `w`
 (acceptance test 8): booleanity of `b` alone would have accepted `b = 1`. -/

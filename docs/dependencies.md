@@ -125,15 +125,34 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   multiplicities `0` or `1` and the permutation of active pushes and pulls; it no longer requires
   fewer than `FiniteField.size F` interactions per channel. `SatisfiedBy` keeps its text and its
   meaning: the old relation is the new one together with "each channel has fewer than `2^64`
-  interactions", and that conjunct followed from the field `caps` for each of the three channels
-  (the deleted `interactionsWith_length_lt`). The proofs of the bound (`padSends_length_lt`,
-  `interactionsWith_length_lt`, the `hlen` hypothesis of `padWitness_balanced`) are deleted, and
-  `balanced_multiset_iff` states the three permutations.
+  interactions", and that conjunct follows from the field `caps` for each of the three channels.
+  The test theorem `interactionsWith_length_lt` (`tests/LeanerVMTests/Protocol/LeanIsaSound.lean`)
+  proves it from `caps`, and `balanced_multiset_iff_bounded` there states Clean's balance in its
+  old form within the caps. The production proofs of the bound (`padSends_length_lt`, the
+  library's `interactionsWith_length_lt`, the `hlen` hypothesis of `padWitness_balanced`) are
+  deleted, and `balanced_multiset_iff` states the three permutations.
 * **Clean #511 and the field instance.** `jump_exec_complete` is stated in Clean's honest
-  environment `proverEnvironment`, so the hand-built `jumpEnv` and `jump_env_iff` are deleted (only
-  tests consume the theorem). `Parameters/CleanField.lean` and `instFiniteFieldK` are deleted for
-  Clean's `instFiniteFieldBF64` (`Clean.Utils.BinaryField`), whose `val`, `fromNat` (`K.ofBits`) and
-  `size` agree by `rfl`.
+  environment `proverEnvironment`, so the hand-built `jumpEnv` is deleted and `jump_env_iff` moves
+  to the tests (only tests consume the theorem). The restatement is a choice, not forced by #511:
+  its relation is the soundness-side `Operations.ConstraintsHold` (the one `SatisfiedBy.constraints`
+  reads, through `constraintsHold_of_usesLocalWitnesses`) rather than
+  `ConstraintsHold.Completeness`, and the row enters as the cell variables `varFromOffset JumpRow 0`
+  rather than as constants. It is not weaker. The test theorem `jump_proverEnvironment_slots`
+  (`tests/LeanerVMTests/Arithmetization/Tables.lean`) applies `jump_env_iff` to Clean's honest
+  environment: on every row it holds `v_cond⁻¹` (or `0`) and `[v_cond ≠ 0]` in the two witness
+  slots. `Parameters/CleanField.lean` and `instFiniteFieldK` are deleted for Clean's
+  `instFiniteFieldBF64` (`Clean.Utils.BinaryField`), whose `val`, `fromNat` (`K.ofBits`) and `size`
+  agree by `rfl`.
+* **Hypotheses dropped: stronger statements.** `Component.passThroughSecurity`
+  (`ToArkLib/PassThrough.lean`) and `Phase.passThroughSecurity` (`Spine/Phase.lean`) no longer take
+  the forward hypothesis that `f` carries `relIn` into `relOut`: it fed only the certificate's
+  `guarded` field through `passThroughComplete`, and that field is
+  `(passThroughPure OStmt f).toGuardedForm` either way, so it is now built directly.
+  `Flock.pointDrawsSecurity` drops `hIn` for the same reason. `Whir.listBound_johnson` drops
+  `2 ^ κ ≤ a`; ArkLib's `pairwiseJohnsonListBound` has the same body at both pins, so the list bound
+  is the same number. The cache form of `enncard_le_of_mem_support` is deleted; its consumer
+  (`HashMisbehaves`) uses `QueryHistory.enncard_le_of_mem_support`, the same bound for every query
+  history.
 * **Lean 4.35's `Vector` and `Array` equality (finding L1).** Core derives `Vector`'s
   `DecidableEq` with `@[expose]` and exposes `Array`'s, so `decide` and the kernel reduce
   equalities of vectors across module boundaries. The `CompressCells` instance unfolds to the
@@ -167,11 +186,12 @@ Since CompPoly `572f9973`, `BF64` is a structure wrapping `BitVec 64`, with char
 natural-number casts: `(2 : K) = 0`. Encoded words use
 `K.ofBits n = BF64.ofBitVec (BitVec.ofNat 64 n)` instead. The generator remains the encoded word
 `0x2`; BLAKE2s cells, Clean's `val`/`fromNat` interface, protocol fixtures, and exported Rust
-contract fixtures retain their original bit coordinates. Regression tests distinguish casts from encoded words explicitly. `DecidableEq K`
-compares bit coordinates through an equivalence proof: the upstream derived wrapper instance makes
-kernel checks of computed words stall on dependent transport. The existing register-equality
-regression checks this boundary without unchecked evaluation. The `Fintype K` instance is
-proof-only; executable samplers use coordinate equivalences without enumerating `2^64` words.
+contract fixtures retain their original bit coordinates. Regression tests distinguish casts from
+encoded words explicitly. `DecidableEq K` compares bit coordinates through an equivalence proof: the
+upstream derived wrapper instance makes kernel checks of computed words stall on dependent
+transport. The existing register-equality regression checks this boundary without unchecked
+evaluation. The `Fintype K` instance is proof-only; executable samplers use coordinate equivalences
+without enumerating `2^64` words.
 
 ArkLib's Lake package name is `Arklib`, which is what the `[[require]]` must say. Its first
 consumer is `LeanerVM/Protocol/Field.lean`. VCVio is an explicit root requirement because the
@@ -238,9 +258,9 @@ checked at the pins of `upstreams.json` unless a line names another revision.
   (ArkLib issue #1352), on which ArkLib's baseline lets no other declaration depend. Proved since
   the previous pin: the guarded knowledge-soundness composition (#1295), the guarded
   round-by-round-to-plain bridges (`Security/GuardedBridges.lean`, #1349, which deleted the
-  unrestricted implications), context lifting (#1371, #1374, #1380, #1395), Fiat–Shamir
-  completeness (#1362), the classical sumcheck with its round-by-round knowledge soundness (#1244,
-  #1382, #1391), and `rs_mcaError_le_in_johnson_range` (#1369). `Commitments/Functional/Basic.lean`'s
+  unrestricted implications), context lifting (#1371, #1374, #1380, #1395), Fiat–Shamir completeness
+  (#1362), the classical sumcheck with its round-by-round knowledge soundness (#1244, #1382, #1391),
+  and `rs_mcaError_le_in_johnson_range` (#1369). `Commitments/Functional/Basic.lean`'s
   extractability is a real experiment (#1422); the duplex-sponge Fiat–Shamir tree (#1368) and the
   legacy state restoration (#1409) are retired.
 - Proved and usable: `ReedSolomon.mcaError_affineLine_johnson_le` (a Johnson-range correlated
