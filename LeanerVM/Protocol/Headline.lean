@@ -343,7 +343,7 @@ theorem misbehaves_rom_adaptive_coins {coins : ProbComp AdaptiveAdversary} {Q : 
     Pr{let A ← coins; let z ← runRandom (adaptiveGame verifyWith A)}[
       HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input) leanVmReader.Flip z.1.toRun] ≤
       niError εquery 13700 Q := by
-  rw [← bind_assoc]
+  rw [← map_bind]
   exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦ misbehaves_rom_adaptive (hQ A hA)
 
 /-- The random-oracle error at `13700` verifier queries in closed form. -/
@@ -378,7 +378,7 @@ theorem baseVerifier_extractsWitness_rom_adaptive_coins {coins : ProbComp Adapti
       extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
         SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) := by
-  rw [← bind_assoc]
+  rw [← map_bind]
   exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦
     baseVerifier_extractsWitness_rom_adaptive (hQ A hA)
 
@@ -420,7 +420,7 @@ theorem baseVerifier_extractsExecution_rom_adaptive_coins {coins : ProbComp Adap
         extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧
           ValidExecution z.1.prog z.1.input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) := by
-  rw [← bind_assoc]
+  rw [← map_bind]
   exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦
     baseVerifier_extractsExecution_rom_adaptive (hQ A hA)
 
@@ -489,7 +489,7 @@ theorem baseVerifier_extractsWitness_adaptive_coins {coins : ProbComp AdaptiveAd
           SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)] ≤
       δ := by
   let : MeasurableSpace AdaptiveAdversary := ⊤
-  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
+  rw [← map_bind, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
   exact (MeasureTheory.lintegral_mono fun _ ↦ baseVerifier_extractsWitness_adaptive le_rfl).trans hB
 
 /-- **The headline: adaptive knowledge soundness of the deployed verifier, for an execution.** With
@@ -534,7 +534,7 @@ theorem baseVerifier_extractsExecution_adaptive_coins {coins : ProbComp Adaptive
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ := by
   have hw := baseVerifier_extractsWitness_adaptive_coins hB
-  rw [← bind_assoc] at hw ⊢
+  rw [← map_bind] at hw ⊢
   exact (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans hw
 
 /-! ## At a statement fixed before the adversary runs -/
@@ -601,7 +601,7 @@ theorem baseVerifier_extractsWitness_coins {prog : Program} {input : PublicInput
         extract Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA = some e ∧
           SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)] ≤ δ := by
   let : MeasurableSpace Adversary := ⊤
-  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
+  rw [← map_bind, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
   exact (MeasureTheory.lintegral_mono fun _ ↦ baseVerifier_extractsWitness le_rfl).trans hB
 
 /-- **The headline: knowledge soundness of the deployed verifier, for an execution**, at a
@@ -631,7 +631,7 @@ theorem baseVerifier_extractsExecution_coins {prog : Program} {input : PublicInp
       verify prog input g.proof = true ∧ ¬ ∃ t,
         extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t] ≤ δ := by
   have hw := baseVerifier_extractsWitness_coins hB
-  rw [← bind_assoc] at hw ⊢
+  rw [← map_bind] at hw ⊢
   exact (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans hw
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
