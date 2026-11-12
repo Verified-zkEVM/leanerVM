@@ -120,13 +120,10 @@ theorem card_final_positions_le (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 
 private theorem powerBatch_glue_one {t : ℕ} (x₀ lam : E) (xs : Fin t → E) :
     powerBatch ![x₀, powerBatch xs lam] lam =
       powerBatch (Fin.cons x₀ xs : Fin (t + 1) → E) lam := by
-  have hy : powerBatch xs lam * lam = ∑ q : Fin t, xs q * lam ^ (q.val + 1) := by
-    simp only [powerBatch, Finset.sum_mul]
-    exact Finset.sum_congr rfl fun q _ ↦ by ring
-  generalize powerBatch xs lam = y at hy ⊢
-  simp only [powerBatch, Fin.sum_univ_succ, Fin.sum_univ_zero, Fin.cons_zero, Fin.cons_succ,
-    Fin.val_zero, Fin.val_succ, Matrix.cons_val_zero, Matrix.cons_val_succ]
-  rw [← hy]
+  rw [powerBatch_cons]
+  generalize powerBatch xs lam = y
+  simp only [powerBatch, Fin.sum_univ_succ, Fin.sum_univ_zero, Fin.val_zero, Fin.val_succ,
+    Matrix.cons_val_zero, Matrix.cons_val_succ]
   ring
 
 /-- **The final batching challenge.** If the language before it does not hold, at most `t`

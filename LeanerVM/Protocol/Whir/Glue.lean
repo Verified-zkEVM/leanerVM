@@ -121,8 +121,7 @@ theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ :
     (B : CMlPolynomialEval E n) (j : ℕ) (c : Vector E j) :
     ProductSum.roundPoly (batchWeight Ts ρ) B j c =
       batchMessage (fun i ↦ ProductSum.roundPoly (Ts i) B j c) ρ := by
-  apply Vector.ext
-  intro k hk
+  refine Vector.ext fun k hk ↦ ?_
   by_cases hj : j < n
   · have h : ∀ (T : CMlPolynomialEval E n), ProductSum.roundPoly T B j c =
         #v[ProductSum.coef0 T B hj c, ProductSum.coef1 T B hj c,
@@ -199,8 +198,7 @@ def queryWeightFast (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) 
 theorem pair_eqWeight_id {κ : ℕ} (z : Vector E κ) (f : CMlPolynomialEval E κ) :
     (eqWeight z).pair (RingHom.id E) f = evalMle f z := by
   have hmap : CMlPolynomialEval.map (RingHom.id E) f = f := by
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     simp [CMlPolynomialEval.map]
   rw [Weight.pair_eqWeight]
   unfold CMlPolynomialEval.eval₂Mle
@@ -250,7 +248,7 @@ def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Wei
     rw [W.mle_eq, evalMle_foldTable]
 
 /-- The residual weight's values, as built. -/
-theorem foldWeight_onCube {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) :
+private theorem foldWeight_onCube {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) :
     (foldWeight W r).onCube = foldTable W.onCube r := rfl
 
 /-- The sumcheck's running claim after the `ℓ` lane rounds is the residual weight's claim on the
@@ -265,8 +263,7 @@ theorem claim_fold {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (f : CMlPolynomialEv
   refine (Fintype.sum_equiv e _ _ fun y ↦ ?_).symm
   have hv : fixLow (Nat.le_add_right ℓ κ) r (boolVec (e y) : Vector E _) =
       r ++ (boolVec y : Vector E κ) := by
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     simp only [fixLow, Vector.getElem_cast, Vector.getElem_append, boolVec, Vector.getElem_ofFn, e,
       finCongr_apply, Fin.val_cast]
   rw [hv]

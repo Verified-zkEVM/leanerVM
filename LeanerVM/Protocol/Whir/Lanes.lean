@@ -152,7 +152,7 @@ def ListBound (κ R a m L : ℕ) : Prop :=
 
 /-- Folds that are not bad for any lane pair lift: messages within `a` of the fold are the fold of
 messages within `a` of the word. -/
-theorem lift_fold {κ R a m : ℕ} (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) (c : E)
+private theorem lift_fold {κ R a m : ℕ} (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) (c : E)
     (F : LW (κ + R)) (hc : ∀ u : Fin (2 ^ m), ¬ McaBad κ R a (pairF F u) c)
     (V : Msgs m κ) (hV : Cl κ R a m (fold1W c F) V) :
     ∃ V₀ : Msgs (m + 1) κ, Cl κ R a (m + 1) F V₀ ∧ fold1M c V₀ = V := by

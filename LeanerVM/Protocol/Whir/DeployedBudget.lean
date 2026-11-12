@@ -115,7 +115,7 @@ theorem natCast_div_card_le {x : ℕ} (h : x ≤ 2 ^ 64) :
         ← mul_assoc, inv_mul_cancel₀ (by positivity), one_mul]
 
 /-- The positions' error `a^t / (2^b)^t ≤ 2^-111` when `a^t · 2^111 ≤ (2^b)^t`. -/
-theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
+private theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
     ((a ^ t : ℕ) : ℝ≥0) / (Nat.card (Fin t → Fin (2 ^ b)) : ℝ≥0) ≤ (2 ^ 111)⁻¹ := by
   rw [Nat.card_fun, Nat.card_eq_fintype_card, Nat.card_eq_fintype_card, Fintype.card_fin,
     Fintype.card_fin, div_le_iff₀ (by positivity), ← div_eq_inv_mul,
@@ -123,7 +123,7 @@ theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
   exact_mod_cast h
 
 /-- The fold error is largest at the first fold round. -/
-theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
+private theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
     foldErr P j ≤ foldErr P 0 := by
   unfold foldErr
   refine div_le_div_of_nonneg_right (Nat.cast_le.mpr ?_) zero_le
@@ -131,7 +131,7 @@ theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
     (Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) (by omega))) _
 
 /-- Every fold round's challenge has at most the first fold round's error. -/
-theorem foldRoundsErr_le {sh : Shape} {κ : ℕ} (P : Par sh κ) :
+private theorem foldRoundsErr_le {sh : Shape} {κ : ℕ} (P : Par sh κ) :
     (i j : ℕ) → ∀ x, foldRoundsErr P i j x ≤ foldErr P 0
   | 0, _ => fun x ↦ Fin.elim0 x.1
   | i + 1, j => errAppend_le_const
@@ -150,7 +150,8 @@ private theorem foldErr_le_budget {sh : Shape} {κ : ℕ} (P : Par sh κ)
 
 /-- **A level within the budgets keeps every challenge within its budget**, given the rest of the
 opening does. -/
-theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap sh' κ')) (P' : Par sh' κ')
+private theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap sh' κ'))
+    (P' : Par sh' κ')
     {k : List Step} {errR : (seqSpec k).ChallengeIdx → ℝ≥0} {bR : (seqSpec k).ChallengeIdx → Bool}
     (h : levelFits P P'.L = true) (hR : ∀ i, errR i ≤ budget (bR i)) :
     ∀ i, levelErr P P' errR i ≤ budget (levelMark (sh := sh) (sh' := sh') (κ' := κ') bR i) := by
@@ -171,7 +172,8 @@ theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap sh' κ'
     (sayError_le _ _) <| errAppend_le_mark _ (fun x ↦ Fin.elim0 x.1) hR
 
 /-- **The last level within the budgets keeps every challenge within its budget.** -/
-theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1)) (h : finalFits P = true) :
+private theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1))
+    (h : finalFits P = true) :
     ∀ i, finalErr P i ≤ budget (finalMark (sh := sh) (nf := nf) i) := by
   simp only [finalFits, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨hfold, hbatch⟩, hpos⟩ := h
@@ -190,7 +192,7 @@ theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1)) (h : fi
     (fun x ↦ (roundsError_le E _ _ _ x).trans h2) fun x ↦ Fin.elim0 x.1
 
 /-- **A chain within the budgets keeps every challenge within its budget.** -/
-theorem Ladder.err_le_budget : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
+private theorem Ladder.err_le_budget : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
     L.fits ps = true → ∀ i, L.err ps i ≤ budget (L.mark i)
   | _, _, .last _ _, P, h => finalErr_le_budget P h
   | _, _, .cons _ L, P, h => by
@@ -227,7 +229,7 @@ theorem deployedChain_fits {μ r : ℕ} (h : Admissible μ r) :
 
 /-- **The opening at leanVM's parameters, challenge by challenge**: every challenge's error is at
 most `2^-128`, the query positions' at most `2^-111`, at every admissible stack size and rate. -/
-theorem deployedChain_openErr_le {μ r : ℕ} (h : Admissible μ r) :
+private theorem deployedChain_openErr_le {μ r : ℕ} (h : Admissible μ r) :
     ∀ i, openErr (deployedChain μ r h).ladder (deployedChain μ r h).pars i ≤
       budget (openMark (deployedChain μ r h).ladder i) :=
   openErr_le_budget _ _ (deployedChain_fits h).1

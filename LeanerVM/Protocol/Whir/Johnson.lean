@@ -457,7 +457,7 @@ theorem threshold_eq_ceil {κ R : ℕ} {η : ℚ} (h : Fits κ R η) :
 `0 < l ≤ √ρ` (as `l² ≤ ρ`), `θ ≥ 3` with `⌈√ρ / η⌉ ≤ θ` (as `ρ ≤ (θ η)²`), `0 < η` and
 `√ρ + η ≤ 1`, then `mcaConstant n D η` is at most the formula with `θ` for its multiplicity, `l`
 for `√ρ` and `1 - l - η` for `γ`. -/
-theorem mcaConstant_le {n D θ : ℕ} {η l : ℝ} (hl : 0 < l) (hlρ : l ^ 2 ≤ (D : ℝ) / n)
+private theorem mcaConstant_le {n D θ : ℕ} {η l : ℝ} (hl : 0 < l) (hlρ : l ^ 2 ≤ (D : ℝ) / n)
     (hθ : 3 ≤ θ) (hθρ : (D : ℝ) / n ≤ (θ * η) ^ 2) (hη : 0 < η) (hone : √((D : ℝ) / n) + η ≤ 1) :
     mcaConstant n D η ≤
       (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ((D : ℝ) / n)) / (3 * l ^ 3) * n +
