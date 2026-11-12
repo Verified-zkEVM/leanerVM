@@ -26,7 +26,7 @@ RFC_URL = "https://www.rfc-editor.org/rfc/rfc7693.txt"
 RFC_SHA256 = "c943754888364fe29bbd0bb3c71c6658ef392371497eaa4a9d9dde015b0721e5"
 
 # BLAKE2s-256 unkeyed, sequential mode: parameter word 0 is
-# digest_length | key_length << 8 | fanout << 16 | depth << 24 = 0x01010020 (RFC 7693 §2.8).
+# digest_length | key_length << 8 | fanout << 16 | depth << 24 = 0x01010020 (RFC 7693 §2.5).
 PARAM_WORD0 = 0x01010020
 BLOCK_BYTES = 64
 
