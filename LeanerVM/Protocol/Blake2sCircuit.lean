@@ -544,10 +544,6 @@ private theorem ok_compressW : start.Ok gateBase (compressW (formLin m)) 14720 S
   exact subW_xorW (subW_xorW ((hv ⟨w, by omega⟩).mono hn) ((hv ⟨w + 8, by omega⟩).mono hn))
     (subW_inW_start (by omega) _)
 
-/-- The product gates occupy exactly `[1280, 16000)`. -/
-theorem compressW_next : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 :=
-  (ok_compressW ⟨gateBase, #[]⟩ inv_init le_rfl (by decide)).2.1
-
 private theorem pos_out_val (w : Fin 8) (i : Fin 32) :
     ((pos (256 + 32 * w.val + i.val) : Pos m) : ℕ) = 256 + 32 * w.val + i.val :=
   pos_val (by have := w.isLt; have := i.isLt; show _ < 16384; omega)
@@ -598,17 +594,13 @@ private theorem boundedFrom_outRows (r : Vector (Word m) 8 × BuildState m) (hin
     have := i.isLt
     omega
 
-private theorem toList_append_toArray {α : Type} (A : Array α) (l : List α) :
-    (A ++ l.toArray).toList = A.toList ++ l := by
-  simp
-
 /-- The BLAKE2s circuit is bounded: every gate reads only inputs, the constant and earlier
 gates, at a fresh position. Proved from the gate-count contracts, without evaluating the
 circuit. -/
 theorem bounded_blake2s : blake2sCircuit.Bounded := by
   have hok := ok_compressW ⟨gateBase, #[]⟩ inv_init le_rfl (by decide)
   rw [Bounded, blake2sCircuit_inputs, blake2sCircuit_cpos, blake2sCircuit_gates,
-    toList_append_toArray, boundedFrom_append]
+    Array.toList_append, List.toList_toArray, boundedFrom_append]
   exact ⟨hok.1.bounded, boundedFrom_outRows _ hok.1 hok.2.2⟩
 
 /-! ## Soundness of the circuit -/
@@ -655,18 +647,14 @@ theorem blake2s_sound_words {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
   · simp only [Fin.getElem_fin, Vector.getElem_ofFn]; exact den_readWord z _
   · simp only [Fin.getElem_fin, Vector.getElem_ofFn]; exact den_readWord z _
   · refine den_congr (den_readWord z _) ?_
-    apply UInt32.toBitVec_inj.mp
-    apply BitVec.eq_of_getLsbD_eq
-    intro i hi
+    refine UInt32.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
     simp [hi]
   · refine den_congr (den_readWord z _) ?_
-    apply UInt32.toBitVec_inj.mp
-    apply BitVec.eq_of_getLsbD_eq
-    intro i hi
+    refine UInt32.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
     simp [hi, show 32 + i < 64 by omega, show i < 64 by omega]
 
 /-- The word a block holds depends only on its positions. -/
-theorem readWord_congr {z z' : Pos m → Bool} {b : ℕ}
+private theorem readWord_congr {z z' : Pos m → Bool} {b : ℕ}
     (h : ∀ i < 32, z (pos (b + i)) = z' (pos (b + i))) :
     readWord z b = readWord z' b := by
   unfold readWord

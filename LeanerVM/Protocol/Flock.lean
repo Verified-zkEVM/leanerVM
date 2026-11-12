@@ -56,7 +56,7 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec Protoc
 /-! ## Packing bits into `K` -/
 
 /-- A cell of `K` is its bits packed by the powers of `x`: `a = Σ_{i < 64} a_i · x^i`. -/
-theorem K.eq_sum_bits (a : K) :
+private theorem K.eq_sum_bits (a : K) :
     a = ∑ i : Fin 64, if a.toBitVec.getLsbD i then g ^ (i : ℕ) else 0 := by
   apply BF64.toQuot_injective
   have hg : BF64.toQuot g = AdjoinRoot.root BF64.basePoly := by
@@ -78,7 +78,7 @@ theorem K.eq_sum_bits (a : K) :
   · rw [map_zero, BF64.toQuot_zero]
 
 /-- The embedding of a cell in `E` is its bits packed by the powers of `x`. -/
-theorem ofK_eq_sum_cellBit (a : K) :
+private theorem ofK_eq_sum_cellBit (a : K) :
     ofK a = ∑ i : Fin (2 ^ Flock.kSkip), ofK (g ^ i.val) * cellBit a i := by
   conv_lhs => rw [K.eq_sum_bits a]
   change algebraMap K E _ = _
@@ -99,11 +99,9 @@ theorem ofK_eq_sum_bitTable {n : ℕ} (c : Column n) (u : Fin (2 ^ n)) :
   exact ofK_eq_sum_cellBit _
 
 /-- The bits of a cell are `0` or `1`. -/
-theorem cellBit_isBool (a : K) (i : ℕ) : cellBit a i = 0 ∨ cellBit a i = 1 := by
+private theorem cellBit_isBool (a : K) (i : ℕ) : cellBit a i = 0 ∨ cellBit a i = 1 := by
   unfold cellBit
-  split
-  · exact Or.inr rfl
-  · exact Or.inl rfl
+  split <;> simp
 
 /-- The bit tables hold `0`s and `1`s. -/
 theorem bitTable_isBool {n : ℕ} (c : Column n) (i : Fin (2 ^ Flock.kSkip)) (u : Fin (2 ^ n)) :
@@ -114,17 +112,17 @@ theorem bitTable_isBool {n : ℕ} (c : Column n) (i : Fin (2 ^ Flock.kSkip)) (u 
 /-! ## The skip nodes -/
 
 /-- `φ_8` is additive in its byte: it sums the basis images of the set bits. -/
-theorem phi8_xor (a b : ℕ) : Flock.phi8 (a ^^^ b) = Flock.phi8 a + Flock.phi8 b := by
+private theorem phi8_xor (a b : ℕ) : Flock.phi8 (a ^^^ b) = Flock.phi8 a + Flock.phi8 b := by
   simp only [Flock.phi8, ← Finset.sum_add_distrib, Nat.testBit_xor]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   cases a.testBit i <;> cases b.testBit i <;> simp [← two_mul, CharTwo.two_eq_zero]
 
 /-- The nonzero bytes below `128` have nonzero images: a kernel check. -/
-theorem phi8_ne_zero : ∀ b : Fin 128, b ≠ 0 → Flock.phi8 b ≠ 0 := by decide +kernel
+private theorem phi8_ne_zero : ∀ b : Fin 128, b ≠ 0 → Flock.phi8 b ≠ 0 := by decide +kernel
 
 /-- `φ_8` is injective on the bytes below `128`. -/
-theorem phi8_injOn {a b : ℕ} (ha : a < 128) (hb : b < 128) (h : Flock.phi8 a = Flock.phi8 b) :
-    a = b := by
+private theorem phi8_injOn {a b : ℕ} (ha : a < 128) (hb : b < 128)
+    (h : Flock.phi8 a = Flock.phi8 b) : a = b := by
   have hx : a ^^^ b < 128 := Nat.xor_lt_two_pow (n := 7) ha hb
   by_contra hne
   have hz : Flock.phi8 (a ^^^ b) = 0 := by
@@ -132,8 +130,7 @@ theorem phi8_injOn {a b : ℕ} (ha : a < 128) (hb : b < 128) (h : Flock.phi8 a =
   refine phi8_ne_zero ⟨a ^^^ b, hx⟩ (fun h0 ↦ hne ?_) hz
   have h0' : a ^^^ b = 0 := congrArg Fin.val h0
   refine Nat.eq_of_testBit_eq fun i ↦ ?_
-  have := congrArg (·.testBit i) h0'
-  simpa [Nat.testBit_xor] using this
+  simpa [Nat.testBit_xor] using congrArg (·.testBit i) h0'
 
 /-- The skip nodes `φ_8(0), …, φ_8(127)`: the skip domain, then its coset. -/
 def flockNodes : Vector E (2 ^ Flock.kSkip + 2 ^ Flock.kSkip) :=
@@ -263,7 +260,7 @@ theorem flockError_le {r : FlockRegion I.toShape} (h : I.flock = some r) :
 /-! ## Knowledge soundness -/
 
 /-- `N / |E|`, counted by `Nat.card`, is `overE N`. -/
-theorem overF_eq_overE (N : ℕ) : Flock.overF E N = overE N := by
+private theorem overF_eq_overE (N : ℕ) : Flock.overF E N = overE N := by
   rw [Flock.overF, overE, Nat.card_eq_fintype_card]
 
 private theorem drawError_le_overE {N : ℕ} (M : ℕ) (h : N ≤ M) (i : (draw E).ChallengeIdx) :

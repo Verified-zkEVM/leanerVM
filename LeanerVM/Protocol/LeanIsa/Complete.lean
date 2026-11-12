@@ -415,9 +415,7 @@ theorem m3Holds_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (countsNonzero_iff hA).mp h.counts_nonzero, ?_, ?_⟩
   · intro j' C hC x
     rcases j' with ⟨_ | _ | _ | j, hj⟩
-    · exact absurd hC List.not_mem_nil
-    · exact absurd hC List.not_mem_nil
-    · exact absurd hC List.not_mem_nil
+    iterate 3 exact absurd hC List.not_mem_nil
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
       have hmem : opTable w ⟨j, by omega⟩ ∈ w.tables := mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩
       exact (opcode_constraints_iff hA ⟨j, by omega⟩).mp (h.constraints _ hmem) x C hC

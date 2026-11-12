@@ -78,7 +78,7 @@ def outWords (z : Form m) : Vector UInt32 8 :=
 #guard blake2sCircuit.gates.size == 14720 + 256
 #guard decide blake2sCircuit.Bounded
 
-example : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
+#guard ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next == 16000
 
 /-! ## The rows against the deployed walk -/
 

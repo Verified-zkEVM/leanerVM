@@ -140,14 +140,9 @@ theorem weightCube_eq (s : I.Stmt × FlockOut I) (ρ : E) :
         I.layout.extend s.2.columns[j.val].col s.2.columns[j.val].point)).map
         fun t ↦ t.1 * (CMlPolynomialEval.lagrangeBasis t.2)[x]).sum =
       (L.map fun j ↦ (columnWeighted I s.2.columns[j]).weight.onCube[x] *
-        ρ ^ (I.flockClaims + j.val)).sum := by
-    intro L
-    induction L with
-    | nil => rfl
-    | cons j L ih =>
-      rw [List.map_cons, List.map_cons, List.sum_cons, ih, List.map_cons, List.sum_cons,
-        mul_comm (ρ ^ (I.flockClaims + j.val))]
-      rfl
+        ρ ^ (I.flockClaims + j.val)).sum := fun L ↦ by
+    rw [List.map_map]
+    exact congrArg List.sum (List.map_congr_left fun j _ ↦ mul_comm _ _)
   simp only [weightCube, batchWeight, powerBatch, Fin.getElem_fin, Vector.getElem_ofFn]
   rw [sum_pool I s.2 fun c j ↦ c.weight.onCube[x] * ρ ^ j, eqBatch_getElem _ _ x hx]
   exact congrArg₂ (· + ·) rfl ((hcols _).trans (Fin.sum_univ_def _).symm)

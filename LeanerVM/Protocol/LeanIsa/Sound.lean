@@ -114,8 +114,7 @@ theorem blake2sRowsValid_witnessOf (h : (leanIsaInstance F prog s).aux q) :
   obtain ⟨x, rfl⟩ := hrow
   refine (blake2sRelation_ofFn _ (le_trans (by decide : 27 ≤ 37) width_blake2s.ge) _).mpr ?_
   have hc := F.compress_of_holds _ (h (flockRegion prog s F) rfl) x
-  rw [slotLimbs_flockColumn] at hc
-  exact hc
+  rwa [slotLimbs_flockColumn] at hc
 
 /-! ## The witness agrees with its stack -/
 
@@ -138,9 +137,7 @@ theorem image_sigma_eq {κ κ' : ℕ} (h : κ = κ') (f : MemImage κ) (g : MemI
     (hfg : ∀ i : Fin (2 ^ κ), f i = g (Fin.cast (by rw [h]) i)) :
     (⟨κ, f⟩ : (κ : ℕ) × MemImage κ) = ⟨κ', g⟩ := by
   subst h
-  congr
-  funext i
-  exact hfg i
+  exact congrArg (Sigma.mk κ) (funext hfg)
 
 /-- The word of the image at index `x`: the three memory columns' cells. -/
 abbrev imageWord (x : Fin (2 ^ s.logMem)) : E :=
@@ -191,14 +188,8 @@ private theorem constraints_witnessOf (hs : s.Fits)
   by_cases h6 : j < 6
   · exact (opcode_constraints_iff (agrees_witnessOf F prog s q hs) ⟨j, h6⟩).mpr
       fun x C hC ↦ hcv (opIdx ⟨j, h6⟩) C hC x
-  · have : j = 6 ∨ j = 7 := by omega
-    rcases this with rfl | rfl
-    · intro row _
-      rw [tableAt_component]
-      exact constraintsHold_of_nil _ rfl rfl _
-    · intro row _
-      rw [tableAt_component]
-      exact constraintsHold_of_nil _ rfl rfl _
+  · rcases (by omega : j = 6 ∨ j = 7) with rfl | rfl <;> intro row _ <;>
+      rw [tableAt_component] <;> exact constraintsHold_of_nil _ rfl rfl _
 
 /-- The tables of the witness read off a stack whose sizes fit have the announced heights. -/
 private theorem table_length_witnessOf (hs : s.Fits) (j : Fin 8) :
@@ -206,14 +197,9 @@ private theorem table_length_witnessOf (hs : s.Fits) (j : Fin 8) :
       2 ^ (![s.τ 0, s.τ 1, s.τ 2, s.τ 3, s.τ 4, s.τ 5, s.logMem, prog.logSize] j) := by
   have hA := agrees_witnessOf F prog s q hs
   fin_cases j
-  · exact hA.length 0
-  · exact hA.length 1
-  · exact hA.length 2
-  · exact hA.length 3
-  · exact hA.length 4
-  · exact hA.length 5
-  · exact (congrArg List.length hA.memRows).trans List.length_ofFn
-  · exact (congrArg List.length hA.bytecodeRows).trans List.length_ofFn
+  exacts [hA.length 0, hA.length 1, hA.length 2, hA.length 3, hA.length 4, hA.length 5,
+    (congrArg List.length hA.memRows).trans List.length_ofFn,
+    (congrArg List.length hA.bytecodeRows).trans List.length_ofFn]
 
 /-- On admissible sizes, the witness read off a stack is within the caps. -/
 theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf F prog s q) := by
@@ -248,15 +234,13 @@ theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   · show publicInputOf F prog s q = PublicIO.ofInput input
     rw [publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]
   · rw [himg]
-    have := MemImage.read_gpow hκ (imageWord F prog s q) ⟨0, Nat.two_pow_pos _⟩
-    refine this.trans ?_
+    refine (MemImage.read_gpow hκ (imageWord F prog s q) ⟨0, Nat.two_pow_pos _⟩).trans ?_
     show some (E.ofLimbs (cell0 F prog s q 0) (cell0 F prog s q 1) (cell0 F prog s q 2)) = _
     rw [c00, c10, c20]
     rfl
   · rw [himg]
-    have := MemImage.read_gpow hκ (imageWord F prog s q)
-      ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩
-    refine this.trans ?_
+    refine (MemImage.read_gpow hκ (imageWord F prog s q)
+      ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩).trans ?_
     show some (E.ofLimbs (cell1 F prog s q 0) (cell1 F prog s q 1) (cell1 F prog s q 2)) = _
     rw [c01, c11, c21]
     rfl

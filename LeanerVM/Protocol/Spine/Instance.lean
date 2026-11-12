@@ -272,7 +272,8 @@ def coordColumn (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Vector K (
   | .committed c h => Vector.cast (congrArg (2 ^ ·) h) (I.column q c).values
 
 /-- Cell `x` of a coordinate's table is the coordinate's cell `x`. -/
-theorem getElem_coordColumn (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ) (x : Fin (2 ^ κ)) :
+private theorem getElem_coordColumn (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ)
+    (x : Fin (2 ^ κ)) :
     (I.coordColumn q co)[x] = I.coordCell q co x := by
   cases co <;> simp [coordColumn, coordCell, Vector.get]
 
@@ -380,7 +381,7 @@ end M3Instance
 
 /-- Two lists are permutations of each other exactly when they sort to one list, under a Boolean
 order that is transitive, total and antisymmetric. -/
-theorem perm_iff_mergeSort_eq {α : Type*} {le : α → α → Bool}
+private theorem perm_iff_mergeSort_eq {α : Type*} {le : α → α → Bool}
     (trans : ∀ a b c, le a b → le b c → le a c) (total : ∀ a b, (le a b || le b a))
     (antisymm : ∀ a b, le a b → le b a → a = b) {l₁ l₂ : List α} :
     l₁.Perm l₂ ↔ l₁.mergeSort le = l₂.mergeSort le :=
@@ -407,8 +408,8 @@ def decidablePermOfKey {α : Type*} (f : α → ℕ) (hf : f.Injective) (l₁ l�
 def wordsKey (l : List K) : ℕ := l.foldr (fun x n ↦ x.toBitVec.toNat + 2 ^ 64 * n) 0
 
 /-- Lists of words of one length with one key are equal. -/
-theorem wordsKey_inj : ∀ {l₁ l₂ : List K}, l₁.length = l₂.length → wordsKey l₁ = wordsKey l₂ →
-    l₁ = l₂
+private theorem wordsKey_inj :
+    ∀ {l₁ l₂ : List K}, l₁.length = l₂.length → wordsKey l₁ = wordsKey l₂ → l₁ = l₂
   | [], [], _, _ => rfl
   | a :: l₁, b :: l₂, hl, h => by
     simp only [wordsKey, List.foldr_cons] at h
