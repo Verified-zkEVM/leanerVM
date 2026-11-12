@@ -38,61 +38,6 @@ open LeanerVM.Parameters CompPoly
 
 @[expose] public section
 
-/-! ## Halves of a vector -/
-
-section Halves
-
-variable {α : Type*} {j : ℕ}
-
-/-- The first half of a vector of `2 ^ (j + 1)` entries. -/
-def lowHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
-  Vector.ofFn fun i ↦ v[i.val]'(by have := i.isLt; rw [pow_succ]; omega)
-
-/-- The second half. -/
-def highHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
-  Vector.ofFn fun i ↦ v[i.val + 2 ^ j]'(by have := i.isLt; rw [pow_succ]; omega)
-
-/-- Two halves joined. -/
-def joinHalves (a b : Vector α (2 ^ j)) : Vector α (2 ^ (j + 1)) :=
-  (a ++ b).cast (Nat.two_pow_succ j).symm
-
-/-- The entries of the first half. -/
-@[simp] theorem lowHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
-    (lowHalf v)[i] = v[i]'(by rw [pow_succ]; omega) := by
-  simp [lowHalf]
-
-/-- The entries of the second half. -/
-@[simp] theorem highHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
-    (highHalf v)[i] = v[i + 2 ^ j]'(by rw [pow_succ]; omega) := by
-  simp [highHalf]
-
-/-- The entries of two halves joined. -/
-theorem joinHalves_getElem (a b : Vector α (2 ^ j)) (w : ℕ) (hw : w < 2 ^ (j + 1)) :
-    (joinHalves a b)[w] =
-      if h : w < 2 ^ j then a[w] else b[w - 2 ^ j]'(by rw [pow_succ] at hw; omega) := by
-  simp [joinHalves, Vector.getElem_append]
-
-/-- The first half of two halves joined. -/
-@[simp] theorem lowHalf_join (a b : Vector α (2 ^ j)) : lowHalf (joinHalves a b) = a := by
-  ext i hi
-  simp [joinHalves_getElem, hi]
-
-/-- The second half of two halves joined. -/
-@[simp] theorem highHalf_join (a b : Vector α (2 ^ j)) : highHalf (joinHalves a b) = b := by
-  ext i hi
-  simp [joinHalves_getElem]
-
-/-- A vector is its two halves joined. -/
-@[simp] theorem join_halves (v : Vector α (2 ^ (j + 1))) :
-    joinHalves (lowHalf v) (highHalf v) = v := by
-  ext w hw
-  rw [joinHalves_getElem]
-  split
-  · simp
-  · simp [Nat.sub_add_cancel (Nat.le_of_not_lt ‹_›)]
-
-end Halves
-
 /-! ## The transform -/
 
 section Transform
@@ -210,11 +155,9 @@ private theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
       Nat.testBit_eq_false_of_lt i.isLt, lowHalf_getElem]
     simp
   · refine Finset.sum_congr rfl fun i _ ↦ ?_
-    have hbit : (i.val + 2 ^ j).testBit j = true := by
-      rw [Nat.add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_eq_false_of_lt i.isLt]
-      rfl
     simp only [Fin.getElem_fin, Fin.val_cast, Fin.val_natAdd, novelAt_succ, highHalf_getElem,
-      Nat.add_comm (2 ^ j) (i : ℕ), novelAt_add_two_pow, hbit, ↓reduceIte]
+      Nat.add_comm (2 ^ j) (i : ℕ), novelAt_add_two_pow, testBit_add_two_pow_self i.isLt,
+      ↓reduceIte]
     ring
 
 /-- The polynomial is linear in its coefficients. -/

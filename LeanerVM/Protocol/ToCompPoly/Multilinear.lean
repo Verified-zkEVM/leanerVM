@@ -43,6 +43,8 @@ Nothing here transcribes a source.
 * **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
   `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
   coordinates: its extension ignores them (`evalMle_repeatHigh`).
+* **Halves.** `lowHalf`, `highHalf` and `joinHalves` split a vector of `2 ^ (j + 1)` entries into
+  its two halves and join them back.
 
 A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
@@ -577,6 +579,61 @@ theorem evalMle_repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (h : k ≤ n)
   have hs := sumCube_lagrangeBasis (highVec z)
   simp only [sumCube] at hs
   rw [hs, one_mul]
+
+/-! ## Halves of a vector -/
+
+section Halves
+
+variable {α : Type*} {j : ℕ}
+
+/-- The first half of a vector of `2 ^ (j + 1)` entries. -/
+def lowHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
+  Vector.ofFn fun i ↦ v[i.val]'(by have := i.isLt; rw [pow_succ]; omega)
+
+/-- The second half. -/
+def highHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
+  Vector.ofFn fun i ↦ v[i.val + 2 ^ j]'(by have := i.isLt; rw [pow_succ]; omega)
+
+/-- Two halves joined. -/
+def joinHalves (a b : Vector α (2 ^ j)) : Vector α (2 ^ (j + 1)) :=
+  (a ++ b).cast (Nat.two_pow_succ j).symm
+
+/-- The entries of the first half. -/
+@[simp] theorem lowHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
+    (lowHalf v)[i] = v[i]'(by rw [pow_succ]; omega) := by
+  simp [lowHalf]
+
+/-- The entries of the second half. -/
+@[simp] theorem highHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
+    (highHalf v)[i] = v[i + 2 ^ j]'(by rw [pow_succ]; omega) := by
+  simp [highHalf]
+
+/-- The entries of two halves joined. -/
+theorem joinHalves_getElem (a b : Vector α (2 ^ j)) (w : ℕ) (hw : w < 2 ^ (j + 1)) :
+    (joinHalves a b)[w] =
+      if h : w < 2 ^ j then a[w] else b[w - 2 ^ j]'(by rw [pow_succ] at hw; omega) := by
+  simp [joinHalves, Vector.getElem_append]
+
+/-- The first half of two halves joined. -/
+@[simp] theorem lowHalf_join (a b : Vector α (2 ^ j)) : lowHalf (joinHalves a b) = a := by
+  ext i hi
+  simp [joinHalves_getElem, hi]
+
+/-- The second half of two halves joined. -/
+@[simp] theorem highHalf_join (a b : Vector α (2 ^ j)) : highHalf (joinHalves a b) = b := by
+  ext i hi
+  simp [joinHalves_getElem]
+
+/-- A vector is its two halves joined. -/
+@[simp] theorem join_halves (v : Vector α (2 ^ (j + 1))) :
+    joinHalves (lowHalf v) (highHalf v) = v := by
+  ext w hw
+  rw [joinHalves_getElem]
+  split
+  · simp
+  · simp [Nat.sub_add_cancel (Nat.le_of_not_lt ‹_›)]
+
+end Halves
 
 end
 end LeanerVM.Protocol

@@ -62,6 +62,17 @@ private theorem testBit_two_pow_add {k r : ℕ} (hr : r < 2 ^ k) (j : ℕ) (hj :
   have h := Nat.testBit_two_pow_mul_add 1 hr j
   rwa [mul_one, show j - k = 0 by omega] at h
 
+/-- Below `p`, the bits of `x + 2^p` are those of `x`. -/
+theorem testBit_add_two_pow_low {x p i : ℕ} (hi : i < p) :
+    (x + 2 ^ p).testBit i = x.testBit i := by
+  rw [add_comm, Nat.testBit_two_pow_add_gt hi]
+
+/-- Bit `p` of `x + 2^p` for `x < 2^p` is set. -/
+theorem testBit_add_two_pow_self {x p : ℕ} (hx : x < 2 ^ p) :
+    (x + 2 ^ p).testBit p = true := by
+  rw [add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hx]
+  rfl
+
 /-- Entry `i` of the doubling on `k` coordinates is the product of the first `k` factors at the
 bits of `i`. -/
 private theorem getElem_doublingArray {n : ℕ} (f : Fin n → Bool → R) :
