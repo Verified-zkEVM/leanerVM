@@ -467,7 +467,8 @@ private theorem boundaryTuples_push :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
@@ -498,7 +499,8 @@ private theorem boundaryTuples_pull :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_

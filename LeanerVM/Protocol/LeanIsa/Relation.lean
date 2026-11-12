@@ -138,7 +138,8 @@ private theorem exists_channelAt {c : RawChannel K} (hc : c ∈ (leanIsaEnsemble
 private theorem activeMessages_interactionsWith (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (k : Fin 3) (d : BusDir) :
     activeMessages (w.interactionsWith (channelAt k)) d = messagesOn w (channelAt k) d := by
-  rw [EnsembleWitness.interactionsWith_eq_filter_name (channelAt_mem k), messagesOn]
+  simp only [EnsembleWitness.interactionsWith_eq_filter_name (channelAt_mem k), messagesOn,
+    Bool.beq_eq_decide_eq]
 
 /-- **The balance.** Clean's multiset balance holds exactly when each channel's pushes and pulls
 carry the same messages: every multiplicity is `1`. -/
