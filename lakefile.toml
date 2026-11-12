@@ -30,7 +30,7 @@ git = "https://github.com/Verified-zkEVM/clean"
 rev = "a985c76c845e1d69ab320831d535072fcadb7c76"
 
 # Root requirements select the reviewed current source revisions over inherited
-# manifests. Mathlib stays on the matching Lean 4.34.1 release; see docs/dependencies.md.
+# manifests. Mathlib stays on the matching Lean 4.35.0 release; see docs/dependencies.md.
 [[require]]
 name = "Arklib"
 git = "https://github.com/Verified-zkEVM/ArkLib"
