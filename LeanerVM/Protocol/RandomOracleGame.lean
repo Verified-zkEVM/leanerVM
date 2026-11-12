@@ -211,7 +211,6 @@ theorem HashMisbehavesFrom.mono {seedRoots : List Digest}
 
 instance (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest) (g : Run) :
     Decidable (HitFrom seedRoots rootsOf g) := by
-  letI := Digest.decEq
   unfold HitFrom
   infer_instance
 

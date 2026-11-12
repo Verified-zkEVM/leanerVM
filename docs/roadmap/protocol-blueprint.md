@@ -423,9 +423,8 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 The spine fixes everything two neighbouring pieces of work would otherwise have to agree on, and
 proves the composition once. It lives under `LeanerVM/Protocol/Spine/` (`Instance`, `Seams`,
 `Phase`, `Compose`, `Toy`) and, for the parts that belong in ArkLib, `LeanerVM/Protocol/ToArkLib/`
-(`Oracles`, `Component`, `PassThrough`, `SendOracle`, `GuardedVerdict`, `KeepOracles`,
-`Refinement`), with its tests in `tests/LeanerVMTests/Protocol/Spine.lean`. After
-it, every phase, generic component, the instance and the compilation is a unit of work that
+(`Oracles`, `Component`, `PassThrough`, `SendOracle`, `KeepOracles`, `Refinement`), with its
+tests in `tests/LeanerVMTests/Protocol/Spine.lean`. After it, every phase, generic component, the instance and the compilation is a unit of work that
 consumes spine names only, is tested on the toy instance, and lands in two halves. It restates the
 shape of leanth's explore branch (a `Type 0` witness, a relation anchored to Clean, a commit stage
 pinning the oracle to the witness of record, the zerocheck point carried between stages, an
@@ -593,8 +592,8 @@ structure Component.Security (D) (relIn relOut) (err : pSpec.ChallengeIdx → �
 def Component.Def.append ; Component.Complete.append ; Component.Security.append   -- the last without completeness
 -- Security.append consumes ArkLib's Append/GuardedRoundByRound.lean (#1295):
 --   Verifier.KnowledgeStateFunction.appendGuarded ; Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first
--- ToArkLib/PassThrough.lean, SendOracle.lean, GuardedVerdict.lean, KeepOracles.lean
-def Component.passThrough ; Component.sendOracle ; keepOracles ; Reduction.mem_support_run_of_guarded ; …
+-- ToArkLib/PassThrough.lean, SendOracle.lean, KeepOracles.lean
+def Component.passThrough ; Component.sendOracle ; keepOracles ; …
 
 -- Spine/Phase.lean: a phase is a component over the stack
 abbrev Phase.Def I StmtIn StmtOut pSpec ; abbrev Phase.Complete ; abbrev Phase.Security
@@ -1118,8 +1117,9 @@ y` are independent over `K` says nothing of them. Each is sound at `1/|E|`: for 
 wrong line gives a nonzero polynomial of degree one in `r`; for the word check,
 `accepts_two_challenges` shows that acceptance at two challenges fixes the memory cells to the
 public words with zero top limbs. The message's length is fixed by the check alone, so Layer 12
-serializes it without a length prefix. Both proofs start from `ToArkLib/GuardedVerdict.lean`; the
-bound is `ToVCVio/UniformSample.lean`'s. The line identity is derived here from
+serializes it without a length prefix. Both proofs start from ArkLib's guarded-verifier lemmas
+(`Reduction.perfectCompleteness_of_guarded_prover_support`,
+`Verifier.GuardedForm.check_and_of_prEvent_pos`); the bound is `ToVCVio/UniformSample.lean`'s. The line identity is derived here from
 `evalMle_append_boolVec` at slice zero: a point chosen by the protocol is not upstream material.
 
 Tests: on the toy, the line's value accepted and a wrong, missing or extra value rejected; the
@@ -1436,7 +1436,9 @@ structure FsState where cv : Digest
 def FsState.seed (prog) (input) : FsState     -- cv₀ = compress (iv, the public input), iv from the program hash:
                                               -- constants of the statement, computed by `blake2sBytes`, not queries
 inductive Block | observe (x : E) | squeeze | nonce (n : E)     -- tags 1, 2, 4 in lane 3
-def FsState.step [Monad m] (H : List UInt8 → m Digest) : FsState → Block → m FsState   -- cv ← H (cv ‖ b)
+def FsState.stepBytes (cv : Digest) (x : E) (tag : K) : List UInt8   -- cv ‖ x ‖ tag, one 64-byte step
+def FsState.observe [Monad m] (H) (s : FsState) (x : E) : m FsState   -- cv ← H (stepBytes cv x 1)
+def FsState.sample [Monad m] (H) (s : FsState) : m (E × FsState)      -- cv ← H (stepBytes cv 0 2)
 def FsState.checkPow [Monad m] (H) (s : FsState) (bits : ℕ) (n : E) : m (Bool × FsState)
   -- the check `H (H (cv ‖ tag 3) ‖ n ‖ tag 4)` has `bits` low zero bits; at `bits = 0` the base is still asked, no
   -- check hash is, and only `n = 0` passes; the nonce is absorbed either way (`lib.rs:165-175`)
@@ -2554,7 +2556,6 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       Phase.Def  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
-                      Reduction.mem_support_run_of_guarded
                       probEvent_uniformSample_le_of_subsingleton
                       commitDef  commitComplete  commitExtractor  commitSecurity
                       Phases  Phases.Complete  Phases.Security  Phases.toDef

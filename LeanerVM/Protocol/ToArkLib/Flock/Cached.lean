@@ -207,7 +207,7 @@ private theorem dotSparse_eq {n : ℕ} (a : Vector F n) (v : Fin n → F) :
     · rw [h0, mul_zero, add_zero]
     · rw [h1, mul_one]
     · rfl
-  rw [dotSparse, h, foldl_add_eq_add_sum, zero_add]
+  rw [dotSparse, h, Fin.foldl_add_eq_add_sum, zero_add]
 
 variable {s m κ : ℕ}
 

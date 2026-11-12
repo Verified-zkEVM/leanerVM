@@ -108,15 +108,14 @@ def passThroughComplete (f : StmtIn → StmtOut)
     Complete I (passThrough I f) relIn relOut :=
   Component.passThroughComplete (TheOracle I) f fun s o _ hin ↦ h s o hin
 
-/-- Its security, at error zero, whenever `f` carries the input seam into the output seam and
-reflects the output seam back into the input seam. -/
+/-- Its security, at error zero, whenever `f` reflects the output seam back into the input
+seam. -/
 def passThroughSecurity (f : StmtIn → StmtOut)
     {relIn : Set ((StmtIn × ∀ i, TheOracle I i) × Unit)}
     {relOut : Set ((StmtOut × ∀ i, TheOracle I i) × Unit)}
-    (hc : ∀ s o, ((s, o), ()) ∈ relIn → ((f s, o), ()) ∈ relOut)
     (h : ∀ s o, ((f s, o), ()) ∈ relOut → ((s, o), ()) ∈ relIn) :
     Security I (passThrough I f) relIn relOut (fun i ↦ Fin.elim0 i.1) :=
-  Component.passThroughSecurity (TheOracle I) f (fun s o _ ↦ h s o) fun s o _ ↦ hc s o
+  Component.passThroughSecurity (TheOracle I) f fun s o _ ↦ h s o
 
 end Phase
 

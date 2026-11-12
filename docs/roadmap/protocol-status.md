@@ -225,7 +225,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   `evalMle_lagrangeBasis`, `slice_bytecodeColumn`, `readColumn_stackColumn`, `idxColumn_get`,
   `bytecodeSlotColumn`, `prodVars` and its two lemmas are gone, with `BlockClaims.lean` and its
   test; the adaptor builds the slot columns it needs. The generic helpers the deleted module
-  consumed (`unstack_eval₂_eq_sumCube`, `unstack_eq_of_window_eq`) stay as upstream material.
+  consumed (`unstack_eval₂_eq_sumCube`) stays as upstream material.
 - **Layer 8's verifier** is `verifierWith` at the check and the pool from the values sent, a
   shape the refutation tests instantiate with the check removed, weakened to its first value,
   the unsent line's claim dropped, the cells swapped and an extra check. The pool (`pooledFrom`)
@@ -693,9 +693,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
     node query of `logA`), then every opened payload is the one read off `logA` at its position.
     `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
-    off the whole log under a root are those read off `logA`. A fresh hit grows with `logV`, the
-    roots and `logA`'s known digests, and is a hit at the first occurrence of its input
-    (`FreshHit.mono_logV`, `FreshHit.mono_roots`, `Known.mono`, `Fresh.anti`, `FreshHit.first`).
+    off the whole log under a root are those read off `logA`. The known digests grow with the
+    roots and the log (`Known.mono`), and a fresh hit is a hit at the first occurrence of its
+    input (`FreshHit.first`).
     Each condition has a toy mutation in which the check accepts a payload other than the
     extracted one, or with none extracted, and only that condition fails
     (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
@@ -819,13 +819,10 @@ opening type `M`, which the Merkle trees will fix. The reader (`ReaderState`, `R
 hash's monad, failing with a `ReadError`) has `nextScalar(s)`, `nextRoot`, `nextRoundPoly`,
 `sample`, `checkPow`, `nextOpening` (with an authenticator), `finish` and `readSizes` (the
 announced sizes and `read_public`'s setup checks, `setupOk`); the writer (`WriteM`) mirrors it.
-`Proof.announced?` and `Proof.sizes?` read the sizes off the stream, and
-`announced?_of_readSizes` says the reader accepts only those. `RoundPoly.decode` derives the
+`Proof.announced?` and `Proof.sizes?` read the sizes off the stream. `RoundPoly.decode` derives the
 dropped coefficient from the claim as `transcript.rs:289-309` does (`c_1` in a plain round, `c_0`
 with the equality weight factored out); `decode_encode`, `encode_decode` and `check_of_decode`
-make it an injection onto the polynomials that pass the round's check, and
-`Reader.nextRoundPoly_eq` says that reading a round is reading `d` scalars and decoding them, so
-its chain effect does not depend on the claim. The round trip is
+make it an injection onto the polynomials that pass the round's check. The round trip is
 `ReadsBack`, proved for each pair of mirrored operations at every hash function in `Id` and
 composed along `bind`; `runRead_runWrite`: the reader run on what the writer wrote returns the
 related value and the writer's chain state, with nothing left over. The tests read the Rust's
@@ -855,10 +852,9 @@ VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest`
 `prEvent_challengeOf`: the challenge of a uniform digest is uniform on `E`;
 `prEvent_lowBitsZero`: a grinding check of `bits ≤ 64` bits passes on a uniform digest with
 probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
-(`Transcript.lean`: `Block.input`, `FsState.step` and its agreement with `observe`, `sample` and
-`absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
-`digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
-state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
+(`Transcript.lean`: `Block.input`, the parser `Block.parse?` with `parse?_input`, over the byte
+decoders `digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back
+from a state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
 generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
 a hit is a fresh answer in play after the entries before it, for an in-play function of the
 prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
@@ -866,11 +862,9 @@ fixed roots (none at leanVM's), the halves of every logged 64-byte input, the pr
 logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
 absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the
 charged invariant needs.
-`chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
-and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
-collision and no hit, the history is in the log before any query from the chain's last state that
-is none of its steps: the next step, `chainHistory_take_of_step`, the grinding base or the
-grinding check); `chainHistory_determined`. A Merkle node, a 64-byte input of the same oracle, may
+`chainHistory_of_noCollision` (a logged chain is its history when the log has no collision and no
+later state of the chain is a start); `chainHistory_determined` (a history found in part of a log
+is the history in the whole log). A Merkle node, a 64-byte input of the same oracle, may
 parse as a step and is one more entry of the log. The tests: the random oracle's answer to a fresh
 query is uniform, a repeated query is answered from the cache, the log of an honest chain (with a
 node beside it) gives back its blocks and states, also before the grinding base, and a collision,
@@ -1290,7 +1284,8 @@ theorem advances.
 - **Solved transcripts**: a transcript whose round polynomials pass their checks, each against its
   running claim (`RoundsSolved`, `BusSolved`, `TableSolved`, `FlockSolved`, `LevelSolved`,
   `FinalSolved`, `LadderSolved`, `WhirSolved`, and `Solved` for the whole protocol), which every
-  accepted transcript is (`*_of_check`, `whirSolved_of_run`). On a solved transcript the converse
+  accepted transcript is (`roundsSolved_of_check`, and each phase's file-local `*_of_check` or
+  `*_of_run`). On a solved transcript the converse
   holds: each phase's algebra is its oracle verifier's run (`*_of_solved`), the opening's guarded
   verifier accepts when WHIR's algebra does (`whirOpenGuarded_run_of_whirCheck`), and the compiled
   verifier accepts when the algebra does (`compiled_of_algebra`, `Compile/Agree.lean`).

@@ -84,7 +84,7 @@ theorem fingerprintWith_eq (α : Fin 4 → E) (t : Vector K 16) :
           acc + t[i] * ((fingerprintWeights α)[i.val]).limb l := fun acc i ↦ by
       split_ifs with h0 <;> simp [h0]
     simp only [fingerprintLimb, h]
-    rw [foldl_add_eq_add_sum, zero_add]
+    rw [Fin.foldl_add_eq_add_sum, zero_add]
   apply E.ext
   intro l
   have hm : ∀ (x : E) (a : K), (x * ofK a).limb l = a * x.limb l := fun x a ↦ by
@@ -133,7 +133,7 @@ theorem fingerprintWord_eq (w : CMlPolynomialEval E 4) (t : Vector K 16) :
         simp [fingerprintWordsOf]
     rw [limbWord, ofWord_foldl_xor, fingerprintLimb, ofWord_zero, zero_add]
     simp only [h]
-    rw [foldl_add_eq_add_sum, zero_add]
+    rw [Fin.foldl_add_eq_add_sum, zero_add]
   simp only [fingerprintWord, fingerprintWith]
   rw [show (fingerprintWordsOf w)[0] = (fingerprintWordsOf w)[(0 : Fin 3)] from rfl, hl,
     show (fingerprintWordsOf w)[1] = (fingerprintWordsOf w)[(1 : Fin 3)] from rfl, hl,

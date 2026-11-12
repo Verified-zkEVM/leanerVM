@@ -83,7 +83,7 @@ def drawPushesSecurity (relIn : Set ((S × ∀ i, OStmt i) × W)) (n N : ℕ)
     (j : ℕ) → j ≤ n →
       Security (drawPushes (W := W) OStmt C j) relIn (rel j)
         (drawsError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0)) j)
-  | 0, _ => passThroughSecurityOfImp OStmt (fun s ↦ (s, (#v[] : Vector C 0))) hIn
+  | 0, _ => passThroughSecurity OStmt (fun s ↦ (s, (#v[] : Vector C 0))) hIn
   | j + 1, hj =>
     (drawPushesSecurity relIn n N hIn hN j (by omega)).append
       (drawPushSecurity OStmt C rel j N (hN j (by omega)))

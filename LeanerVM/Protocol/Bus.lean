@@ -963,7 +963,7 @@ private theorem coordValue_eq (h : Conditions I) (q : Column I.μ) (ζ : Vector 
     erw [Vector.getElem_ofFn, Vector.getElem_ofFn]
 
 /-- A boundary block of a side is one of the instance's, of the push or pull side. -/
-private theorem mem_boundary_of_mem {k : Fin 3} {b : BoundaryBlock I.toShape}
+theorem mem_boundary_of_mem {k : Fin 3} {b : BoundaryBlock I.toShape}
     (hs : Source.boundary b ∈ sources I k) :
     b ∈ I.boundary ∧ (b.side = .push ∨ b.side = .pull) := by
   fin_cases k <;>

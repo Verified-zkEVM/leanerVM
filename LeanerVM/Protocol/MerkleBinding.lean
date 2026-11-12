@@ -179,13 +179,6 @@ def leafRow? (rowWords leafWords : ℕ) (q : List UInt8) : Option (List K) :=
     some (kWordsOfBytes (q.drop pad))
   else none
 
-/-- Splitting a `K` word into its two words and joining them again is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
-  apply BF64.toBitVec_injective
-  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0)
-    (len₁ := 32) (start₂ := 32) (len₂ := 32) rfl
-  simpa [ofWords, lowWord, highWord] using this
-
 /-- The words of a leaf are read back from its bytes. -/
 private theorem kWordsOfBytes_leafBytes : ∀ words : List K, kWordsOfBytes (leafBytes words) = words
   | [] => rfl
@@ -219,7 +212,7 @@ private theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
 in leaves of `leafWords`, read top-down off `log`. -/
 def extractRows (log : QueryLog (List UInt8) Digest) (root : Digest)
     (depth rowWords leafWords p : ℕ) : Option (List K) :=
-  @extractLeaf _ _ _ Digest.decEq nodeOfBytes? (leafRow? rowWords leafWords) log root depth p
+  extractLeaf nodeOfBytes? (leafRow? rowWords leafWords) log root depth p
 
 /-- `Digest` hashed through its word list, for the one-pass extraction. -/
 @[instance_reducible] def Digest.hashable : Hashable Digest := ⟨fun d ↦ hash d.toList⟩
@@ -227,7 +220,7 @@ def extractRows (log : QueryLog (List UInt8) Digest) (root : Digest)
 /-- The rows at all `2^depth` positions, in position order, read off `log` in one pass. -/
 def extractAllRows (log : QueryLog (List UInt8) Digest) (root : Digest)
     (depth rowWords leafWords : ℕ) : List (Option (List K)) :=
-  @extractLeaves _ _ _ Digest.decEq Digest.hashable nodeOfBytes? (leafRow? rowWords leafWords) log
+  @extractLeaves _ _ _ _ Digest.hashable nodeOfBytes? (leafRow? rowWords leafWords) log
     root depth
 
 /-- The one-pass extraction is `extractRows` at every position. -/
@@ -235,7 +228,7 @@ theorem extractAllRows_eq (log : QueryLog (List UInt8) Digest) (root : Digest)
     (depth rowWords leafWords : ℕ) :
     extractAllRows log root depth rowWords leafWords =
       (List.range (2 ^ depth)).map (extractRows log root depth rowWords leafWords) :=
-  @extractLeaves_eq _ _ _ Digest.decEq Digest.hashable _ _ _ _ _
+  @extractLeaves_eq _ _ _ _ Digest.hashable _ _ _ _ _
 
 /-! ## The check in `Option` -/
 
@@ -289,7 +282,7 @@ theorem merkleVerifyWith_option_eq_some {ans : List UInt8 → Option Digest} {ro
   split at h
   · next hr =>
     cases h
-    obtain rfl : r = root := @of_decide_eq_true _ (Digest.decEq r root) hr
+    obtain rfl : r = root := of_decide_eq_true hr
     exact ⟨leaves, by omega, by omega, hashRowsWith_eq_some hres,
       fun p hp ↦ Nat.lt_of_not_le fun hge ↦ h2 ⟨p, hp, hge⟩, hres', rfl⟩
   · cases h
@@ -312,7 +305,7 @@ theorem binding_of_log (logA logV : QueryLog (List UInt8) Digest)
     queries.map (fun q ↦ (extractRows logA root depth rowWords leafWords q).map
       (leafImage leafWords)) = rows.map some := by
   obtain ⟨leaves, hlen, -, hrows, hlt, hwalk, rfl⟩ := merkleVerifyWith_option_eq_some hV
-  have hstored := @MerkleTree.binding_of_log _ _ _ Digest.decEq nodeOfBytes? nodeBytes
+  have hstored := @MerkleTree.binding_of_log _ _ _ _ nodeOfBytes? nodeBytes
     nodeOfBytes?_nodeBytes (leafRow? rowWords leafWords) logA logV ans hans roots root hroot depth
     (sortedUnique queries) paths.leafData leaves paths.siblingHashes hlen.symm
     (pairwise_sortedUnique queries) hlt
@@ -336,8 +329,8 @@ theorem extractRows_determined (logA logV : QueryLog (List UInt8) Digest) (roots
     (hhit : ¬ FreshHit nodeOfBytes? roots logA logV) (depth rowWords leafWords p : ℕ) :
     extractRows (logA ++ logV) root depth rowWords leafWords p =
       extractRows logA root depth rowWords leafWords p :=
-  @extractLeaf_determined _ _ _ Digest.decEq nodeOfBytes? (leafRow? rowWords leafWords) logA logV
-    roots root hroot hcons hhit depth p
+  extractLeaf_determined nodeOfBytes? (leafRow? rowWords leafWords) logA logV roots root hroot hcons
+    hhit depth p
 
 /-- On a consistent log, the rows read off it are those read off its deduplication: each query at
 its first occurrence only. -/
@@ -346,8 +339,7 @@ theorem extractRows_dedupKeys {log : QueryLog (List UInt8) Digest}
     (depth rowWords leafWords p : ℕ) :
     extractRows (List.dedupKeys log) root depth rowWords leafWords p =
       extractRows log root depth rowWords leafWords p :=
-  @extractLeaf_congr _ _ _ Digest.decEq _ _ _ _
-    (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _)
+  extractLeaf_congr (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _)
     (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _) root depth p
 
 end

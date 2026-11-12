@@ -203,10 +203,11 @@ private theorem squeezesOnly_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSp
   rintro ⟨k, hk⟩ hd tr
   by_cases hkm : k < m
   · rw [append_slot_left D₁ D₂ k hkm hk tr]
-    exact (h₁ _ (by rw [← append_dir_castAdd (pSpec₂ := pSpec₂) ⟨k, hkm⟩]; exact hd) _).slotMap _
+    exact (h₁ _ (by rw [← ChallengeTree.appendDir_left (pSpec₂ := pSpec₂) ⟨k, hkm⟩]; exact hd)
+      _).slotMap _
   · obtain ⟨j, rfl⟩ : ∃ j, k = m + j := ⟨k - m, by omega⟩
     rw [append_slot_right D₁ D₂ j (by omega) hk tr]
-    exact (h₂ _ _ (by rw [← append_dir_natAdd (pSpec₁ := pSpec₁)
+    exact (h₂ _ _ (by rw [← ChallengeTree.appendDir_right (pSpec₁ := pSpec₁)
       ⟨j, by omega⟩]; exact hd) _).slotMap _
 
 private theorem squeezesOnly_draws {C : Type} {s : Slot Reading C} (hs : ReadsOnlySqueezes s) :
@@ -360,11 +361,6 @@ section Cut
 
 variable {n : ℕ} {pSpec : ProtocolSpec n}
 
-private theorem take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
-    full.take j.succ.val j.succ.is_le =
-      Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
-  Fin.take_succ_eq_snoc j.val j.isLt full
-
 /-- **Where a challenge sits in a decoded history**: before it, a prefix the decoder reads
 exactly to the challenge; then its squeezes, whose digests give it; then the rest. -/
 private theorem challenge_cut {D : SlotDecoder Reading pSpec} {f : ChalSlots pSpec}
@@ -380,10 +376,9 @@ private theorem challenge_cut {D : SlotDecoder Reading pSpec} {f : ChalSlots pSp
   obtain ⟨r₂, hr₂⟩ := D.run_take hfull i.1.val (Nat.le_of_lt i.1.isLt)
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hp.symm.trans hr₂))
   have hxt : x = t i.1 := by
-    have h₁ := take_succ_eq_concat t i.1
     have h₂ : Transcript.concat (m := i.1) x (t.take i.1.val i.1.castSucc.is_le) =
         Transcript.concat (m := i.1) (t i.1) (t.take i.1.val i.1.castSucc.is_le) :=
-      he.symm.trans h₁
+      he.symm.trans (Fin.take_succ_eq_snoc i.1.val i.1.isLt t)
     have := congrArg (fun T ↦ T (Fin.last i.1.val)) h₂
     simp only [Transcript.concat_last] at this
     exact this

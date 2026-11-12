@@ -88,14 +88,6 @@ end UniformSlot
 
 /-! ## Families over a schedule's challenges -/
 
-theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    (i : Fin m) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.castAdd n i) = pSpec₁.dir i := by
-  simp only [Fin.vappend_eq_append, Fin.append_left]
-
-theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    (j : Fin n) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.natAdd m j) = pSpec₂.dir j := by
-  simp only [Fin.vappend_eq_append, Fin.append_right]
-
 /-- A uniform slot for every challenge round of a schedule. -/
 abbrev ChalSlots {n : ℕ} (pSpec : ProtocolSpec n) : Type :=
   ∀ k : Fin n, pSpec.dir k = .V_to_P → UniformSlot (pSpec.«Type» k)
@@ -117,13 +109,15 @@ variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 def append (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) : ChalSlots (pSpec₁ ++ₚ pSpec₂) :=
   Fin.addCases (motive := fun k ↦
       (pSpec₁ ++ₚ pSpec₂).dir k = .V_to_P → UniformSlot ((pSpec₁ ++ₚ pSpec₂).«Type» k))
-    (fun i h ↦ (f₁ i (by rwa [append_dir_castAdd] at h)).cast (append_Type_castAdd i).symm)
-    (fun j h ↦ (f₂ j (by rwa [append_dir_natAdd] at h)).cast (append_Type_natAdd j).symm)
+    (fun i h ↦ (f₁ i (by rwa [ChallengeTree.appendDir_left] at h)).cast
+      (append_Type_castAdd i).symm)
+    (fun j h ↦ (f₂ j (by rwa [ChallengeTree.appendDir_right] at h)).cast
+      (append_Type_natAdd j).symm)
 
 theorem append_left (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (i : ℕ) (hi : i < m)
     (h : i < m + n) (hd : (pSpec₁ ++ₚ pSpec₂).dir ⟨i, h⟩ = .V_to_P) :
     append f₁ f₂ ⟨i, h⟩ hd = (f₁ ⟨i, hi⟩ (by
-        rw [← append_dir_castAdd (pSpec₂ := pSpec₂)]; exact hd)).cast
+        rw [← ChallengeTree.appendDir_left (pSpec₂ := pSpec₂)]; exact hd)).cast
       (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, hi⟩).symm := by
   unfold append
   exact congrFun (Fin.addCases_left (motive := fun k ↦
@@ -133,7 +127,7 @@ theorem append_left (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (i :
 theorem append_right (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (j : ℕ) (hj : j < n)
     (h : m + j < m + n) (hd : (pSpec₁ ++ₚ pSpec₂).dir ⟨m + j, h⟩ = .V_to_P) :
     append f₁ f₂ ⟨m + j, h⟩ hd = (f₂ ⟨j, hj⟩ (by
-        rw [← append_dir_natAdd (pSpec₁ := pSpec₁)]; exact hd)).cast
+        rw [← ChallengeTree.appendDir_right (pSpec₁ := pSpec₁)]; exact hd)).cast
       (append_Type_natAdd (pSpec₁ := pSpec₁) ⟨j, hj⟩).symm := by
   unfold append
   exact congrFun (Fin.addCases_right (motive := fun k ↦

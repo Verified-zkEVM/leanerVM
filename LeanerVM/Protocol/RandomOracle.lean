@@ -14,6 +14,7 @@ public import LeanerVM.Protocol.ToVCVio.HashChain
 public import LeanerVM.Protocol.ToVCVio.UniformSample
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
+import LeanerVM.Semantics.Blake2sOutput
 
 /-!
 # The hash oracle

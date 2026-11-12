@@ -160,10 +160,10 @@ instance {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E} :
 /-! ## Proof helpers -/
 
 /-- Splitting a `K` element into its two words and joining them again is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
+theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
   apply BF64.toBitVec_injective
-  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0) (len₁ := 32)
-    (start₂ := 32) (len₂ := 32) rfl
+  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0)
+    (len₁ := 32) (start₂ := 32) (len₂ := 32) rfl
   simpa [ofWords, lowWord, highWord] using this
 
 /-! ## Load-bearing lemmas -/

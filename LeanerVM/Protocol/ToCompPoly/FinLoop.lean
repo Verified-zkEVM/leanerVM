@@ -7,7 +7,7 @@
 
 module
 
-public import Mathlib.Algebra.BigOperators.Fin
+public import CompPoly.Fields.Extension.Arithmetic
 
 /-!
 # Sums and products as loops
@@ -15,8 +15,9 @@ public import Mathlib.Algebra.BigOperators.Fin
 A `Finset.sum` over `Fin n` compiles to a fold over the list of the indices, built for each sum.
 `sumFin f` and `prodFin f` are `Σ_i f i` and `∏_i f i` as `Fin.foldl` loops, with no list
 (`sumFin_eq_sum`, `prodFin_eq_prod`), and `hornerFin f x` is `Σ_i x ^ i · f i` by Horner's rule,
-one product per term (`hornerFin_eq_sum`). `foldl_add_eq_add_sum` and `foldl_mul_eq_mul_prod` are
-the same loops from any starting value. Nothing here transcribes a source.
+one product per term (`hornerFin_eq_sum`). `foldl_mul_eq_mul_prod` is the product loop from any
+starting value; CompPoly's `Fin.foldl_add_eq_add_sum` is the sum loop. Nothing here transcribes a
+source.
 -/
 
 namespace LeanerVM.Protocol
@@ -31,14 +32,6 @@ def sumFin {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
 def prodFin {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
   Fin.foldl n (fun acc i ↦ acc * f i) 1
 
-/-- A left fold adding `f i` is the sum of the `f i`. -/
-theorem foldl_add_eq_add_sum {M : Type*} [AddCommMonoid M] :
-    ∀ {n : ℕ} (f : Fin n → M) (a : M), Fin.foldl n (fun acc i ↦ acc + f i) a = a + ∑ i, f i
-  | 0, _, a => by simp
-  | n + 1, f, a => by
-    rw [Fin.foldl_succ_last, foldl_add_eq_add_sum (fun i : Fin n ↦ f i.castSucc),
-      Fin.sum_univ_castSucc, add_assoc]
-
 /-- A left fold multiplying by `f i` is the product of the `f i`. -/
 theorem foldl_mul_eq_mul_prod {M : Type*} [CommMonoid M] :
     ∀ {n : ℕ} (f : Fin n → M) (a : M), Fin.foldl n (fun acc i ↦ acc * f i) a = a * ∏ i, f i
@@ -50,7 +43,7 @@ theorem foldl_mul_eq_mul_prod {M : Type*} [CommMonoid M] :
 /-- The loop is the sum. -/
 theorem sumFin_eq_sum {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) :
     sumFin f = ∑ i, f i :=
-  (foldl_add_eq_add_sum f 0).trans (zero_add _)
+  (Fin.foldl_add_eq_add_sum f 0).trans (zero_add _)
 
 /-- The loop is the product. -/
 theorem prodFin_eq_prod {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) :

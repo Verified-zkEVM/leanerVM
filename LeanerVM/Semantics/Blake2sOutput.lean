@@ -35,12 +35,12 @@ open LeanerVM.Parameters
 @[expose] public section
 
 /-- Joining a low and a high word and splitting the result returns the low word. -/
-private theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
+theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
   unfold lowWord ofWords
   rw [BF64.toBitVec_ofBitVec, BitVec.extractLsb'_append_eq_right]
 
 /-- Joining a low and a high word and splitting the result returns the high word. -/
-private theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
+theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
   unfold highWord ofWords
   rw [BF64.toBitVec_ofBitVec, BitVec.extractLsb'_append_eq_left]
 

@@ -8,9 +8,10 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.ToArkLib.Component
 public import LeanerVM.Protocol.ToArkLib.ExtractIn
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.Oracles
 
 /-!

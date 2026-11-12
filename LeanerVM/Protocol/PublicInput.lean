@@ -10,9 +10,10 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToVCVio.UniformSample
@@ -566,18 +567,13 @@ private theorem complete_with
     (OracleReduction.mk (prover I)
       ((verifierWith I accept (pooledFrom I)).toOracleVerifier (TheOracle I))).perfectCompleteness
         init impl (Seam.table I) (Seam.pub I) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ :=
-    Reduction.mem_support_run_of_guarded _ (guardedWith I accept (pooledFrom I)) (s, o) witIn hx
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (guardedWith I accept (pooledFrom I)) fun ⟨s, o⟩ _ hIn pr hpr ↦ ?_
   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
   have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
-  have hacc' : (guardedWith I accept (pooledFrom I)).check (s, o) pr.1 = true := hacc _ _ _ hc
   have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
     verdict_pooledFrom_of_check I hc
-  rw [ite_eq_left hacc']
-  refine ⟨_, rfl, ?_, ?_⟩
+  refine ⟨hacc _ _ _ hc, ?_, ?_⟩
   · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
     rw [hpool]
     exact pooled_mem_pub I s o hIn (pr.1 0)

@@ -151,7 +151,6 @@ import LeanerVM.Protocol.ToArkLib.GrandProductCached
 import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 import LeanerVM.Protocol.ToArkLib.GrandProductRun
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
-import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.MapOracles

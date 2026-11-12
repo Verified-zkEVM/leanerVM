@@ -9,8 +9,9 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.ToArkLib.Component
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 
 /-!
@@ -121,7 +122,7 @@ theorem passThrough_rbr :
 
 /-- The security half, at error zero, with the extractor that keeps the witness, whenever the
 output relation at the mapped statement implies the input relation. -/
-def passThroughSecurityOfImp :
+def passThroughSecurity :
     Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
   guarded := (passThroughPure OStmt f).toGuardedForm
   witMid := fun _ ↦ W
@@ -129,19 +130,13 @@ def passThroughSecurityOfImp :
   kSF := passThroughStateFunction OStmt f h
   rbr := passThrough_rbr OStmt f h
 
-/-- The security half, at error zero, with the extractor that keeps the witness, whenever `f`
-carries the input relation into the output relation and back (only the way back is needed). -/
-def passThroughSecurity (_hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
-    Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) :=
-  passThroughSecurityOfImp OStmt f h
-
 /-- The security half with the trivial witness, whenever `f` carries a statement into the
 output relation exactly when the statement is in the input relation. -/
 def passThroughSecurityOfIff {rIn : Set ((StmtIn × ∀ i, OStmt i) × Unit)}
     {rOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)}
     (hf : ∀ s o, ((f s, o), ()) ∈ rOut ↔ ((s, o), ()) ∈ rIn) :
     Security (passThrough OStmt f) rIn rOut (fun i ↦ Fin.elim0 i.1) :=
-  passThroughSecurityOfImp OStmt f fun s o w h ↦ by cases w; exact (hf s o).mp h
+  passThroughSecurity OStmt f fun s o w h ↦ by cases w; exact (hf s o).mp h
 
 end Component
 
