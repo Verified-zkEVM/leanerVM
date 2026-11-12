@@ -64,24 +64,6 @@ theorem g_pow_card_sub_one : g ^ (2 ^ 64 - 1) = 1 := by
 /-- The prime-`3` check of the certificate. -/
 theorem g_pow_div_three_ne_one : g ^ ((2 ^ 64 - 1) / 3) ≠ 1 := by decide +kernel
 
-/-- The prime-`5` check of the certificate. -/
-theorem g_pow_div_five_ne_one : g ^ ((2 ^ 64 - 1) / 5) ≠ 1 := by decide +kernel
-
-/-- The prime-`17` check of the certificate. -/
-theorem g_pow_div_seventeen_ne_one : g ^ ((2 ^ 64 - 1) / 17) ≠ 1 := by decide +kernel
-
-/-- The prime-`257` check of the certificate. -/
-theorem g_pow_div_257_ne_one : g ^ ((2 ^ 64 - 1) / 257) ≠ 1 := by decide +kernel
-
-/-- The prime-`641` check of the certificate. -/
-theorem g_pow_div_641_ne_one : g ^ ((2 ^ 64 - 1) / 641) ≠ 1 := by decide +kernel
-
-/-- The prime-`65537` check of the certificate. -/
-theorem g_pow_div_65537_ne_one : g ^ ((2 ^ 64 - 1) / 65537) ≠ 1 := by decide +kernel
-
-/-- The prime-`6700417` check of the certificate. -/
-theorem g_pow_div_6700417_ne_one : g ^ ((2 ^ 64 - 1) / 6700417) ≠ 1 := by decide +kernel
-
 /-- `g` generates `K^×`: its order is exactly `2^64 - 1`. -/
 theorem orderOf_g : orderOf g = 2 ^ 64 - 1 := by
   refine orderOf_eq_of_pow_and_pow_div_prime (by norm_num) g_pow_card_sub_one
@@ -90,9 +72,8 @@ theorem orderOf_g : orderOf g = 2 ^ 64 - 1 := by
   simp only [Nat.Prime.dvd_mul hp, or_assoc] at hdvd
   rcases hdvd with h | h | h | h | h | h | h <;>
     rw [(Nat.prime_dvd_prime_iff_eq hp (by norm_num)).mp h]
-  exacts [g_pow_div_three_ne_one, g_pow_div_five_ne_one, g_pow_div_seventeen_ne_one,
-    g_pow_div_257_ne_one, g_pow_div_641_ne_one, g_pow_div_65537_ne_one,
-    g_pow_div_6700417_ne_one]
+  · exact g_pow_div_three_ne_one
+  all_goals decide +kernel
 
 /-! ## Exponent addressing -/
 

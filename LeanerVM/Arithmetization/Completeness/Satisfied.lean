@@ -249,7 +249,7 @@ private theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fi
     chanOf MemChannel.name .push (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) 0 := by
   unfold memBlockSends
-  rw [chanOf_flatMap, ← flatMap_singleton_eq_map]
+  rw [chanOf_flatMap, List.map_eq_flatMap]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, memMsg_gpow hκ]
 
@@ -258,7 +258,7 @@ private theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fi
     chanOf MemChannel.name .pull (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) (fin (gpow i)) := by
   unfold memBlockSends
-  rw [chanOf_flatMap, ← flatMap_singleton_eq_map]
+  rw [chanOf_flatMap, List.map_eq_flatMap]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, memMsg_gpow hκ]
 
@@ -268,7 +268,7 @@ private theorem bcBlock_push (prog : Program) (fin : K → ℕ) :
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         bcMsg prog (gpow i) 0 := by
   unfold bcBlockSends
-  rw [chanOf_flatMap, ← flatMap_singleton_eq_map]
+  rw [chanOf_flatMap, List.map_eq_flatMap]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, bcMsg, entryAt, Program.fetch_gpow]
 
@@ -278,7 +278,7 @@ private theorem bcBlock_pull (prog : Program) (fin : K → ℕ) :
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         bcMsg prog (gpow i) (fin (gpow i)) := by
   unfold bcBlockSends
-  rw [chanOf_flatMap, ← flatMap_singleton_eq_map]
+  rw [chanOf_flatMap, List.map_eq_flatMap]
   refine List.flatMap_congr fun i _ ↦ ?_
   simp [chanOf, bcMsg, entryAt, Program.fetch_gpow]
 
@@ -337,16 +337,6 @@ private theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMe
     obtain ⟨i, rfl, -⟩ := (MemImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
   have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
-  have h1 : (padRows img S).flatMap (fun r ↦ chanOf MemChannel.name .push (r.sends img)) =
-      List.zipWith (fun a e ↦ memMsg img a (e + 1))
-        (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
-        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
-    mkRows_memPushes img (fun _ ↦ 0) (fun _ ↦ 0) S
-  have h2 : (padRows img S).flatMap (fun r ↦ chanOf MemChannel.name .pull (r.sends img)) =
-      List.zipWith (fun a e ↦ memMsg img a e)
-        (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
-        (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
-    mkRows_memPulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv : ∀ d, chanOf MemChannel.name d
       [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] =
       [] := fun d ↦ chanOf_eq_nil_of_names (by simp) state_ne_mem
@@ -354,7 +344,8 @@ private theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMe
     chanOf_eq_nil_of_names (bcBlockSends_names prog _) mem_ne_bytecode.symm
   refine (chanOf_padSends_perm prog img S _ _).trans
     (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _ _).symm)
-  rw [hv, hv, hc, hc, h1, h2, memBlock_push hκ64, memBlock_pull hκ64]
+  rw [hv, hv, hc, hc, padRows, mkRows_memPushes, mkRows_memPulls, memBlock_push hκ64,
+    memBlock_pull hκ64]
   simp only [List.nil_append, List.append_nil]
   simpa only [List.map_map, Function.comp_def, padMemFin] using hb
 
@@ -373,16 +364,6 @@ private theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S 
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, hi.symm⟩
   have hb := block_balance _ (gpow_keys_nodup prog.logSize prog.logSize_le) (bcMsg prog) _ hmem
   have hF : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins := fun sk h ↦ (hS sk h).1
-  have h1 : (padRows img S).flatMap
-      (fun r ↦ chanOf BytecodeChannel.name .push (r.sends img)) =
-      List.zipWith (fun pc e ↦ bcMsg prog pc (e + 1)) (S.map (·.pc))
-        (readExps (fun _ ↦ 0) (S.map (·.pc))) :=
-    mkRows_bcPushes img (fun _ ↦ 0) (fun _ ↦ 0) S hF
-  have h2 : (padRows img S).flatMap
-      (fun r ↦ chanOf BytecodeChannel.name .pull (r.sends img)) =
-      List.zipWith (fun pc e ↦ bcMsg prog pc e) (S.map (·.pc))
-        (readExps (fun _ ↦ 0) (S.map (·.pc))) :=
-    mkRows_bcPulls img (fun _ ↦ 0) (fun _ ↦ 0) S hF
   have hv : ∀ d, chanOf BytecodeChannel.name d
       [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] =
       [] := fun d ↦ chanOf_eq_nil_of_names (by simp) state_ne_bytecode
@@ -390,7 +371,8 @@ private theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S 
     fun d ↦ chanOf_eq_nil_of_names (memBlockSends_names img _) mem_ne_bytecode
   refine (chanOf_padSends_perm prog img S _ _).trans
     (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _ _).symm)
-  rw [hv, hv, hc, hc, h1, h2, bcBlock_push, bcBlock_pull]
+  rw [hv, hv, hc, hc, padRows, mkRows_bcPushes img _ _ S hF, mkRows_bcPulls img _ _ S hF,
+    bcBlock_push, bcBlock_pull]
   simp only [List.nil_append, List.append_nil]
   simpa only [List.map_map, Function.comp_def, padBcFin] using hb
 
@@ -402,12 +384,6 @@ private theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) 
       (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
     (chanOf StateChannel.name .push (padSends prog img S)).Perm
       (chanOf StateChannel.name .pull (padSends prog img S)) := by
-  have h1 : (padRows img S).flatMap (fun r ↦ chanOf StateChannel.name .push (r.sends img)) =
-      S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp] :=
-    mkRows_statePushes img (fun _ ↦ 0) (fun _ ↦ 0) S
-  have h2 : (padRows img S).flatMap (fun r ↦ chanOf StateChannel.name .pull (r.sends img)) =
-      S.map fun sk ↦ #[sk.pc, sk.fp] :=
-    mkRows_statePulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv1 : chanOf StateChannel.name .push
       [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] =
       [#[1, 1]] := by
@@ -422,7 +398,7 @@ private theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) 
     fun d ↦ chanOf_eq_nil_of_names (bcBlockSends_names prog _) state_ne_bytecode.symm
   refine (chanOf_padSends_perm prog img S _ _).trans
     (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _ _).symm)
-  rw [hv1, hv2, hm, hm, hb, hb, h1, h2]
+  rw [hv1, hv2, hm, hm, hb, hb, padRows, mkRows_statePushes, mkRows_statePulls]
   simpa only [List.append_nil, List.singleton_append] using hstate
 
 /-! ### The number of skeletons -/

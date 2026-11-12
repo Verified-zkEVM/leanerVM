@@ -45,7 +45,6 @@ open LeanerVM.Parameters
 theorem run_one {κ : ℕ} {prog : Program} {L : MemImage κ} {r r' : Regs K}
     (hpc : r.pc ≠ prog.finalPc) (h : step prog L r = some r') : run prog L 1 r = some r' := by
   rw [run_succ_of_ne hpc, h]
-  simp only [Option.bind_eq_bind, Option.bind_some]
   rfl
 
 /-- Runs compose. -/
@@ -60,16 +59,12 @@ theorem gpow_ne_finalPc (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSiz
     gpow n ≠ prog.finalPc := by
   unfold Program.finalPc
   intro heq
-  have hL : prog.logSize ≤ 32 := prog.logSize_le
   have h32 : 2 ^ prog.logSize ≤ 4294967296 := by
-    have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hL
-    simpa using this
+    simpa using Nat.pow_le_pow_right (show 0 < 2 by norm_num)
+      (show prog.logSize ≤ 32 from prog.logSize_le)
   have hc : (2 : ℕ) ^ 64 - 1 = 18446744073709551615 := by norm_num
-  have hm1 : n ∈ Set.Iio (2 ^ 64 - 1) := by
-    simp only [Set.mem_Iio, hc]; omega
-  have hm2 : 2 ^ prog.logSize - 1 ∈ Set.Iio (2 ^ 64 - 1) := by
-    simp only [Set.mem_Iio, hc]; omega
-  have := gpow_injOn hm1 hm2 heq
+  have := gpow_injOn (show n ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio, hc]; omega)
+    (show 2 ^ prog.logSize - 1 ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio, hc]; omega) heq
   omega
 
 /-! ## The closing jump -/

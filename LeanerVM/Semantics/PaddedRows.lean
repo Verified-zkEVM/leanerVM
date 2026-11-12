@@ -80,18 +80,12 @@ theorem Skel.count_append (op : Opcode) (a b : List Skel) :
 /-- The rows of a table in a family concatenated over a list are the sum over the list. -/
 private theorem Skel.count_flatMap {α : Type} (op : Opcode) (f : α → List Skel) (l : List α) :
     Skel.count op (l.flatMap f) = (l.map fun a ↦ Skel.count op (f a)).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => rw [List.flatMap_cons, Skel.count_append, ih, List.map_cons, List.sum_cons]
+  simp [Skel.count, Skel.onTable, List.filter_flatMap, List.length_flatMap]
 
 /-- `n` copies of a list of skeletons have `n` times its rows of a table. -/
 private theorem Skel.count_replicate_flatten (op : Opcode) (l : List Skel) (n : ℕ) :
     Skel.count op (List.replicate n l).flatten = n * Skel.count op l := by
-  induction n with
-  | zero => simp [Skel.count, Skel.onTable]
-  | succ n ih =>
-    rw [List.replicate_succ, List.flatten_cons, Skel.count_append, ih, Nat.succ_mul]
-    omega
+  simp [Skel.count, Skel.onTable, List.filter_flatten, List.length_flatten]
 
 /-- A traversal of the cycle `(t, k)` gives table `t` its `s` dummies and the `JUMP` table its
 closing jump; when `t` is `JUMP` the table has both. -/
