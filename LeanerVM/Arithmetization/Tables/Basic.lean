@@ -32,9 +32,9 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
   witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
   boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
-* `guard_bind_eq_some_iff` and `guard_eq_some` are the `Option` facts the `*_spec_iff`
-  characterisations and the row builders need: `execute` checks each relation with `guard`,
-  and `guard p >>= f = some b` says `p` and `f () = some b`.
+* `guard_bind_eq_some_iff` is the `Option` fact the `*_spec_iff` characterisations and the row
+  builders need: `execute` checks each relation with `guard`, and `guard p >>= f = some b` says
+  `p` and `f () = some b` (a guard alone is Mathlib's `Option.guard_eq_some'`).
 -/
 
 namespace LeanerVM.Arithmetization
@@ -78,12 +78,5 @@ theorem guard_bind_eq_some_iff {α : Type} (p : Prop) [Decidable p] (f : Unit �
   split_ifs with h
   · simp [h]
   · simp [h]
-
-/-- A guard that succeeds holds. -/
-theorem guard_eq_some {p : Prop} [Decidable p] {u : Unit} (h : (guard p : Option Unit) = some u) :
-    p := by
-  unfold guard at h
-  split_ifs at h with hp
-  exact hp
 
 end LeanerVM.Arithmetization

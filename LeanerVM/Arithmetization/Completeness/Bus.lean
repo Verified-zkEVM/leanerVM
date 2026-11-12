@@ -45,12 +45,6 @@ open LeanerVM.Parameters LeanerVM.Semantics
 
 /-! ## The channels of a row's sends -/
 
-/-- Mapping the singletons of a list and then a function is mapping the composition. -/
-private theorem map_flatMap_singleton {α β γ : Type} (f : α → β) (h : β → γ) (l : List α) :
-    (l.flatMap fun a ↦ [f a]).map h = l.map fun a ↦ h (f a) := by
-  rw [← List.map_eq_flatMap, List.map_map]
-  rfl
-
 /-- A row sends one state pull, `(pc, fp)`. -/
 theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
@@ -85,7 +79,7 @@ private theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vecto
     chanOf MemChannel.name .pull (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
   simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
+  simp [StateChannel, MemChannel, BytecodeChannel, ← List.map_eq_flatMap]
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
 private theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
@@ -93,7 +87,7 @@ private theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vecto
     chanOf MemChannel.name .push (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
   simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
+  simp [StateChannel, MemChannel, BytecodeChannel, ← List.map_eq_flatMap]
 
 /-! ## Rows with counts -/
 

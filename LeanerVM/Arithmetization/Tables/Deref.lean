@@ -270,7 +270,7 @@ theorem derefRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {
   have h := hexec
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨p, hp, u, hu, v3, hv3, -⟩ := h
-  have hin := guard_eq_some hu
+  have hin := (Option.guard_eq_some' _).mp hu
   refine ⟨mode, ⟨rfl, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp

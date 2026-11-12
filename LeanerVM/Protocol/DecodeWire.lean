@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.DecodeWalk
+public import Mathlib.Lean.Thunk
 
 /-!
 # The decoded history carries the walk's wire
@@ -55,10 +56,6 @@ def Wire.view (shs : List LevelShape) (w : Wire) : Wire :=
 section Reads
 
 open Slot
-
-@[simp] theorem get_thunk_mk {α : Type} (f : Unit → α) : (Thunk.mk f).get = f () := rfl
-
-@[simp] theorem get_thunk_pure {α : Type} (a : α) : (Thunk.pure a).get = a := rfl
 
 @[simp] theorem msgOf_oneTranscript {M : Type} (x : M) :
     msgOf (oneTranscript (pSpec := say M) x) = x := rfl
@@ -364,7 +361,7 @@ private theorem refines_stepsDec {γ γ' : Type} {R : γ → γ' → Prop} : ∀
     simp only [List.replicate, walkLayers, walkLayer, bind_assoc, pure_bind]
     refine refines_layerDec st 2 m hst _ _ fun c₀ rounds a b c combos t₁ h₀ hr hch hu ↦ ?_
     refine refines_stepsDec k (m + 2) _ ?_ _ _ fun comb ls t₂ c' h ↦ hK _ _ _ _ ?_
-    · simp only [layerNext, get_thunk_mk, List.length_append, length_drawsList,
+    · simp only [layerNext, Thunk.get_mk, List.length_append, length_drawsList,
         length_roundsChals]
       omega
     simp only [stepsWire, FullTranscript.append_fst, FullTranscript.append_snd, h, h₀,

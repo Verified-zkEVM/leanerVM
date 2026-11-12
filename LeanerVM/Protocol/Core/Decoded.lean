@@ -212,11 +212,11 @@ private theorem stRel_layerNext (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerSt
     (Nat.zero_add m) ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R
     (Thunk.pure (powerBatch (inp s).2.2 lam), 0) rfl
   refine ⟨?_, ?_⟩
-  · simp only [layerNext, get_thunk_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
+  · simp only [layerNext, Thunk.get_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
       FullTranscript.append_snd, drawsList_chalsTr, Vector.toList_cast, Vector.toList_append, h₂,
       ofFn_getElem_eq_toList]
     simp
-  · simp only [layerNext, get_thunk_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
+  · simp only [layerNext, Thunk.get_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
       FullTranscript.append_snd, drawsList_chalsTr, msgTr_zero, ofFn_getElem_eq_toList,
       toVec_toList]
 
@@ -234,9 +234,9 @@ private theorem always_layerDec (st : GkrState) (ρ m : ℕ) :
       T.fst.snd) ?_)
     (fun _ _ ↦ Always.true _) ?_
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
     simpa only [layerCombiner, drawOf, FullTranscript.append_fst, FullTranscript.append_snd]
       using h
@@ -319,7 +319,7 @@ private theorem always_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I)
       (powerBatch (TableSumcheck.claimed I s.get) (T.fst 0)) T.snd) ?_)
     (fun _ _ ↦ Always.true _) ?_
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
     refine ⟨t₁.fst 0, t₁.snd, t₂ 0, ?_, h⟩
     rw [tableTrOf, ← eq_chalTr, ← eq_msgTr, FullTranscript.append_fst_snd]
@@ -371,7 +371,7 @@ private theorem always_flockDecOf (k : ℕ) :
     (fun _ _ h _ ↦ by simpa only [FullTranscript.append_fst] using h))
     (fun _ _ ↦ Always.true _) (fun _ _ h _ ↦ by simpa only [FullTranscript.append_fst] using h)
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h₁ h₂
     simp only [FullTranscript.append_fst, FullTranscript.append_snd]
     refine ⟨h₁, ?_⟩

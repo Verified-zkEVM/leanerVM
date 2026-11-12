@@ -262,7 +262,7 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {n
   have h := hexec
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨c, hc, d, hd, f, hf, u, hu, -⟩ := h
-  obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
+  obtain ⟨hcK, hdK, hfK⟩ := (Option.guard_eq_some' _).mp hu
   refine ⟨⟨?_, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
