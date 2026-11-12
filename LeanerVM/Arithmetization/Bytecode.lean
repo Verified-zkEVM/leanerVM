@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Semantics.Instruction
+import Mathlib.Data.Fin.Tuple.Reflection
 
 /-!
 # The bytecode encoding
@@ -119,13 +120,6 @@ def decode (v : Vector K 8) : Option Instr :=
   | some .blake2s => some (.blake2s ![v[1], v[2], v[3], v[4]] v[5] v[6] v[7])
   | none => none
 
-/-! ## Proof helpers -/
-
-/-- A four-vector is its four entries. -/
-private theorem vecCons_apply (om : Fin 4 → K) : ![om 0, om 1, om 2, om 3] = om := by
-  funext i
-  fin_cases i <;> rfl
-
 /-! ## Load-bearing lemmas -/
 
 /-- The flags of a mode decode to that mode. -/
@@ -162,7 +156,7 @@ theorem entry_getElem_zero (i : Instr) : (entry i)[0] = i.opcode.code := by
 theorem decode_entry (i : Instr) : decode (entry i) = some i := by
   cases i with
   | blake2s om ocv oout omd =>
-    have h := vecCons_apply om
+    have h : ![om 0, om 1, om 2, om 3] = om := FinVec.etaExpand_eq om
     simp [decode, entry, opcode?_code, h]
   | _ => simp [decode, entry, opcode?_code, derefMode?_flags, ofLimbs_limb]
 

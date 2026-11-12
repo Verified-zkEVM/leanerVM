@@ -37,10 +37,8 @@ namespace Whir
 
 /-- Agreement on `2 ^ b` positions out of `2 ^ b` is agreement on all of them. -/
 private theorem eq_univ_of_card_ge {b : ℕ} {A : Finset (Fin (2 ^ b))} (h : 2 ^ b ≤ A.card) :
-    A = Finset.univ := by
-  have h1 : A.card ≤ Fintype.card (Fin (2 ^ b)) := Finset.card_le_univ A
-  have h2 : Fintype.card (Fin (2 ^ b)) = 2 ^ b := Fintype.card_fin _
-  exact Finset.eq_univ_of_card A (by omega)
+    A = Finset.univ :=
+  Finset.eq_univ_of_card A ((Finset.card_le_univ A).antisymm (by simpa using h))
 
 /-- **The list bound at exact agreement.** A word has at most one interleaved codeword that agrees
 with it everywhere. -/

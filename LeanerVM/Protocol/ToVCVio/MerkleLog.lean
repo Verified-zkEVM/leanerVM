@@ -59,7 +59,8 @@ log under a root are those read off `logA`, so no leaf joins a root once the roo
 namespace LeanerVM.Protocol.MerkleTree
 
 open MerkleTreeExtractor (QueryLog)
-open LeanerVM.Protocol.QueryLog (Consistent HasCollision Fresh)
+open LeanerVM.Protocol.QueryLog (HasCollision Fresh)
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 
@@ -469,7 +470,7 @@ private theorem mem_logA (hcons : Consistent (logA ++ logV))
   · exact absurd ⟨e, h, hf, hk⟩ hhit
   simp only [Fresh, not_forall, not_not] at hf
   obtain ⟨e', he', h1⟩ := hf
-  exact Sigma.ext h1 (heq_of_eq (hcons _ (List.mem_append_left _ he') _ he h1)) ▸ he'
+  exact hcons _ (List.mem_append_left _ he') _ he h1 ▸ he'
 
 /-- A child of a query of `logA` that parses as a node is known. -/
 private theorem known_child {e : (_ : Q) × D} (he : e ∈ logA) {l r : D}

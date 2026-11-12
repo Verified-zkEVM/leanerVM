@@ -325,7 +325,7 @@ theorem blake2sRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp om0 om1 om2 o
     Option.bind_eq_some_iff] at h
   obtain ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
     md, hmd, u, hu, -⟩ := h
-  obtain ⟨hcm, hccv0, hccv1, hcout0, hcout1, hcmd, -⟩ := guard_eq_some hu
+  obtain ⟨hcm, hccv0, hccv1, hcout0, hcout1, hcmd, -⟩ := (Option.guard_eq_some' _).mp hu
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * om0) = some (E.ofCell (mem.cellAt (fp * om0)))
     rw [MemImage.ofCell_cellAt hm0 (hcm 0)]; exact hm0

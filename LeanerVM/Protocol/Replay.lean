@@ -79,7 +79,8 @@ theorem replay_of_mem_support_loggedGame {prog : Program} {input : PublicInput} 
 /-- A log whose every answer a partial function gives at its input is consistent. -/
 private theorem consistent_of_answers {log : hashSpec.QueryLog}
     (f : List UInt8 → Option Digest) (h : ∀ e ∈ log, f e.1 = some e.2) : QueryLog.Consistent log :=
-  fun e₁ he₁ e₂ he₂ he ↦ Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
+  OracleSpec.QueryLog.consistent_iff.mpr fun e₁ he₁ e₂ he₂ he ↦
+    Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
 
 /-- **A run under BLAKE2s** is a possible run of the game, its joint log is BLAKE2s's and so
 consistent, and its verdict is `verify`'s. -/

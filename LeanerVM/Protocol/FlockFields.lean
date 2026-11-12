@@ -12,6 +12,7 @@ public import LeanerVM.Parameters.Flock
 public import LeanerVM.Parameters.Generator
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import Mathlib.Algebra.CharP.Reduced
 import Mathlib.Data.List.Iterate
 import Mathlib.FieldTheory.Finite.Basic
@@ -233,26 +234,6 @@ private theorem lagrangeBasis_low (a : Fin (2 ^ 3)) :
 
 /-! ### The `g0` coordinates -/
 
-/-- `x^h` as the product of `x^(2^j)` over the set bits `j` of `h`. -/
-private theorem prod_testBit_pow {M : Type*} [CommMonoid M] (x : M) (n h : ℕ) (hh : h < 2 ^ n) :
-    ∏ j : Fin n, (if h.testBit j then x ^ 2 ^ j.val else 1) = x ^ h := by
-  induction n generalizing x h with
-  | zero =>
-    have h0 : h = 0 := by simpa using hh
-    simp [h0]
-  | succ n ih =>
-    rw [Fin.prod_univ_succ]
-    have hh' : h / 2 < 2 ^ n := by rw [pow_succ] at hh; omega
-    have e : ∀ j : Fin n, (if h.testBit (j.succ : ℕ) then x ^ 2 ^ (j.succ : ℕ) else 1) =
-        if (h / 2).testBit j then (x ^ 2) ^ 2 ^ j.val else 1 := by
-      intro j
-      rw [Fin.val_succ, Nat.testBit_add_one, ← pow_mul, pow_succ']
-    have e0 : (if h.testBit ((0 : Fin (n + 1)) : ℕ) then x ^ 2 ^ ((0 : Fin (n + 1)) : ℕ) else 1) =
-        x ^ (h % 2) := by
-      rcases Nat.mod_two_eq_zero_or_one h with h0 | h1 <;> simp [Nat.testBit_zero, *]
-    rw [Finset.prod_congr rfl fun j _ ↦ e j, ih (x ^ 2) (h / 2) hh', ← pow_mul, e0, ← pow_add,
-      Nat.mod_add_div]
-
 /-- `1 + g0` is nonzero: its `y` limb is. -/
 private theorem one_add_g0_ne_zero : 1 + Flock.g0 ≠ 0 := by
   intro h
@@ -282,7 +263,7 @@ private theorem lagrangeBasis_high (h : Fin (2 ^ 4)) :
     (lagrangeBasis (highVec (k := 3) (m := 4) Flock.fixedPoint))[h] *
       ∏ j : Fin 4, (1 + Flock.g0 ^ 2 ^ j.val) = Flock.g0 ^ h.val := by
   rw [Fin.getElem_fin, lagrangeBasis_getElem_nat _ h.isLt, ← Finset.prod_mul_distrib,
-    ← prod_testBit_pow Flock.g0 4 h.val h.isLt]
+    pow_eq_prod_testBit Flock.g0 h.isLt]
   refine Finset.prod_congr rfl fun j _ ↦ ?_
   have hj : (highVec (k := 3) (m := 4) Flock.fixedPoint)[j] = Flock.mediumCoord j.val := by
     simp only [highVec, Fin.getElem_fin, Vector.getElem_ofFn]

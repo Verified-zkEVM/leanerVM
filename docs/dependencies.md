@@ -117,6 +117,24 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   (`QueryImpl.le_snd_of_mem_support_run_simulateQ_withCaching`,
   `QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching`,
   `QueryCache.evalWithAnswerFn_eq_of_agreesWithFn`).
+* **VCVio #858: `QueryLog.Consistent`.** The local predicate of that name (`ToVCVio/QueryLog.lean`)
+  is deleted for VCVio's `OracleSpec.QueryLog.Consistent` (`QueryTracking/QueryLogCheck.lean`):
+  two entries with the same query are equal. On a log of one function, `X →ₒ Y`, this is the
+  local form, two entries with the same input have the same answer (`consistent_iff`), so every
+  statement that assumed it, among them the headline hypotheses of `Headline.lean`, keeps its
+  meaning. The text of the headlines is unchanged: `Headline.lean` opens `OracleSpec`, so
+  `QueryLog.Consistent g.log` now names VCVio's predicate. Its `Decidable` instance and
+  `Consistent.of_prefix` stay in `ToVCVio/QueryLog.lean`, stated for any oracle specification.
+* **Upstream lemmas in the polynomial and random-oracle modules.** `card_false_batch_le` counts the
+  roots of Mathlib's `Polynomial.ofFn` with CompPoly's `card_eval_zero_le_natDegree`, so the
+  difference polynomial `batchDifference` and its degree bound are deleted; `powerBatch_sub` moves
+  from `Whir/Glue.lean` to `ToCompPoly/PowerBatching.lean`. `QueryHistory.enncard_le_of_mem_support`
+  is VCVio's `IsQueryBoundP.resource_le_add_of_mem_support_run_simulateQ`, and the no-oracle and
+  guarded-verifier facts of `ToArkLib/RunCodec.lean`, `Refutation.lean` and `SendChecked.lean` are
+  ArkLib's `eq_pure_runEmpty`, `completeness_iff_of_guarded_verifier` and
+  `toVerifier_verify_of_query_guard`. `pow_eq_prod_testBit` holds in any commutative monoid (it was
+  stated for commutative rings), a stronger statement; it replaces the private copy in
+  `FlockFields.lean`. The statements of the consumers are unchanged.
 * **Clean's prover data.** `ProverData` is a structure `{tables, publicInput}` (with
   `ProverData.empty` and `publicEnvironment`), `deriveProverData` takes the public input (the old
   function is `deriveTables`), and `Circuit.witgen` and `proverEnvironment` take the data (#511).

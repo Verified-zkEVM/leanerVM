@@ -44,7 +44,8 @@ namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash MerkleTree
 open MerkleTreeExtractor (QueryLog)
-open LeanerVM.Protocol.QueryLog (Consistent HasCollision)
+open LeanerVM.Protocol.QueryLog (HasCollision)
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 
@@ -335,7 +336,7 @@ theorem extractRows_determined (logA logV : QueryLog (List UInt8) Digest) (roots
 /-- On a consistent log, the rows read off it are those read off its deduplication: each query at
 its first occurrence only. -/
 theorem extractRows_dedupKeys {log : QueryLog (List UInt8) Digest}
-    (hcons : LeanerVM.Protocol.QueryLog.Consistent log) (root : Digest)
+    (hcons : Consistent log) (root : Digest)
     (depth rowWords leafWords p : ℕ) :
     extractRows (List.dedupKeys log) root depth rowWords leafWords p =
       extractRows log root depth rowWords leafWords p :=

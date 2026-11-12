@@ -145,7 +145,7 @@ private theorem twoRunGame_support {β : Type} {proofOf : β → Proof PrunedMer
   · have h₁' := hcached e₁ he₁
     have h₂' := hcached e₂ he₂
     rw [h] at h₁'
-    exact Option.some.inj (h₁'.symm.trans h₂')
+    exact Sigma.ext h (heq_of_eq (Option.some.inj (h₁'.symm.trans h₂')))
   · simp only [Run.log]
     rw [h₂, h₁, QueryLog.dedupKeys_append]
     congr 1

@@ -218,37 +218,23 @@ theorem prEvent_bind_le_of_potential {β γ : Type} (oa : OracleComp spec β)
   exact add_le_add (H.lintegral_le_of_potential Φ hn s hstep)
     (lintegral_id_evalDist_map_le_of_le _ fun _ ↦ le_rfl)
 
-omit [∀ t, SampleableType (spec.Range t)] in
-/-- A fresh query and at most `n - 1` more add at most `n` entries to the cache. -/
-private theorem enncard_view_record_add_le {s : σ} {t : spec.Domain} (h : H.view s t = none)
-    (u : spec.Range t) {n : ℕ} (hn : 0 < n) :
-    (H.view (H.record s t u)).enncard + (n - 1 : ℕ) ≤ (H.view s).enncard + n := by
-  rw [H.view_record _ _ _ h]
-  calc _ ≤ (H.view s).enncard + 1 + (n - 1 : ℕ) :=
-        add_le_add (QueryCache.enncard_cacheQuery_le _ t u) le_rfl
-    _ = _ := by rw [add_assoc, add_comm (1 : ℝ≥0∞), ← Nat.cast_add_one, Nat.sub_add_cancel hn]
-
 /-- A computation making at most `n` queries adds at most `n` entries to the cache. -/
 theorem enncard_le_of_mem_support {oa : OracleComp spec α} {n : ℕ} (hn : IsTotalQueryBound oa n)
     (s : σ) {z : α × σ} (hz : z ∈ support ((simulateQ H.randomOracle oa).run s)) :
     (H.view z.2).enncard ≤ (H.view s).enncard + n := by
-  induction oa using OracleComp.inductionOn generalizing n s with
-  | pure a =>
-    obtain rfl : z = (a, s) := by simpa using hz
+  have h := ((isQueryBoundP_true_iff oa n).mpr hn).resource_le_add_of_mem_support_run_simulateQ
+    (fun s ↦ (H.view s).toSet.encard) (fun t s w hw ↦ ?_) hz
+  · simp only [QueryCache.enncard]
+    exact_mod_cast h
+  cases hv : H.view s t with
+  | some u =>
+    rw [H.randomOracle_run_of_some hv, support_pure, Set.mem_singleton_iff] at hw
+    subst hw
     exact le_self_add
-  | query_bind t k ih =>
-    obtain ⟨hpos, hk⟩ := isTotalQueryBound_query_bind_iff.mp hn
-    rw [run_simulateQ_query_bind, mem_support_bind_iff] at hz
-    obtain ⟨p, hp, hz⟩ := hz
-    cases h : H.view s t with
-    | some u =>
-      rw [H.randomOracle_run_of_some h, support_pure, Set.mem_singleton_iff] at hp
-      subst hp
-      exact (ih u (hk u) s hz).trans (add_le_add le_rfl (Nat.cast_le.mpr (n.sub_le 1)))
-    | none =>
-      rw [H.randomOracle_run_of_none h, support_map] at hp
-      obtain ⟨u, -, rfl⟩ := hp
-      exact (ih u (hk u) _ hz).trans (H.enncard_view_record_add_le h u hpos)
+  | none =>
+    rw [H.randomOracle_run_of_none hv, support_map] at hw
+    obtain ⟨u, -, rfl⟩ := hw
+    simpa [H.view_record _ _ _ hv] using QueryCache.toSet_encard_cacheQuery_le _ t u
 
 /-! ### The fresh log of a logged run -/
 

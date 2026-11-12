@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+import Mathlib.Data.Nat.BitIndices
 
 /-!
 # Tables that factor over the index bits
@@ -86,32 +87,22 @@ private theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
     lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] :=
   Vector.ext fun i hi ↦ by rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
 
+/-- The binary expansion of `i < 2 ^ n`: the powers of its bits sum to `i`. -/
+theorem sum_testBit_two_pow {n i : ℕ} (hi : i < 2 ^ n) :
+    ∑ k ∈ (Finset.range n).filter (i.testBit ·), 2 ^ k = i := by
+  have h : (Finset.range n).filter (i.testBit ·) = i.bitIndices.toFinset := by
+    ext k
+    simp only [Finset.mem_filter, Finset.mem_range, List.mem_toFinset, Nat.mem_bitIndices,
+      and_iff_right_iff_imp]
+    exact fun hk ↦
+      (Nat.pow_lt_pow_iff_right (by decide)).1 ((Nat.ge_two_pow_of_testBit hk).trans_lt hi)
+  rw [h, List.sum_toFinset _ Nat.bitIndices_nodup, Nat.sum_map_two_pow_bitIndices]
+
 /-- A power is the product of the repeated squares its exponent's bits select. -/
-theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
+theorem pow_eq_prod_testBit {M : Type*} [CommMonoid M] (a : M) {n i : ℕ} (hi : i < 2 ^ n) :
     a ^ i = ∏ k : Fin n, if i.testBit k then a ^ 2 ^ k.val else 1 := by
-  induction n generalizing a i with
-  | zero =>
-    have : i = 0 := by simpa using hi
-    simp [this]
-  | succ n ih =>
-    rw [Fin.prod_univ_succ]
-    have hdiv : i / 2 < 2 ^ n := by omega
-    have hrest : ∀ k : Fin n,
-        (if i.testBit (k.succ : Fin (n + 1)).val then a ^ 2 ^ (k.succ : Fin (n + 1)).val else 1) =
-          if (i / 2).testBit k then (a ^ 2) ^ 2 ^ k.val else 1 := fun k ↦ by
-      rw [Fin.val_succ, Nat.testBit_succ, ← pow_mul, ← pow_succ']
-    rw [Finset.prod_congr rfl fun k _ ↦ hrest k, ← ih (a ^ 2) hdiv, ← pow_mul]
-    have hi2 : i = i % 2 + 2 * (i / 2) := (Nat.mod_add_div i 2).symm
-    rcases Nat.mod_two_eq_zero_or_one i with h | h
-    · have hb : i.testBit 0 = false := by simp [Nat.testBit_zero, h]
-      simp only [Fin.val_zero, hb]
-      rw [h, zero_add] at hi2
-      simp only [Bool.false_eq_true, ↓reduceIte, one_mul]
-      conv_lhs => rw [hi2]
-    · have hb : i.testBit 0 = true := by simp [Nat.testBit_zero, h]
-      simp only [Fin.val_zero, hb, ite_true, pow_zero, pow_one]
-      rw [h] at hi2
-      conv_lhs => rw [hi2, pow_add, pow_one]
+  rw [Fin.prod_univ_eq_prod_range (fun k ↦ if i.testBit k then a ^ 2 ^ k else 1),
+    ← Finset.prod_filter, Finset.prod_pow_eq_pow_sum, sum_testBit_two_pow hi]
 
 /-- The geometric table: entry `i` is `a ^ i`. -/
 def powersTable (a : R) (n : ℕ) : CMlPolynomialEval R n :=

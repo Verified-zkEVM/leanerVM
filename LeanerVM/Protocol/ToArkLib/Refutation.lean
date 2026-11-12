@@ -34,7 +34,7 @@ The supporting facts: a knowledge state function true at the end of a transcript
 true, for some witness, at every earlier round after which only the prover speaks; and an
 implementation under which every answer to every query is reachable does not shrink a
 computation's support. The facts about guarded verifiers are ArkLib's
-(`Verifier.GuardedForm.prEvent_pos_of_check`, `Reduction.run_eq_of_guarded_verifier`).
+(`Verifier.GuardedForm.prEvent_pos_of_check`, `Reduction.completeness_iff_of_guarded_verifier`).
 -/
 
 namespace LeanerVM.Protocol
@@ -202,32 +202,16 @@ theorem Reduction.not_perfectCompleteness_of_reject
       G.check s pr.1 = false ∨ (G.out s pr.1, pr.2.2) ∉ relOut) :
     ¬ red.perfectCompleteness init impl relIn relOut := by
   intro hpc
-  rw [Reduction.perfectCompleteness_eq_prob_one] at hpc
-  have h1 := (OptionT.prEvent_mk_eq_one_iff _ _).mp (hpc s w hin)
-  obtain ⟨st, hst, ⟨tr, prv, wo⟩, hpr, hbad⟩ := hbad
+  have h := (Reduction.completeness_iff_of_guarded_verifier red G relIn relOut 0).mp hpc s w hin
+  rw [ENNReal.coe_zero, tsub_zero] at h
+  obtain ⟨st, hst, pr, hpr, hbad⟩ := hbad
   simp only [StateT.run'_eq, support_map, Set.mem_image] at hpr
-  obtain ⟨q, hq, hq1⟩ := hpr
-  -- The outcome of the run from this prover run is reachable.
-  have hmem : (if G.check s tr then some ((tr, prv, wo), G.out s tr) else none) ∈
-      support (do
-        let st ← init
-        (simulateQ (impl.addLift challengeQueryImpl : QueryImpl _ (StateT σ ProbComp))
-          (red.run s w).run).run' st) := by
-    rw [mem_support_bind_iff]
-    refine ⟨st, hst, ?_⟩
-    rw [Reduction.run_eq_of_guarded_verifier red G, bind_pure_comp, simulateQ_map,
-      StateT.run'_eq, StateT.run_map, Functor.map_map, support_map]
-    exact ⟨q, hq, congrArg (fun a ↦ if G.check s a.1 then some (a, G.out s a.1) else none) hq1⟩
-  obtain ⟨x, hx, hp⟩ := h1 _ hmem
-  by_cases hc : G.check s tr = true
-  · rw [ite_eq_left hc, Option.some.injEq] at hx
-    subst hx
-    rcases hbad with hbad | hbad
-    · have hbad' : G.check s tr = false := hbad
-      exact Bool.false_ne_true (hbad'.symm.trans hc)
-    · exact hbad hp.1
-  · rw [ite_eq_right hc] at hx
-    cases hx
+  obtain ⟨q, hq, rfl⟩ := hpr
+  have hq' := (prEvent_eq_one_iff _ _).mp (le_antisymm (prEvent_le_one _) h) q
+    (by rw [mem_support_bind_iff]; exact ⟨st, hst, hq⟩)
+  rcases hbad with hbad | hbad
+  · exact Bool.false_ne_true (hbad.symm.trans hq'.1)
+  · exact hbad hq'.2.1
 
 /-- Every query to the challenge oracles alone has an answer. -/
 instance : ∀ t, Nonempty (([]ₒ + [pSpec.Challenge]ₒ).Range t)

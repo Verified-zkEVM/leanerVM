@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Blake2sHash
 public import LeanerVM.Protocol.Blake2sHashFast
 public import LeanerVM.Protocol.ToVCVio.Merkle
 public import Mathlib.Data.List.Destutter
+import Mathlib.Data.List.Sort
 
 /-!
 # leanVM's Merkle trees
@@ -198,22 +199,16 @@ def nodeModel : MerkleTreeExtractability.NodeQueryModel (List UInt8) Unit Digest
 
 /-! ## The sorted distinct positions -/
 
-private theorem pairwise_mergeSort_le (queries : List ℕ) : queries.mergeSort.Pairwise (· ≤ ·) :=
-  (List.pairwise_mergeSort (le := fun a b ↦ decide (a ≤ b))
-    (fun _ _ _ h₁ h₂ ↦ decide_eq_true (Nat.le_trans (of_decide_eq_true h₁) (of_decide_eq_true h₂)))
-    (fun a b ↦ Bool.or_eq_true_iff.mpr ((Nat.le_total a b).imp decide_eq_true decide_eq_true))
-    queries).imp of_decide_eq_true
-
 private theorem sortedUnique_eq_dedup (queries : List ℕ) :
     sortedUnique queries = queries.mergeSort.dedup :=
-  (pairwise_mergeSort_le queries).destutter_eq_dedup
+  (List.pairwise_mergeSort' (r := (· ≤ ·)) queries).destutter_eq_dedup
 
 theorem mem_sortedUnique {queries : List ℕ} {q : ℕ} : q ∈ sortedUnique queries ↔ q ∈ queries := by
   rw [sortedUnique_eq_dedup, List.mem_dedup, List.mem_mergeSort]
 
 theorem pairwise_sortedUnique (queries : List ℕ) : (sortedUnique queries).Pairwise (· < ·) := by
   rw [sortedUnique_eq_dedup]
-  exact (((pairwise_mergeSort_le queries).sublist (List.dedup_sublist _)).and
+  exact (((List.pairwise_mergeSort' (r := (· ≤ ·)) queries).sublist (List.dedup_sublist _)).and
     (List.nodup_dedup _)).imp fun h ↦ Nat.lt_of_le_of_ne h.1 h.2
 
 private theorem sortedUnique_eq_nil {queries : List ℕ} :
