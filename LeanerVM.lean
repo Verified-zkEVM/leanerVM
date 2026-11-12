@@ -72,11 +72,13 @@ import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.FlockWalks
 import LeanerVM.Protocol.HashMisbehaves
 import LeanerVM.Protocol.Headline
+import LeanerVM.Protocol.HonestGame
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
 import LeanerVM.Protocol.LeanIsa.Complete
 import LeanerVM.Protocol.LeanIsa.Conditions
+import LeanerVM.Protocol.LeanIsa.ExecutionStack
 import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Refinement
 import LeanerVM.Protocol.LeanIsa.Relation

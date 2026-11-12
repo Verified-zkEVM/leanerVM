@@ -54,14 +54,16 @@ theorem fitsBy_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace pro
   rw [fitsBy, countsOf_runCountTableBy h P]
   exact fitsRowsB_eq_true_iff t
 
-/-- Whether the trace fits, reading addresses through one table of powers. -/
+/-- Whether the trace fits: first the memory's room (`Fits.room`), in constant time, then
+`fitsBy` through one table of powers as large as the address space. -/
 def fitsB (prog : Program) (t : Trace prog) : Bool :=
-  fitsBy prog t (powTable (2 ^ max t.κ prog.logSize))
+  decide (t.κ < maxLogMem) && fitsBy prog t (powTable (2 ^ max t.κ prog.logSize))
 
 /-- **The check decides `Fits` on a valid execution.** -/
 theorem fitsB_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace prog}
-    (h : ValidExecution prog input t) : fitsB prog t = true ↔ t.Fits :=
-  fitsBy_eq_true_iff h _
+    (h : ValidExecution prog input t) : fitsB prog t = true ↔ t.Fits := by
+  rw [fitsB, Bool.and_eq_true, decide_eq_true_eq, fitsBy_eq_true_iff h]
+  exact ⟨And.right, fun hf ↦ ⟨hf.room, hf⟩⟩
 
 end
 end LeanerVM.Arithmetization
