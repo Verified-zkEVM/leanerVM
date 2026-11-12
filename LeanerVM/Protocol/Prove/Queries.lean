@@ -565,6 +565,9 @@ def wireQueries (fuel : ℕ) (prog : Program) (s : Sizes) (input : PublicInput) 
       ((Verify.leanVm prog s).publicLines input)) + qc.flock (s.τ 5) + 1 +
     (2 + ladderQueries fuel L)
 
+-- `queryGrade` sealed: elaborating a bind at the compiled prover would otherwise unfold the
+-- bound into the prover's run.
+attribute [local irreducible] queryGrade in
 private theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} (hsat : SatisfiedBy prog input w)
     (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) {ρ : ℕ} (hρ : validRate ρ) :
@@ -607,8 +610,10 @@ theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ :
   dsimp only
   rw [dite_eq_left ⟨hs, hρ⟩]
   unfold runProofFrom
-  refine isTotalQueryBound_bind (VerifierQueries.isTotalQueryBound_seedWith prog input)
-    fun fs ↦ isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ isQueryBound_pure _ _ _ _
+  refine isTotalQueryBound_bind (VerifierQueries.isTotalQueryBound_seedWith prog input) fun fs ↦ ?_
+  -- the count as `n + 0`, so that unifying it does not unfold the prover's run
+  rw [← Nat.add_zero (8 + wireQueries fuel prog s input (leanIsaChain prog s hs ρ hρ).ladder)]
+  refine isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ isQueryBound_pure _ _ _ _
   have hw := writeProof_grade fuel hsat hws hs hρ ⟨#[], #[]⟩ ⟨fs, #[], #[]⟩
   have : runWrite ((writeProof hashQuery (qops fuel) Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ
       input (stackOf Blake2sFlock.blake2sFlockSpec prog s w)).run' ⟨#[], #[]⟩) fs =
