@@ -122,17 +122,6 @@ private theorem not_freshHit_roots {prog : Program} {input : PublicInput} {g : R
     rw [← List.take_succ_eq_append_getElem hp]
     exact (List.take_prefix _ _).trans (List.prefix_append _ _)
 
-/-- A cast along an equation of types is heterogeneously equal to its argument. -/
-private theorem heq_mp {α β : Sort _} (h : α = β) (a : α) : HEq (Eq.mp h a) a := by
-  cases h
-  rfl
-
-/-- The first half of an appended transcript at a round is the whole's at that round. -/
-private theorem fst_heq {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
-    (T : FullTranscript (p₁ ++ₚ p₂)) (i : Fin m) : HEq (T.fst i) (T (Fin.castAdd n i)) := by
-  unfold FullTranscript.fst
-  exact heq_mp _ _
-
 /-- The word committed in the first round, read off a full transcript cut after it, is the
 transcript's level-0 word. -/
 private theorem committedWord_take_one {I : M3Instance} {sh : Whir.Shape} {κ : ℕ}
@@ -145,8 +134,8 @@ private theorem committedWord_take_one {I : M3Instance} {sh : Whir.Shape} {κ : 
   apply eq_of_heq
   refine (cast_heq _ _).trans ?_
   refine HEq.symm ?_
-  exact (fst_heq _ _).trans ((fst_heq _ _).trans ((fst_heq _ _).trans ((fst_heq _ _).trans
-    ((fst_heq _ _).trans ((fst_heq _ _).trans (fst_heq _ _))))))
+  iterate 6 refine (FullTranscript.fst_apply_heq _ _).trans ?_
+  exact FullTranscript.fst_apply_heq _ _
 
 /-- The compiled verifier, as the state function of `listBinding_deployed` reads it. -/
 private theorem compiledDef_verifier (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)

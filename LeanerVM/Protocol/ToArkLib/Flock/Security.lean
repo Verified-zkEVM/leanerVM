@@ -489,7 +489,7 @@ theorem skipDraw_unzeroed_not_rbr
       (rel (zcFamily P C z side) 0) E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
     (h : (Component.sampleVerifier O F (fun _ ↦ true)
-      (skipNextAll P (S := S))).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn
+      (skipNextAll P (S := S))).toVerifier.rbrKnowledgeSoundnessWith init impl relIn
       (rel (zcFamily P C z side) 0) WitMid E kSF ε)
     (s : PointStmt S F P.nRand) (o : ∀ i, O i) (hside : side s.1 o)
     (hconst : ∀ t : Fin (2 ^ P.κ), (constTable P.cpos (z o))[t] = 0) (i : Fin (2 ^ P.s))
@@ -531,7 +531,7 @@ theorem alphaDraw_noConst_not_rbr {σ : Type} (init : ProbComp σ)
       relIn (rel (linFamily P C z side) 0) E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
     (h : (Component.sampleVerifier O F (fun _ ↦ true)
-      (alphaNextNoConst (S := S) (n := P.m + P.κ))).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+      (alphaNextNoConst (S := S) (n := P.m + P.κ))).toVerifier.rbrKnowledgeSoundnessWith
       init impl relIn (rel (linFamily P C z side) 0) WitMid E kSF ε)
     (t : TermStmt S F (P.m + P.κ)) (o : ∀ i, O i) (hside : side t.1.1 o)
     (ha : t.2.2.1 = evalMle (zcA P C z o t.1.2.2) t.2.1)

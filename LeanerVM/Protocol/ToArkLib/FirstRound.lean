@@ -18,12 +18,13 @@ Two facts about a sequence of components read at its first rounds.
 
 * `Component.Security.append_kSF_left`: up to the seam, the knowledge state function of a sequence
   is the first component's, on the first component's part of the transcript.
-* `Extractor.RoundByRound.DecodesFirst E hn f`: the extractor's first step returns `q` whenever
-  `f` reads `q` off the statement and the first message. The property passes from an extractor to
-  its sequence with any other (`decodesFirst_append`), and an extractor that has it returns the
-  decoded witness on every full transcript (`extractIn_eq_of_decodesFirst`): the fold of the steps
-  ends with the first step. `ReadsFirst` of `LeanerVM.Protocol.ToArkLib.ExtractIn` is the case of
-  an extractor that returns the message itself.
+* `Extractor.RoundByRound.DecodesFirst E hn f`: the extractor's fold from round `1` returns `q`
+  whenever `f` reads `q` off the statement and the first message. The property passes from an
+  extractor to its sequence with any other (`decodesFirst_append`), and an extractor that has it
+  returns the decoded witness on every full transcript (`extractFull_eq_of_decodesFirst`):
+  the fold of the steps ends with the fold from round `1`. `ReadsFirst` of
+  `LeanerVM.Protocol.ToArkLib.ExtractIn` is the case of an extractor that returns the message
+  itself.
 
 Nothing here transcribes a source.
 -/
@@ -65,9 +66,9 @@ theorem Security.append_kSF_left (S₁ : Security D₁ rel₁ rel₂ ε₁) (S�
     (s : Stmt₁ × ∀ i, OStmt₁ i) (tr : (pSpec₁ ++ₚ pSpec₂).Transcript k)
     (w : (S₁.append S₂).witMid k) :
     ((S₁.append S₂).kSF init impl).toFun k s tr w ↔
-      (S₁.kSF init impl).toFun j s (Verifier.KnowledgeAppend.left tr j (by omega))
-        (cast (Verifier.KnowledgeAppend.witness_left k j h) w) :=
-  Verifier.KnowledgeAppend.state_left _ _ _ j h s tr w
+      (S₁.kSF init impl).toFun j s (tr.fstUpTo j (by omega))
+        (cast (Extractor.wit_mid_append_left k j h) w) :=
+  Verifier.KnowledgeStateFunction.appendGuardedToFun_of_le _ _ _ k j h s tr w
 
 end Component
 
@@ -78,67 +79,23 @@ namespace Extractor.RoundByRound
 variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn WitOut : Type} {n : ℕ}
   {pSpec : ProtocolSpec n} {WitMid : Fin (n + 1) → Type}
 
-/-- The fold of the steps from a round above the first ends with the first step. -/
-theorem foldMid_eq_extractMid_zero
-    (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid) (s : StmtIn)
-    (tr : pSpec.FullTranscript) :
-    ∀ (m : ℕ) (hm : m + 1 ≤ n) (w : WitMid ⟨m + 1, Nat.lt_succ_of_le hm⟩),
-      ∃ w₁ : WitMid (⟨0, Nat.lt_of_lt_of_le (Nat.succ_pos m) hm⟩ : Fin n).succ,
-        foldMid E s tr (m + 1) hm w =
-          E.extractMid ⟨0, Nat.lt_of_lt_of_le (Nat.succ_pos m) hm⟩ s
-            (tr.take 1 (Nat.le_trans (Nat.succ_le_succ (Nat.zero_le m)) hm)) w₁
-  | 0, _, w => ⟨w, rfl⟩
-  | m + 1, hm, w => foldMid_eq_extractMid_zero E s tr m (by omega) _
-
-/-- The witness an extractor returns is its first step's, at some witness of round `1`. -/
-theorem extractIn_heq_extractMid_zero
-    (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid) (hn : 0 < n)
-    (s : StmtIn) (tr : pSpec.FullTranscript) (w : WitOut) :
-    ∃ w₁ : WitMid ⟨1, Nat.succ_lt_succ hn⟩,
-      HEq (extractIn E s tr w) (E.extractMid ⟨0, hn⟩ s (tr.take 1 hn) w₁) := by
-  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_one_of_ne_zero hn.ne'
-  obtain ⟨w₁, hw⟩ := foldMid_eq_extractMid_zero E s tr k le_rfl (E.extractOut s tr w)
-  refine ⟨w₁, ?_⟩
-  unfold extractIn
-  refine (cast_heq _ _).trans ?_
-  rw [hw]
-  rfl
-
-/-- The first step of two extractors in sequence is the first extractor's, on the transcript's
-first message, up to the casts of the composed witness family and of the appended schedule. -/
-theorem extractMid_zero_append {Stmt₂ Wit₂ Wit₃ : Type} {m : ℕ} {pSpec₂ : ProtocolSpec m}
-    {WitMid₂ : Fin (m + 1) → Type}
-    (E₁ : Extractor.RoundByRound oSpec StmtIn WitIn Wit₂ pSpec WitMid)
-    (E₂ : Extractor.RoundByRound oSpec Stmt₂ Wit₂ Wit₃ pSpec₂ WitMid₂)
-    (verify : StmtIn → pSpec.FullTranscript → Stmt₂) (hn : 0 < n) (s : StmtIn)
-    (tr : Transcript ⟨1, by omega⟩ (pSpec ++ₚ pSpec₂))
-    (w : (Fin.append (m := n + 1) WitMid (Fin.tail WitMid₂) ∘ Fin.cast (by omega)) ⟨1, by omega⟩) :
-    HEq ((E₁.append E₂ verify).extractMid ⟨0, by omega⟩ s tr w)
-      (E₁.extractMid ⟨0, hn⟩ s
-        (show pSpec.Transcript ⟨1, by omega⟩ from fun i ↦
-          cast (ProtocolSpec.append_Type_castAdd (pSpec₁ := pSpec) (pSpec₂ := pSpec₂)
-            ⟨i.val, by have := i.isLt; omega⟩) (tr ⟨i.val, by have := i.isLt; omega⟩))
-        (cast (Extractor.wit_mid_append_left (WitMid₂ := WitMid₂)
-          (⟨0, by omega⟩ : Fin (n + m)).succ ⟨1, by omega⟩ rfl) w)) := by
-  simp only [Extractor.RoundByRound.append, dite_eq_left hn]
-  exact cast_heq _ _
-
-/-- The extractor's first step returns `q` whenever `f` reads `q` off the statement and the first
-message. -/
+/-- The extractor's fold from round `1` returns `q` whenever `f` reads `q` off the statement and
+the first message. -/
 def DecodesFirst (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid)
     (hn : 0 < n) (f : StmtIn → pSpec.«Type» ⟨0, hn⟩ → Option WitIn) : Prop :=
-  ∀ s (tr : Transcript ⟨1, Nat.succ_lt_succ hn⟩ pSpec) w q,
-    f s (tr ⟨0, Nat.zero_lt_one⟩) = some q → HEq (E.extractMid ⟨0, hn⟩ s tr w) q
+  ∀ s (tr : Transcript ⟨1, Nat.succ_lt_succ hn⟩ pSpec) (w : WitMid ⟨1, Nat.succ_lt_succ hn⟩) q,
+    f s (tr ⟨0, Nat.zero_lt_one⟩) = some q → E.foldPrefix s ⟨1, _⟩ tr w = q
 
 /-- An extractor whose first step decodes the first message returns the decoded witness on every
 full transcript. -/
-theorem extractIn_eq_of_decodesFirst
+theorem extractFull_eq_of_decodesFirst
     (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid) (hn : 0 < n)
     {f : StmtIn → pSpec.«Type» ⟨0, hn⟩ → Option WitIn} (hE : DecodesFirst E hn f) (s : StmtIn)
     (tr : pSpec.FullTranscript) (w : WitOut) (q : WitIn) (hq : f s (tr ⟨0, hn⟩) = some q) :
-    extractIn E s tr w = q := by
-  obtain ⟨w₁, hw₁⟩ := extractIn_heq_extractMid_zero E hn s tr w
-  exact eq_of_heq (hw₁.trans (hE s _ w₁ q hq))
+    extractFull E s tr w = q := by
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_one_of_ne_zero hn.ne'
+  obtain ⟨w₁, h⟩ := foldPrefix_eq_foldPrefix_one E s k le_rfl tr (E.extractOut s tr w)
+  exact h.trans (hE s _ w₁ q hq)
 
 /-- The sequence of two extractors decodes the first message when the first extractor does. -/
 theorem decodesFirst_append {Stmt₂ Wit₂ Wit₃ : Type} {m : ℕ} {pSpec₂ : ProtocolSpec m}
@@ -149,7 +106,7 @@ theorem decodesFirst_append {Stmt₂ Wit₂ Wit₃ : Type} {m : ℕ} {pSpec₂ :
     {f : StmtIn → pSpec.«Type» ⟨0, hn⟩ → Option WitIn} (h₁ : DecodesFirst E₁ hn f) :
     DecodesFirst (E₁.append E₂ verify) (by omega) (fun s x ↦ f s
       (cast (ProtocolSpec.append_Type_castAdd (pSpec₁ := pSpec) (pSpec₂ := pSpec₂) ⟨0, hn⟩) x)) :=
-  fun s tr w q hq ↦ (extractMid_zero_append E₁ E₂ verify hn s tr w).trans (h₁ s _ _ q hq)
+  fun s tr w q hq ↦ (append_foldPrefix_one E₁ E₂ verify hn s tr w).trans (h₁ s _ _ q hq)
 
 end Extractor.RoundByRound
 

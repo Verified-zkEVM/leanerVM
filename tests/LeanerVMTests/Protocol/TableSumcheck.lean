@@ -489,7 +489,7 @@ theorem round_unchecked_not_rbr {σ : Type} (init : ProbComp σ)
         (fun p : SumcheckRound.MidStmt (Data twoTab) E 0 3 ↦ fun c ↦
           SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 3 p.2 c) c)).toVerifier Ex}
     {ε : (draw E).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : Verifier.rbrKnowledgeSoundnessWith init impl
       (SumcheckRound.relMid (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
         (side twoTab)) 0)
       (SumcheckRound.rel (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes

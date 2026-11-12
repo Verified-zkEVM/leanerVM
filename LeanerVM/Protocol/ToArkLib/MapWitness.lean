@@ -76,7 +76,7 @@ variable (back : W' → W) {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)}
 by `back`. -/
 def backExtractor (S : Type) {n : ℕ} (pSpec : ProtocolSpec n) :
     Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) S W W' pSpec (fun _ ↦ W) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun _ _ _ w ↦ w
   extractOut := fun _ _ w' ↦ back w'
 
@@ -86,11 +86,11 @@ def mapWitnessStateFunction :
     (passThroughVerifier OStmt f).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (backExtractor back (StmtIn × ∀ i, OStmt i) !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w' hpos ↦
-    h stmt.1 stmt.2 w' (Verifier.GuardedForm.of_probEvent_pos
-      (passThroughPure OStmt f).toGuardedForm init impl stmt tr _ hpos).2
+  toFun_full := fun stmt _ w' hpos ↦
+    h stmt.1 stmt.2 w' (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (passThroughPure OStmt f).toGuardedForm hpos).2
 
 /-- The security half of the map-witness component, at the empty error, with the extractor that
 sends the output witness back by `back`: the output relation, at the statement mapped, implies the

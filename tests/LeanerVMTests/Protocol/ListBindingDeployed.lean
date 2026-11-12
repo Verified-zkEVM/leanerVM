@@ -129,7 +129,7 @@ example (F : FlockSpec) (prog : Program) (s : Sizes) (hs : s.Admissible prog) (�
     (hρ : validRate ρ) {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (listBindingDef (leanVmPhases (leanIsaInstance F prog s) (leanIsa_conditions F prog s))
         (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder).red.verifier
-      |>.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      |>.toVerifier.rbrKnowledgeSoundnessWith init impl
         (M3Rel (leanIsaInstance F prog s)) Set.univ
         (listBinding_deployed F prog s hs ρ hρ).witMid
         (listBinding_deployed F prog s hs ρ hρ).extractor
@@ -156,7 +156,7 @@ example (F : FlockSpec) (prog : Program) (s : Sizes) (hs : s.Admissible prog) (�
     (q : Column (leanIsaInstance F prog s).μ)
     (hq : deployedPick (leanIsaInstance F prog s) (admissible_of_sizes hs hρ) st.1
       (headWord (admissible_of_sizes hs hρ) (committedWord (k := Fin.last _) tr (by simp))) = some q) :
-    Extractor.RoundByRound.extractIn (listBinding_deployed F prog s hs ρ hρ).extractor st tr () =
+    Extractor.RoundByRound.extractFull (listBinding_deployed F prog s hs ρ hρ).extractor st tr () =
       q :=
   listBinding_deployed_extractedStack_eq F prog s hs ρ hρ st tr q hq
 

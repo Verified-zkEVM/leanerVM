@@ -199,7 +199,8 @@ theorem run_append {D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ p
     {D₂ : Def Stmt₂ OStmt₂ Wit₂ Stmt₃ OStmt₃ Wit₃ pSpec₂} (G₁ : Guarded D₁) (G₂ : Guarded D₂)
     (s : Stmt₁ × ∀ i, OStmt₁ i) (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
     (G₁.append G₂).run s tr = (G₁.run s tr.fst).bind fun s' ↦ G₂.run s' tr.snd := by
-  simp only [run, Guarded.append, guardedAppend_check, guardedAppend_out]
+  simp only [run, Guarded.append, OracleVerifier.appendGuardedForm, Verifier.GuardedForm.ofEq,
+    Verifier.GuardedForm.append]
   by_cases h : G₁.guarded.check s tr.fst = true <;> simp [h]
 
 /-- A front component's guarded run is its run, the oracles handed on. -/

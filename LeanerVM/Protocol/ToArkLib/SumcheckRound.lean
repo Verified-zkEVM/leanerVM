@@ -382,7 +382,7 @@ theorem drawChallenge_unchecked_not_rbr (Φ : Family F X O W d) {m : ℕ} (H : �
       (Component.sampleVerifier O F (fun _ ↦ true)
         (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ j) (rel Φ (j + 1))
+    (h : Verifier.rbrKnowledgeSoundnessWith init impl (relMid Φ j) (rel Φ (j + 1))
       (Component.sampleVerifier O F (fun _ ↦ true)
         (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier
       WitMid E kSF ε)

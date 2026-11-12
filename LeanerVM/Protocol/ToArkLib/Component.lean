@@ -8,12 +8,10 @@
 
 module
 
-public import ArkLib.OracleReduction.Composition.Sequential.Append.Basic
-public import ArkLib.OracleReduction.Composition.Sequential.Append.StateFunction
+public import ArkLib.OracleReduction.Composition.Sequential.Append.GuardedRoundByRound
+public import ArkLib.OracleReduction.Composition.Sequential.GuardedNary
 public import ArkLib.OracleReduction.Composition.Sequential.OracleCompleteness
 public import ArkLib.OracleReduction.Composition.Sequential.NoAmbient
-public import ArkLib.OracleReduction.Security.CoordinateWiseSpecialSoundness.Guarded
-public import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 
 /-!
 # Components and their composition
@@ -42,11 +40,11 @@ security inside a definition would bring the errors back into compiled code.
 Two components in sequence are again a component (`Def.append`): schedules concatenate, and so
 do the errors (`errAppend`). Completeness composes by a theorem ArkLib proves; the prover's
 final output makes no oracle query since the shared oracle is empty. Extractors compose by
-ArkLib's `Extractor.RoundByRound.append`, through the first verifier's verdict. Their knowledge
-state functions and the knowledge-soundness bound compose by the construction and the theorem
-of `LeanerVM.Protocol.ToArkLib.KnowledgeAppend`, ported from ArkLib pull request #615 (ArkLib's
-own `append_rbrKnowledgeSoundness` is admitted at the pinned revision), so knowledge soundness
-composes with no assumption.
+ArkLib's `Extractor.RoundByRound.append`, through the first verifier's verdict, and their
+knowledge state functions and the knowledge-soundness bound by ArkLib's guarded composition
+(`Verifier.KnowledgeStateFunction.appendGuarded`,
+`Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first`), so knowledge soundness composes
+with no assumption.
 -/
 
 namespace LeanerVM.Protocol
@@ -68,10 +66,8 @@ def errAppend {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n
 /-- The sum of the errors of two schedules in sequence is the sum of the sums. -/
 theorem sum_errAppend {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     (ε₁ : pSpec₁.ChallengeIdx → ℝ≥0) (ε₂ : pSpec₂.ChallengeIdx → ℝ≥0) :
-    ∑ i, errAppend ε₁ ε₂ i = ∑ i, ε₁ i + ∑ i, ε₂ i := by
-  rw [← ChallengeIdx.sumEquiv.sum_comp (errAppend ε₁ ε₂)]
-  simp only [errAppend, Function.comp_apply, Equiv.symm_apply_apply, Fintype.sum_sum_type,
-    Sum.elim_inl, Sum.elim_inr]
+    ∑ i, errAppend ε₁ ε₂ i = ∑ i, ε₁ i + ∑ i, ε₂ i :=
+  ChallengeIdx.sum_sumElim_comp_sumEquiv_symm ε₁ ε₂
 
 /-- The values satisfying `p`, counted as a subtype, are those of the filtered universe: errors
 count bad challenges with `Nat.card`, which needs no `Fintype` instance, and proofs count them
@@ -165,7 +161,7 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec)
     (err : pSpec.ChallengeIdx → ℝ≥0) extends Extraction D relIn relOut where
   /-- Round-by-round knowledge soundness at `err`, for this extractor and state function. -/
   rbr : ∀ {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)),
-    D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut witMid
+    D.red.verifier.toVerifier.rbrKnowledgeSoundnessWith init impl relIn relOut witMid
       extractor (kSF init impl) err
 
 /-- Security at an error is security at any larger error. Inlined before compilation, so the
@@ -184,7 +180,7 @@ def Security.mono {D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec}
 leaves free. -/
 def keepExtractor (S W : Type) {n : ℕ} (pSpec : ProtocolSpec n) :
     Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) S W W pSpec (fun _ ↦ W) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun _ _ _ w ↦ w
   extractOut := fun _ _ w ↦ w
 
@@ -206,15 +202,15 @@ def stateFunctionOfEq {ι : Type} {oSpec : OracleSpec ι} {S T WitIn WitOut : Ty
 
 /-- Knowledge soundness for a state function carries over to the same state function of an
 equal verifier. -/
-theorem rbrKnowledgeSoundnessWorstCaseWith_of_eq {ι : Type} {oSpec : OracleSpec ι}
+theorem rbrKnowledgeSoundnessWith_of_eq {ι : Type} {oSpec : OracleSpec ι}
     {S T WitIn WitOut : Type} {n : ℕ} {pSpec : ProtocolSpec n}
     [∀ i, SampleableType (pSpec.Challenge i)] {W : Fin (n + 1) → Type}
     {E : Extractor.RoundByRound oSpec S WitIn WitOut pSpec W} {σ : Type} {init : ProbComp σ}
     {impl : QueryImpl oSpec (StateT σ ProbComp)} {relIn : Set (S × WitIn)}
     {relOut : Set (T × WitOut)} {V V' : Verifier oSpec S T pSpec} (h : V' = V)
     {K : V.KnowledgeStateFunction init impl relIn relOut E} {ε : pSpec.ChallengeIdx → ℝ≥0}
-    (hK : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut W E K ε) :
-    V'.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut W E (stateFunctionOfEq h K)
+    (hK : V.rbrKnowledgeSoundnessWith init impl relIn relOut W E K ε) :
+    V'.rbrKnowledgeSoundnessWith init impl relIn relOut W E (stateFunctionOfEq h K)
       ε := by
   subst h
   exact hK
@@ -238,40 +234,9 @@ variable {D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
   {rel₁ : Set ((Stmt₁ × ∀ i, OStmt₁ i) × Wit₁)} {rel₂ : Set ((Stmt₂ × ∀ i, OStmt₂ i) × Wit₂)}
   {rel₃ : Set ((Stmt₃ × ∀ i, OStmt₃ i) × Wit₃)}
 
-/-- The guarded form of an appended verifier, from those of its parts. -/
-def guardedAppend (G₁ : D₁.red.toReduction.verifier.GuardedForm)
-    (G₂ : D₂.red.toReduction.verifier.GuardedForm) :
-    (D₁.append D₂).red.toReduction.verifier.GuardedForm :=
-  cast (congrArg _ (OracleVerifier.append_toVerifier _ _).symm) (G₁.append G₂)
-
-/-- A guarded form carried along an equality of verifiers keeps its check and its verdict. -/
-private theorem cast_guardedForm {ι S T : Type} {oSpec : OracleSpec ι} {n : ℕ}
-    {pSpec : ProtocolSpec n} {V V' : Verifier oSpec S T pSpec} (h : V = V') (G : V.GuardedForm) :
-    (cast (congrArg Verifier.GuardedForm h) G).check = G.check ∧
-      (cast (congrArg Verifier.GuardedForm h) G).out = G.out := by
-  subst h
-  exact ⟨rfl, rfl⟩
-
-/-- The check of an appended guarded form: the first check, then the second on the first
-verdict. -/
-theorem guardedAppend_check (G₁ : D₁.red.toReduction.verifier.GuardedForm)
-    (G₂ : D₂.red.toReduction.verifier.GuardedForm) (s : Stmt₁ × ∀ i, OStmt₁ i)
-    (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
-    (guardedAppend G₁ G₂).check s tr = (G₁.check s tr.fst && G₂.check (G₁.out s tr.fst) tr.snd) :=
-  congrFun (congrFun (cast_guardedForm (OracleVerifier.append_toVerifier _ _).symm
-    (G₁.append G₂)).1 s) tr
-
-/-- The verdict of an appended guarded form: the second verdict on the first. -/
-theorem guardedAppend_out (G₁ : D₁.red.toReduction.verifier.GuardedForm)
-    (G₂ : D₂.red.toReduction.verifier.GuardedForm) (s : Stmt₁ × ∀ i, OStmt₁ i)
-    (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
-    (guardedAppend G₁ G₂).out s tr = G₂.out (G₁.out s tr.fst) tr.snd :=
-  congrFun (congrFun (cast_guardedForm (OracleVerifier.append_toVerifier _ _).symm
-    (G₁.append G₂)).2 s) tr
-
 /-- Guarded forms compose. -/
 def Guarded.append (G₁ : Guarded D₁) (G₂ : Guarded D₂) : Guarded (D₁.append D₂) where
-  guarded := guardedAppend G₁.guarded G₂.guarded
+  guarded := OracleVerifier.appendGuardedForm G₁.guarded G₂.guarded
 
 /-- Two front components over the same oracles in sequence are front: the first check, then the
 second on the first verdict. -/
@@ -309,7 +274,7 @@ def Extraction.append (X₁ : Extraction D₁ rel₁ rel₂) (X₂ : Extraction 
       (X₂.kSF init impl))
 
 /-- Security composes, at the errors side by side: the extractions are appended, and the bound
-is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. Inlined before
+is `Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first`. Inlined before
 compilation, like `Security.mono`, so a composed security computes. -/
 @[macro_inline]
 def Security.append {ε₁ : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ : pSpec₂.ChallengeIdx → ℝ≥0}
@@ -317,9 +282,9 @@ def Security.append {ε₁ : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ : pSpec�
     Security (D₁.append D₂) rel₁ rel₃ (errAppend ε₁ ε₂) where
   toExtraction := S₁.toExtraction.append S₂.toExtraction
   rbr := fun init impl ↦
-    rbrKnowledgeSoundnessWorstCaseWith_of_eq (OracleVerifier.append_toVerifier _ _)
-      (Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first S₁.guarded
-        (S₁.kSF init impl) (S₂.kSF init impl) (S₁.rbr init impl) (S₂.rbr init impl))
+    rbrKnowledgeSoundnessWith_of_eq (OracleVerifier.append_toVerifier _ _)
+      (Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first _ _ S₁.guarded
+        (S₁.rbr init impl) (S₂.rbr init impl))
 
 end Component
 

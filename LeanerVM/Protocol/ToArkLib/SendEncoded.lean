@@ -86,7 +86,7 @@ variable (pick : S → M → Option W)
 (`OracleSpec.emptySpec.{0, 0}`, not `[]ₒ`, pins a universe the extractor type leaves free.) -/
 def decodeExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
     (S × ∀ i, NoOracle i) W W (sendSpec M) (fun _ ↦ W) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun m s tr w ↦ (pick s.1 (tr ⟨0, Nat.succ_pos m.val⟩)).getD w
   extractOut := fun _ _ w ↦ w
 
@@ -103,7 +103,7 @@ def sendEncodedStateFunction :
   toFun := fun m stmt tr w ↦
     if h : m.val = 0 then (stmt, w) ∈ relIn
     else ((stmt.1, fun _ ↦ tr ⟨0, Nat.pos_of_ne_zero h⟩), w) ∈ relOut
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m _ stmt tr msg w h ↦ by
     have hm : m.val = 0 := by omega
     simp only [Fin.val_succ, Nat.add_eq_zero_iff, one_ne_zero, and_false, dite_false] at h
@@ -112,10 +112,10 @@ def sendEncodedStateFunction :
     simp only [decodeExtractor]
     rw [hq, Option.getD_some]
     exact hrel stmt.2
-  toFun_full := fun stmt tr w h ↦ by
+  toFun_full := fun _ _ _ h ↦ by
     simp only [Fin.val_last, one_ne_zero, dite_false]
-    exact (Verifier.GuardedForm.of_probEvent_pos
-      (sendVerifierPure (S := S) (M := M)).toGuardedForm init impl stmt tr _ h).2
+    exact (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendVerifierPure (S := S) (M := M)).toGuardedForm h).2
 
 /-- The security half, at error zero, with the extractor that decodes the message. -/
 def sendEncodedSecurity :

@@ -24,7 +24,7 @@ challenge types (`chal`, `map_chal`). A message may thus be decoded from the sta
 everything sent before it, as a verifier that reads one value less than it checks derives the
 missing value from the claim the earlier rounds left.
 
-`Verifier.comap V T` runs `V` on the decoded transcript. `rbrKnowledgeSoundnessWorstCaseWith_comap`:
+`Verifier.comap V T` runs `V` on the decoded transcript. `rbrKnowledgeSoundnessWith_comap`:
 if `V` is round-by-round knowledge sound at the error `ε`, for an extractor and a knowledge state
 function, then `V.comap T` is, at the same `ε`, for the extractor and the state function read on
 the decoded transcript (`Extractor.RoundByRound.comap`, `KnowledgeStateFunction.comap`). A uniform
@@ -128,7 +128,7 @@ def Extractor.RoundByRound.comap {ι : Type} {oSpec : OracleSpec ι} {StmtIn Wit
     (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid)
     (T : TranscriptMap StmtIn pSpec' pSpec) :
     Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec' WitMid where
-  eqIn := E.eqIn
+  extractIn := E.extractIn
   extractMid := fun m s tr w ↦ E.extractMid m s (T.map m.succ s tr) w
   extractOut := fun s tr w ↦ E.extractOut s (T.map (Fin.last n) s tr) w
 
@@ -149,9 +149,8 @@ def KnowledgeStateFunction.comap (K : V.KnowledgeStateFunction init impl relIn r
     (Verifier.comap V T).KnowledgeStateFunction init impl relIn relOut
       (Extractor.RoundByRound.comap E T) where
   toFun := fun m s tr w ↦ K.toFun m s (T.map m s tr) w
-  toFun_empty := fun s w ↦ by
-    rw [K.toFun_empty s w]
-    exact Iff.of_eq (congrArg (fun t ↦ K.toFun 0 s t w) (Subsingleton.elim _ _))
+  toFun_empty := fun s w h ↦
+    K.toFun_empty s w (by rwa [Subsingleton.elim (T.map 0 s default) default] at h)
   toFun_next := fun m hm s tr msg w h ↦ by
     obtain ⟨x', hx'⟩ := T.map_msg m hm s tr msg
     show K.toFun m.castSucc s (T.map m.castSucc s tr)
@@ -163,11 +162,11 @@ def KnowledgeStateFunction.comap (K : V.KnowledgeStateFunction init impl relIn r
 
 /-- Round-by-round knowledge soundness carries over to the verifier that reads the decoded
 transcript, at the same error, for the extractor and the state function read on it. -/
-theorem rbrKnowledgeSoundnessWorstCaseWith_comap
+theorem rbrKnowledgeSoundnessWith_comap
     {K : V.KnowledgeStateFunction init impl relIn relOut E} {ε : pSpec.ChallengeIdx → ℝ≥0}
-    (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E K ε)
+    (h : V.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E K ε)
     (T : TranscriptMap StmtIn pSpec' pSpec) :
-    (Verifier.comap V T).rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid
+    (Verifier.comap V T).rbrKnowledgeSoundnessWith init impl relIn relOut WitMid
       (Extractor.RoundByRound.comap E T) (KnowledgeStateFunction.comap K T)
       (fun i ↦ ε (T.idx i)) := by
   intro s i tr

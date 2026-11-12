@@ -287,24 +287,17 @@ def Front.relistStateFunction :
     D'.red.verifier.toVerifier.KnowledgeStateFunction init impl (relistRel list relIn)
       (relistRel list relOut) (keepExtractor (StmtIn × ∀ i, O' i) W' pSpec) where
   toFun := fun m s tr _ ↦ ∃ q ∈ list s.2, ∃ wm, (X.kSF init impl).toFun m (s.1, q) tr wm
-  toFun_empty := fun s _ ↦ by
-    constructor
-    · rintro ⟨q, hq, w, hw⟩
-      refine ⟨q, hq, cast X.extractor.eqIn.symm w, ((X.kSF init impl).toFun_empty _ _).mp ?_⟩
-      rw [cast_cast, cast_eq]
-      exact hw
-    · rintro ⟨q, hq, wm, h⟩
-      exact ⟨q, hq, cast X.extractor.eqIn wm, ((X.kSF init impl).toFun_empty _ _).mpr h⟩
+  toFun_empty := fun _ _ ⟨q, hq, _, h⟩ ↦ ⟨q, hq, _, (X.kSF init impl).toFun_empty _ _ h⟩
   toFun_next := fun m hdir s tr msg _ ⟨q, hq, wm, h⟩ ↦
     ⟨q, hq, X.extractor.extractMid m (s.1, q) (tr.concat msg) wm,
       (X.kSF init impl).toFun_next m hdir (s.1, q) tr msg wm h⟩
   toFun_full := fun s tr _ hpos ↦ by
     obtain ⟨hc, q, hq, w, hw⟩ :=
-      Verifier.GuardedForm.of_probEvent_pos F'.toGuarded.guarded init impl s tr _ hpos
+      Verifier.GuardedForm.check_and_of_prEvent_pos F'.toGuarded.guarded hpos
     refine ⟨q, hq, X.extractor.extractOut (s.1, q) tr w,
       (X.kSF init impl).toFun_full (s.1, q) tr w ?_⟩
-    refine Verifier.GuardedForm.probEvent_pos_of_check F.toGuarded.guarded init impl (s.1, q) tr
-      (fun t ↦ (t, w) ∈ relOut) ((hcheck s.1 tr).symm.trans hc) ?_
+    refine Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+      F.toGuarded.guarded ((hcheck s.1 tr).symm.trans hc) ?_
     have hw' : ((F'.out s.1 tr, q), w) ∈ relOut := hw
     exact (congrArg (fun t ↦ ((t, q), w) ∈ relOut) (hout s.1 tr)).mp hw'
 

@@ -815,7 +815,7 @@ written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe
 `Extractor.RoundByRound` leaves free. -/
 def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
     ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) Unit Unit pubSpec (fun _ ↦ Unit) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun _ _ _ _ ↦ ()
   extractOut := fun _ _ _ ↦ ()
 
@@ -835,7 +835,7 @@ def stateFunction :
       accepts I (check I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
         ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
           Seam.pub I
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm stmt tr msg w h ↦ by
     have hm1 : m = 1 := by
       fin_cases m
@@ -845,13 +845,13 @@ def stateFunction :
     obtain ⟨hc, hp⟩ := h
     rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
     exact hp
-  toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr _ h
+  toFun_full := fun _ _ _ h ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (guarded I) h
 
 /-- Round-by-round knowledge soundness at the slot's error `1/|E|`: a bad transition is a bad
 challenge, and there is at most one. -/
 theorem rbr :
-    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.rbrKnowledgeSoundnessWith
       init impl (Seam.table I) (Seam.pub I) (fun _ ↦ Unit) (extractor I)
       (stateFunction I init impl) pubError := by
   intro stmtIn i tr
@@ -888,7 +888,7 @@ def deployedStateFunction :
       accepts I (checkWords I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
         ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
           Seam.pub I
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm stmt tr msg w h ↦ by
     have hm1 : m = 1 := by
       fin_cases m
@@ -897,14 +897,14 @@ def deployedStateFunction :
     subst hm1
     obtain ⟨hc, hp⟩ := h
     exact ⟨msg, hc, hp⟩
-  toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_probEvent_pos (deployedGuarded I) init impl stmt tr _ h
+  toFun_full := fun _ _ _ h ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (deployedGuarded I) h
 
 /-- Round-by-round knowledge soundness of the deployed phase at the slot's error `1/|E|`: a bad
 transition is a bad challenge, and there is at most one (`bad_challenge_unique_words`). -/
 theorem deployed_rbr :
     ((deployedVerifier I).toOracleVerifier (TheOracle I)).toVerifier
-      |>.rbrKnowledgeSoundnessWorstCaseWith init impl (Seam.table I) (Seam.pub I)
+      |>.rbrKnowledgeSoundnessWith init impl (Seam.table I) (Seam.pub I)
         (fun _ ↦ Unit) (extractor I) (deployedStateFunction I init impl) pubError := by
   intro stmtIn i tr
   obtain ⟨s, o⟩ := stmtIn

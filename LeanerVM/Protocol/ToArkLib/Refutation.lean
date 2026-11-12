@@ -31,10 +31,10 @@ Two facts about what a verifier cannot have, for showing that a check is load-be
 
 The supporting facts: the prefix of length `j + 1` of a full transcript is its prefix of length
 `j` followed by its entry at `j`; a knowledge state function true at the end of a transcript is
-true, for some witness, at every earlier round after which only the prover speaks; a guarded
-verifier whose check passes accepts with positive probability; the run of a reduction with a
-guarded verifier is the prover's run followed by the verdict; and an implementation under which
-every answer to every query is reachable does not shrink a computation's support.
+true, for some witness, at every earlier round after which only the prover speaks; and an
+implementation under which every answer to every query is reachable does not shrink a
+computation's support. The facts about guarded verifiers are ArkLib's
+(`Verifier.GuardedForm.prEvent_pos_of_check`, `Reduction.run_eq_of_guarded_verifier`).
 -/
 
 namespace LeanerVM.Protocol
@@ -89,7 +89,7 @@ private theorem Verifier.KnowledgeStateFunction.not_toFun_of_val_eq_zero (s : St
   have h0 : m = 0 := Fin.ext (by simpa using hm)
   subst h0
   rw [Subsingleton.elim tr default]
-  exact fun h ↦ hin _ ((kSF.toFun_empty s w).mpr h)
+  exact fun h ↦ hin _ (kSF.toFun_empty s w h)
 
 end StateFunction
 
@@ -108,7 +108,7 @@ variable {V : Verifier oSpec StmtIn StmtOut pSpec} [∀ i, SampleableType (pSpec
 state function is false for every witness while, after every challenge, some witness makes it
 true: the escape event is certain. -/
 theorem Verifier.not_rbr_of_escape
-    (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+    (h : V.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E kSF ε)
     (i : pSpec.ChallengeIdx) (s : StmtIn) (tr : Transcript i.1.castSucc pSpec)
     (hbad : ∀ w, ¬ kSF.toFun i.1.castSucc s tr w)
     (hesc : ∀ c : pSpec.Challenge i, ∃ w, kSF.toFun i.1.succ s (tr.concat c) w) :
@@ -124,7 +124,7 @@ theorem Verifier.not_rbr_of_escape
 prover speaks, the state function is made true after every challenge when the verifier can be
 brought to accept after it. -/
 theorem Verifier.not_rbr
-    (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+    (h : V.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E kSF ε)
     (i : pSpec.ChallengeIdx) (hlater : ∀ j : Fin n, i.1 < j → pSpec.dir j = .P_to_V)
     (s : StmtIn) (tr : Transcript i.1.castSucc pSpec)
     (hbad : ∀ w, ¬ kSF.toFun i.1.castSucc s tr w)
@@ -145,7 +145,7 @@ theorem Verifier.not_rbr
 /-- The first-round case of `Verifier.not_rbr`: the prefix `tr` is the empty transcript, on
 which the state function is false because the statement has no witness. -/
 theorem Verifier.not_rbr_zero
-    (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+    (h : V.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E kSF ε)
     (i : pSpec.ChallengeIdx) (hi : i.1.val = 0)
     (hlater : ∀ j : Fin n, 0 < j.val → pSpec.dir j = .P_to_V)
     (s : StmtIn) (hin : ∀ w, (s, w) ∉ relIn) (tr : Transcript i.1.castSucc pSpec)
@@ -160,51 +160,6 @@ theorem Verifier.not_rbr_zero
     hacc
 
 end NotRbr
-
-/-! ## A guarded verifier that accepts -/
-
-/-- If a guarded verifier's check passes and its verdict satisfies `P`, the verifier outputs a
-statement satisfying `P` with positive probability: the converse of
-`Verifier.GuardedForm.of_probEvent_pos`. -/
-theorem Verifier.GuardedForm.probEvent_pos_of_check {V : Verifier oSpec StmtIn StmtOut pSpec}
-    (G : V.GuardedForm) {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl oSpec (StateT σ ProbComp)) (stmt : StmtIn) (tr : pSpec.FullTranscript)
-    (P : StmtOut → Prop) (hc : G.check stmt tr = true) (hP : P (G.out stmt tr)) :
-    0 < Pr{let sample ← OptionT.mk do
-      (simulateQ impl (V.run stmt tr)).run' (← init)}[P sample] := by
-  have hv : V.run stmt tr = if G.check stmt tr then pure (G.out stmt tr) else failure :=
-    G.verify_eq stmt tr
-  rw [hv, ite_eq_left hc]
-  change 0 < Pr{let sample ← OptionT.mk (do
-    let st ← init
-    (simulateQ impl (OptionT.run (pure (G.out stmt tr)))).run' st)}[P sample]
-  rw [OptionT.run_pure]
-  refine lt_of_lt_of_eq zero_lt_one
-    (OptionT.prEvent_mk_simulateQ_run'_eq_one_of_support init impl _ P fun o ho ↦ ?_).symm
-  rw [support_pure, Set.mem_singleton_iff] at ho
-  exact ⟨_, ho, hP⟩
-
-/-! ## The run of a reduction with a guarded verifier -/
-
-/-- The run of a reduction whose verifier is guarded: the prover's run, then the verdict when
-the check passes on the prover's transcript and a rejection otherwise. -/
-private theorem Reduction.run_of_guarded
-    (red : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec)
-    (G : red.verifier.GuardedForm) (stmt : StmtIn) (wit : WitIn) :
-    (red.run stmt wit).run =
-      (fun pr ↦ if G.check stmt pr.1 then some (pr, G.out stmt pr.1) else none) <$>
-        red.prover.run stmt wit := by
-  unfold Reduction.run
-  conv_rhs => rw [map_eq_bind_pure_comp]
-  simp only [OptionT.run_bind, Option.elimM, OptionT.run_monadLift, monadLift_self,
-    bind_map_left, Option.elim_some, Function.comp_def]
-  refine bind_congr fun pr ↦ ?_
-  rw [Verifier.run, show red.verifier.verify stmt pr.1 = _ from G.verify_eq stmt pr.1]
-  by_cases hc : G.check stmt pr.1 = true
-  · simp only [hc, ↓reduceIte, OptionT.run_pure, liftM_pure, pure_bind, Option.elim_some,
-      Option.getM_some]
-  · simp only [hc, Bool.false_eq_true, ↓reduceIte, OptionT.run_failure, liftM_pure,
-      OptionT.run_pure, pure_bind, Option.elim_some, Option.getM_none, Option.elim_none]
 
 /-! ## Reachable outputs under a full-support implementation -/
 
@@ -267,8 +222,8 @@ theorem Reduction.not_perfectCompleteness_of_reject
           (red.run s w).run).run' st) := by
     rw [mem_support_bind_iff]
     refine ⟨st, hst, ?_⟩
-    rw [Reduction.run_of_guarded red G, simulateQ_map, StateT.run'_eq, StateT.run_map,
-      Functor.map_map, support_map]
+    rw [Reduction.run_eq_of_guarded_verifier red G, bind_pure_comp, simulateQ_map,
+      StateT.run'_eq, StateT.run_map, Functor.map_map, support_map]
     exact ⟨q, hq, congrArg (fun a ↦ if G.check s a.1 then some (a, G.out s a.1) else none) hq1⟩
   obtain ⟨x, hx, hp⟩ := h1 _ hmem
   by_cases hc : G.check s tr = true
@@ -339,7 +294,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
     (E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) Unit Unit Unit toySpec WitMid)
     (kSF : acceptAll.KnowledgeStateFunction init impl ∅ Set.univ E)
     (ε : toySpec.ChallengeIdx → ℝ≥0)
-    (h : acceptAll.rbrKnowledgeSoundnessWorstCaseWith init impl ∅ Set.univ WitMid E kSF ε) :
+    (h : acceptAll.rbrKnowledgeSoundnessWith init impl ∅ Set.univ WitMid E kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl
     (fun j hj ↦ by
@@ -349,8 +304,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
     () (fun _ h ↦ h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨Fin.snoc (Transcript.concat c fun j ↦ Fin.elim0 j) true,
         funext fun j ↦ Fin.snoc_castSucc _ _ j, (),
-        Verifier.GuardedForm.probEvent_pos_of_check acceptAllGuarded init impl () _ _ rfl
-          (Set.mem_univ _)⟩
+        Verifier.GuardedForm.prEvent_pos_of_check acceptAllGuarded rfl (Set.mem_univ _)⟩
 
 /-- The verifier that rejects every transcript. -/
 private def rejectAll : Verifier []ₒ Unit Unit toySpec where

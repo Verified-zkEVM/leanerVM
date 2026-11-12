@@ -2,8 +2,8 @@
   LeanerVM.Protocol.ToArkLib.SendOracle
 
   The component whose one message becomes the one oracle every later component queries, with
-  its completeness and its zero-error knowledge soundness. Candidate for ArkLib, whose
-  `SendSingleWitness` has the same shape with its completeness admitted.
+  its completeness and its zero-error knowledge soundness. ArkLib's
+  `SendSingleWitness.Adapter` builds the same component over another prover state.
 -/
 
 module
@@ -126,12 +126,12 @@ abbrev sendWitMid (M : Type) : Fin 2 → Type := fun _ ↦ M
 rather than `[]ₒ` to pin a universe `Extractor.RoundByRound` leaves free. -/
 def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × ∀ i, NoOracle i) M
     Unit (sendSpec M) (sendWitMid M) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun m _ tr _ ↦ tr ⟨0, Nat.succ_pos m.val⟩
   extractOut := fun _ tr _ ↦ tr 0
 
 omit [OracleInterface M] in
-/-- Its first step is the message. -/
+/-- Its fold from round `1` is the message. -/
 theorem sendExtractor_readsFirst :
     Extractor.RoundByRound.ReadsFirst (sendExtractor (S := S) (M := M)) :=
   fun _ _ _ _ ↦ HEq.rfl
@@ -146,7 +146,7 @@ def sendStateFunction :
       (sendExtractor (S := S) (M := M)) where
   toFun := fun m stmt tr w ↦
     if h : m.val = 0 then (stmt, w) ∈ rel else (stmt, tr ⟨0, Nat.pos_of_ne_zero h⟩) ∈ rel
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m _ stmt tr msg w h ↦ by
     have hm : m.val = 0 := by omega
     simp only [Fin.val_succ, Nat.add_eq_zero_iff, one_ne_zero, and_false, dite_false] at h
@@ -156,13 +156,13 @@ def sendStateFunction :
     obtain ⟨s, o⟩ := stmt
     simp only [Fin.val_last, one_ne_zero, dite_false]
     rw [noOracle_eq o (fun i ↦ i.elim0)]
-    exact (Verifier.GuardedForm.of_probEvent_pos
-      (sendVerifierPure (S := S) (M := M)).toGuardedForm init impl (s, o) tr _ h).2
+    exact (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendVerifierPure (S := S) (M := M)).toGuardedForm h).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the extractor reads the
 message. -/
 theorem sendOracle_rbr :
-    (sendVerifier S M).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl rel
+    (sendVerifier S M).toVerifier.rbrKnowledgeSoundnessWith init impl rel
       (sendOracle_relOut rel) (sendWitMid M) sendExtractor (sendStateFunction rel init impl)
       (fun _ ↦ 0) :=
   fun _ i ↦ (IsEmpty.false i).elim

@@ -420,7 +420,7 @@ def listBinding_compile (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.�
 theorem listBinding_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ)
     (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (listBindingDef P hμ L).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (listBindingDef P hμ L).red.verifier.toVerifier.rbrKnowledgeSoundnessWith init impl
       (M3Rel I) Set.univ (listBinding_compile P S hμ L ps D).witMid
       (listBinding_compile P S hμ L ps D).extractor
       ((listBinding_compile P S hμ L ps D).kSF init impl) (listBindingError I L ps) :=
@@ -481,7 +481,7 @@ theorem listBinding_kSF_one (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ =
   refine (fun x y (h : x = y) ↦ h ▸ Iff.rfl :
     ∀ x y, x = y → ((commitPick I D hμ s.1 x).isSome ↔ (commitPick I D hμ s.1 y).isSome)) _ _ ?_
   apply eq_of_heq
-  simp only [Verifier.KnowledgeAppend.left, committedWord]
+  simp only [ProtocolSpec.Transcript.fstUpTo, committedWord]
   refine HEq.trans ?_ (cast_heq _ _).symm
   iterate 7 refine (cast_heq _ _).trans ?_
   rfl
@@ -492,7 +492,7 @@ private theorem commit_decodesFirst {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ)
     Extractor.RoundByRound.DecodesFirst (commitWordSecurity I D hμ).extractor Nat.one_pos
       (fun s x ↦ commitPick I D hμ s.1 x) := by
   intro s tr w q hq
-  show HEq ((commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩)).getD w) q
+  show (commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩)).getD w = q
   rw [show commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩) = some q from hq]
   rfl
 
@@ -501,7 +501,7 @@ def listBindingExtractedStack (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ
     (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ)
     (s : I.Stmt × ∀ i, NoOracle i) (tr : (listBindingSpec I sh κ L).FullTranscript) :
     Column I.μ :=
-  Extractor.RoundByRound.extractIn (listBinding_compile P S hμ L ps D).extractor s tr ()
+  Extractor.RoundByRound.extractFull (listBinding_compile P S hμ L ps D).extractor s tr ()
 
 /-- **The extracted stack is the decoded one**: whenever the commitment's extractor finds a stack
 with `M3Holds` in the committed word's list, the compilation's extractor returns it. -/
@@ -511,7 +511,7 @@ theorem listBinding_extractedStack_eq (P : Phases I) (S : P.Security) (hμ : κ 
     (q : Column I.μ)
     (hq : commitPick I D hμ s.1 (committedWord (k := Fin.last _) tr (by simp)) = some q) :
     listBindingExtractedStack P S hμ L ps D s tr = q := by
-  refine Extractor.RoundByRound.extractIn_eq_of_decodesFirst
+  refine Extractor.RoundByRound.extractFull_eq_of_decodesFirst
     (f := ?f) (listBinding_compile P S hμ L ps D).extractor (by omega) ?h s tr () q ?hq
   case h =>
     unfold listBinding_compile

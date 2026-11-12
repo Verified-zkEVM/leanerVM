@@ -189,11 +189,11 @@ def queryRecordStateFunction :
     (queryRecordVerifier OStmt keep query check out).toVerifier.KnowledgeStateFunction init impl
       relIn relOut (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦
-    have hg := Verifier.GuardedForm.of_probEvent_pos
-      (queryRecordGuarded OStmt keep query check out) init impl stmt tr _ hpos
+  toFun_full := fun stmt _ w hpos ↦
+    have hg := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (queryRecordGuarded OStmt keep query check out) hpos
     h stmt.1 stmt.2 w hg.1 hg.2
 
 /-- The security half of the query-record component, at the empty error, with the extractor that
