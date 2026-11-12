@@ -11,6 +11,7 @@ module
 public import LeanerVM.Protocol.ToArkLib.StepSchedule
 public import Batteries.Recycling.MonadSatisfying.Basic
 public import ArkLib.OracleReduction.Security.Basic
+import ArkLib.OracleReduction.Composition.Sequential.NoAmbient
 
 /-!
 # Running a prover against a source of challenges
@@ -34,9 +35,8 @@ the casts the appended types carry (`apply_heq_send`, `apply_heq_draw`, `prop_he
 
 A prover of an oracle reduction with no shared oracle (`[]ₒ`) makes no query: its oracle
 computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`), with that
-value as their one outcome (`support_eq_runNoOracle`); a verifier with no shared oracle that
-returns a statement in `Id` outputs it with positive probability
-(`Verifier.probEvent_pos_of_runNoOracle`).
+value as their one outcome; a verifier with no shared oracle that returns a statement in `Id`
+outputs it with positive probability (`Verifier.probEvent_pos_of_runNoOracle`).
 
 **The run on given challenges.** `Prover.runWithChallenges ch` is the run whose challenge `i` is
 `ch i`, deterministic. Three facts carry completeness from the oracle protocol to a run against a
@@ -288,13 +288,6 @@ theorem runNoOracle_eq_pure {w : Type → Type} [Monad w] [LawfulMonad w] {α : 
   | pure x => simp [runNoOracle]
   | query_bind t _ _ => exact isEmptyElim t
 
-/-- An oracle computation with no oracle has one outcome: the value it returns in `Id`. -/
-private theorem support_eq_runNoOracle {α : Type} (oa : OracleComp []ₒ α) :
-    support oa = {Id.run (runNoOracle oa)} := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp [runNoOracle]
-  | query_bind t _ _ => exact isEmptyElim t
-
 /-- A verifier with no oracle whose run on a transcript returns `so` in `Id` outputs, under any
 implementation and initial state, a statement satisfying every property of `so` with positive
 probability. -/
@@ -307,8 +300,13 @@ theorem Verifier.probEvent_pos_of_runNoOracle {StmtIn StmtOut : Type} {n : ℕ}
       P stmtOut] := by
   rw [OptionT.prEvent_mk_simulateQ_run'_eq_one_of_support init impl _ _ fun o ho ↦ ?_]
   · exact one_pos
-  rw [support_eq_runNoOracle, Set.mem_singleton_iff] at ho
-  exact ⟨so, ho.trans h, hP⟩
+  have ho' : o ∈ support (pure (OracleComp.runEmpty (V.run stmt tr).run) :
+      OracleComp []ₒ (Option StmtOut)) := by
+    rw [← OracleComp.eq_pure_runEmpty (V.run stmt tr).run]
+    exact ho
+  rw [support_pure, Set.mem_singleton_iff] at ho'
+  rw [OracleComp.eq_pure_runEmpty (V.run stmt tr).run] at h
+  exact ⟨so, ho'.trans (by simpa [runNoOracle] using h), hP⟩
 
 namespace Prover
 
@@ -527,15 +525,6 @@ theorem mem_support_simulateQ_challenges [∀ i, SampleableType (pSpec.Challenge
           ⟨ch q.1, mem_support_uniformSample _, MonadAttach.mem_support_pure.mpr rfl⟩
       · exact hx1
 
-/-- An oracle computation with no oracle, lifted into a computation that may fail on any oracle,
-is pure. -/
-private theorem liftM_noOracle {β : Type} (X : OracleComp []ₒ β) :
-    (monadLift X : OptionT (OracleComp ([]ₒ + [pSpec.Challenge]ₒ)) β) =
-      pure (Id.run (runNoOracle X)) := by
-  induction X using OracleComp.inductionOn with
-  | pure x => exact liftM_pure x
-  | query_bind t _ _ => exact isEmptyElim t
-
 /-- A reduction's run, the challenge oracle answered off a vector: the prover's run on those
 challenges, then the verifier on its transcript. -/
 private theorem simulateQ_reduction_run {StmtIn WitIn StmtOut WitOut : Type}
@@ -549,12 +538,11 @@ private theorem simulateQ_reduction_run {StmtIn WitIn StmtOut WitOut : Type}
   unfold Reduction.run
   simp only [OptionT.run_bind, liftM, OptionT.run_monadLift, Option.elimM, bind_map_left,
     Option.elim, simulateQ_bind, monadLift_self, simulateQ_run_eq_runWithChallenges, pure_bind]
-  rw [liftM_noOracle]
-  simp only [OptionT.run_pure, simulateQ_pure]
-  rcases Id.run (runNoOracle (R.verifier.run stmt (runWithChallenges R.prover ch stmt wit).1).run)
-    with _ | so
-  · rfl
-  · rfl
+  rw [OracleComp.eq_pure_runEmpty
+    (R.verifier.run stmt (runWithChallenges R.prover ch stmt wit).1).run]
+  simp only [liftM_pure, OptionT.run_pure, simulateQ_pure, runNoOracle]
+  rcases OracleComp.runEmpty (R.verifier.run stmt (runWithChallenges R.prover ch stmt wit).1).run
+    with _ | so <;> rfl
 
 /-- **A perfectly complete reduction accepts on every challenge vector**: on an input of the input
 relation, the verifier run on the transcript of the prover's run on any challenges returns a

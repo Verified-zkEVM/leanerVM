@@ -71,38 +71,21 @@ def sendCheckedVerifier : OracleVerifier []ₒ StmtIn OStmt StmtOut OStmt (say M
 def sendChecked : Def StmtIn OStmt W StmtOut OStmt W (say M) where
   red := ⟨sendCheckedProver OStmt M honest out, sendCheckedVerifier OStmt M check out⟩
 
-/-- Reading the message returns the transcript's entry. -/
-private theorem simulateQ_queryMessage (o : ∀ i, OStmt i) (tr : (say M).FullTranscript) :
-    simulateQ (OracleInterface.simOracle2 []ₒ o tr.messages)
-      (OptionT.lift (liftM (queryMessage M) :
-        OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M)).run =
-      (pure (tr 0) : OptionT (OracleComp []ₒ) M) := by
-  have h : simulateQ (OracleInterface.simOracle2 []ₒ o tr.messages)
-      (liftM (queryMessage M) : OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M) =
-      pure (tr 0) := rfl
-  rw [OptionT.run_lift, simulateQ_bind, h, pure_bind, simulateQ_pure]
-  rfl
-
 /-- As an ordinary verifier: if the transcript's message passes the check, the verdict is `out`
 of the statement and the message, with the oracles; otherwise it rejects. -/
 theorem sendCheckedVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
     (tr : (say M).FullTranscript) :
     (sendCheckedVerifier OStmt M check out).toVerifier.verify (s, o) tr =
       if check s (tr 0) then pure (out s (tr 0), o) else failure := by
-  simp only [OracleVerifier.toVerifier]
-  rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+  rw [OracleVerifier.toVerifier_verify_of_query_guard (sendCheckedVerifier OStmt M check out)
+    (show [(say M).Message]ₒ.Domain from ⟨⟨0, rfl⟩, (by change Unit; exact ())⟩)
+    (fun s a _ ↦ check s a = true) (fun s a _ ↦ out s a) (fun s _ ↦ ?_),
+    OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+  · rfl
   simp only [sendCheckedVerifier]
-  rw [show (liftM (queryMessage M) :
-        OptionT (OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ))) M) =
-      OptionT.lift (liftM (queryMessage M) :
-        OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M) from
-    (OracleComp.monadLift_liftM_OptionT _).symm]
-  rw [simulateQ_optionT_bind_run, simulateQ_queryMessage, pure_bind]
-  by_cases h : check s (tr 0) = true
-  · rw [ite_eq_left h, ite_eq_left h]
-    rfl
-  · rw [ite_eq_right h, ite_eq_right h]
-    rfl
+  congr 1
+  funext a
+  by_cases h : check s a = true <;> simp [h]
 
 /-- The send-checked verifier is a check followed by a verdict, as data. -/
 def sendCheckedGuarded : (sendCheckedVerifier OStmt M check out).toVerifier.GuardedForm where
