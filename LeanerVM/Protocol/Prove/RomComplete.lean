@@ -11,7 +11,7 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.Prove.Complete
 public import LeanerVM.Protocol.ChainGroups
 public import LeanerVM.Protocol.ToVCVio.ProofOfWork
-public import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
+import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!

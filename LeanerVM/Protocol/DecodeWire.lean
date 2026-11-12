@@ -9,7 +9,7 @@
 module
 
 public import LeanerVM.Protocol.DecodeWalk
-public import Mathlib.Lean.Thunk
+import Mathlib.Lean.Thunk
 
 /-!
 # The decoded history carries the walk's wire

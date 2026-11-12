@@ -10,6 +10,7 @@ module
 public import LeanerVM.Protocol.Compile.Front
 public import LeanerVM.Protocol.DecodeWire
 public import LeanerVM.Protocol.Prove.ReadBack
+import Mathlib.Lean.Thunk
 
 /-!
 # The decoded transcript
