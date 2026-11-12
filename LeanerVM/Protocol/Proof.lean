@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Protocol.Transcript
 public import LeanerVM.Protocol.LeanIsa
+import Batteries.Control.Lemmas
 
 /-!
 # The proof object and its transcript
