@@ -36,6 +36,9 @@ statements are.
   frame pointer, with no hypothesis and for every hint list. A `SentinelSafe` premise is
   unnecessary for semantic checking; it remains a separate premise of global constraint
   soundness.
+- The test [`RunTrace.lean`](../tests/LeanerVMTests/Semantics/RunTrace.lean) reads
+  `ValidExecution` as an ordered finite trace: states from the initial to the final registers,
+  each transition a step taken away from the sentinel (`validExecution_iff_trace`).
 - [`TraceInput.lean`](../LeanerVM/Semantics/TraceInput.lean) preserves the entire finite export,
   checks its power-of-two memory shape and count accounting, and uses `sum(mainCounts)` as
   `Trace.steps`. `adapt_preserves` and `validateInput_eq_true_iff` specify these guarantees.
