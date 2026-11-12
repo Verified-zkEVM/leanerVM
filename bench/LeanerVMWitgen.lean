@@ -46,7 +46,8 @@ With `--gen`, `runGenerator` runs `witnessGen` (a function of the shape `Generat
 the witness's sizes, whose table heights must be the Rust's unless the Rust prover raised them to a
 floor on the committed size; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and
 checks the proof with `verify`; each timed. With `--stages`, the stages of `witnessGen` are forced
-and timed one by one (`stages`). The exit code is `1` if a check fails.
+and timed one by one (`stages`). The exit code is `1` if a check fails, and `2`, with a usage
+line, when no file is given.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -507,8 +508,12 @@ def main (args : List String) : IO UInt32 := do
     prod := args.contains "--prod",
     hash := args.contains "--hash", gen := args.contains "--gen",
     prove := args.contains "--prove", stages := args.contains "--stages" }
+  let files := args.filter (!·.startsWith "--")
+  if files.isEmpty then
+    IO.eprintln "usage: leanervm-witgen [--prod] [--hash] [--gen] [--prove] [--stages] file…"
+    return 2
   let mut failed := 0
-  for file in args.filter (!·.startsWith "--") do
+  for file in files do
     failed := failed + (← runFile opts witnessGen file)
   IO.println s!"{failed} failed"
   return if failed = 0 then 0 else 1

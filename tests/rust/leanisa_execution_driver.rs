@@ -26,7 +26,7 @@ def main():
     (src.into(), [F192::from(g_pow(20)), F192::from(F64::ONE)])
 }
 
-/// crates/rec_aggregation/src/hash_chain.rs:20-60 (`chain_source`) and its public input (:66-82).
+/// crates/rec_aggregation/src/hash_chain.rs:20-58 (`chain_source`) and its public input (:75-82).
 fn hash_chain(steps: usize, unroll: usize) -> (String, [F192; 2]) {
     assert!(unroll >= 1 && steps.is_multiple_of(unroll));
     let blocks = steps / unroll;
@@ -100,7 +100,7 @@ fn fibonacci(fib_n: usize) -> (String, [F192; 2]) {
     (src, pi)
 }
 
-/// The annotations of crates/lean_compiler/tests/suite/py_source.rs:21-50.
+/// The annotations of crates/lean_compiler/tests/suite/py_source.rs:22-52.
 fn annotations(src: &str) -> ([F192; 2], HashMap<String, Vec<Vec<F192>>>) {
     let mut pi = [F192::ZERO; 2];
     for line in src.lines() {

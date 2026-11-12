@@ -52,9 +52,11 @@ jobs:
         run: .lake/build/bin/leanervm-prove m3
       - name: Proof of a statement with no execution
         run: .lake/build/bin/leanervm-prove sentinel
+      # The step takes about 90 s; the timeout fails the job on a tenfold slowdown of the prover.
       - name: Guarded prover from an execution, its checks and the witness generator
-        run: .lake/build/bin/leanervm-prove execution
+        run: timeout 900 .lake/build/bin/leanervm-prove execution
       # Each checked-in Rust execution: the decided hypotheses, and the generator's table heights
-      # against the Rust's.
+      # against the Rust's. The step takes about 10 s; the timeout fails the job on a large
+      # slowdown of the generator.
       - name: Witness generator on the Rust executions
-        run: .lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz
+        run: timeout 300 .lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz

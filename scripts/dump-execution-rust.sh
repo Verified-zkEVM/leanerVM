@@ -35,7 +35,8 @@
 # Usage: scripts/dump-execution-rust.sh [-f n]... [-g] <leanVM checkout> <output dir>
 # The checkout must contain the pin. CARGO_TARGET_DIR is honoured (default: a directory beside
 # the unpacked source); LEANISA_WORK names a directory to unpack into (default: a temporary one,
-# removed on exit).
+# removed on exit). Cargo runs `--offline`, so the pin's crates must already be in cargo's cache:
+# run `cargo fetch --locked` once in a checkout of the pin, or build it once.
 set -euo pipefail
 
 pin="a386121f84292f6fa663aaa3e570c15bc0240ea2"

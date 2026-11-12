@@ -10,7 +10,7 @@ keeping only checks justified by leanerVM's current Lean-only surface.
 | `Imports and layers` | Keep the aggregate import complete and enforce the architecture DAG | Required |
 | `Documentation integrity` | Reject broken or unsafe local Markdown links | Required |
 | `Build timing` | Measure clean build, warm build, and test-path wall time | Informational |
-| `Executables` | Build `leanervm-verify` and `leanervm-prove`, run the verifier on the Rust proof and the committed vector with their mutations, regenerate the vector, and run the prover's log, tamper, relation and sentinel checks | Informational |
+| `Executables` | Build `leanervm-verify`, `leanervm-prove` and `leanervm-witgen`, run the verifier on the Rust proof and the committed vector with their mutations, regenerate the vector, run the prover's log, tamper, relation and sentinel checks and the guarded prover from an execution, and run the witness generator on the Rust executions | Informational |
 | `PR summary` | Post an automated summary using policy from the trusted base revision | Informational |
 | `PR review` | Run a member-triggered `/review` pass | Informational |
 | `Upstream drift` | Report newer Lean and tracked library releases each week | Informational |
@@ -41,9 +41,11 @@ of the verifier's mutations, the test vector, the extractor on the honest prover
 proof of a statement with no execution, the guarded prover from an execution
 (`leanervm-prove execution`, about 90 s), and `leanervm-witgen --gen` on the Rust executions of
 `tests/vectors/executions/` (the decided hypotheses, and the generator's table heights against the
-Rust's, about 10 s). `leanervm-witgen`'s source is elaborated by no default target, so this job is
-the only one that builds it. Linking an executable compiles every transitive module,
-Mathlib's included, to C and then to objects, so the job allows 180 minutes. It is not a merge
+Rust's, about 10 s). These two steps run under `timeout` (900 s and 300 s), so that a large
+slowdown of the prover or the generator fails the job instead of passing unnoticed.
+`leanervm-witgen`'s source is elaborated by no default target, so this job is the only one that
+builds it. Linking an executable compiles every transitive module, Mathlib's included, to C and
+then to objects, so the job allows 180 minutes. It is not a merge
 gate while its cost is measured; a failure is still a failed check of the claims these
 executables witness, and is fixed, not ignored.
 
