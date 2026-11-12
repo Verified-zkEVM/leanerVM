@@ -11,6 +11,7 @@ module
 
 public import LeanerVM.Protocol.Merkle
 public import LeanerVM.Protocol.ToVCVio.MerkleLog
+import Mathlib.Data.List.GetD
 
 /-!
 # Binding of leanVM's Merkle openings by log replay
