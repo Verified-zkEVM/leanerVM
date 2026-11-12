@@ -32,7 +32,7 @@ jobs:
           use-github-cache: true
           use-mathlib-cache: auto
       - name: Build the executables
-        run: lake build leanervm-verify leanervm-prove
+        run: lake build leanervm-verify leanervm-prove leanervm-witgen
       - name: Verifier on the Rust proof and its mutations
         run: .lake/build/bin/leanervm-verify 1
       - name: Verifier on the committed vector and its mutations
@@ -54,3 +54,7 @@ jobs:
         run: .lake/build/bin/leanervm-prove sentinel
       - name: Guarded prover from an execution, its checks and the witness generator
         run: .lake/build/bin/leanervm-prove execution
+      # Each checked-in Rust execution: the decided hypotheses, and the generator's table heights
+      # against the Rust's.
+      - name: Witness generator on the Rust executions
+        run: .lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz

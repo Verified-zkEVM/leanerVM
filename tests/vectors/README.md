@@ -1,9 +1,10 @@
 # Test vectors
 
 Proofs written by leanerVM's honest prover (`LeanerVM.Protocol.Prove`), each with its program and
-public input, in the text format of [`scripts/dump-proof-rust.sh`](../../scripts/dump-proof-rust.sh),
-which the Rust fixture's loader reads (`LeanerVMTests.Protocol.RustProof.load`). Stored compressed
-(`gzip -9 -n`); the plain file is 363 KB.
+public input, in the text format of
+[`scripts/dump-proof-rust.sh`](../../scripts/dump-proof-rust.sh), which the Rust fixture's loader
+reads (`LeanerVMTests.Protocol.RustProof.load`). Stored compressed (`gzip -9 -n`); the plain file
+is 363 KB.
 
 | File | Witness | Sizes | Proof |
 | --- | --- | --- | --- |
@@ -17,7 +18,7 @@ smallest the setup admits.
 
 ```sh
 lake build leanervm-prove leanervm-verify
-.lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # prove, write, read back, verify, mutate
+.lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # prove, write, read, verify, mutate
 gzip -9 -n -f tests/vectors/fill.proof
 gunzip -k tests/vectors/fill.proof.gz
 .lake/build/bin/leanervm-verify 1 tests/vectors/fill.proof  # verify and the mutations, on the file
@@ -33,8 +34,9 @@ also runs `prove` itself, in `Id`, and checks it returns the same proof. The pro
 deterministic: two runs write the same plain file. On every pull request to `main` the
 `Executables` workflow (`.github/workflows/executables.yml`) runs `leanervm-verify` on the Rust
 proof and on the committed file, and `leanervm-prove` without `pure`, comparing its proof with the
-committed one; it also runs `leanervm-prove log`, `tamper`, `m3` and `sentinel`. The compressed
-file also depends on the `gzip` version; compare the decompressed files.
+committed one; it also runs `leanervm-prove log`, `tamper`, `m3`, `sentinel` and `execution`, and
+`leanervm-witgen --gen` on every file of `executions/` (below). The compressed file also depends on
+the `gzip` version; compare the decompressed files.
 
 ## Differences from the Rust prover's dumps
 
@@ -60,9 +62,11 @@ file also depends on the `gzip` version; compare the decompressed files.
 `a386121f84292f6fa663aaa3e570c15bc0240ea2` (`Program::execute_to_floor`, the run `prove` makes),
 written by [`scripts/dump-execution-rust.sh`](../../scripts/dump-execution-rust.sh), whose header
 gives the format: the program, the public input, the final memory image, the main-run and total
-row counts, the Rust prover's committed-size floor, and every table row `(pc, fp)`. `leanervm-witgen` (`bench/LeanerVMWitgen.lean`) reads
-them into `Program`, `PublicInput` and `Trace prog` and checks them against the reference
-semantics; they are the inputs of the witness generator's end-to-end runs.
+row counts, the Rust prover's committed-size floor, and every table row `(pc, fp)`.
+`leanervm-witgen` (`bench/LeanerVMWitgen.lean`) reads them into `Program`, `PublicInput` and
+`Trace prog`, checks them against the reference semantics, and decides the hypotheses of
+completeness on them; with `--gen` it runs the witness generator and compares its table heights
+with the Rust's. The `Executables` workflow runs it with `--gen` on every file.
 
 | File | Program | Bytecode | Memory | Main steps | Rows after the fill (XOR, MUL, SET, DEREF, JUMP, BLAKE2S) |
 | --- | --- | --- | --- | --- | --- |
@@ -81,7 +85,7 @@ checked in.
 ```sh
 scripts/dump-execution-rust.sh -f 1000 -f 20000 <leanVM checkout> tests/vectors/executions
 lake build leanervm-witgen
-.lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
+.lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz
 ```
 
 The Rust writes the files deterministically; compare decompressed files.

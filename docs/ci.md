@@ -37,8 +37,12 @@ without the Actions cache, takes about 25 minutes, and `lake test` about 6 more;
 the executable verifier and the theorems above it.
 
 `Executables` runs the checks that live in compiled executables rather than in `lake test`: most
-of the verifier's mutations, the test vector, the extractor on the honest prover's log, and the
-proof of a statement with no execution. Linking an executable compiles every transitive module,
+of the verifier's mutations, the test vector, the extractor on the honest prover's log, the
+proof of a statement with no execution, the guarded prover from an execution
+(`leanervm-prove execution`, about 90 s), and `leanervm-witgen --gen` on the Rust executions of
+`tests/vectors/executions/` (the decided hypotheses, and the generator's table heights against the
+Rust's, about 10 s). `leanervm-witgen`'s source is elaborated by no default target, so this job is
+the only one that builds it. Linking an executable compiles every transitive module,
 Mathlib's included, to C and then to objects, so the job allows 180 minutes. It is not a merge
 gate while its cost is measured; a failure is still a failed check of the claims these
 executables witness, and is fixed, not ignored.
