@@ -5,9 +5,14 @@ use super::{DerefMode, Execution, Op, Program};
 use primitives::field::F192;
 use std::fmt::Write;
 
-/// Run the program as `prove` does (`execute_to_floor`, cpu/mod.rs:528) and write the
-/// execution to `path`.
-pub fn execute_and_write(name: &str, program: &Program, public_input: [F192; 2], path: &std::path::Path) {
+/// Run the program as `prove` does (`execute_to_floor`, its call in `prove` at cpu/mod.rs:528)
+/// and write the execution to `path`.
+pub fn execute_and_write(
+    name: &str,
+    program: &Program,
+    public_input: [F192; 2],
+    path: &std::path::Path,
+) {
     let exec = program.execute_to_floor(public_input);
     write(name, program, &exec, public_input, path);
 }
@@ -50,7 +55,13 @@ fn counts(ns: &[usize]) -> String {
     ns.iter().map(usize::to_string).collect::<Vec<_>>().join(" ")
 }
 
-fn write(name: &str, program: &Program, exec: &Execution, public_input: [F192; 2], path: &std::path::Path) {
+fn write(
+    name: &str,
+    program: &Program,
+    exec: &Execution,
+    public_input: [F192; 2],
+    path: &std::path::Path,
+) {
     let pin = "a386121f84292f6fa663aaa3e570c15bc0240ea2";
     let mut out = String::new();
     writeln!(out, "leanisa-execution {pin} {name}").unwrap();
@@ -89,7 +100,13 @@ fn write(name: &str, program: &Program, exec: &Execution, public_input: [F192; 2
     let t = &exec.trace;
     // The cells some row accessed (final count not g^0), the hint list of
     // tests/rust/leanisa_contracts.rs; untrusted, a reader's speedup only.
-    let accessed: Vec<_> = t.mem_count.iter().enumerate().filter(|(_, c)| c.0 != 1).map(|(i, _)| i).collect();
+    let accessed: Vec<_> = t
+        .mem_count
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| c.0 != 1)
+        .map(|(i, _)| i)
+        .collect();
     writeln!(out, "accessed {}", accessed.len()).unwrap();
     for i in accessed {
         writeln!(out, "{i}").unwrap();

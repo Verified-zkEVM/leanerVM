@@ -67,7 +67,8 @@
   compiled programs by the pinned Rust executor (the program, public input, final image, counts
   and every table row) for `leanervm-witgen`, the files of `tests/vectors/executions/`; `-f n`
   adds Fibonacci in the exponent at `n`, `-g` the recursion guest on one XMSS signature (an
-  18 MB file, regenerated, not checked in). Unpacks the pin with `git archive`; requires `cargo`.
+  18 MB file, regenerated, not checked in). Unpacks the pin with `git archive`; requires `cargo`,
+  and `uv` for `-g`.
 - `dump-fs-chain-rust.sh <leanVM checkout>`: prints the pinned Fiat–Shamir chain's known
   answers (a program's hash and seed, the state after seeding, observes, squeezes and an 8-bit
   grind) and a prover transcript with a root, two round polynomials and a grind, read back by the

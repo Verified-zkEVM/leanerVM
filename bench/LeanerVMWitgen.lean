@@ -44,9 +44,9 @@ timed:
 
 With `--gen`, `runGenerator` runs `witnessGen` (a function of the shape `Generator`) and reports
 the witness's sizes, whose table heights must be the Rust's unless the Rust prover raised them to a
-floor on the committed size; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and checks
-the proof with `verify`; each timed. With `--stages`, the stages of `witnessGen` are forced and
-timed one by one (`stages`). The exit code is `1` if a check fails.
+floor on the committed size; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and
+checks the proof with `verify`; each timed. With `--stages`, the stages of `witnessGen` are forced
+and timed one by one (`stages`). The exit code is `1` if a check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -140,7 +140,8 @@ def keyedNum (k : String) : ParseM ℕ := do
 def instrOf (pows : PowTable) : List String → ParseM Instr
   | ["xor", a, b, c] => do return .xor (← o a) (← o b) (← o c)
   | ["mul", a, b, c] => do return .mulNative (← o a) (← o b) (← o c)
-  | ["set", a, k0, k1, k2] => do return .setConstant (← o a) (E.ofLimbs (← hexK k0) (← hexK k1) (← hexK k2))
+  | ["set", a, k0, k1, k2] => do
+    return .setConstant (← o a) (E.ofLimbs (← hexK k0) (← hexK k1) (← hexK k2))
   | ["deref", a, b, c, m] => do
     let mode ← match m with
       | "cell" => pure DerefMode.cell
@@ -164,7 +165,8 @@ def digestOf (s : String) : ParseM Digest := do
   let cs := s.toList
   unless cs.length = 64 do throw "a digest has 64 digits"
   let bytes ← (List.range 32).mapM fun i ↦ do
-    return (← hexK (String.ofList [cs.getD (2 * i) '0', cs.getD (2 * i + 1) '0'])).toBitVec.toNat.toUInt8
+    let k ← hexK (String.ofList [cs.getD (2 * i) '0', cs.getD (2 * i + 1) '0'])
+    return k.toBitVec.toNat.toUInt8
   return Blake2sHash.digestOfBytes bytes
 
 /-- `n` lines read by `f`. -/
@@ -229,8 +231,8 @@ def parse (pows : PowTable) : ParseM Execution := do
   return {
     pin := pin, name := name, prog := prog, programHash := hash, filler := filler,
     input := input, κ := κ, steps := steps, memUsed := memUsed,
-    unconstrainedReads := unconstrained, floor := floor, traceInput := ⟨memory, mainCounts, rowCounts, cycles⟩,
-    accessed := accessed, rows := tables }
+    unconstrainedReads := unconstrained, floor := floor,
+    traceInput := ⟨memory, mainCounts, rowCounts, cycles⟩, accessed := accessed, rows := tables }
 
 /-- The largest exponent a file names: its program and its memory's sizes. -/
 def sizesOf (lines : Array String) : ℕ × ℕ := Id.run do
@@ -261,7 +263,8 @@ def opcodes : List Opcode := [.xor, .mulNative, .setConstant, .deref, .jump, .bl
 /-- The listed fill blocks hold the dummies and the closing jump, and every pair of table and
 size has one. -/
 def fillBlocksListed (prog : Program) (filler : Array (ℕ × ℕ × ℕ)) : Bool :=
-  let code (i : ℕ) : Option Instr := if h : i < 2 ^ prog.logSize then some (prog.code ⟨i, h⟩) else none
+  let code (i : ℕ) : Option Instr :=
+    if h : i < 2 ^ prog.logSize then some (prog.code ⟨i, h⟩) else none
   let blockOk : ℕ × ℕ × ℕ → Bool := fun (p, s, t) ↦
     match opcodes[t]? with
     | none => false
@@ -431,7 +434,8 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
     | .error msg => do IO.println s!"FAIL parse: {msg}"; return 1
   IO.println s!"  {e.name} (leanVM {e.pin.take 8}): program 2^{e.prog.logSize}, memory 2^{e.κ}, \
     steps {e.steps}, cycles {e.traceInput.cycles}, main {e.traceInput.mainCounts.toList}, \
-    rows {e.traceInput.rowCounts.toList}, unconstrained reads {e.unconstrainedReads}, committed floor 2^{e.floor}"
+    rows {e.traceInput.rowCounts.toList}, unconstrained reads {e.unconstrainedReads}, \
+    committed floor 2^{e.floor}"
   let mut failed ← report "parse" true t1
   let t2 ← IO.monoNanosNow
   let some t := e.traceInput.adapt e.prog | do

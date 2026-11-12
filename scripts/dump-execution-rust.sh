@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Write executions of compiled leanVM programs by the pinned Rust executor, one file per program,
 # for `leanervm-witgen` (bench/LeanerVMWitgen.lean). The executor is the one `prove` runs
-# (`Program::execute_to_floor`, crates/lean_vm/src/cpu/mod.rs:528 at
+# (`Program::execute_to_floor`, its call in `prove` at crates/lean_vm/src/cpu/mod.rs:528 at
 # a386121f84292f6fa663aaa3e570c15bc0240ea2), main run and fill blocks.
 #
 # The pinned source is unpacked with `git archive`, so the checkout's HEAD and tree are never
@@ -84,7 +84,7 @@ mkdir -p "$raw"
 if [[ "$guest" == 1 ]]; then
   marker='let exec = crate::stage!("Execute program", || program.execute_to_floor(public_input));'
   grep -qF "$marker" "$src/crates/lean_vm/src/cpu/mod.rs"
-  python3 - "$src/crates/lean_vm/src/cpu/mod.rs" "$marker" <<'EOF'
+  uv run --no-project --python 3.12 python - "$src/crates/lean_vm/src/cpu/mod.rs" "$marker" <<'EOF'
 import sys
 path, marker = sys.argv[1], sys.argv[2]
 text = open(path).read()
@@ -103,5 +103,6 @@ if [[ "$(sha256sum "$src/Cargo.lock")" != "$lock" ]]; then
 fi
 for f in "$raw"/*.exec; do
   gzip -9 -n -c "$f" > "$out/$(basename "$f").gz"
-  echo "$(basename "$f").gz $(stat -c %s "$f") bytes, $(stat -c %s "$out/$(basename "$f").gz") compressed"
+  echo "$(basename "$f").gz $(stat -c %s "$f") bytes," \
+    "$(stat -c %s "$out/$(basename "$f").gz") compressed"
 done

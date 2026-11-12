@@ -38,7 +38,8 @@ fn hash_chain(steps: usize, unroll: usize) -> (String, [F192; 2]) {
     body.push_str("        h0[1] = buff[b * GEN]\n");
     for step in 1..=unroll {
         body.push_str(&format!("        h{step} = StackBuf(2)\n"));
-        body.push_str(&format!("        blake2s(h{previous}, h{previous}, h{step})\n", previous = step - 1));
+        let previous = step - 1;
+        body.push_str(&format!("        blake2s(h{previous}, h{previous}, h{step})\n"));
     }
     for word in 0..2 {
         body.push_str(&format!("        buff[b * GEN ** {}] = h{unroll}[{word}]\n", 2 + word));
@@ -77,7 +78,8 @@ fn fibonacci(fib_n: usize) -> (String, [F192; 2]) {
         current = next;
     }
     let pi = [F192::from(previous), F192::ZERO];
-    let mut body = String::from("        b = x * x\n        f0 = buff[b]\n        f1 = buff[b * GEN]\n");
+    let mut body =
+        String::from("        b = x * x\n        f0 = buff[b]\n        f1 = buff[b * GEN]\n");
     for j in 2..=UNROLL + 1 {
         body.push_str(&format!("        f{j} = f{} * f{}\n", j - 2, j - 1));
     }
