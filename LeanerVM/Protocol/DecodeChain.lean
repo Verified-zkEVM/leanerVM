@@ -674,7 +674,7 @@ private theorem agree_commitSlot {M : Type} (ann : List E) (w w' : M) :
     exact agree_fail
 
 /-- **The decoder reads alike at any two word suppliers.** -/
-theorem readsAlike_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt)
+private theorem readsAlike_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt)
     (ann : List E) (c : Chain) (W W' : Words c) :
     (compiledDec I h input ann c W).ReadsAlike (compiledDec I h input ann c W') :=
   readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_append
@@ -721,14 +721,6 @@ theorem decodePrefix_isSome_indep (W W' : LeanWords prog s hs ρ hρ) (hist : Li
   unfold decodePrefix decoder
   exact (readsAlike_compiledDec (leanVm prog s) (leanIsa_conditions _ prog s) input
     (announcement s ρ) (leanIsaChain prog s hs ρ hρ) W W').decodePrefix hist
-
-/-- In particular, whether a history decodes does not depend on the words. -/
-theorem isSome_decodePrefix_indep (W W' : LeanWords prog s hs ρ hρ) (hist : List Reading) :
-    (decodePrefix prog input s hs ρ hρ W hist).isSome =
-      (decodePrefix prog input s hs ρ hρ W' hist).isSome := by
-  unfold decodePrefix decoder
-  exact (readsAlike_compiledDec (leanVm prog s) (leanIsa_conditions _ prog s) input
-    (announcement s ρ) (leanIsaChain prog s hs ρ hρ) W W').isSome_decodePrefix hist
 
 end Deployed
 

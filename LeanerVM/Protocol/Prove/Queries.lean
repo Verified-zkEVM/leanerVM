@@ -600,7 +600,7 @@ private theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : �
 
 /-- **The honest prover's queries**, at a witness of the constraint statement with admissible
 sizes and a valid rate: the seed's three, the announcement's eight, and the wire's. -/
-theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ : ℕ}
+private theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} (hsat : SatisfiedBy prog input w)
     (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) {ρ : ℕ} (hρ : validRate ρ) :
     IsTotalQueryBound (proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ)

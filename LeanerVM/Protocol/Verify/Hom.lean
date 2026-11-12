@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Protocol.Verify
 public import VCVio.OracleComp.SimSemantics.SimulateQ
+import LeanerVM.Protocol.Verify.Rel
 import Mathlib.Control.Lawful
 
 /-!
@@ -30,7 +31,9 @@ for the seed's hashes.
 Lean has no parametricity theorem, so the transport is proved through the definitions: the
 chain's steps, the reader's operations along the lifted morphism `ReadM.mapHom φ`, the Merkle
 check (through `MerkleTree.prunedRoot_hom`), every walk along any morphism of its primitives
-(`ChainOps.map`, `walkProof_hom`), and the proof reader's primitives mapped (`readerOps_hom`).
+(`ChainOps.map`, `walkProof_hom`: the chain walk by `Verify.walkChain_rel` at the relation
+`ψ a = b`, the openings by induction), and the proof reader's primitives mapped
+(`readerOps_hom`).
 -/
 
 namespace LeanerVM.Protocol
@@ -84,7 +87,7 @@ abbrev ReadM.mapHom {M : Type} : ReadM m M →ᵐ ReadM m' M := StateT.mapHom (E
 variable {M : Type}
 
 /-- A reader's run, mapped, is the mapped reader's run. -/
-theorem ReadM.run'_mapHom {α : Type} (x : ReadM m M α) (st : ReaderState M) :
+private theorem ReadM.run'_mapHom {α : Type} (x : ReadM m M α) (st : ReaderState M) :
     φ ((x.run' st).run) = ((ReadM.mapHom φ x).run' st).run := by
   simp [StateT.run', ReadM.mapHom]
   rfl
@@ -194,37 +197,14 @@ section Walks
 variable {n n' : Type → Type} [Monad n] [Monad n'] [LawfulMonad n] [LawfulMonad n']
   (ψ : n →ᵐ n') (ops : ChainOps n)
 
-private theorem nextScalars_hom (k : ℕ) : ψ (ops.nextScalars k) = (ops.map ψ).nextScalars k := by
-  induction k with
-  | zero => simp [ChainOps.nextScalars]
-  | succ k ih => simp [ChainOps.nextScalars, ih, ChainOps.map]
-
-private theorem samples_hom (k : ℕ) : ψ (samples ops k) = samples (ops.map ψ) k := by
-  induction k with
-  | zero => simp [samples]
-  | succ k ih => simp [samples, ih, ChainOps.map]
-
-private theorem readRounds_hom (d k : ℕ) : ψ (readRounds ops d k) = readRounds (ops.map ψ) d k := by
-  induction k with
-  | zero => simp [readRounds]
-  | succ k ih => simp [readRounds, readRound, ih, nextScalars_hom, ChainOps.map]
-
-private theorem walkLayers_hom (ρs : List ℕ) (j : ℕ) :
-    ψ (walkLayers ops ρs j) = walkLayers (ops.map ψ) ρs j := by
-  induction ρs generalizing j with
-  | nil => simp [walkLayers]
-  | cons ρ rest ih =>
-    simp [walkLayers, walkLayer, ih, readRounds_hom, nextScalars_hom, samples_hom, ChainOps.map]
-
-private theorem walkFolds_hom (k : ℕ) : ψ (walkFolds ops k) = walkFolds (ops.map ψ) k := by
-  induction k with
-  | zero => simp [walkFolds]
-  | succ k ih => simp [walkFolds, ih, nextScalars_hom, ChainOps.map]
-
-private theorem walkTail_hom (k : ℕ) : ψ (walkTail ops k) = walkTail (ops.map ψ) k := by
-  induction k with
-  | zero => simp [walkTail]
-  | succ k ih => by_cases hk : k = 0 <;> simp [walkTail, ih, hk, nextScalars_hom, ChainOps.map]
+/-- A monad morphism as a relation of the two monads' computations: `ψ a = b`. -/
+private def homRel : MonadRel n n' where
+  R a b := ψ a = b
+  pure _ := by simp
+  bind {_ _ a₁ _ f₁ f₂} h₁ h₂ := by
+    obtain rfl : ψ a₁ = _ := h₁
+    obtain rfl : f₂ = fun x ↦ ψ (f₁ x) := funext fun x ↦ (h₂ x).symm
+    simp
 
 theorem positionsWith_hom (s : n E) (depth fuel need : ℕ) :
     ψ (positionsWith s depth fuel need) = positionsWith (ψ s) depth fuel need := by
@@ -234,19 +214,6 @@ theorem positionsWith_hom (s : n E) (depth fuel need : ℕ) :
     cases need with
     | zero => simp [positionsWith]
     | succ need => simp [positionsWith, ih]
-
-private theorem walkPositions_hom (depth fuel need : ℕ) :
-    ψ (walkPositions ops depth fuel need) = walkPositions (ops.map ψ) depth fuel need :=
-  positionsWith_hom ψ ops.sample depth fuel need
-
-private theorem walkLevels_hom (shs : List LevelShape) :
-    ψ (walkLevels ops shs) = walkLevels (ops.map ψ) shs := by
-  induction shs with
-  | nil => simp [walkLevels]
-  | cons sh shs ih =>
-    cases h : sh.final <;>
-      simp [walkLevels, walkLevel, h, ih, walkFolds_hom, nextScalars_hom, samples_hom,
-        walkPositions_hom, walkTail_hom, ChainOps.map]
 
 private theorem walkOpenings_hom (nLanes : ℕ) (first : Bool) (root : Digest) (shs : List LevelShape)
     (ls : List WhirLevel) :
@@ -264,9 +231,10 @@ primitives. -/
 theorem walkProof_hom (prog : Program) (s : Sizes) (input : PublicInput)
     (shs : List LevelShape) :
     ψ (walkProof ops prog s input shs) = walkProof (ops.map ψ) prog s input shs := by
-  simp [walkProof, walkChain, walkSetup, walkBus, walkTables, walkPub, walkFlock, walkWhir,
-    nextScalars_hom, samples_hom, readRounds_hom, walkLayers_hom, walkLevels_hom,
-    walkOpenings_hom, ChainOps.map]
+  have hc : ψ (walkChain ops prog s input shs) = walkChain (ops.map ψ) prog s input shs :=
+    walkChain_rel (𝓡 := homRel ψ) (ops₁ := ops) (ops₂ := ops.map ψ)
+      ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩ prog s input shs
+  simp [walkProof, hc, walkOpenings_hom]
 
 end Walks
 

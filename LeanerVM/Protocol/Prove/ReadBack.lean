@@ -363,71 +363,6 @@ private theorem back_sendNormal {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) {s
 
 end Primitives
 
-/-! ## The walk's reads regrouped -/
-
-section Regroup
-
-variable {n : Type → Type} [Monad n] [LawfulMonad n] (ops : Verify.ChainOps n)
-
-/-- `k + 1` challenges are the first `k`, then the last. -/
-private theorem samples_succ : ∀ k, Verify.samples ops (k + 1) = do
-    let xs ← Verify.samples ops k
-    let x ← ops.sample
-    return xs ++ [x]
-  | 0 => by simp [Verify.samples]
-  | k + 1 => by
-    conv_lhs => rw [Verify.samples, samples_succ k]
-    conv_rhs => rw [Verify.samples]
-    simp
-
-/-- `a + b` scalars are the first `a`, then the next `b`. -/
-private theorem nextScalars_add (b : ℕ) : ∀ a, ops.nextScalars (a + b) = do
-    let xs ← ops.nextScalars a
-    let ys ← ops.nextScalars b
-    return xs ++ ys
-  | 0 => by simp [Verify.ChainOps.nextScalars]
-  | a + 1 => by
-    rw [Nat.add_right_comm, Verify.ChainOps.nextScalars, nextScalars_add b a,
-      Verify.ChainOps.nextScalars]
-    simp
-
-/-- `a + b` rounds are the first `a`, then the next `b`. -/
-private theorem readRounds_add (d b : ℕ) : ∀ a, Verify.readRounds ops d (a + b) = do
-    let rs₁ ← Verify.readRounds ops d a
-    let rs₂ ← Verify.readRounds ops d b
-    return rs₁ ++ rs₂
-  | 0 => by simp [Verify.readRounds]
-  | a + 1 => by
-    rw [Nat.add_right_comm, Verify.readRounds, readRounds_add d b a, Verify.readRounds]
-    simp
-
-/-- `k + 1` fold rounds: the first challenge, then `k` rounds of a polynomial and a challenge,
-then the last polynomial. -/
-private theorem walkFolds_eq : ∀ k, Verify.walkFolds ops (k + 1) = do
-    let c ← ops.sample
-    let rs ← Verify.readRounds ops 2 k
-    let w ← ops.nextScalars 2
-    return foldsWire c rs w
-  | 0 => by simp [Verify.walkFolds, Verify.readRounds, foldsWire]
-  | k + 1 => by
-    conv_lhs => rw [Verify.walkFolds, walkFolds_eq k]
-    conv_rhs => rw [Verify.readRounds, Verify.readRound]
-    simp [foldsWire]
-
-/-- `k + 1` tail rounds: the first challenge, then `k` rounds of a polynomial and a
-challenge. -/
-private theorem walkTail_eq : ∀ k, Verify.walkTail ops (k + 1) = do
-    let c ← ops.sample
-    let rs ← Verify.readRounds ops 2 k
-    return foldsWire c rs []
-  | 0 => by simp [Verify.walkTail, Verify.readRounds, foldsWire]
-  | k + 1 => by
-    conv_lhs => rw [Verify.walkTail, walkTail_eq k]
-    conv_rhs => rw [Verify.readRounds, Verify.readRound]
-    simp [foldsWire]
-
-end Regroup
-
 /-! ## The wires of runs of challenges and rounds -/
 
 section Runs
@@ -443,7 +378,7 @@ private theorem back_chals : ∀ (k : ℕ) {t : (draws E k).FullTranscript} {s s
     exact Back.pure _ _
   | k + 1, t, s, s', h => by
     obtain ⟨sm, h₁, h₂⟩ := RoundCodec.RunsAs.append_inv proveSem h
-    rw [samples_succ]
+    rw [Verify.samples_succ]
     exact (back_chals k h₁).bind
       ((back_sample H fuel (RoundCodec.runsAs_chal h₂)).bind (Back.pure _ _))
 
@@ -531,7 +466,7 @@ private theorem back_flock (k : ℕ) {t : (flockSpecOf k).FullTranscript} {s s' 
   have hsl' := back_msgVec H fuel hsl
   have hn := back_rounds H fuel 0
     (fun c _ _ _ hc ↦ back_sendNormal H fuel (d := 2) (by norm_num) c hc)
-  simp only [Verify.walkFlock, readRounds_add]
+  simp only [Verify.walkFlock, Verify.readRounds_add]
   exact (back_chals H fuel (k + 1) hpt).bind (hskip.bind
     ((back_sample H fuel (RoundCodec.runsAs_chal hzs)).bind (((hn 8 hz8).bind
       ((hn k hzk).bind_ret rfl)).bind (hab'.bind
@@ -671,11 +606,6 @@ private theorem back_gkr (μ : ℕ) {t : (gkrSpec E 3 μ).FullTranscript} {s s' 
         let ls ← Verify.walkLayers (Verify.readerOps H) (Verify.gkrRadices μ) 0
         return (c, ls)) s s' (gkrWire μ t) :=
   back_gkrAux H fuel (μ % 2) (μ / 2) (Nat.mod_lt _ (by norm_num)) h
-
-/-- Four challenges read as a function, by position, are the four. -/
-private theorem ofFn_getD : ∀ {l : List E}, l.length = 4 →
-    List.ofFn (fun i : Fin 4 ↦ l.getD i 0) = l
-  | [_, _, _, _], _ => by simp [List.ofFn_succ]
 
 /-- **The bus phase read back**: `α`, `β`, the roots, the grand product's combiner and layers,
 and the boundary values. -/

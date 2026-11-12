@@ -149,11 +149,11 @@ theorem samples_grade : ∀ k, 𝓖.P (samples ops k) (k * c.sample)
   | k + 1 => 𝓖.of_eq (𝓖.bind h.sample fun _ ↦ 𝓖.bind (samples_grade k) fun _ ↦ 𝓖.pure _)
       (by ring)
 
-theorem readRound_grade (d : ℕ) : 𝓖.P (readRound ops d) (c.round d) :=
+private theorem readRound_grade (d : ℕ) : 𝓖.P (readRound ops d) (c.round d) :=
   𝓖.of_eq (𝓖.bind (nextScalars_grade h d) fun _ ↦ 𝓖.bind h.sample fun _ ↦ 𝓖.pure _)
     (by simp [StepCounts.round])
 
-theorem readRounds_grade (d : ℕ) : ∀ k, 𝓖.P (readRounds ops d k) (c.rounds d k)
+private theorem readRounds_grade (d : ℕ) : ∀ k, 𝓖.P (readRounds ops d k) (c.rounds d k)
   | 0 => 𝓖.of_eq (𝓖.pure _) (by simp [StepCounts.rounds])
   | k + 1 => 𝓖.of_eq (𝓖.bind (readRound_grade h d) fun _ ↦
       𝓖.bind (readRounds_grade d k) fun _ ↦ 𝓖.pure _) (by simp only [StepCounts.rounds]; ring)
@@ -161,13 +161,14 @@ theorem readRounds_grade (d : ℕ) : ∀ k, 𝓖.P (readRounds ops d k) (c.round
 theorem walkSetup_grade : 𝓖.P (walkSetup ops) c.setup :=
   𝓖.bind (nextScalars_grade h 8) fun _ ↦ h.nextRoot
 
-theorem walkLayer_grade (ρ j : ℕ) : 𝓖.P (walkLayer ops ρ j) (c.layer ρ j) :=
+private theorem walkLayer_grade (ρ j : ℕ) : 𝓖.P (walkLayer ops ρ j) (c.layer ρ j) :=
   𝓖.of_eq (𝓖.bind (readRounds_grade h _ _) fun _ ↦ 𝓖.bind (nextScalars_grade h _) fun _ ↦
     𝓖.bind (nextScalars_grade h _) fun _ ↦ 𝓖.bind (nextScalars_grade h _) fun _ ↦
     𝓖.bind (samples_grade h _) fun _ ↦ 𝓖.bind h.sample fun _ ↦ 𝓖.pure _)
     (by simp only [StepCounts.layer]; ring)
 
-theorem walkLayers_grade : ∀ (ρs : List ℕ) (j : ℕ), 𝓖.P (walkLayers ops ρs j) (c.layers ρs j)
+private theorem walkLayers_grade : ∀ (ρs : List ℕ) (j : ℕ), 𝓖.P (walkLayers ops ρs j)
+    (c.layers ρs j)
   | [], _ => 𝓖.pure _
   | ρ :: rest, j => 𝓖.of_eq (𝓖.bind (walkLayer_grade h ρ j) fun _ ↦
       𝓖.bind (walkLayers_grade rest (j + ρ)) fun _ ↦ 𝓖.pure _) (by simp [StepCounts.layers])
@@ -200,7 +201,7 @@ theorem walkFolds_grade : ∀ k, 𝓖.P (walkFolds ops k) (c.folds k)
   | k + 1 => 𝓖.of_eq (𝓖.bind h.sample fun _ ↦ 𝓖.bind (nextScalars_grade h 2) fun _ ↦
       𝓖.bind (walkFolds_grade k) fun _ ↦ 𝓖.pure _) (by simp only [StepCounts.folds]; ring)
 
-theorem walkTail_grade : ∀ k, 𝓖.P (walkTail ops k) (c.tail k)
+private theorem walkTail_grade : ∀ k, 𝓖.P (walkTail ops k) (c.tail k)
   | 0 => 𝓖.pure _
   | k + 1 => 𝓖.of_eq (𝓖.bind h.sample fun _ ↦
       𝓖.ite_bind (k = 0) (𝓖.pure _) (nextScalars_grade h 2) fun _ ↦
@@ -227,13 +228,13 @@ theorem walkLevel_grade [LawfulMonad n] (sh : LevelShape) :
     𝓖.ite_bind _ (walkTail_grade h _) (𝓖.pure _) fun _ ↦ 𝓖.pure _)
     (by simp only [StepCounts.level]; split <;> omega)
 
-theorem walkLevels_grade [LawfulMonad n] :
+private theorem walkLevels_grade [LawfulMonad n] :
     ∀ shs, 𝓖.P (walkLevels ops shs) (c.levels shs)
   | [] => 𝓖.pure _
   | sh :: shs => 𝓖.of_eq (𝓖.bind (walkLevel_grade h sh) fun _ ↦
       𝓖.bind (walkLevels_grade shs) fun _ ↦ 𝓖.pure _) (by simp [StepCounts.levels])
 
-theorem walkWhir_grade [LawfulMonad n] (shs : List LevelShape) :
+private theorem walkWhir_grade [LawfulMonad n] (shs : List LevelShape) :
     𝓖.P (walkWhir ops shs) (c.whir shs) :=
   𝓖.of_eq (𝓖.bind (nextScalars_grade h 2) fun _ ↦ 𝓖.bind (walkLevels_grade h shs) fun _ ↦
     𝓖.pure _) (by simp [StepCounts.whir])

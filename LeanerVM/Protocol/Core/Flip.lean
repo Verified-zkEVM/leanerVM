@@ -360,16 +360,6 @@ section Cut
 
 variable {n : ℕ} {pSpec : ProtocolSpec n}
 
-private theorem run_succ_eq_some {D : SlotDecoder Reading pSpec} {j : ℕ} {hj : j + 1 ≤ n}
-    {l : List Reading} {tr : pSpec.Transcript ⟨j + 1, by omega⟩} {r : List Reading}
-    (h : D.run (j + 1) hj l = some (tr, r)) :
-    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) ∧
-      tr = Transcript.concat (m := ⟨j, hj⟩) x t := by
-  simp only [SlotDecoder.run, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨⟨t, l₁⟩, ht, ⟨x, r'⟩, hx, he⟩ := h
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-  exact ⟨t, l₁, x, ht, hx, rfl⟩
-
 private theorem take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
     full.take j.succ.val j.succ.is_le =
       Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
@@ -524,10 +514,7 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
       (D (R.wordsAt a l c)).decodePrefix c = (D W).decodePrefix c)
     {tr : (R.spec a).FullTranscript} (hdec : (D W).decode hist = some tr)
     (i : (R.spec a).ChallengeIdx) (hbad : R.BadIn tr i) : R.FlipAtForIn l st lV := by
-  have hcut := challenge_cut (hS W) (hO W) hP hdec i
-  obtain ⟨c, hcut⟩ := hcut
-  obtain ⟨ds₀, hcut⟩ := hcut
-  obtain ⟨rest, hl₀, hpre₀, hchal₀⟩ := hcut
+  obtain ⟨c, ds₀, rest, hl₀, hpre₀, hchal₀⟩ := challenge_cut (hS W) (hO W) hP hdec i
   have hpre : R.decodePrefix a (R.wordsAt a l c) c = some (R.prefixOf tr i) :=
     ((hD _ _).trans (hwords c _ hl₀)).trans hpre₀
   set ds : Fin (R.slot a i).m → Digest := fun j ↦ ds₀ (Fin.cast (hm i) j) with hds_def

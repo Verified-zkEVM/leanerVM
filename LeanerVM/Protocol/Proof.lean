@@ -29,8 +29,8 @@ unread stream and the unread openings, and fails with a `ReadError` (`Error`, `:
   (`next_root`, `:95-99`; `scalars_to_hash`, `merkle.rs:26-36`).
 * `nextRoundPoly d claim eq?` reads and observes the `d` coefficients of a degree-`d` round
   polynomial the wire carries, low degree first, and derives the dropped one from the running
-  claim (`next_round_poly`, `:289-309`); its chain effect is `nextScalars d`'s, whatever the claim
-  (`Reader.nextRoundPoly_eq`). A plain round drops `c_1 = claim + Σ_{i≥2} c_i`; a
+  claim (`next_round_poly`, `:289-309`); its chain effect is `nextScalars d`'s, whatever the
+  claim. A plain round drops `c_1 = claim + Σ_{i≥2} c_i`; a
   round whose equality weight `r` is factored out drops `c_0 = claim + r·Σ_{i≥1} c_i`. These are
   the round's checks `h(0) + h(1) = claim` and `(1 + r)·h(0) + r·h(1) = claim` solved in
   characteristic two, so a decoded polynomial passes its round's check and no check remains
@@ -51,8 +51,7 @@ log-heights in the order `XOR, MUL, SET, DEREF, JUMP, BLAKE2S`, and the WHIR rat
 scalar whose upper two limbs are zero (`announce_public`, `read_public`,
 `crates/lean_vm/src/cpu/mod.rs:118-149`). `Proof.announced?` reads them off a proof;
 `setupOk` is `read_public`'s checks of them (`:157-176`), `Sizes.Admissible` and `validRate`.
-`Reader.readSizes` reads and checks them, and accepts only what `Proof.announced?` reads and
-`setupOk` passes (`announced?_of_readSizes`).
+`Reader.readSizes` reads and checks them.
 
 **Round trips.** `ReadsBack wr rd R` says that the reader `rd`, run on what the writer `wr`
 appends, consumes exactly that, ends in the writer's chain state and returns a value related to
@@ -298,16 +297,6 @@ def readSizes (prog : Program) : ReadM m M (Sizes × ℕ) := do
   | none => throw .publicInput
   | some (s, ρ) => if setupOk prog s ρ then return (s, ρ) else throw .publicInput
 
-/-- For a positive degree, reading a round polynomial is reading `d` scalars, then decoding them:
-its chain effect does not depend on the claim. -/
-theorem nextRoundPoly_eq {d : ℕ} (hd : 0 < d) (claim : E) (eq? : Option E) :
-    nextRoundPoly (M := M) H d claim eq? = (do
-      let w ← nextScalars H d
-      match RoundPoly.decode d claim eq? w with
-      | some c => return c
-      | none => throw .roundDegree) := by
-  simp only [nextRoundPoly, Nat.pos_iff_ne_zero.mp hd, ↓reduceIte]
-
 end Reader
 
 /-- Run a reader on a proof from a chain state, then `finish`: the value and the final chain
@@ -414,13 +403,6 @@ theorem ofList?_toList {n : ℕ} (c : Vector E n) : ofList? n c.toList = some c 
   rcases c with ⟨a, rfl⟩
   simp [ofList?]
 
-/-- A vector read off a list carries it. -/
-theorem toList_of_ofList? {n : ℕ} {l : List E} {c : Vector E n}
-    (h : ofList? n l = some c) : c.toList = l := by
-  unfold ofList? at h
-  split at h <;> cases h
-  simp
-
 /-- A decoding succeeds at a positive degree on `d` wire coefficients, to their completion. -/
 private theorem of_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E}
     {c : Vector E (d + 1)} (h : decode d claim eq? w = some c) :
@@ -504,7 +486,7 @@ private theorem sizeScalar_of_sizeOf? {x : E} {n : ℕ} (h : sizeOf? x = some n)
   simp [K.ofBits]
 
 /-- **Eight scalars that decode to sizes and a rate are their announcement.** -/
-theorem eq_announcement_of_decodeAnnouncement {xs : List E} {s : Sizes} {ρ : ℕ}
+private theorem eq_announcement_of_decodeAnnouncement {xs : List E} {s : Sizes} {ρ : ℕ}
     (h : decodeAnnouncement xs = some (s, ρ)) : xs = announcement s ρ := by
   match xs, h with
   | [lm, t0, t1, t2, t3, t4, t5, r], h =>
@@ -545,14 +527,6 @@ private theorem reads_bind {α β : Type} {rd : ReadM Id M α} {rf : α → Read
     ((rd >>= rf).run st).run = Except.ok (b, st'') := by
   rw [StateT.run_bind, ExceptT.run_bind, h₁]
   exact h₂
-
-private theorem reads_bind_inv {α β : Type} {rd : ReadM Id M α} {rf : α → ReadM Id M β}
-    {st st'' : ReaderState M} {b : β} (h : ((rd >>= rf).run st).run = Except.ok (b, st'')) :
-    ∃ a st', (rd.run st).run = Except.ok (a, st') ∧ ((rf a).run st').run = Except.ok (b, st'') := by
-  rw [StateT.run_bind, ExceptT.run_bind] at h
-  rcases h₁ : (rd.run st).run with e | ⟨a, st'⟩ <;> rw [h₁] at h
-  · cases h
-  · exact ⟨a, st', rfl, h⟩
 
 /-- Pure values read back. -/
 theorem ReadsBack.pure {α β : Type} {R : α → β → Prop} {a : α} {b : β} (h : R a b) :
@@ -610,17 +584,6 @@ theorem readsBack_root (d : Digest) :
   subst ha hb
   exact ⟨d, by simp only [Prod.mk.eta, digestOfScalars_digestScalars], rfl⟩
 
-/-- A round polynomial that passes its round's check reads back. -/
-theorem readsBack_roundPoly {d : ℕ} (hd : 0 < d) {claim : E} {eq? : Option E}
-    {c : Vector E (d + 1)} (hc : RoundPoly.Check claim eq? c) :
-    ReadsBack (M := M) (Writer.addRoundPoly H eq? c) (Reader.nextRoundPoly H d claim eq?)
-      (fun _ b ↦ b = c) := by
-  have hs := readsBack_scalars (M := M) H (RoundPoly.encode eq? c)
-  rw [RoundPoly.length_encode hd] at hs
-  rw [Reader.nextRoundPoly_eq H hd]
-  refine hs.map fun _ w hw ↦ ⟨c, ?_, rfl⟩
-  simp only [hw, RoundPoly.decode_encode hd hc]
-
 /-- A challenge reads back. -/
 theorem readsBack_sample :
     ReadsBack (M := M) (Writer.sample H) (Reader.sample H) (· = ·) := by
@@ -639,13 +602,6 @@ theorem readsBack_grind (fuel bits : ℕ) :
     show w.fs.checkPow H bits nonce = Pure.pure (true, fs') from FsState.checkPow_of_grind H hg]
   rfl
 
-/-- An opening phase reads back when it authenticates. -/
-theorem readsBack_opening {α : Type} (o : M) {auth : M → Id (Option α)} {a : α}
-    (ha : auth o = some a) :
-    ReadsBack (Writer.hintOpening (m := Id) o) (Reader.nextOpening auth) (fun _ b ↦ b = a) := by
-  rintro w _ _ ⟨⟩
-  exact ⟨[], [o], a, by simp, by simp, rfl, fun _ _ ↦ by simp [Reader.nextOpening, ha]; rfl⟩
-
 /-- The announced sizes read back when they pass the setup checks. -/
 theorem readsBack_announce {prog : Program} {s : Sizes} {ρ : ℕ} (h : setupOk prog s ρ = true) :
     ReadsBack (M := M) (Writer.announce H s ρ) (Reader.readSizes H prog)
@@ -656,34 +612,6 @@ theorem readsBack_announce {prog : Program} {s : Sizes} {ρ : ℕ} (h : setupOk 
   simp only [hxs, decodeAnnouncement_announcement h, h, ↓reduceIte]
 
 /-! ### What the reader of the sizes accepts -/
-
-private theorem nextScalars_take {n : ℕ} {fs : FsState} {xs ys : List E} {ms : List M}
-    {st' : ReaderState M}
-    (h : ((Reader.nextScalars H n).run ⟨fs, xs, ms⟩).run = Except.ok (ys, st')) :
-    ys = xs.take n := by
-  induction n generalizing fs xs ys with
-  | zero => cases h; rfl
-  | succ n ih =>
-    obtain ⟨y, st₁, h₁, h₂⟩ := reads_bind_inv h
-    obtain ⟨ys', st₂, h₃, ⟨⟩⟩ := reads_bind_inv h₂
-    rcases xs with _ | ⟨x, xs⟩ <;> cases h₁
-    rw [ih h₃, List.take_succ_cons]
-
-/-- Sizes the reader accepts are the sizes the proof announces, and pass the setup checks. -/
-theorem announced?_of_readSizes {prog : Program} {fs : FsState} {p : Proof M} {s : Sizes}
-    {ρ : ℕ} {st' : ReaderState M}
-    (h : ((Reader.readSizes H prog).run ⟨fs, p.stream, p.merkle⟩).run =
-      Except.ok ((s, ρ), st')) :
-    p.announced? = some (s, ρ) ∧ setupOk prog s ρ = true := by
-  obtain ⟨xs, st₁, h₁, h₂⟩ := reads_bind_inv h
-  rw [nextScalars_take H h₁] at h₂
-  rw [Proof.announced?]
-  revert h₂
-  rcases decodeAnnouncement (p.stream.take 8) with _ | ⟨s', ρ'⟩
-  · rintro ⟨⟩
-  · cases hs : setupOk prog s' ρ' <;> simp only [hs, Bool.false_eq_true, ↓reduceIte] <;>
-      rintro ⟨⟩
-    exact ⟨rfl, hs⟩
 
 /-! ### The transcript round trip -/
 

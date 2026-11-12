@@ -22,7 +22,7 @@ flipped the executable rejects.
 
 The Flock phase's oracle verifier's lincheck walks the region's block R1CS (`BlockR1CS.rows`),
 `2^28` terms a matrix, which the executable replaces by `blake2sRows` (`blake2sRows_eq`,
-`leanVmFlock_eq`); that check is evaluated on the executable's side only.
+`blake2sRows_eq_region`); that check is evaluated on the executable's side only.
 -/
 
 namespace LeanerVMTests.Protocol.Compile

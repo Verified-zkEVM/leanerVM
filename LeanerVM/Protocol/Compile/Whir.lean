@@ -36,7 +36,7 @@ The algebra decodes every round polynomial against its claim, so it never reject
 transcript whose polynomial differs from the decoded one at the coefficient the wire drops, the
 algebra accepts what the oracle verifier rejects. The converse holds on the transcripts whose
 round polynomials pass their checks against the running claims (`LevelSolved`, `FinalSolved`,
-`LadderSolved`, `WhirSolved`), as an accepted transcript's do (`whirSolved_of_run`):
+`LadderSolved`, `WhirSolved`):
 
 * `whirLevels_level`, `whirLevels_final_eq`: on such a level the algebra's level is the oracle
   verifier's, the final one's verdict its terminal check (`FinalTerminal`);
@@ -65,16 +65,10 @@ private theorem polyWire_ne_nil (p : Vector E 3) : DecodeChain.polyWire 1 p ≠ 
   simp [DecodeChain.polyWire] at this
 
 /-- A plain round polynomial that passes its check against a claim decodes from its wire. -/
-theorem decode_polyWire {claim : E} {p : Vector E 3} (h : Whir.chk p claim = true) :
+private theorem decode_polyWire {claim : E} {p : Vector E 3} (h : Whir.chk p claim = true) :
     RoundPoly.decode 2 claim none (DecodeChain.polyWire 1 p) = some p := by
   rw [Whir.chk, decide_eq_true_iff, show unitDom = eqDomain none from rfl, ← check_iff] at h
   exact RoundPoly.decode_encode (by omega) h
-
-/-- `k` draws carry `k` challenges. -/
-private theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript),
-    (drawsList k t).length = k
-  | 0, _ => rfl
-  | k + 1, t => by simp [drawsList, length_drawsList k]
 
 /-- The challenges of `k` draws, as a vector. -/
 def drawsVec (k : ℕ) (t : (draws E k).FullTranscript) : Vector E k :=
@@ -105,7 +99,7 @@ verifier's `i` plain rounds accept with the verdict `s'`, the executable replays
 challenge, the rounds and a last wire `w` from `q`: the oracle verifier's final claim, the
 challenges after the statement's, and the last wire decoded against that claim (`q'`, the last
 round's polynomial, when `w` is empty). -/
-theorem replayFolds_foldsWire (hwt : ∀ x k, wt x k = eqDomain none) (w : List E) :
+private theorem replayFolds_foldsWire (hwt : ∀ x k, wt x k = eqDomain none) (w : List E) :
     ∀ (i j : ℕ) (h : j + 1 + i = m) (s : SumcheckRound.Stmt X E j)
       (q : SumcheckRound.Message E 2) (c : E) (rt : (roundsSpec E 2 i).FullTranscript)
       (s' : SumcheckRound.Stmt X E m),
@@ -437,7 +431,7 @@ private theorem evaluate_batchMessage {J : ℕ} (ms : Fin J → SumcheckRound.Me
 
 /-- The check of a batch of round polynomials against the batch of their claims, by the same
 powers, passes when each polynomial's passes: the check is linear. -/
-theorem chk_batchMessage {J : ℕ} (ms : Fin J → SumcheckRound.Message E 2) (cs : Fin J → E)
+private theorem chk_batchMessage {J : ℕ} (ms : Fin J → SumcheckRound.Message E 2) (cs : Fin J → E)
     (ρ : E) (h : ∀ i, Whir.chk (ms i) (cs i) = true) :
     Whir.chk (Whir.batchMessage ms ρ) (powerBatch cs ρ) = true := by
   simp only [Whir.chk, decide_eq_true_eq, SumcheckRound.weightedSum, unitDom, List.map_cons,
@@ -502,7 +496,7 @@ open Component in
 from a running claim on the word `x`, the fold rounds accept, the residual claim's, the
 out-of-domain claim's and the query batch's polynomials pass their checks, and the rest runs from
 the glued claim on the level's new word. -/
-theorem levelGuarded_run
+private theorem levelGuarded_run
     {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2) (OneW sh' κ')
       (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)} (GR : Guarded R)
     (W : Weight E (sh.ℓ + Kap sh' κ')) (claim : E) (quad : SumcheckRound.Message E 2)
@@ -615,7 +609,7 @@ theorem levelGuarded_run
 
 /-- A level's guarded run that accepts has round polynomials that pass their checks, and the rest
 runs from the running claim the level hands on, on the level's new word. -/
-theorem levelSolved_of_run
+private theorem levelSolved_of_run
     {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2) (OneW sh' κ')
       (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)} (GR : Component.Guarded R)
     (W : Weight E (sh.ℓ + Kap sh' κ')) (claim : E) (quad : SumcheckRound.Message E 2)
@@ -637,7 +631,7 @@ open Component in
 /-- **A level whose round polynomials pass their checks is accepted** by its guarded verifier,
 from a first-round polynomial that passes its check, when the rest accepts from the running claim
 the level hands on, on the level's new word. -/
-theorem levelGuarded_run_of_solved
+private theorem levelGuarded_run_of_solved
     {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2) (OneW sh' κ')
       (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)} (GR : Guarded R)
     (W : Weight E (sh.ℓ + Kap sh' κ')) (claim : E) (quad : SumcheckRound.Message E 2)
@@ -701,7 +695,7 @@ theorem levelGuarded_run_of_solved
 /-- **A level on the wire**: when its round polynomials pass their checks, from a running claim on
 a word whose rows read as the leaves, the algebra's level accepts the level's wire and rows and
 goes on from the running claim the level hands on, on the level's new word. -/
-theorem whirLevels_level (first : Bool) (W : Weight E (sh.ℓ + Kap sh' κ')) (claim : E)
+private theorem whirLevels_level (first : Bool) (W : Weight E (sh.ℓ + Kap sh' κ')) (claim : E)
     (quad : SumcheckRound.Message E 2) (x : WordOf sh (Kap sh' κ'))
     (leaf : Fin (2 ^ (Kap sh' κ' + sh.R)) → List K)
     (hleaf : ∀ p, Verify.laneRow first sh.ℓ (leaf p) = some (x.row p))
@@ -780,7 +774,7 @@ private theorem ofLimbs_flatMap : ∀ (l : List E) (i : ℕ), i < l.length →
 
 /-- **A later level's leaf reads back as the word's row**: the leaf image of a row stored three
 limbs a lane is the row. -/
-theorem laneRow_laterRows {ℓ b t : ℕ} (x : Word ℓ b t) (p : Fin (2 ^ b)) :
+private theorem laneRow_laterRows {ℓ b t : ℕ} (x : Word ℓ b t) (p : Fin (2 ^ b)) :
     Verify.laneRow false ℓ (leafImage (3 * 2 ^ ℓ) (Prove.laterRows x)[p]) = some (x.row p) := by
   have hrow : (Prove.laterRows x)[p] =
       (x.row p).toList.flatMap fun e ↦ [e.limb 0, e.limb 1, e.limb 2] := by
@@ -802,7 +796,8 @@ open Component in
 verifier accepts, from a running claim on the word `x`, the fold rounds accept, the residual
 claim's and the query batch's polynomials pass their checks, the tail's rounds accept from the
 glued claim, and the terminal check passes. -/
-theorem finalGuarded_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (nf + 1))) (claim : E)
+private theorem finalGuarded_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (nf + 1)))
+    (claim : E)
     (quad : SumcheckRound.Message E 2) (x : WordOf sh (nf + 1))
     (t : (seqSpec (finalSteps sh nf)).FullTranscript) {so : Unit × ∀ i, OneW sh (nf + 1) i}
     (h : (finalGuarded sh nf).run (((W, (#v[], claim)), quad), fun _ ↦ x) t = some so) :
@@ -907,7 +902,7 @@ theorem finalGuarded_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (n
 
 /-- The final level's guarded run that accepts has round polynomials that pass their checks and
 passes its terminal check. -/
-theorem finalSolved_of_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (nf + 1)))
+private theorem finalSolved_of_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (nf + 1)))
     (claim : E) (quad : SumcheckRound.Message E 2) (x : WordOf sh (nf + 1))
     (t : (seqSpec (finalSteps sh nf)).FullTranscript) {so : Unit × ∀ i, OneW sh (nf + 1) i}
     (h : (finalGuarded sh nf).run (((W, (#v[], claim)), quad), fun _ ↦ x) t = some so) :
@@ -926,7 +921,7 @@ theorem finalSolved_of_run {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + 
 /-- **The final level on the wire**: when its round polynomials pass their checks, from a running
 claim on a word whose rows read as the leaves, the algebra's verdict on the level's wire and rows
 is the oracle verifier's terminal check. -/
-theorem whirLevels_final_eq {sh : Whir.Shape} {nf : ℕ} (first : Bool)
+private theorem whirLevels_final_eq {sh : Whir.Shape} {nf : ℕ} (first : Bool)
     (W : Weight E (sh.ℓ + (nf + 1))) (claim : E) (quad : SumcheckRound.Message E 2)
     (x : WordOf sh (nf + 1)) (leaf : Fin (2 ^ (nf + 1 + sh.R)) → List K)
     (hleaf : ∀ p, Verify.laneRow first sh.ℓ (leaf p) = some (x.row p))
@@ -978,7 +973,8 @@ theorem whirLevels_final_eq {sh : Whir.Shape} {nf : ℕ} (first : Bool)
 open Component in
 /-- **A final level whose round polynomials pass their checks is accepted** by its guarded
 verifier, from a first-round polynomial that passes its check, when its terminal check passes. -/
-theorem finalGuarded_run_of_solved {sh : Whir.Shape} {nf : ℕ} (W : Weight E (sh.ℓ + (nf + 1)))
+private theorem finalGuarded_run_of_solved {sh : Whir.Shape} {nf : ℕ}
+    (W : Weight E (sh.ℓ + (nf + 1)))
     (claim : E) (quad : SumcheckRound.Message E 2) (x : WordOf sh (nf + 1))
     (t : (seqSpec (finalSteps sh nf)).FullTranscript) (hq : Whir.chk quad claim = true)
     (hs : FinalSolved W claim quad x @t) (hterm : FinalTerminal W claim quad x @t) :
@@ -1070,7 +1066,7 @@ private theorem whirLevels_finalWire {sh : Whir.Shape} {nf : ℕ} (first : Bool)
 /-- **A chain of levels on the wire**: on the chain's transcript its guarded verifier accepts,
 from a running claim on a word whose rows read as the leaves, the algebra accepts the chain's
 wire and rows. -/
-theorem whirLevels_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (first : Bool)
+private theorem whirLevels_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (first : Bool)
     (W : Weight E (sh.ℓ + κ)) (claim : E) (quad : SumcheckRound.Message E 2) (x : WordOf sh κ)
     (leaf : Fin (2 ^ (κ + sh.R)) → List K),
     (∀ p, Verify.laneRow first sh.ℓ (leaf p) = some (x.row p)) →
@@ -1135,21 +1131,10 @@ private theorem chk_levelNext {W : Weight E (sh.ℓ + Kap sh' κ')} {claim : E}
   simp only [levelNext]
   exact chk_batchMessage _ _ _ fun i ↦ by fin_cases i; exacts [hp1, hp2, hp3]
 
-/-- A chain of levels' guarded run that accepts has round polynomials that pass their checks. -/
-theorem ladderSolved_of_run : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
-    (W : Weight E (sh.ℓ + κ)) (claim : E) (quad : SumcheckRound.Message E 2) (x : WordOf sh κ)
-    (t : (seqSpec L.steps).FullTranscript) {so : Unit × ∀ i, OneW L.finShape L.finN i},
-    (ladderGuarded L).run (((W, (#v[], claim)), quad), fun _ ↦ x) t = some so →
-    LadderSolved L W claim quad x @t
-  | _, _, .last _ _, W, claim, quad, x, t, _, h => (finalSolved_of_run W claim quad x @t h).1
-  | _, _, @Ladder.cons _ _ _ L, W, claim, quad, x, t, _, h => by
-    obtain ⟨hs, h'⟩ := levelSolved_of_run (ladderGuarded L) W claim quad x @t h
-    exact ⟨hs, ladderSolved_of_run L _ _ _ _ _ h'⟩
-
 /-- **A chain of levels whose round polynomials pass their checks is accepted** by its guarded
 verifier, from a first-round polynomial that passes its check on a word whose rows read as the
 leaves, when the algebra accepts the chain's wire and the rows the leaves carry. -/
-theorem ladderGuarded_run_of_solved {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) :
+private theorem ladderGuarded_run_of_solved {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) :
     ∀ (first : Bool) (W : Weight E (sh.ℓ + κ)) (claim : E) (quad : SumcheckRound.Message E 2)
     (x : WordOf sh κ) (leaf : Fin (2 ^ (κ + sh.R)) → List K),
     (∀ p, Verify.laneRow first sh.ℓ (leaf p) = some (x.row p)) →
@@ -1189,21 +1174,6 @@ def WhirSolved {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (W : Weight E (κ
     Prop :=
   Whir.chk (msgOf (seqHead (seqTail @t))) c = true ∧
     LadderSolved L (relayoutWeight W) c (msgOf (seqHead (seqTail @t))) x (seqTail (seqTail @t))
-
-open Component in
-/-- WHIR's opening's guarded run that accepts has round polynomials that pass their checks. -/
-theorem whirSolved_of_run {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (W : Weight E (κ + sh.ℓ))
-    (c : E) (x : WordOf sh κ)
-    (t : (seqSpec (.skip :: .msg (SumcheckRound.Message E 2) :: L.steps)).FullTranscript)
-    {so : Unit × ∀ i, OneW L.finShape L.finN i}
-    (h : (whirOpenGuarded sh κ L).run ((W, c), fun _ ↦ x) t = some so) :
-    WhirSolved L W c x @t := by
-  obtain ⟨x₁, h₁, h⟩ := Guarded.run_append_eq_some h
-  obtain rfl := Guarded.run_ofPure_eq_some h₁
-  obtain ⟨x₂, h₂, h⟩ := Guarded.run_append_eq_some h
-  obtain ⟨s₂, h₂', rfl⟩ := Guarded.run_toGuarded_eq_some _ h₂
-  obtain ⟨hfirst, rfl⟩ := (Front.run_eq_some_iff _).mp h₂'
-  exact ⟨hfirst, ladderSolved_of_run L _ c _ x _ h⟩
 
 open Component in
 /-- **WHIR's opening is accepted when the algebra is**: on a transcript whose round polynomials

@@ -35,9 +35,8 @@ out, and `drawsList` a run of draws (`drawsList_chalsTr`). Then
 * `roundsTr?_roundsWire_of_solved`: a transcript whose polynomials pass their rounds' checks
   against the running claims (`RoundsSolved`) is the one its wires decode to; the wire drops a
   coefficient of each polynomial, which the check determines;
-* `roundsTr?_roundsWire`: so is a transcript the oracle verifier accepts (`roundsSolved_of_check`);
-  conversely the oracle verifier accepts rounds that pass their checks (`check_of_roundsSolved`);
-* `roundsWire_roundsTr?`: the transcript the wires decode to carries them.
+* `roundsSolved_of_check`: a transcript the oracle verifier accepts passes them; conversely the
+  oracle verifier accepts rounds that pass their checks (`check_of_roundsSolved`).
 -/
 
 namespace LeanerVM.Protocol
@@ -101,7 +100,7 @@ theorem drawsList_chalsTr : ∀ (k : ℕ) (f : Fin k → E), drawsList k (chalsT
     rfl
 
 /-- The wires of a run of rounds, the first round's then the rest's. -/
-theorem roundsWire_roundsCons {d : ℕ} (drop : ℕ) {i : ℕ} (q : Vector E (d + 1)) (c : E)
+private theorem roundsWire_roundsCons {d : ℕ} (drop : ℕ) {i : ℕ} (q : Vector E (d + 1)) (c : E)
     (t : (roundsSpec E d i).FullTranscript) :
     roundsWire drop (i + 1) (roundsCons q c t) = ⟨polyWire drop q, c⟩ :: roundsWire drop i t := by
   simp only [roundsWire, roundWire, msgOf, drawOf, roundsCons, roundTr, FullTranscript.append_fst,
@@ -277,36 +276,6 @@ theorem check_of_roundsSolved (m : ℕ) :
     have hrun := run_roundsFront_succ P wt m i j h s q c t'
     simp only [hcheck, ↓reduceIte, Component.Front.run_of_check _ ih] at hrun
     exact ((Component.Front.run_eq_some_iff _).mp hrun).1
-
-/-- A transcript whose rounds the oracle verifier accepts is the transcript its wires decode to,
-at a positive degree, when the oracle verifier's domain at each of the rounds is the round's and
-the coefficient left out is the one the round drops. -/
-theorem roundsTr?_roundsWire (m : ℕ) (hd : 0 < d) (drop : ℕ) (i j : ℕ) (h : j + i = m)
-    (s : Stmt X E j) (t : (roundsSpec E d i).FullTranscript)
-    (hwt : ∀ k, j ≤ k → k < j + i → wt s.1 k = eqDomain (eq? k))
-    (hdrop : ∀ k, j ≤ k → k < j + i → RoundPoly.dropped (eq? k) = drop)
-    (hc : (roundsFront P wt m i j h).check s t = true) :
-    roundsTr? d eq? i j s.2.2 (roundsWire drop i t) = some t :=
-  roundsTr?_roundsWire_of_solved eq? hd drop i j s.2.2 t hdrop
-    (roundsSolved_of_check P wt eq? m i j h s t hwt hc)
-
-/-- The transcript the wires decode to carries them, when the coefficient left out is the one
-each round drops. -/
-theorem roundsWire_roundsTr? (drop : ℕ) :
-    ∀ (i j : ℕ) (claim : E) (rs : List Round) (t : (roundsSpec E d i).FullTranscript),
-      (∀ k, j ≤ k → k < j + i → RoundPoly.dropped (eq? k) = drop) →
-      roundsTr? d eq? i j claim rs = some t → roundsWire drop i t = rs
-  | 0, j, claim, [], t, _, _ => rfl
-  | 0, j, claim, _ :: _, t, _, ht => nomatch ht
-  | i + 1, j, claim, [], t, _, ht => nomatch ht
-  | i + 1, j, claim, r :: rs, t, hdrop, ht => by
-    simp only [roundsTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at ht
-    obtain ⟨q, hq, t', ht', rfl⟩ := ht
-    have ih := roundsWire_roundsTr? drop i (j + 1) _ rs t'
-      (fun k hk hk' ↦ hdrop k (by omega) (by omega)) ht'
-    rcases r with ⟨wire, chal⟩
-    rw [roundsWire_roundsCons, ih, polyWire, ← hdrop j le_rfl (by omega)]
-    exact congrArg (fun x ↦ (⟨x, chal⟩ : Round) :: rs) (RoundPoly.encode_decode hq)
 
 end Compile
 

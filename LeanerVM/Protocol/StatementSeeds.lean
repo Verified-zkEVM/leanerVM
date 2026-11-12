@@ -65,7 +65,7 @@ theorem SeedLogged.mono {l l' : hashSpec.QueryLog} (hsub : ∀ e ∈ l, e ∈ l'
 
 open Classical in
 /-- Logs that log the same seeds at two states give the two states one statement. -/
-theorem stmtOf_congr {l l' : hashSpec.QueryLog} {σ σ' : Digest}
+private theorem stmtOf_congr {l l' : hashSpec.QueryLog} {σ σ' : Digest}
     (h : ∀ st, SeedLogged l st σ ↔ SeedLogged l' st σ') : stmtOf l σ = stmtOf l' σ' :=
   congrArg (fun P : Program × PublicInput → Prop ↦ if h : ∃ st, P st then some h.choose else none)
     (funext fun st ↦ propext (h st))
@@ -128,7 +128,7 @@ theorem stmtOf_dedupKeys (l : hashSpec.QueryLog) (hcons : QueryLog.Consistent l)
 
 /-- **A state past a step is no start**: on a log with no collision, a state a logged step leads
 to from a state that answers a 64-byte input opens no statement. -/
-theorem stmtOf_eq_none_of_step {l : hashSpec.QueryLog} (hcoll : ¬ QueryLog.HasCollision l)
+private theorem stmtOf_eq_none_of_step {l : hashSpec.QueryLog} (hcoll : ¬ QueryLog.HasCollision l)
     {x y : Digest} {b : Block} (hstep : ⟨Block.input x b, y⟩ ∈ l) {q : List UInt8}
     (hq : q.length = 64) (hx : ⟨q, x⟩ ∈ l) : stmtOf l y = none := by
   refine stmtOf_eq_none fun st hst ↦ ?_

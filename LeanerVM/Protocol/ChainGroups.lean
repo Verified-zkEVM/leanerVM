@@ -143,8 +143,8 @@ structure CleanStep (roots : List Digest) (l : hashSpec.QueryLog) (t : List UInt
   notHalf : u ∉ halves t
 
 /-- A log clean from some roots is clean from none. -/
-theorem CleanLog.toNil {roots : List Digest} {l : hashSpec.QueryLog} (hl : CleanLog roots l) :
-    CleanLog [] l :=
+private theorem CleanLog.toNil {roots : List Digest} {l : hashSpec.QueryLog}
+    (hl : CleanLog roots l) : CleanLog [] l :=
   ⟨hl.nodup, hl.noCollision, fun ⟨i, hfr, hin⟩ ↦ hl.noHit ⟨i, hfr, by
     simp only [inPlay, List.nil_append, List.mem_append] at hin ⊢
     exact hin.imp_left .inr⟩⟩
@@ -382,7 +382,7 @@ log. -/
 def FlipFor (st : R.Stmt) (g : Run) : Prop := R.FlipAtFor g.log st
 
 /-- A flip on the chain of a statement is a flip. -/
-theorem flipAt_of_flipAtFor {st : R.Stmt} (h : R.FlipAtFor l st) : R.FlipAt l :=
+private theorem flipAt_of_flipAtFor {st : R.Stmt} (h : R.FlipAtFor l st) : R.FlipAt l :=
   let ⟨G, hG, _⟩ := h
   ⟨G, hG⟩
 
@@ -406,7 +406,7 @@ never walked does not count. -/
 def VerifierFlipFor (st : R.Stmt) (g : Run) : Prop := R.FlipAtForIn g.log st g.logV
 
 /-- A flip on a group a log asked is a flip on the chain of the statement. -/
-theorem flipAtFor_of_flipAtForIn {st : R.Stmt} {lV : hashSpec.QueryLog}
+private theorem flipAtFor_of_flipAtForIn {st : R.Stmt} {lV : hashSpec.QueryLog}
     (h : R.FlipAtForIn l st lV) : R.FlipAtFor l st :=
   let ⟨G, hG, _⟩ := h
   ⟨G, hG⟩
@@ -558,7 +558,7 @@ theorem logAnswer_append_of_eq_some {l l' : hashSpec.QueryLog} {q : List UInt8} 
   simp [logAnswer, List.find?_append, he]
 
 /-- One more query changes the answer to no other. -/
-theorem logAnswer_append_of_ne {l : hashSpec.QueryLog} {t q : List UInt8} {u : Digest}
+private theorem logAnswer_append_of_ne {l : hashSpec.QueryLog} {t q : List UInt8} {u : Digest}
     (h : q ≠ t) : logAnswer (l ++ [⟨t, u⟩]) q = logAnswer l q := by
   simp only [logAnswer, List.find?_append, List.find?_cons, List.find?_nil]
   cases h' : l.find? (fun e ↦ decide (e.1 = q)) with
@@ -734,7 +734,7 @@ theorem SlotReader.groupSlot_append (R : SlotReader) (hl : CleanLog roots (l ++ 
 /-! ## A group's queries after one more query -/
 
 /-- A log asked no squeeze from `x` has no squeezes from it. -/
-theorem squeezeRun_eq_nil {x : Digest} (h : logAnswer l (squeezeInput x) = none) (m : ℕ) :
+private theorem squeezeRun_eq_nil {x : Digest} (h : logAnswer l (squeezeInput x) = none) (m : ℕ) :
     squeezeRun l x m = [] := by
   cases m <;> simp [squeezeRun, h]
 
@@ -798,7 +798,7 @@ private theorem logAnswer_eq_findSome? (l : hashSpec.QueryLog) (q : List UInt8) 
     · simpa [logAnswer, h] using ih
 
 /-- On a consistent log, the answers are those of its deduplication. -/
-theorem logAnswer_dedupKeys (hcons : QueryLog.Consistent l) (q : List UInt8) :
+private theorem logAnswer_dedupKeys (hcons : QueryLog.Consistent l) (q : List UInt8) :
     logAnswer (List.dedupKeys l) q = logAnswer l q := by
   rw [logAnswer_eq_findSome?, logAnswer_eq_findSome?, QueryLog.findSome?_dedupKeys hcons]
 
@@ -1194,7 +1194,7 @@ theorem flipAt_append (hl : CleanLog roots l) (hs : CleanStep roots l t u) (hno 
 
 /-- On a consistent log, the challenge a group fixes is the one it fixes in the deduplicated
 log. -/
-theorem groupSlot_dedupKeys (hcons : QueryLog.Consistent l) (G : Group) :
+private theorem groupSlot_dedupKeys (hcons : QueryLog.Consistent l) (G : Group) :
     R.groupSlot (List.dedupKeys l) G = R.groupSlot l G := by
   have hst := R.stmtAt_dedupKeys l hcons
   have hS : R.isStart (List.dedupKeys l) = R.isStart l := funext fun d ↦ by

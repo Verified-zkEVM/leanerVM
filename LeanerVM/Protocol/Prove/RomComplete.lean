@@ -106,7 +106,7 @@ private theorem findNonce_eq_none {H : List UInt8 → Digest} {base : Digest} {b
 /-- **A grind that fails at the cache's hash exhausts a search.** At the hash answering by the
 cache `c` and by the zero digest elsewhere, a grind of `bits` bits that finds no nonce among
 `fuel` candidates leaves the search from its base exhausted in `c`. -/
-theorem exhausted_of_grind_eq_none (c : hashSpec.QueryCache) {fs : FsState} {fuel bits : ℕ}
+private theorem exhausted_of_grind_eq_none (c : hashSpec.QueryCache) {fs : FsState} {fuel bits : ℕ}
     (hbits : bits ≠ 0)
     (h : Id.run (fs.grind (fun t ↦ (c t).getD zeroDigest) fuel bits) = none) :
     (grindSearch fuel bits).Exhausted c := by

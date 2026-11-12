@@ -211,7 +211,8 @@ nonce three. -/
 def queryCounts : StepCounts := ⟨1, 1, 2, fun _ ↦ 3⟩
 
 /-- **The proof reader's primitives, counted** at the random oracle. -/
-theorem readerOps_graded : ChainOps.Graded queryGrade (readerOps hashQuery) queryCounts where
+private theorem readerOps_graded : ChainOps.Graded queryGrade
+    (readerOps hashQuery) queryCounts where
   nextScalar := nextScalar_grade
   sample := sample_grade
   nextRoot := nextRoot_grade
@@ -250,7 +251,7 @@ private theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : Lis
 
 /-- **An opening's check** asks at most a query per stored row and per row and level of the
 tree. -/
-theorem isTotalQueryBound_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ)
+private theorem isTotalQueryBound_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ)
     (queries : List ℕ) (paths : PrunedMerklePaths) :
     IsTotalQueryBound (merkleVerifyWith hashQuery root depth rowWords leafWords queries paths)
       (paths.leafData.length * (1 + depth)) := by
@@ -295,9 +296,7 @@ private theorem nextOpening_queries {α : Type}
   · rcases r with _ | ⟨x, s⟩
     · exact isTotalQueryBound_pure _ _
     · simp only
-      split
-      · exact isTotalQueryBound_pure _ _
-      · exact isTotalQueryBound_pure _ _
+      split <;> exact isTotalQueryBound_pure _ _
   · simp only [mem_support_bind_iff, support_map, Set.mem_image] at hr
     obtain ⟨_, ⟨o, -, rfl⟩, hr⟩ := hr
     simp only at hr
@@ -318,7 +317,7 @@ def openingsCount : List LevelShape → ℕ
 
 /-- **The openings** ask at most `openingsCount shs` queries when the openings left have the
 shapes the setup checks. -/
-theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root : Digest)
+private theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root : Digest)
     (shs : List LevelShape) (ls : List WhirLevel) (st : ReaderState PrunedMerklePaths),
     openingsOk nLanes first shs st.merkle = true →
     IsTotalQueryBound (runAt (walkOpenings (readerOps hashQuery) nLanes first root shs ls) st)
@@ -399,7 +398,7 @@ theorem isTotalQueryBound_seedWith (prog : Program) (input : PublicInput) :
 /-- **The verifier at the random oracle from a computed start**, on a proof announcing the sizes
 `s` and the rate `ρ` whose ladder has the levels `levels`, asks at most the start's `k` queries
 and `queryCount` at those sizes and levels. -/
-theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState} {k : ℕ}
+private theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState} {k : ℕ}
     (hk : IsTotalQueryBound seed k) {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
     (hs : setup? prog proof = some (s, ρ)) (hl : ladderOf prog s ρ = some levels) :
@@ -420,16 +419,6 @@ theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState} {k : �
       exact (isQueryBound_map_iff _ _ _ _ _).mpr
         (isTotalQueryBound_walk prog s input _ ⟨fs, proof.stream, proof.merkle⟩ hok)
     · rcases r with _ | ⟨w, rows⟩ <;> exact isTotalQueryBound_pure _ _
-
-/-- **The verifier at the random oracle**, on a proof announcing the sizes `s` and the rate `ρ`
-whose ladder has the levels `levels`, asks at most the seed's three queries and `queryCount` at
-those sizes and levels. -/
-theorem isTotalQueryBound_verifyWith {prog : Program} {input : PublicInput}
-    {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
-    (hs : setup? prog proof = some (s, ρ)) (hl : ladderOf prog s ρ = some levels) :
-    IsTotalQueryBound (verifyWith hashQuery prog input proof)
-      (3 + queryCount prog input s (levelShapes (stackMu prog s) levels)) :=
-  isTotalQueryBound_verifyFrom (isTotalQueryBound_seedWith prog input) hs hl
 
 /-! ## The maximum over the admissible sizes -/
 
@@ -489,7 +478,7 @@ private theorem queryCountAt_le {prog : Program} {input : PublicInput} {s : Size
 the random oracle from a start asking at most `k` queries asks at most
 `k + verifierQueries prog input`. The sizes, the rate and the openings' shapes are checked before
 the start runs and before the first hash. -/
-theorem verifierQueries_bound_from {seed : OracleComp hashSpec FsState} {k : ℕ}
+private theorem verifierQueries_bound_from {seed : OracleComp hashSpec FsState} {k : ℕ}
     (hk : IsTotalQueryBound seed k) (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) :
     IsTotalQueryBound (verifyFrom hashQuery seed prog input proof)
