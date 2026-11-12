@@ -47,11 +47,11 @@ variable {m m' : Type → Type} [Monad m] [Monad m'] [LawfulMonad m] [LawfulMona
 
 namespace FsState
 
-theorem observe_hom (s : FsState) (x : E) :
+private theorem observe_hom (s : FsState) (x : E) :
     φ (s.observe H x) = s.observe (fun t ↦ φ (H t)) x := by
   simp [observe]
 
-theorem sample_hom (s : FsState) : φ (s.sample H) = s.sample (fun t ↦ φ (H t)) := by
+private theorem sample_hom (s : FsState) : φ (s.sample H) = s.sample (fun t ↦ φ (H t)) := by
   simp [sample]
 
 private theorem checkPow_hom (s : FsState) (bits : ℕ) (nonce : E) :

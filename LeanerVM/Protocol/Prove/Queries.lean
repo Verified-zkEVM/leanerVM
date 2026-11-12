@@ -11,7 +11,6 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.ToArkLib.RunCodecGrade
 public import LeanerVM.Protocol.LeanVmReader
 public import LeanerVM.Protocol.Compile.Agree
-public import LeanerVM.Protocol.ToVCVio.UniformSample
 
 /-!
 # The prover's queries
@@ -44,7 +43,7 @@ open Air.Flat (EnsembleWitness)
 
 namespace Prove
 
-open VerifierQueries (isTotalQueryBound_pure isTotalQueryBound_hashQuery)
+open VerifierQueries (isTotalQueryBound_hashQuery)
 
 /-- The prover's monad at the random oracle. -/
 abbrev QM : Type → Type := ProveM (OracleComp hashSpec)
@@ -54,7 +53,7 @@ abbrev runQ {α : Type} (a : QM α) (b : Book) (ws : WriterState PrunedMerklePat
     OracleComp hashSpec (Option ((α × Book) × WriterState PrunedMerklePaths)) :=
   ((a.run b).run ws).run
 
-theorem runQ_bind {α β : Type} (a : QM α) (f : α → QM β) (b : Book)
+private theorem runQ_bind {α β : Type} (a : QM α) (f : α → QM β) (b : Book)
     (ws : WriterState PrunedMerklePaths) :
     runQ (a >>= f) b ws = runQ a b ws >>= fun o ↦ match o with
       | some p => runQ (f p.1.1) p.1.2 p.2
@@ -75,10 +74,10 @@ def queryGrade : MonadGrade QM where
       | some p => hf p.1.1 p.1.2 p.2
       | none => isQueryBound_pure _ _ _ _
 
-theorem queryGrade_mono {α : Type} {a : QM α} {k k' : ℕ} (h : queryGrade.P a k) (hk : k ≤ k') :
-    queryGrade.P a k' := fun b ws ↦ (h b ws).mono hk
+private theorem queryGrade_mono {α : Type} {a : QM α} {k k' : ℕ} (h : queryGrade.P a k)
+    (hk : k ≤ k') : queryGrade.P a k' := fun b ws ↦ (h b ws).mono hk
 
-theorem queryGrade_of_map {α β : Type} (f : α → β) (a : QM α) (k : ℕ)
+private theorem queryGrade_of_map {α β : Type} (f : α → β) (a : QM α) (k : ℕ)
     (h : queryGrade.P (f <$> a) k) : queryGrade.P a k := fun b ws ↦ by
   have hmap : runQ (f <$> a) b ws = (fun o ↦ match o with
       | some p => some ((f p.1.1, p.1.2), p.2)
@@ -94,19 +93,21 @@ theorem queryGrade_of_map {α β : Type} (f : α → β) (a : QM α) (k : ℕ)
 /-! ## The primitives -/
 
 /-- An oracle computation lifted to the prover. -/
-theorem queryGrade_liftM {α : Type} {c : OracleComp hashSpec α} {k : ℕ}
+private theorem queryGrade_liftM {α : Type} {c : OracleComp hashSpec α} {k : ℕ}
     (hc : IsTotalQueryBound c k) : queryGrade.P (liftM c : QM α) k := fun b ws ↦ by
   have : runQ (liftM c : QM α) b ws = (fun x ↦ some ((x, b), ws)) <$> c := by
     simp only [runQ, liftM, monadLift, MonadLift.monadLift, StateT.run_lift, OptionT.lift,
       OptionT.mk, StateT.run_bind, OptionT.run_bind]
-    simp [Option.elimM, map_eq_bind_pure_comp, OptionT.run, bind_assoc]
+    simp only [Option.elimM, OptionT.run, bind_pure_comp, map_eq_bind_pure_comp, bind_assoc,
+      Function.comp_apply, pure_bind, Option.elim_some, StateT.run_pure]
     congr 1
   rw [this]
   exact (isQueryBound_map_iff _ _ _ _ _).mpr hc
 
 /-- A writer's computation lifted to the prover. -/
-theorem queryGrade_lift {α : Type} {y : WriteM (OracleComp hashSpec) PrunedMerklePaths α} {k : ℕ}
-    (hy : ∀ ws, IsTotalQueryBound (y.run ws).run k) : queryGrade.P (StateT.lift y : QM α) k :=
+private theorem queryGrade_lift {α : Type} {y : WriteM (OracleComp hashSpec) PrunedMerklePaths α}
+    {k : ℕ} (hy : ∀ ws, IsTotalQueryBound (y.run ws).run k) :
+    queryGrade.P (StateT.lift y : QM α) k :=
   fun b ws ↦ by
   have : runQ (StateT.lift y : QM α) b ws =
       (Option.map fun p ↦ ((p.1, b), p.2)) <$> (y.run ws).run := by
@@ -118,28 +119,30 @@ theorem queryGrade_lift {α : Type} {y : WriteM (OracleComp hashSpec) PrunedMerk
   rw [this]
   exact (isQueryBound_map_iff _ _ _ _ _).mpr (hy ws)
 
-theorem queryGrade_modify (f : Book → Book) : queryGrade.P (modify f : QM Unit) 0 :=
+private theorem queryGrade_modify (f : Book → Book) : queryGrade.P (modify f : QM Unit) 0 :=
   fun _ _ ↦ isQueryBound_pure _ _ _ _
 
-theorem queryGrade_get : queryGrade.P (get : QM Book) 0 :=
+private theorem queryGrade_get : queryGrade.P (get : QM Book) 0 :=
   fun _ _ ↦ isQueryBound_pure _ _ _ _
 
-theorem queryGrade_failure {α : Type} : queryGrade.P (failure : QM α) 0 :=
+private theorem queryGrade_failure {α : Type} : queryGrade.P (failure : QM α) 0 :=
   fun _ _ ↦ by
-  simp only [runQ]
-  simp
-  exact isTotalQueryBound_pure _ _
+  simp only [runQ, StateT.run_failure, OptionT.run_failure]
+  exact isQueryBound_pure _ _ _ _
 
 section Writer
 
 variable (fuel : ℕ) {M : Type}
 
-theorem addScalar_queries (x : E) (ws : WriterState M) :
+private theorem addScalar_queries (x : E) (ws : WriterState M) :
     IsTotalQueryBound ((Writer.addScalar hashQuery x).run ws).run 1 := by
-  simp [Writer.addScalar, FsState.observe, hashQuery]
+  simp only [Writer.addScalar, FsState.observe, hashQuery, liftM_map, bind_map_left,
+    StateT.run_bind, StateT.run_get, StateT.run_monadLift, bind_pure_comp, StateT.run_modify,
+    Functor.map_map, pure_bind, OptionT.run_map, OptionT.run_monadLift, monadLift_self,
+    Option.map_some]
   exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _)
 
-theorem addScalars_queries : ∀ (xs : List E) (ws : WriterState M),
+private theorem addScalars_queries : ∀ (xs : List E) (ws : WriterState M),
     IsTotalQueryBound ((Writer.addScalars hashQuery xs).run ws).run xs.length
   | [], _ => isQueryBound_pure _ _ _ _
   | x :: xs, ws => by
@@ -147,27 +150,30 @@ theorem addScalars_queries : ∀ (xs : List E) (ws : WriterState M),
     refine (isTotalQueryBound_bind (n₁ := 1) (n₂ := xs.length) (addScalar_queries x ws)
       fun o ↦ ?_).mono (by simp only [List.length_cons]; omega)
     rcases o with _ | ⟨u, ws'⟩
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · exact addScalars_queries xs ws'
 
-theorem sample_queries (ws : WriterState M) :
+private theorem sample_queries (ws : WriterState M) :
     IsTotalQueryBound ((Writer.sample hashQuery).run ws).run 1 := by
-  simp [Writer.sample, FsState.sample, hashQuery]
+  simp only [Writer.sample, FsState.sample, hashQuery, bind_pure_comp, liftM_map, bind_map_left,
+    StateT.run_bind, StateT.run_get, StateT.run_monadLift, StateT.run_map, StateT.run_modify,
+    map_pure, Functor.map_map, pure_bind, OptionT.run_map, OptionT.run_monadLift, monadLift_self,
+    Option.map_some]
   exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _)
 
-theorem findNonce_queries (base : Digest) (bits : ℕ) :
+private theorem findNonce_queries (base : Digest) (bits : ℕ) :
     ∀ f n, IsTotalQueryBound (FsState.findNonce hashQuery base bits f n) f
-  | 0, _ => isTotalQueryBound_pure _ _
+  | 0, _ => isQueryBound_pure _ _ _ _
   | f + 1, n => by
     unfold FsState.findNonce FsState.powOk
     refine (isTotalQueryBound_bind (n₁ := 1) (n₂ := f) (isTotalQueryBound_bind (n₁ := 1)
-      (n₂ := 0) (isTotalQueryBound_hashQuery _) fun _ ↦ isTotalQueryBound_pure _ _)
+      (n₂ := 0) (isTotalQueryBound_hashQuery _) fun _ ↦ isQueryBound_pure _ _ _ _)
       fun ok ↦ ?_).mono (by omega)
     split
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · exact findNonce_queries base bits f (n + 1)
 
-theorem fsGrind_queries (s : FsState) (bits : ℕ) :
+private theorem fsGrind_queries (s : FsState) (bits : ℕ) :
     IsTotalQueryBound (s.grind hashQuery fuel bits) (fuel + 2) := by
   unfold FsState.grind FsState.powBase FsState.absorbNonce
   rw [show fuel + 2 = 1 + (fuel + 1) by omega]
@@ -178,75 +184,39 @@ theorem fsGrind_queries (s : FsState) (bits : ℕ) :
       pure (some (FsState.nonceOf n, fs)) : OracleComp hashSpec (Option (E × FsState))) 1 :=
     fun n ↦ isTotalQueryBound_bind (n₂ := 0)
       ((isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _))
-      fun _ ↦ isTotalQueryBound_pure _ _
+      fun _ ↦ isQueryBound_pure _ _ _ _
   dsimp only
   split
   · rw [pure_bind]
     exact (habs 0).mono (by omega)
   · refine isTotalQueryBound_bind (n₁ := fuel) (n₂ := 1) (findNonce_queries _ _ _ _) fun n? ↦ ?_
     rcases n? with _ | n
-    · exact isTotalQueryBound_pure _ _
+    · exact isQueryBound_pure _ _ _ _
     · exact habs n
 
-theorem grind_queries (bits : ℕ) (ws : WriterState M) :
+private theorem grind_queries (bits : ℕ) (ws : WriterState M) :
     IsTotalQueryBound ((Writer.grind hashQuery fuel bits).run ws).run (fuel + 2) := by
-  simp [Writer.grind]
+  simp only [Writer.grind, StateT.run_bind, StateT.run_get, StateT.run_monadLift, bind_pure_comp,
+    bind_map_left, pure_bind, OptionT.run_bind, OptionT.run_monadLift, monadLift_self,
+    Option.elimM_map, Option.elim_some]
   refine (isTotalQueryBound_bind (n₂ := 0) (fsGrind_queries fuel ws.fs bits) fun o ↦ ?_).mono
     (by omega)
   rcases o with _ | p
-  · simp
-    exact isTotalQueryBound_pure _ _
-  · exact isTotalQueryBound_pure _ _
+  · simp only [StateT.run_failure, OptionT.run_failure]
+    exact isQueryBound_pure _ _ _ _
+  · exact isQueryBound_pure _ _ _ _
 
 end Writer
 
 /-! ## The Merkle commitment -/
 
-theorem list_mapM_queries {α β : Type} (f : α → OracleComp hashSpec β) (k : ℕ)
-    (hf : ∀ x, IsTotalQueryBound (f x) k) :
-    ∀ l : List α, IsTotalQueryBound (l.mapM f) (l.length * k)
-  | [] => isTotalQueryBound_pure _ _
-  | x :: l => by
-    rw [List.mapM_cons, List.length_cons, Nat.succ_mul, Nat.add_comm]
-    exact isTotalQueryBound_bind (hf x) fun _ ↦ isTotalQueryBound_bind (n₂ := 0)
-      (list_mapM_queries f k hf l) fun _ ↦ isTotalQueryBound_pure _ _
-
-theorem vector_mapM_queries {α β : Type} {n : ℕ} (f : α → OracleComp hashSpec β) (k : ℕ)
-    (hf : ∀ x, IsTotalQueryBound (f x) k) (v : Vector α n) :
-    IsTotalQueryBound (v.mapM f) (n * k) := by
-  have h : IsTotalQueryBound (Vector.toArray <$> v.mapM f) (n * k) := by
-    rw [Vector.toArray_mapM, Array.mapM_eq_mapM_toList]
-    refine (isQueryBound_map_iff _ _ _ _ _).mpr ?_
-    have := list_mapM_queries f k hf v.toArray.toList
-    rw [Array.length_toList, Vector.size_toArray] at this
-    exact this
-  exact (isQueryBound_map_iff _ _ _ _ _).mp h
-
-theorem parentsM_queries {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
-    IsTotalQueryBound (MerkleTree.parentsM (fun l r ↦ hashQuery (nodeBytes l r)) level)
-      (2 ^ k) := by
-  unfold MerkleTree.parentsM
-  simpa using vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery _) _
-
-theorem buildLevelsM_queries :
-    ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
-      IsTotalQueryBound (MerkleTree.buildLevelsM (fun l r ↦ hashQuery (nodeBytes l r)) k level)
-        (2 ^ k)
-  | 0, _ => isTotalQueryBound_pure _ _
-  | k + 1, level => by
-    unfold MerkleTree.buildLevelsM
-    rw [pow_succ, Nat.mul_two]
-    exact isTotalQueryBound_bind (parentsM_queries level) fun ps ↦
-      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦
-        isTotalQueryBound_pure _ _
-
-theorem merkleCommitWithM_queries (leafWords : ℕ) {d : ℕ} (rows : Vector (List K) (2 ^ d)) :
+private theorem merkleCommitWithM_queries (leafWords : ℕ) {d : ℕ} (rows : Vector (List K) (2 ^ d)) :
     IsTotalQueryBound (merkleCommitWithM hashQuery leafWords rows) (2 ^ d + 2 ^ d) := by
   unfold merkleCommitWithM
-  refine isTotalQueryBound_bind (vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery _)
-    rows |>.mono (by omega)) fun leaves ↦ ?_
-  exact isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries d leaves) fun _ ↦
-    isTotalQueryBound_pure _ _
+  refine isTotalQueryBound_bind (isTotalQueryBound_vector_mapM _ 1
+    (fun _ ↦ isTotalQueryBound_hashQuery _) rows |>.mono (by omega)) fun leaves ↦ ?_
+  exact isTotalQueryBound_bind (n₂ := 0) (MerkleTree.buildLevelsM_queries _
+    (fun _ _ ↦ isTotalQueryBound_hashQuery _) d leaves) fun _ ↦ isQueryBound_pure _ _ _ _
 
 /-! ## The writer's primitives at the oracle -/
 
@@ -255,46 +225,46 @@ section Ops
 variable (fuel : ℕ)
 
 /-- The writer's primitives at the random oracle. -/
-abbrev qops : WireOps QM := proveOps hashQuery fuel
+private abbrev qops : WireOps QM := proveOps hashQuery fuel
 
-theorem send_grade (x : E) : queryGrade.P ((qops fuel).send x) 1 :=
+private theorem send_grade (x : E) : queryGrade.P ((qops fuel).send x) 1 :=
   queryGrade_lift (addScalar_queries x)
 
-theorem sample_grade : queryGrade.P (qops fuel).sample 1 :=
+private theorem sample_grade : queryGrade.P (qops fuel).sample 1 :=
   queryGrade_lift (sample_queries)
 
-theorem grind_grade : queryGrade.P (qops fuel).grind (fuel + 2) :=
+private theorem grind_grade : queryGrade.P (qops fuel).grind (fuel + 2) :=
   queryGrade_lift (grind_queries fuel queryGrindingBits)
 
-theorem commit_grade (depth leafWords : ℕ) (rows : Vector (List K) (2 ^ depth)) :
+private theorem commit_grade (depth leafWords : ℕ) (rows : Vector (List K) (2 ^ depth)) :
     queryGrade.P ((qops fuel).commit depth leafWords rows) (2 ^ (depth + 1) + 2) := by
   refine queryGrade.of_eq (queryGrade.bind
     (queryGrade_liftM (merkleCommitWithM_queries leafWords rows)) fun c ↦
     queryGrade.bind (queryGrade_modify _) fun _ ↦
       queryGrade_lift (k := 2) (addScalars_queries [_, _])) ?_
-  simp [pow_succ]
+  simp only [zero_add, pow_succ, Nat.add_right_cancel_iff]
   omega
 
-theorem record_grade (ps : List ℕ) : queryGrade.P ((qops fuel).record ps) 0 :=
+private theorem record_grade (ps : List ℕ) : queryGrade.P ((qops fuel).record ps) 0 :=
   queryGrade_modify _
 
-theorem commit_le {depth D : ℕ} (hd : depth ≤ D) {leafWords : ℕ}
+private theorem commit_le {depth D : ℕ} (hd : depth ≤ D) {leafWords : ℕ}
     {rows : Vector (List K) (2 ^ depth)} :
     queryGrade.P ((qops fuel).commit depth leafWords rows) (2 ^ (D + 1) + 2) :=
   queryGrade_mono (commit_grade fuel depth leafWords rows)
     (by have := Nat.pow_le_pow_right (n := 2) (by norm_num) (Nat.succ_le_succ hd); omega)
 
-theorem sendAll_grade : ∀ xs : List E, queryGrade.P (sendAll (qops fuel) xs) xs.length
+private theorem sendAll_grade : ∀ xs : List E, queryGrade.P (sendAll (qops fuel) xs) xs.length
   | [] => queryGrade.pure _
   | x :: xs => queryGrade.of_eq (queryGrade.bind (send_grade fuel x) fun _ ↦
       sendAll_grade xs) (by simp [Nat.add_comm])
 
-theorem samples_grade : ∀ k, queryGrade.P (samples (qops fuel) k) k
+private theorem samples_grade : ∀ k, queryGrade.P (samples (qops fuel) k) k
   | 0 => queryGrade.pure _
   | k + 1 => queryGrade.of_eq (queryGrade.bind (sample_grade fuel) fun _ ↦
       queryGrade.bind (samples_grade k) fun _ ↦ queryGrade.pure _) (by omega)
 
-theorem positionsWith_grade (depth : ℕ) : ∀ f need,
+private theorem positionsWith_grade (depth : ℕ) : ∀ f need,
     queryGrade.P (Verify.positionsWith (qops fuel).sample depth f need)
       (VerifierQueries.queryCounts.positions depth f need)
   | 0, _ => queryGrade.pure _
@@ -303,23 +273,23 @@ theorem positionsWith_grade (depth : ℕ) : ∀ f need,
       queryGrade.bind (positionsWith_grade depth f _) fun _ ↦ queryGrade.pure _)
       (by simp [Verify.StepCounts.positions, VerifierQueries.queryCounts])
 
-theorem positions_grade (depth t : ℕ) :
+private theorem positions_grade (depth t : ℕ) :
     queryGrade.P (positions (qops fuel) depth t)
       (VerifierQueries.queryCounts.positions depth t t) :=
   queryGrade.of_eq (queryGrade.bind (positionsWith_grade fuel depth t t) fun ps ↦
     queryGrade.bind (record_grade fuel ps) fun _ ↦ queryGrade.pure _) (by omega)
 
-theorem sendPlain_grade {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) :
+private theorem sendPlain_grade {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) :
     queryGrade.P (sendPlain (qops fuel) c) d := by
   have := sendAll_grade fuel (RoundPoly.encode none c)
   rwa [RoundPoly.length_encode hd] at this
 
-theorem sendNormal_grade {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) :
+private theorem sendNormal_grade {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) :
     queryGrade.P (sendNormal (qops fuel) c) d := by
   have := sendAll_grade fuel (RoundPoly.encode (some 0) c)
   rwa [RoundPoly.length_encode hd] at this
 
-theorem sendTables_grade {k ρ : ℕ} (c : Fin k → Vector E (2 ^ ρ)) :
+private theorem sendTables_grade {k ρ : ℕ} (c : Fin k → Vector E (2 ^ ρ)) :
     queryGrade.P (sendTables (qops fuel) c) (k * 2 ^ ρ) := by
   have := sendAll_grade fuel ((List.finRange k).flatMap fun t ↦ (c t).toList)
   rw [List.length_flatMap] at this
@@ -327,7 +297,7 @@ theorem sendTables_grade {k ρ : ℕ} (c : Fin k → Vector E (2 ^ ρ)) :
     smul_eq_mul] at this
   exact this
 
-theorem sendVec_grade {k : ℕ} (v : Vector E k) :
+private theorem sendVec_grade {k : ℕ} (v : Vector E k) :
     queryGrade.P (sendAll (qops fuel) v.toList) k := by
   have := sendAll_grade fuel v.toList
   rwa [Vector.length_toList] at this
@@ -340,13 +310,13 @@ open RoundCodec
 abbrev qc : Verify.StepCounts := VerifierQueries.queryCounts
 
 /-- Two wires in sequence, counted on every transcript. -/
-theorem gapp {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} {c₁ : RoundCodec QM p₁}
+private theorem gapp {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} {c₁ : RoundCodec QM p₁}
     {c₂ : RoundCodec QM p₂} {k₁ k₂ : ℕ} (h₁ : c₁.GradedOn queryGrade (fun _ ↦ True) k₁)
     (h₂ : c₂.GradedOn queryGrade (fun _ ↦ True) k₂) :
     (c₁.append c₂).GradedOn queryGrade (fun _ ↦ True) (k₁ + k₂) :=
   (h₁.append h₂).mono (fun _ _ ↦ ⟨trivial, trivial⟩) le_rfl
 
-theorem step_graded (ρ m : ℕ) :
+private theorem step_graded (ρ m : ℕ) :
     (RoundCodec.step (nside := 3) ρ m (sendNormal (qops fuel)) (sendTables (qops fuel))
       (qops fuel).sample).GradedOn queryGrade (fun _ ↦ True) (qc.layer ρ m) :=
   (gapp (gapp (gapp (gradedOn_chal (sample_grade fuel))
@@ -358,7 +328,7 @@ theorem step_graded (ρ m : ℕ) :
       ring_nf
       omega)
 
-theorem steps_graded : ∀ k m,
+private theorem steps_graded : ∀ k m,
     (RoundCodec.steps (nside := 3) (sendNormal (qops fuel)) (sendTables (qops fuel))
       (qops fuel).sample k m).GradedOn queryGrade (fun _ ↦ True)
       (qc.layers (List.replicate k 2) m)
@@ -366,14 +336,14 @@ theorem steps_graded : ∀ k m,
   | k + 1, m => (gapp (step_graded fuel 2 m) (steps_graded k (m + 2))).mono (fun _ _ ↦ trivial)
       (by simp [List.replicate_succ, Verify.StepCounts.layers])
 
-theorem odd_graded : ∀ r,
+private theorem odd_graded : ∀ r,
     (RoundCodec.odd (nside := 3) (sendNormal (qops fuel)) (sendTables (qops fuel))
       (qops fuel).sample r).GradedOn queryGrade (fun _ ↦ True)
       (if r = 0 then 0 else qc.layer 1 0)
   | 0 => gradedOn_empty.mono (fun _ _ ↦ trivial) (Nat.zero_le _)
   | r + 1 => (step_graded fuel 1 0).mono (fun _ _ ↦ trivial) (by simp)
 
-theorem gkr_graded (μ : ℕ) :
+private theorem gkr_graded (μ : ℕ) :
     (RoundCodec.gkr (nside := 3) μ (sendNormal (qops fuel)) (sendTables (qops fuel))
       (sendNormal (qops fuel)) (sendTables (qops fuel)) (qops fuel).sample).GradedOn queryGrade
       (fun _ ↦ True) (qc.layers (Verify.gkrRadices μ) 0 + 1) :=
@@ -382,7 +352,7 @@ theorem gkr_graded (μ : ℕ) :
       rcases Nat.mod_two_eq_zero_or_one μ with h | h <;>
         simp [Verify.gkrRadices, h, Verify.StepCounts.layers])
 
-theorem busCodec_graded (I : M3Instance) :
+private theorem busCodec_graded (I : M3Instance) :
     (busCodec (qops fuel) I).GradedOn queryGrade (fun _ ↦ True) (qc.bus I.μBus I.busClaims) :=
   (gapp (gapp (gapp (gradedOn_chal (queryGrade.of_eq (queryGrade.bind (samples_grade fuel 4)
       fun _ ↦ queryGrade.bind (sample_grade fuel) fun _ ↦ queryGrade.pure _) rfl))
@@ -390,7 +360,7 @@ theorem busCodec_graded (I : M3Instance) :
     (gkr_graded fuel I.μBus)) (gradedOn_msg (sendVec_grade fuel))).mono (fun _ _ ↦ trivial)
     (by simp only [Verify.StepCounts.bus, VerifierQueries.queryCounts]; omega)
 
-theorem tableCodec_graded (I : M3Instance) :
+private theorem tableCodec_graded (I : M3Instance) :
     (tableCodec (qops fuel) I).GradedOn queryGrade (fun _ ↦ True)
       (qc.tables I.τmax I.tableColumns) :=
   (gapp (gapp (gradedOn_chal (sample_grade fuel))
@@ -399,7 +369,7 @@ theorem tableCodec_graded (I : M3Instance) :
     (by simp only [Verify.StepCounts.tables, Verify.StepCounts.rounds, Verify.StepCounts.round,
       VerifierQueries.queryCounts]; omega)
 
-theorem pubCodec_graded (n : ℕ) :
+private theorem pubCodec_graded (n : ℕ) :
     (pubCodec (qops fuel)).GradedOn queryGrade (fun tr ↦ (tr 1).length = n) (qc.pub n) :=
   ⟨![1, n], by simp [Verify.StepCounts.pub, VerifierQueries.queryCounts, Nat.add_comm],
     fun tr htr i h ↦ (match i, h with
@@ -412,7 +382,7 @@ theorem pubCodec_graded (n : ℕ) :
       | ⟨0, _⟩, _ => sample_grade fuel
       | ⟨1, _⟩, h => nomatch h⟩
 
-theorem flockCodecOf_graded (k : ℕ) :
+private theorem flockCodecOf_graded (k : ℕ) :
     (flockCodecOf (qops fuel) k).GradedOn queryGrade (fun _ ↦ True) (qc.flock k) :=
   (gapp (gapp (gapp (gapp (gapp (gapp (gapp (gapp (gapp
     (gradedOn_chals (sample_grade fuel) (k + 1)) (gradedOn_msg (sendVec_grade fuel)))
@@ -434,22 +404,23 @@ challenge one query each, a commitment `2 ^ (D + 1) + 2` (its leaves, its tree a
 a grind `fuel + 2` (the base, the candidates and the absorption). -/
 def proverCounts (D : ℕ) : Verify.StepCounts := ⟨1, 1, 2 ^ (D + 1) + 2, fun _ ↦ fuel + 2⟩
 
-theorem positions_counts (c c' : Verify.StepCounts) (h : c.sample = c'.sample) (depth : ℕ) :
+private theorem positions_counts (c c' : Verify.StepCounts) (h : c.sample = c'.sample) (depth : ℕ) :
     ∀ f need, c.positions depth f need = c'.positions depth f need
   | 0, _ => rfl
   | _ + 1, 0 => rfl
   | f + 1, need + 1 => by
     simp only [Verify.StepCounts.positions, h, positions_counts c c' h depth f]
 
-theorem tail_eq (c : Verify.StepCounts) (hs : c.sample = 1) (hc : c.scalar = 1) :
+private theorem tail_eq (c : Verify.StepCounts) (hs : c.sample = 1) (hc : c.scalar = 1) :
     ∀ k, c.tail (k + 1) = 3 * k + 1
   | 0 => by simp [Verify.StepCounts.tail, hs]
   | k + 1 => by
     rw [Verify.StepCounts.tail, tail_eq c hs hc k]
-    simp [hs, hc]
+    simp only [hs, Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte, hc, mul_one,
+      Nat.reduceAdd]
     omega
 
-theorem finalCodec_graded (sh : Whir.Shape) (nf D : ℕ) :
+private theorem finalCodec_graded (sh : Whir.Shape) (nf D : ℕ) :
     (finalCodec (qops fuel) sh nf).GradedOn queryGrade (fun _ ↦ True)
       ((proverCounts fuel D).level ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩) :=
   (gapp (gradedOn_chal (sample_grade fuel)) <|
@@ -473,7 +444,7 @@ theorem finalCodec_graded (sh : Whir.Shape) (nf D : ℕ) :
       simp only [proverCounts, Whir.Shape.ℓ]
       omega)
 
-theorem levelCodec_graded (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem levelCodec_graded (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     {rest : RoundCodec QM (seqSpec k)} {krest D : ℕ}
     (hrest : rest.GradedOn queryGrade (fun _ ↦ True) krest) (hD : κ' + sh'.R ≤ D) :
     (levelCodec (qops fuel) sh sh' κ' rest).GradedOn queryGrade (fun _ ↦ True)
@@ -507,14 +478,14 @@ def ladderQueries : {sh : Whir.Shape} → {κ : ℕ} → Ladder sh κ → ℕ
     (proverCounts fuel (κ' + sh'.R)).level ⟨sh.ℓ, Kap sh' κ', sh.R, sh.t, false⟩ +
       ladderQueries L
 
-theorem ladder_graded : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+private theorem ladder_graded : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
     (ladderCodec (qops fuel) L).GradedOn queryGrade (fun _ ↦ True) (ladderQueries fuel L)
   | _, _, .last sh nf => finalCodec_graded fuel sh nf 0
   | _, _, @Ladder.cons sh sh' κ' L => levelCodec_graded fuel sh sh' κ' (ladder_graded L) le_rfl
 
 /-! ## The compiled schedule's wire -/
 
-theorem flockCodecOpt_graded (I : M3Instance) (o : Option (FlockRegion I.toShape)) (K : ℕ)
+private theorem flockCodecOpt_graded (I : M3Instance) (o : Option (FlockRegion I.toShape)) (K : ℕ)
     (hK : ∀ r, o = some r → r.kBatch ≤ K) :
     (flockCodecOpt (qops fuel) I o).GradedOn queryGrade (fun _ ↦ True) (qc.flock K) := by
   rcases o with _ | r
@@ -523,11 +494,11 @@ theorem flockCodecOpt_graded (I : M3Instance) (o : Option (FlockRegion I.toShape
     have := hK r rfl
     simp only [Verify.StepCounts.flock, Verify.StepCounts.rounds, Verify.StepCounts.round,
       VerifierQueries.queryCounts]
-    nlinarith
+    omega
 
 /-- **The wire of the compiled schedule, counted**, on every transcript whose public-input
 message has `nSent` values. -/
-theorem compiledCodec_graded (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
+private theorem compiledCodec_graded (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
     (L : Ladder sh κ) (K nSent : ℕ) (hK : ∀ r, I.flock = some r → r.kBatch ≤ K) :
     (compiledCodec (qops fuel) I n L).GradedOn queryGrade
       (fun tr ↦ (pubMessage tr).length = nSent)
@@ -548,13 +519,13 @@ theorem compiledCodec_graded (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : 
 
 /-! ## The prover -/
 
-theorem announce_grade (sz : Sizes) (ρ : ℕ) :
+private theorem announce_grade (sz : Sizes) (ρ : ℕ) :
     queryGrade.P (StateT.lift (Writer.announce hashQuery sz ρ) : QM Unit) 8 :=
   queryGrade_lift fun ws ↦ by
     have := addScalars_queries (M := PrunedMerklePaths) (announcement sz ρ) ws
     simpa [Writer.announce, announcement] using this
 
-theorem forIn_openings_grade : ∀ l : List ((Σ k, MerkleCommitment k) × List ℕ),
+private theorem forIn_openings_grade : ∀ l : List ((Σ k, MerkleCommitment k) × List ℕ),
     queryGrade.P (forIn l PUnit.unit fun x _ ↦ match x with
         | (c, ps) => do
           StateT.lift (Writer.hintOpening (m := OracleComp hashSpec) (merkleOpen c.2 ps))
@@ -563,13 +534,13 @@ theorem forIn_openings_grade : ∀ l : List ((Σ k, MerkleCommitment k) × List 
   | (c, ps) :: l => by
     rw [List.forIn_cons]
     refine queryGrade.of_eq (queryGrade.bind (k := 0) (queryGrade.of_eq (queryGrade.bind
-      (queryGrade_lift (k := 0) fun _ ↦ isTotalQueryBound_pure _ _) fun _ ↦ queryGrade.pure _) rfl)
+      (queryGrade_lift (k := 0) fun _ ↦ isQueryBound_pure _ _ _ _) fun _ ↦ queryGrade.pure _) rfl)
       fun r ↦ ?_) rfl
     rcases r with _ | _
     · exact queryGrade.pure _
     · exact forIn_openings_grade l
 
-theorem hintOpenings_grade : queryGrade.P (hintOpenings : QM Unit) 0 := by
+private theorem hintOpenings_grade : queryGrade.P (hintOpenings : QM Unit) 0 := by
   unfold hintOpenings
   refine queryGrade.of_eq (queryGrade.bind (k := 0) queryGrade_get fun b ↦ ?_) rfl
   split
@@ -579,7 +550,7 @@ theorem hintOpenings_grade : queryGrade.P (hintOpenings : QM Unit) 0 := by
   · exact queryGrade.of_eq (queryGrade.bind (forIn_openings_grade _) fun _ ↦
       queryGrade.pure _) rfl
 
-theorem flock_kBatch (prog : Program) (s : Sizes) :
+private theorem flock_kBatch (prog : Program) (s : Sizes) :
     ∀ r, (Verify.leanVm prog s).flock = some r → r.kBatch ≤ s.τ 5 := fun r h ↦ by
   cases h
   exact le_rfl
@@ -594,7 +565,7 @@ def wireQueries (fuel : ℕ) (prog : Program) (s : Sizes) (input : PublicInput) 
       ((Verify.leanVm prog s).publicLines input)) + qc.flock (s.τ 5) + 1 +
     (2 + ladderQueries fuel L)
 
-theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
+private theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} (hsat : SatisfiedBy prog input w)
     (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) {ρ : ℕ} (hρ : validRate ρ) :
     queryGrade.P (writeProof hashQuery (qops fuel) Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ
@@ -603,9 +574,6 @@ theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
   unfold writeProof
   refine queryGrade.bind (announce_grade s ρ) fun _ ↦
     queryGrade.bind ?_ fun _ ↦ hintOpenings_grade
-  have := fun i ↦ nonempty_of_sampleable
-    ((listBindingSpec (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).sh
-      (leanIsaChain prog s hs ρ hρ).κ (leanIsaChain prog s hs ρ hρ).ladder).Challenge i)
   refine Prover.runWith_graded _ _ _ (𝓖 := queryGrade) (fun f x k h ↦ queryGrade_of_map f x k h)
     (fun x k k' h hk ↦ queryGrade_mono h hk)
     (compiledCodec_graded fuel (Verify.leanVm prog s) (Verify.nLanes prog s)
@@ -640,7 +608,7 @@ theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ :
   rw [dite_eq_left ⟨hs, hρ⟩]
   unfold runProofFrom
   refine isTotalQueryBound_bind (VerifierQueries.isTotalQueryBound_seedWith prog input)
-    fun fs ↦ isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ isTotalQueryBound_pure _ _
+    fun fs ↦ isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ isQueryBound_pure _ _ _ _
   have hw := writeProof_grade fuel hsat hws hs hρ ⟨#[], #[]⟩ ⟨fs, #[], #[]⟩
   have : runWrite ((writeProof hashQuery (qops fuel) Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ
       input (stackOf Blake2sFlock.blake2sFlockSpec prog s w)).run' ⟨#[], #[]⟩) fs =
@@ -664,12 +632,12 @@ def shapeQueries0 : List Verify.LevelShape → ℕ
   | sh :: sh₂ :: rest =>
     (proverCounts0 (sh.msgLog - sh₂.fold + sh₂.rate)).level sh + shapeQueries0 (sh₂ :: rest)
 
-theorem tail_counts (c c' : Verify.StepCounts) (h₁ : c.sample = c'.sample)
+private theorem tail_counts (c c' : Verify.StepCounts) (h₁ : c.sample = c'.sample)
     (h₂ : c.scalar = c'.scalar) : ∀ k, c.tail k = c'.tail k
   | 0 => rfl
   | k + 1 => by simp only [Verify.StepCounts.tail, h₁, h₂, tail_counts c c' h₁ h₂ k]
 
-theorem level_split (D : ℕ) (sh : Verify.LevelShape) :
+private theorem level_split (D : ℕ) (sh : Verify.LevelShape) :
     (proverCounts fuel D).level sh = (proverCounts0 D).level sh + (fuel + 2) := by
   have hp := positions_counts (proverCounts fuel D) (proverCounts0 D) rfl (sh.msgLog + sh.rate)
     sh.queries sh.queries
@@ -678,12 +646,12 @@ theorem level_split (D : ℕ) (sh : Verify.LevelShape) :
   simp only [proverCounts, proverCounts0, Verify.StepCounts.folds]
   split <;> omega
 
-theorem shapes_head : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+private theorem shapes_head : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
     ∃ x rest, L.shapes = x :: rest ∧ x.fold = sh.ℓ ∧ x.rate = sh.R
   | _, _, .last _ _ => ⟨_, _, rfl, rfl, rfl⟩
   | _, _, .cons _ _ => ⟨_, _, rfl, rfl, rfl⟩
 
-theorem ladderQueries_eq : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+private theorem ladderQueries_eq : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
     ladderQueries fuel L = shapeQueries0 L.shapes + L.shapes.length * (fuel + 2)
   | _, _, .last sh nf => by
     simp only [ladderQueries, Ladder.shapes, shapeQueries0, level_split, List.length_singleton]
@@ -700,7 +668,7 @@ theorem ladderQueries_eq : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
 
 /-- WHIR's levels over the window of its parameters: the levels' counts without the grinds, the
 number of levels, and the level-0 commitment's positions' bits. One decision on the window. -/
-theorem window_key : ∀ μ < Parameters.Whir.maxLogStack + 1,
+private theorem window_key : ∀ μ < Parameters.Whir.maxLogStack + 1,
     ∀ r < Parameters.Whir.maxLogInvRate + 1, ∀ ls ∈ Parameters.Whir.ladder μ r,
       shapeQueries0 (Verify.levelShapes μ ls) ≤ 130023647 ∧
         (Verify.levelShapes μ ls).length ≤ 6 ∧
@@ -708,7 +676,7 @@ theorem window_key : ∀ μ < Parameters.Whir.maxLogStack + 1,
   decide +kernel
 
 /-- **The wire's queries in closed form**, at admissible sizes and a valid rate. -/
-theorem wireQueries_le {prog : Program} {input : PublicInput} {s : Sizes}
+private theorem wireQueries_le {prog : Program} {input : PublicInput} {s : Sizes}
     (hs : s.Admissible prog) {ρ : ℕ} (hρ : validRate ρ) :
     wireQueries fuel prog s input (leanIsaChain prog s hs ρ hρ).ladder ≤
       (2 ^ 27 + 2) + qc.bus 55 192 + qc.tables 40 110 + qc.pub 2 + qc.flock maxLogRows + 1 +

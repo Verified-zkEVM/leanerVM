@@ -65,7 +65,7 @@ private theorem runAt_bind {α β : Type} (a : W α) (f : α → W β)
   cases r <;> rfl
 
 /-- `pure` asks no query. -/
-theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
+private theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
     IsTotalQueryBound (pure x : OracleComp hashSpec α) n :=
   isQueryBound_pure x n _ _
 

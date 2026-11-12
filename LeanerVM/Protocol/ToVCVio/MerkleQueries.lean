@@ -1,8 +1,9 @@
 /-
   LeanerVM.Protocol.ToVCVio.MerkleQueries
 
-  The queries of the walk over a pruned Merkle opening when the node hash is an oracle
-  computation of one query: at most one per opened node and level. Candidate for VCVio.
+  The queries of the walk over a pruned Merkle opening, and of building a tree's levels, when the
+  node hash is an oracle computation of one query: at most one per opened node and level, and
+  one per parent. Candidate for VCVio.
 -/
 
 module
@@ -17,10 +18,12 @@ With a node hash `hash` of at most one query (`IsTotalQueryBound (hash a b) 1`),
 walk asks at most one query per node of the level and returns at most as many parents
 (`levelStep_queries`), so the walk over `k` levels from `n` opened nodes asks at most `k * n`
 queries (`fold_queries`), and the root of a pruned opening of `n` leaves in a tree of depth `d`
-costs at most `d * n` (`prunedRoot_queries`).
+costs at most `d * n` (`prunedRoot_queries`). Building the levels of a tree over `2^k` nodes asks
+at most `2^k` (`buildLevelsM_queries`), through the bound on mapping a computation over a vector
+(`isTotalQueryBound_vector_mapM`).
 -/
 
-namespace LeanerVM.Protocol.MerkleTree
+namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec
 
@@ -29,6 +32,38 @@ open OracleComp OracleSpec
 private theorem pure_bound {ι : Type} {spec : OracleSpec ι} {α : Type} (x : α) (n : ℕ) :
     IsTotalQueryBound (pure x : OracleComp spec α) n :=
   isQueryBound_pure x n _ _
+
+/-! ## Mapping over a list or a vector -/
+
+section MapM
+
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type} (f : α → OracleComp spec β) (k : ℕ)
+  (hf : ∀ x, IsTotalQueryBound (f x) k)
+
+include hf
+
+private theorem isTotalQueryBound_list_mapM :
+    ∀ l : List α, IsTotalQueryBound (l.mapM f) (l.length * k)
+  | [] => pure_bound _ _
+  | x :: l => by
+    rw [List.mapM_cons, List.length_cons, Nat.succ_mul, Nat.add_comm]
+    exact isTotalQueryBound_bind (hf x) fun _ ↦ isTotalQueryBound_bind (n₂ := 0)
+      (isTotalQueryBound_list_mapM l) fun _ ↦ pure_bound _ _
+
+/-- Mapping a computation of at most `k` queries over a vector of `n` entries asks at most
+`n * k`. -/
+theorem isTotalQueryBound_vector_mapM {n : ℕ} (v : Vector α n) :
+    IsTotalQueryBound (v.mapM f) (n * k) := by
+  have h : IsTotalQueryBound (Vector.toArray <$> v.mapM f) (n * k) := by
+    rw [Vector.toArray_mapM, Array.mapM_eq_mapM_toList]
+    refine (isQueryBound_map_iff _ _ _ _ _).mpr ?_
+    have := isTotalQueryBound_list_mapM f k hf v.toArray.toList
+    rwa [Array.length_toList, Vector.size_toArray] at this
+  exact (isQueryBound_map_iff _ _ _ _ _).mp h
+
+end MapM
+
+namespace MerkleTree
 
 variable {ι : Type} {spec : OracleSpec ι} {D : Type}
 
@@ -119,6 +154,23 @@ theorem prunedRoot_queries (depth : ℕ) (leaves : List (ℕ × D)) (sibs : List
     IsTotalQueryBound (prunedRoot hash depth leaves sibs) (depth * leaves.length) :=
   fold_queries hash hh depth 0 depth (Nat.zero_add depth) leaves sibs
 
+private theorem parentsM_queries {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
+    IsTotalQueryBound (parentsM hash level) (2 ^ k) := by
+  unfold parentsM
+  simpa using isTotalQueryBound_vector_mapM _ 1 (fun _ ↦ hh _ _) _
+
+/-- **Building a tree's levels** over `2^k` nodes asks at most `2^k` queries. -/
+theorem buildLevelsM_queries :
+    ∀ (k : ℕ) (level : Vector D (2 ^ k)), IsTotalQueryBound (buildLevelsM hash k level) (2 ^ k)
+  | 0, _ => pure_bound _ _
+  | k + 1, level => by
+    unfold buildLevelsM
+    rw [pow_succ, Nat.mul_two]
+    exact isTotalQueryBound_bind (parentsM_queries hash hh level) fun ps ↦
+      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦ pure_bound _ _
+
+end MerkleTree
+
 end
 
-end LeanerVM.Protocol.MerkleTree
+end LeanerVM.Protocol

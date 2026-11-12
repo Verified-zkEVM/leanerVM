@@ -14,7 +14,7 @@ module
 public import VCVio.CryptoFoundations.MerkleTree.ExtractionKernel
 public import VCVio.CryptoFoundations.MerkleTree.Inductive.Batch.Opening
 public import ToMathlib.Data.IndexedBinaryTree.Perfect
-public import PolyFun.Control.Monad.Hom
+public import PolyFun.Control.Monad.Hom.Loops
 
 /-!
 # Merkle trees and their pruned openings
@@ -42,16 +42,27 @@ builds the tree once, as its `Levels` (`buildLevels`), and reads the root and th
 every opening off it (`Levels.root`, `Levels.siblings`); `root_buildLevels` and
 `siblings_buildLevels` equate these with `rootOfLevel` and `openSiblings`. `buildLevelsM` builds
 them with the hash in a monad, each level's parents left to right, and is `buildLevels` for a pure
-hash (`buildLevelsM_pure`).
+hash (`buildLevelsM_pure`); mapped along a monad morphism, it is `buildLevelsM` under the mapped
+hash (`buildLevelsM_hom`, through `Vector.mapM_hom`).
 `nodeQueryModelOfEncoding` is the VCVio query model of a node hash on `encode left ++ encode
 right`, which carries no address.
 -/
 
-namespace LeanerVM.Protocol.MerkleTree
-
-open BinaryTree InductiveMerkleTree
+namespace LeanerVM.Protocol
 
 @[expose] public section
+
+/-- A monad morphism commutes with `Vector.mapM`. -/
+theorem Vector.mapM_hom {m m' : Type → Type} [Monad m] [Monad m'] [LawfulMonad m]
+    [LawfulMonad m'] (φ : m →ᵐ m') {α β : Type} {n : ℕ} (f : α → m β) (xs : Vector α n) :
+    φ (xs.mapM f) = xs.mapM fun a ↦ φ (f a) := by
+  apply Vector.map_toArray_inj.mp
+  rw [← MonadHom.mmap_map, Vector.toArray_mapM, Vector.toArray_mapM, Array.mapM_eq_mapM_toList,
+    Array.mapM_eq_mapM_toList, MonadHom.mmap_map, MonadHom.mmap_mapM]
+
+namespace MerkleTree
+
+open BinaryTree InductiveMerkleTree
 
 variable {D : Type}
 
@@ -658,6 +669,30 @@ theorem buildLevelsM_pure [LawfulMonad m] : ∀ (k : ℕ) (level : Vector D (2 ^
 
 end Levels
 
+/-! ## The tree built once, along a monad morphism -/
+
+section LevelsHom
+
+variable {m m' : Type → Type} [Monad m] [Monad m'] [LawfulMonad m] [LawfulMonad m']
+  (φ : m →ᵐ m')
+
+private theorem parentsM_hom (hashPairM : D → D → m D) {k : ℕ}
+    (level : Vector D (2 ^ (k + 1))) :
+    φ (parentsM hashPairM level) = parentsM (fun a b ↦ φ (hashPairM a b)) level := by
+  simp only [parentsM, Vector.mapM_hom]
+
+/-- Building the levels with the hash in a monad, mapped along a monad morphism, is building them
+with the hash's answers mapped. -/
+theorem buildLevelsM_hom (hashPairM : D → D → m D) :
+    ∀ (k : ℕ) (level : Vector D (2 ^ k)),
+      φ (buildLevelsM hashPairM k level) = buildLevelsM (fun a b ↦ φ (hashPairM a b)) k level
+  | 0, _ => by simp [buildLevelsM]
+  | k + 1, level => by
+    simp only [buildLevelsM, MonadHom.mmap_bind, MonadHom.mmap_pure, parentsM_hom,
+      buildLevelsM_hom hashPairM k]
+
+end LevelsHom
+
 /-! ## The query model of an untagged node hash -/
 
 /-- The VCVio query model of a node hash that queries the encodings of its two children, left
@@ -672,5 +707,8 @@ def nodeQueryModelOfEncoding {B : Type} (encode : D → List B) (decode : List B
     simp only [List.take_left' (length_encode _), List.drop_left' (length_encode _),
       decode_encode]
 
+end MerkleTree
+
 end
-end LeanerVM.Protocol.MerkleTree
+
+end LeanerVM.Protocol

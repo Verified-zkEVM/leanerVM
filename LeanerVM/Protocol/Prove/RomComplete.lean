@@ -11,7 +11,7 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.Prove.Complete
 public import LeanerVM.Protocol.ChainGroups
 public import LeanerVM.Protocol.ToVCVio.ProofOfWork
-public import LeanerVM.Protocol.ToVCVio.LogReplay
+public import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
 public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
@@ -27,7 +27,7 @@ The proof needs nothing about where the grinds sit in the run:
 
 1. a run of the lazy random oracle ending at the cache `c` is the run at the hash
    `H_c t := (c t).getD d₀`, `d₀` the zero digest, which clears every grinding check
-   (`run_simulateQ_pure_of_mem_support_randomOracle`, `proveWith_simulateQ`);
+   (`evalWithAnswerFn_eq_of_mem_support_randomOracle`, `proveWith_simulateQ`);
 2. at any hash, the prover returns no proof only when a grind finds no nonce among its `fuel`
    candidates (`Prove.proveWith_eq_none`); at `H_c` each candidate that fails is cached with a
    failing answer, since an uncached one is answered by `d₀`, and the grind's base is `d₀` or a
@@ -82,7 +82,7 @@ def grindSearch (fuel bits : ℕ) : PowSearch (List UInt8) Digest where
     cases this
 
 /-- A search that found no nonce among `fuel` candidates from `n`: every candidate fails. -/
-theorem findNonce_eq_none {H : List UInt8 → Digest} {base : Digest} {bits fuel n : ℕ}
+private theorem findNonce_eq_none {H : List UInt8 → Digest} {base : Digest} {bits fuel n : ℕ}
     (h : Id.run (FsState.findNonce H base bits fuel n) = none) :
     ∀ k < fuel,
       FsState.lowBitsZero (H (checkInput base (FsState.nonceOf (n + k)))) bits = false := by
@@ -155,9 +155,9 @@ theorem exhausted_of_grind_eq_none (c : hashSpec.QueryCache) {fs : FsState} {fue
 
 /-! ## The bound -/
 
-/-- A uniform digest fails a grinding check of `bits ≤ 64` bits with probability
+/-- A uniform digest fails a grinding check of `bits ≤ 64` bits with probability at most
 `1 - 2^-bits`. -/
-theorem prEvent_not_lowBitsZero {bits : ℕ} (hb : bits ≤ 64) :
+private theorem prEvent_not_lowBitsZero {bits : ℕ} (hb : bits ≤ 64) :
     Pr{let d ← $ᵗ Digest}[¬ FsState.lowBitsZero d bits = true] ≤ 1 - (2 ^ bits : ℝ≥0∞)⁻¹ := by
   have h := prEvent_add_prEvent_not_eq_prEvent_true ($ᵗ Digest)
     fun d ↦ FsState.lowBitsZero d bits = true
@@ -167,7 +167,9 @@ theorem prEvent_not_lowBitsZero {bits : ℕ} (hb : bits ≤ 64) :
 /-- **The honest prover in the random-oracle model returns a proof, except with small
 probability.** At sizes admissible with the rate, the prover with every hash a query to the lazy
 random oracle, a run of at most `N` queries, returns no proof with probability at most
-`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, whatever the Flock specification. -/
+`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, whatever the Flock specification. The factor
+`N + 1` counts every query that could be a grind's base, and the zero digest, not the few grinds a
+proof makes: the bound is loose by design. -/
 theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
@@ -179,7 +181,7 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
       z.1 = none → (grindSearch fuel queryGrindingBits).Exhausted z.2 := by
     intro z hz hnone
     set H : List UInt8 → Digest := fun t ↦ (z.2 t).getD zeroDigest
-    have hrun := (run_simulateQ_pure_of_mem_support_randomOracle _ ∅ hz H
+    have hrun := (evalWithAnswerFn_eq_of_mem_support_randomOracle _ ∅ hz H
       fun t u h ↦ by simp [H, h]).2
     have hsim := proveWith_simulateQ (r := Id) (fun t ↦ pure (H t)) fuel F prog input w ρ
     have hnone' : proveWith (m := Id) H fuel F prog input w ρ = none :=
