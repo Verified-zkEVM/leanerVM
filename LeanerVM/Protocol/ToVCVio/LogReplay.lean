@@ -91,8 +91,8 @@ theorem prefix_of_run_simulateQ_replayImpl {α : Type} (ans : Q → Option D)
 /-- **A run under an oracle, replayed**: a logged run of `oa` under any implementation of the
 oracle, ending at `(x, log)`, is reproduced by answering from any `ans` that agrees with the
 log. -/
-private theorem replay_of_mem_support_simulateQ {α : Type} {n : Type → Type} [Monad n]
-    [LawfulMonad n] [MonadAttach n] [ExactMonadAttach n] (impl : QueryImpl (Q →ₒ D) n)
+theorem replay_of_mem_support_simulateQ {α : Type} {n : Type → Type} [Monad n] [LawfulMonad n]
+    [MonadAttach n] [ExactMonadAttach n] (impl : QueryImpl (Q →ₒ D) n)
     (oa : OracleComp (Q →ₒ D) α) {x : α} {log : (Q →ₒ D).QueryLog}
     (h : (x, log) ∈ support (simulateQ impl oa.withQueryLog)) (ans : Q → Option D)
     (hans : ∀ e ∈ log, ans e.1 = some e.2) :
@@ -102,7 +102,7 @@ private theorem replay_of_mem_support_simulateQ {α : Type} {n : Type → Type} 
 /-- **A run under a stateful oracle, replayed**: a logged run of `oa` under a stateful
 implementation of the oracle, a lazy random oracle say, ending at `(x, log)`, is reproduced by
 answering from any `ans` that agrees with the log. -/
-private theorem replay_of_mem_support_simulateQ_run' {α σ : Type} {n : Type → Type} [Monad n]
+theorem replay_of_mem_support_simulateQ_run' {α σ : Type} {n : Type → Type} [Monad n]
     [LawfulMonad n] [MonadAttach n] [ExactMonadAttach n] (impl : QueryImpl (Q →ₒ D) (StateT σ n))
     (oa : OracleComp (Q →ₒ D) α) (s : σ) {x : α} {log : (Q →ₒ D).QueryLog}
     (h : (x, log) ∈ support ((simulateQ impl oa.withQueryLog).run' s)) (ans : Q → Option D)

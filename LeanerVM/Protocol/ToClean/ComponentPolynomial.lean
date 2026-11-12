@@ -311,8 +311,8 @@ theorem toM3_constraints_iff (hl : c.rowOperations.lookups = []) (row : Fin c.wi
 evaluates on the row, each on its side. -/
 theorem toM3_flushes_eq (row : Fin c.width → F) (data : ProverData F) :
     (c.toM3 sep side counted).flushes.map (fun f ↦ (f.1, f.2.map (·.eval row))) =
-      c.rowOperations.interactions.map
-        fun i ↦ (side i, flushTuple sep (i.eval (Environment.fromArray (Array.ofFn row) data))) := by
+      c.rowOperations.interactions.map fun i ↦
+        (side i, flushTuple sep (i.eval (Environment.fromArray (Array.ofFn row) data))) := by
   simp only [Component.toM3, List.map_map]
   apply List.map_congr_left
   intro i _

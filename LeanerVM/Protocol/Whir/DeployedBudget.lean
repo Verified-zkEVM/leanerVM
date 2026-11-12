@@ -150,8 +150,7 @@ private theorem foldErr_le_budget {sh : Shape} {κ : ℕ} (P : Par sh κ)
 
 /-- **A level within the budgets keeps every challenge within its budget**, given the rest of the
 opening does. -/
-private theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap sh' κ'))
-    (P' : Par sh' κ')
+theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap sh' κ')) (P' : Par sh' κ')
     {k : List Step} {errR : (seqSpec k).ChallengeIdx → ℝ≥0} {bR : (seqSpec k).ChallengeIdx → Bool}
     (h : levelFits P P'.L = true) (hR : ∀ i, errR i ≤ budget (bR i)) :
     ∀ i, levelErr P P' errR i ≤ budget (levelMark (sh := sh) (sh' := sh') (κ' := κ') bR i) := by
@@ -172,8 +171,7 @@ private theorem levelErr_le_budget {sh sh' : Shape} {κ' : ℕ} (P : Par sh (Kap
     (sayError_le _ _) <| errAppend_le_mark _ (fun x ↦ Fin.elim0 x.1) hR
 
 /-- **The last level within the budgets keeps every challenge within its budget.** -/
-private theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1))
-    (h : finalFits P = true) :
+theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1)) (h : finalFits P = true) :
     ∀ i, finalErr P i ≤ budget (finalMark (sh := sh) (nf := nf) i) := by
   simp only [finalFits, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨hfold, hbatch⟩, hpos⟩ := h
@@ -192,7 +190,7 @@ private theorem finalErr_le_budget {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1))
     (fun x ↦ (roundsError_le E _ _ _ x).trans h2) fun x ↦ Fin.elim0 x.1
 
 /-- **A chain within the budgets keeps every challenge within its budget.** -/
-private theorem Ladder.err_le_budget : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
+theorem Ladder.err_le_budget : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
     L.fits ps = true → ∀ i, L.err ps i ≤ budget (L.mark i)
   | _, _, .last _ _, P, h => finalErr_le_budget P h
   | _, _, .cons _ L, P, h => by
@@ -229,7 +227,7 @@ theorem deployedChain_fits {μ r : ℕ} (h : Admissible μ r) :
 
 /-- **The opening at leanVM's parameters, challenge by challenge**: every challenge's error is at
 most `2^-128`, the query positions' at most `2^-111`, at every admissible stack size and rate. -/
-private theorem deployedChain_openErr_le {μ r : ℕ} (h : Admissible μ r) :
+theorem deployedChain_openErr_le {μ r : ℕ} (h : Admissible μ r) :
     ∀ i, openErr (deployedChain μ r h).ladder (deployedChain μ r h).pars i ≤
       budget (openMark (deployedChain μ r h).ladder i) :=
   openErr_le_budget _ _ (deployedChain_fits h).1

@@ -101,7 +101,7 @@ private theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : Li
     exact levelBound_withNext fun s sibs ↦ levelBound_consParent _ (hs i a s) (levelBound_nil sibs)
 
 /-- **The walk over `k` levels** from `n` opened nodes asks at most `k * n` queries. -/
-private theorem fold_queries : ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × D)) (sibs : List D),
+theorem fold_queries : ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × D)) (sibs : List D),
     IsTotalQueryBound (fold (NodeAlgebra.ofHash hash) k h t e nodes sibs) (k * nodes.length)
   | 0, _, _, rfl, nodes, sibs => isQueryBound_pure _ _ _ _
   | k + 1, h, t, e, nodes, sibs => by
