@@ -386,17 +386,16 @@ theorem prEvent_exhausted_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     {N : ℕ} (hN : IsTotalQueryBound oa N) :
     Pr{let z ← (simulateQ (D →ₒ Y).randomOracle oa).run ∅}[S.Exhausted z.2] ≤
       (N + 1) * q ^ S.F + N * N / Fintype.card Y := by
-  refine (prEvent_le_of_potential _ (S.potential q) (fun z hz ↦ S.one_le_potential hz) (S.charge q)
-    (fun c t hc ↦ S.potential_step hq hq1 hc) oa ∅).trans ?_
-  rw [S.potential_empty]
-  refine (add_le_add le_rfl (QueryHistory.cache.expected_charge_le_mul (κ := q ^ S.F +
-    N / Fintype.card Y) hN ∅ fun c t _ hc ↦ ?_)).trans_eq ?_
-  · simp only [QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc
+  rw [← QueryHistory.randomOracle_cache]
+  refine (QueryHistory.cache.prEvent_le_of_potential _ (S.potential q)
+    (fun z hz ↦ S.one_le_potential hz) (κ := q ^ S.F + N / Fintype.card Y) hN ∅
+    fun c t hc hb ↦ (S.potential_step hq hq1 hc).trans (add_le_add le_rfl ?_)).trans_eq ?_
+  · simp only [QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hb
     unfold charge
     split_ifs
-    · exact add_le_add le_rfl (ENNReal.div_le_div_right (le_self_add.trans hc) _)
+    · exact add_le_add le_rfl (ENNReal.div_le_div_right (le_self_add.trans hb) _)
     · exact zero_le
-  · rw [mul_add, ← mul_div_assoc]
+  · rw [S.potential_empty, mul_add, ← mul_div_assoc]
     ring
 
 end PowSearch

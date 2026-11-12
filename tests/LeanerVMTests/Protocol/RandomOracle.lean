@@ -208,7 +208,7 @@ def blocks : List Block :=
 #guard (honestLog.map fun e ↦ (Block.parse? e.1).isSome) = [true, true, true, false, true, true]
 
 -- The log is consistent, with no collision and no hit on the seed or a half of an earlier input.
-#guard decide (QueryLog.Consistent honestLog)
+#guard decide (LeanerVM.Protocol.QueryLog.Consistent honestLog)
 #guard !decide (QueryLog.HasCollision honestLog)
 #guard !decide (QueryLog.HasHit (inPlay [seed.cv]) honestLog)
 
@@ -286,7 +286,7 @@ def seedSteps : List (Block × Digest) := [(.observe x, seed.cv), (.squeeze, d 2
 def lateLog : Log :=
   [⟨Block.input (d 1) .squeeze, d 2⟩, ⟨Block.input seed.cv (.observe x), d 1⟩]
 
-#guard decide (QueryLog.Consistent lateLog)
+#guard decide (LeanerVM.Protocol.QueryLog.Consistent lateLog)
 #guard !decide (QueryLog.HasCollision lateLog)
 #guard decide (QueryLog.HasHit (inPlay [seed.cv]) lateLog)
 #guard seedHistory lateLog ⟨d 1⟩ = some (seed.cv, [(.observe x, d 1)])
@@ -306,7 +306,7 @@ def rootLog : Log :=
     ⟨digestBytes (d 4) ++ digestBytes (d 5), root⟩]
 
 #guard rebuiltRoots rootLog = [root]
-#guard decide (QueryLog.Consistent rootLog)
+#guard decide (LeanerVM.Protocol.QueryLog.Consistent rootLog)
 #guard !decide (QueryLog.HasCollision rootLog)
 #guard decide (QueryLog.HasHit (inPlay [seed.cv]) rootLog)
 #guard !decide (QueryLog.HasHit (fun l ↦ seed.cv :: l.flatMap fun e ↦ halves e.1) rootLog)
@@ -318,7 +318,7 @@ def doubledLog : Log := honestLog ++ honestLog
 
 -- Deduplication keeps the first occurrences, which on a consistent log changes neither a
 -- history nor the digests in play.
-#guard decide (QueryLog.Consistent doubledLog)
+#guard decide (LeanerVM.Protocol.QueryLog.Consistent doubledLog)
 #guard List.dedupKeys doubledLog = honestLog
 #guard seedHistory doubledLog final = seedHistory (List.dedupKeys doubledLog) final
 #guard (inPlay [seed.cv] doubledLog).all (· ∈ inPlay [seed.cv] (List.dedupKeys doubledLog))
@@ -328,7 +328,7 @@ def doubledLog : Log := honestLog ++ honestLog
 /-- The honest log with its first query asked again, answered otherwise. -/
 def reansweredLog : Log := honestLog ++ [⟨honestLog[0]!.1, d 9⟩]
 
-#guard !decide (QueryLog.Consistent reansweredLog)
+#guard !decide (LeanerVM.Protocol.QueryLog.Consistent reansweredLog)
 #guard List.dedupKeys reansweredLog = honestLog
 
 -- A hit is at a first occurrence: the late log asked twice keeps its hit after deduplication.

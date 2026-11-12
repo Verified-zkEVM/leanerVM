@@ -19,7 +19,7 @@ answer, and appends the query with its answer to a log. `run_simulateQ_replayImp
 is a possible logged run of `oa` (in the support of `oa.withQueryLog`, where a query may be
 answered by anything) and `ans` answers every logged query as the log does, the replay of `oa`
 returns `x` and appends exactly `log`. The support of a simulation is in the support of the
-computation it simulates (`support_simulateQ_subset`, VCVio's `support_simulateQ_run'_subset`),
+computation it simulates (VCVio's `support_simulateQ_subset` and `support_simulateQ_run'_subset`),
 so the same holds of a logged run under any implementation of the oracle: a stateless one such as
 `pure ∘ f` (`replay_of_mem_support_simulateQ`), or a stateful one such as a lazy random oracle
 (`replay_of_mem_support_simulateQ_run'`). Under a function `f`, a stateless implementation, every
@@ -87,20 +87,6 @@ theorem prefix_of_run_simulateQ_replayImpl {α : Type} (ans : Q → Option D)
         simp [replayImpl, hu]
       rw [hstep, pure_bind] at h
       exact (List.prefix_append pre _).trans (ih u h)
-
-/-- The support of a simulation is in the support of the computation it simulates. -/
-theorem support_simulateQ_subset {ι : Type} {spec : OracleSpec ι} {α : Type}
-    {n : Type → Type} [Monad n] [LawfulMonad n] [MonadAttach n] [ExactMonadAttach n]
-    (impl : QueryImpl spec n) (oa : OracleComp spec α) :
-    support (simulateQ impl oa) ⊆ support oa := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind t k ih =>
-    intro x hx
-    simp only [simulateQ_bind, simulateQ_spec_query, MonadAttach.support_bind, Set.mem_iUnion,
-      exists_prop] at hx ⊢
-    obtain ⟨u, -, hu⟩ := hx
-    exact ⟨u, mem_support_query t u, ih u hu⟩
 
 /-- **A run under an oracle, replayed**: a logged run of `oa` under any implementation of the
 oracle, ending at `(x, log)`, is reproduced by answering from any `ans` that agrees with the
