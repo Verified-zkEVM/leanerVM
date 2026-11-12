@@ -248,13 +248,8 @@ theorem mul_limbs (a0 a1 a2 b0 b1 b2 : K) :
   linear_combination (ofK a1 * ofK b2 + ofK a2 * ofK b1 + ofK a2 * ofK b2 * y) * y_pow_three
 
 /-- A product by an element of `K` acts on each limb. -/
-theorem limb_ofK_mul (c : K) (x : E) (i : Fin 3) : (ofK c * x).limb i = c * x.limb i := by
-  have h : ofK c * x = E.ofLimbs (c * x.limb 0) (c * x.limb 1) (c * x.limb 2) := by
-    conv_lhs => rw [E.eq_sum_limbs x]
-    rw [ofLimbs_eq, ofK_mul, ofK_mul, ofK_mul]
-    ring
-  rw [h, limb_ofLimbs]
-  fin_cases i <;> rfl
+theorem limb_ofK_mul (c : K) (x : E) (i : Fin 3) : (ofK c * x).limb i = c * x.limb i :=
+  (Algebra.smul_def c x).symm ▸ Ext.coeff_smul c x i
 
 end
 end LeanerVM.Parameters
