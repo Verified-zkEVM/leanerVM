@@ -232,15 +232,16 @@ theorem squeezeReads_rounds {C σ : Type} {d : ℕ}
       (squeezeReads_append (squeezeReads_say _) fun _ ↦ squeezeReads_draw (hc a))
       fun t ↦ squeezeReads_rounds hc (next a t) m
 
-/-- A run of `j + 1` rounds is a run of `j`, then round `j`'s slot. -/
-private theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
+/-- A run of `j + 1` rounds is a run of `j`, then round `j`'s slot, its value concatenated. -/
+theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
     {l : List (Block × Digest)} {tr : pSpec.Transcript ⟨j + 1, by omega⟩}
     {r : List (Block × Digest)} (h : D.run (j + 1) hj l = some (tr, r)) :
-    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) := by
+    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) ∧
+      tr = Transcript.concat (m := ⟨j, hj⟩) x t := by
   simp only [run, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
   obtain ⟨⟨t, l₁⟩, ht, ⟨x, r'⟩, hx, he⟩ := h
-  obtain ⟨-, rfl⟩ := Prod.mk.inj he
-  exact ⟨t, l₁, x, ht, hx⟩
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+  exact ⟨t, l₁, x, ht, hx, rfl⟩
 
 /-- **A challenge reads its squeezes, in the longest-prefix form**: if a history decodes exactly to
 the start of a challenge, then the history followed by the challenge's squeezes and anything
@@ -536,7 +537,7 @@ theorem mark_afterNonce_of {D : SlotDecoder (Block × Digest) pSpec} {N : Fin n 
   obtain ⟨⟨k, hk⟩, hd⟩ := i
   simp only at hj hr
   subst hj
-  obtain ⟨t, l₁, x, ht, hx⟩ := run_succ_eq_some hr
+  obtain ⟨t, l₁, x, ht, hx, -⟩ := run_succ_eq_some hr
   obtain ⟨n', d, rfl⟩ := hN j t hNj l₁ x [] hx
   obtain ⟨c, rfl, -⟩ := D.run_eq_some_iff.mp ht
   exact ⟨c, n', d, rfl⟩

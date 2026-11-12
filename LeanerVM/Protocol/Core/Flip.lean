@@ -360,16 +360,6 @@ section Cut
 
 variable {n : ℕ} {pSpec : ProtocolSpec n}
 
-private theorem run_succ_eq_some {D : SlotDecoder Reading pSpec} {j : ℕ} {hj : j + 1 ≤ n}
-    {l : List Reading} {tr : pSpec.Transcript ⟨j + 1, by omega⟩} {r : List Reading}
-    (h : D.run (j + 1) hj l = some (tr, r)) :
-    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) ∧
-      tr = Transcript.concat (m := ⟨j, hj⟩) x t := by
-  simp only [SlotDecoder.run, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨⟨t, l₁⟩, ht, ⟨x, r'⟩, hx, he⟩ := h
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-  exact ⟨t, l₁, x, ht, hx, rfl⟩
-
 private theorem take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
     full.take j.succ.val j.succ.is_le =
       Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
