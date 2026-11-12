@@ -28,8 +28,8 @@ def cpos : Pos 8 := pos 96
 
 /-- The program: `x + y + z`, then `+ x`. Irreducible, so that no unification evaluates it. -/
 @[irreducible] def toyProg : Builder 8 (Word 8) := do
-  let s ← add3W (inW 0) (inW 32) (inW 64)
-  addW s (inW 0)
+  let s ← add3W (formLin 8) (inW (formLin 8) 0) (inW (formLin 8) 32) (inW (formLin 8) 64)
+  addW (formLin 8) s (inW (formLin 8) 0)
 
 /-- The input positions `0, …, 95`. -/
 def toyInputs : Form 8 := BitVec.ofNat _ (2 ^ 96 - 1)
@@ -58,7 +58,7 @@ theorem toyStart_avail (j : ℕ) (hj : j < 96) : toyStart.avail.getLsbD j = true
     Nat.testBit_two_pow_sub_one, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
   exact Or.inl ⟨by omega, hj⟩
 
-theorem subW_in (b : ℕ) (hb : b + 32 ≤ 96) (n : ℕ) : toyStart.SubW (inW b) n :=
+theorem subW_in (b : ℕ) (hb : b + 32 ≤ 96) (n : ℕ) : toyStart.SubW (inW (formLin 8) b) n :=
   subW_inW (by omega) (fun i hi ↦ toyStart_avail _ (by omega)) n
 
 /-- The program records `92` gates and keeps the schedule bounded. -/
@@ -78,7 +78,8 @@ theorem toy_bounded : toyCircuit.Bounded :=
 the program's output word denotes `x + y + z + x` of the input words. -/
 theorem toy_sound (w : Pos 8 → Bool)
     (hw : (toyCircuit.toBlockR1CS (ZMod 2)).Holds (liftBlock (ZMod 2) w)) {x y z : UInt32}
-    (hx : Den w (inW 0) x) (hy : Den w (inW 32) y) (hz : Den w (inW 64) z) :
+    (hx : Den w (inW (formLin 8) 0) x) (hy : Den w (inW (formLin 8) 32) y)
+    (hz : Den w (inW (formLin 8) 64) z) :
     Den w (toyProg.run ⟨97, #[]⟩).1 (x + y + z + x) := by
   have hs : Sound w toyProg (fun o ↦ Den w o (x + y + z + x)) := by
     unfold toyProg

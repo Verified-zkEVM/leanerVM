@@ -15,6 +15,7 @@ Copyright (c) 2026 Leanth Contributors. All rights reserved.
 module
 
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.FinLoop
 public import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Algebra.Polynomial.BigOperators
 
@@ -37,6 +38,10 @@ difference polynomial, and includes the empty case. `Leanth/ProofSystem/Stacking
 uses positive powers in `BatchedAccepts` and `batchPoly`; that distinct convention has an
 additional automatic root at zero and a `J` bound.
 
+Compiled code computes a combination by Horner's rule and a combination of tables with each table
+built once (`powerBatch_eq_powerBatchFast`, `batchWeight_eq_batchWeightFast`, `@[csimp]`
+theorems): `batchWeight` reads every table at every entry, and a table given as a function, such as
+a weight's values, is rebuilt at each read.
 -/
 
 namespace LeanerVM.Protocol
@@ -121,6 +126,30 @@ theorem singleton_batch_ne (a v : Fin 1 → R) (h : a 0 ≠ v 0) (ρ : R) :
 /-- The empty batch is the trivial zero target. -/
 @[simp] theorem empty_powerBatch (a : Fin 0 → R) (ρ : R) : powerBatch a ρ = 0 := by
   simp [powerBatch]
+
+/-! ## Compiled forms -/
+
+/-- A power combination by Horner's rule. -/
+def powerBatchFast (a : Fin J → R) (ρ : R) : R := hornerFin a ρ
+
+/-- Horner's rule is the power combination. -/
+@[csimp] theorem powerBatch_eq_powerBatchFast : @powerBatch = @powerBatchFast := by
+  funext R _ J a ρ
+  rw [powerBatchFast, hornerFin_eq_sum, powerBatch]
+  exact Finset.sum_congr rfl fun j _ ↦ mul_comm _ _
+
+/-- Tables combined by the powers of `ρ`, each table built once, each entry by Horner's rule. -/
+def batchWeightFast (w : Fin J → CMlPolynomialEval R μ) (ρ : R) : CMlPolynomialEval R μ :=
+  let ts := Vector.ofFn w
+  Vector.ofFn fun x ↦ hornerFin (fun j : Fin J ↦ ts[j][x]) ρ
+
+/-- The tables built once give the combination. -/
+@[csimp] theorem batchWeight_eq_batchWeightFast : @batchWeight = @batchWeightFast := by
+  funext R _ J μ w ρ
+  refine Vector.ext fun x hx ↦ ?_
+  simp only [batchWeight, batchWeightFast, Vector.getElem_ofFn, hornerFin_eq_sum, powerBatch,
+    Fin.getElem_fin]
+  exact Finset.sum_congr rfl fun j _ ↦ mul_comm _ _
 
 section FiniteField
 

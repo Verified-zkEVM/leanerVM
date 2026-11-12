@@ -48,8 +48,9 @@
   blocks), for the differential check of the honest column in
   `tests/LeanerVMTests/Protocol/FlockSpec.lean`; requires `cargo`.
 - `dump-flock-circuit-digest.py <leanVM checkout>`: digests the rows of the Flock BLAKE2s
-  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
-  comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
+  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the modular
+  weighted-checksum regression in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; this does
+  not establish rowwise equality. Requires only Python and a
   checkout at the pinned commit.
 - `whir-mca-budget.py`: reproduces the pinned Rust's per-level WHIR `η` search in doubles, checks
   it against the Python verifier's query table, and decides in exact arithmetic that ArkLib's
@@ -62,6 +63,11 @@
 - `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
   offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
   comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
+- `dump-fs-chain-rust.sh <leanVM checkout>`: prints the pinned Fiat–Shamir chain's known
+  answers (a program's hash and seed, the state after seeding, observes, squeezes and an 8-bit
+  grind) and a prover transcript with a root, two round polynomials and a grind, read back by the
+  pinned verifier, for `tests/LeanerVMTests/Protocol/Transcript.lean` and
+  `tests/LeanerVMTests/Protocol/Proof.lean`; requires `cargo`.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.

@@ -150,6 +150,13 @@ former code in parentheses is for reading older pull requests.
   least `τ_max` coordinates (`constraints.rs:250-253`). §8 states none of these. (F15)
 - *The program in the Python verifier.* It takes the program as the stacked table and does not
   check that the unused slots are zero (`py:566, 857`).
+- *The order of `DEREF`'s flushes.* §7.4 lists the three memory reads pointer, local, target
+  (`07-instruction-tables.tex:87-90`, against its own prose, `:72-74`); the Rust flushes them
+  pointer, target, local (`lean_vm/src/tables.rs:640-642`, `py:779-781`). The order places the
+  blocks in the bus's leaf stacks, ties falling to flush order, so the table sumcheck's forms
+  depend on it. The leanISA table followed §7.4, and the executable verifier rejected the Rust
+  proof at the table sumcheck's final check, every other table's forms equal to the Python
+  verifier's; the table now reads in the Rust's order (`Arithmetization/Tables/Deref.lean`).
 
 **The specification leaves it to the code** (the blueprint transcribes these).
 
@@ -158,7 +165,9 @@ former code in parentheses is for reading older pull requests.
   F1)
 - *Grinding.* Annex B does not mention it; every WHIR level grinds 17 bits before its queries,
   the nonce is bound even when the check fails, and `ood_samples[0] = 0`
-  (`pcs/src/whir_config.rs:60`, `fiat_shamir/src/lib.rs:165-174`). (S12, F13)
+  (`pcs/src/whir_config.rs:60`, `fiat_shamir/src/lib.rs:165-174`). (S12, F13) The verifier
+  accepts any element of `E` as a nonce, and at 0 bits only `0`; the honest prover sends the
+  smallest 64-bit nonce (`lib.rs:126-174`; `Protocol/Transcript.lean`).
 - *Stack size and ties.* §4.1's `M = ⌈log₂ N⌉` has no floor or ceiling and no order for blocks of
   equal size; the verifiers floor at 15, reject above 28, and order ties by the column index, the
   six shared columns first (`04-committing-the-witness.tex:6-10`; `lean_vm/src/witness.rs:67-97`,
@@ -242,6 +251,42 @@ former code in parentheses is for reading older pull requests.
   the chain's shape. No attack follows; the consequence is that the Merkle compilation is proved
   on the one shared function rather than on independent oracles per role.
 
+**The executable verifier on a Rust proof.** `Verify.verify` (`Protocol/Verify.lean`) accepts
+the proof the pinned prover makes of the division program of the Rust suite
+(`scripts/dump-proof-rust.sh`): the grinding checks pass at all four WHIR levels, which pins the
+chain state at each to the prover's, the four Merkle openings authenticate, the stream and the
+openings are consumed, and every phase's algebra and WHIR's terminal check pass; the bus totals,
+the table sumcheck's final claim and the ring-switching target are the values the second
+verifier computes on the same proof. The one difference it found is the order of `DEREF`'s
+flushes above, which the leanISA table followed from §7.4 and now reads in the Rust's order.
+The verifier departs from the Rust only in when it checks, never in what it accepts: it reads
+the eight sizes before checking them (`read_public` checks each as it reads it), checks the
+number and shapes of the openings before any hash, walks the whole chain before any Merkle
+opening and the openings before any algebra (the Rust interleaves them; openings are not
+absorbed, so no challenge moves), and computes WHIR's terminal weight as the oracle reduction's
+glued weight rather than the Rust's closed forms (`whir.rs:2264-2308`), equal on this proof. It
+evaluates the program's share of the bus totals as one value, the bytecode multilinear
+`B̃(ζ_{<κ_bc}, α)` (`settleFixedClaims`), where the Rust's totals evaluate the eight entry columns
+one by one (`leaf.rs:453`) and hand the multilinear on unchecked for recursion
+(`leaf.rs:627-637`); the two are equal (`bytecodeShare_eq`), and a recursive verifier defers the
+one claim. This is implementation evidence about one proof, not a statement about the Rust.
+
+**The honest prover.** `prove` (`Protocol/Prove.lean`) writes a proof that `verify` accepts, of
+the constraint statement tests' witness at the smallest admissible sizes (`tests/vectors/`). Its
+stream is the Rust's order of messages and challenges (`cpu/mod.rs:520-640`): the sizes and the
+rate announced, the commitment, the bus phase, the table sumcheck, the public input, the Flock
+phase, the opening's batching, WHIR; round polynomials without the dropped coefficient, roots as
+two scalars. It differs from the Rust prover in its witness, which is given rather than built from
+an execution, so the two agree on a proof only where the witnesses and the honest messages agree;
+in the grind, whose nonce is the smallest that clears the bits as the Rust's parallel search
+returns, but within a fuel of candidates; and in the openings, written after the stream in level
+order where the Rust hands each to the proof as it opens it (the list is the same). The dump of a
+proof differs from `scripts/dump-proof-rust.sh`'s only in its first line's tag. Agreement with the
+Rust prover on one witness is not checked. Not a discrepancy: the Rust comment that level 0
+grinds 0 bits in the production profile (`pcs/src/whir.rs:1364`) is stale at the pin, where
+`QUERY_GRINDING_BITS = 17` at every level (`whir_config.rs:60`, asserted at `whir.rs:2485`); the
+Rust fixture's acceptance at 17 bits confirms it.
+
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
 finding F9, that it omits them, was false.
@@ -257,10 +302,10 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | Guest functional correctness | zkDSL guest, Rust construction/API, positive and adversarial tests | T3: reviewed Lean guest specification and local postcondition; provisional T6 would supply recursive closure |
 | Guest-to-ISA compilation | Rust zkDSL compiler and compiler regression/soundness tests | T3: certified compiler or proof for the exact emitted aggregation bytecode |
 | ISA semantics | LaTeX specification and Rust interpreter; Lean `step`, `run`, and `ValidExecution` (`LeanerVM/Semantics/`) written from §2 and diffed arm by arm against `cpu/execute.rs` | T1 prerequisite: a formal correspondence boundary with the executor beyond the recorded diff |
-| Constraints imply ISA execution (CC-S) | Constraint/table implementation and design document | T1-S: refinement from every accepted assignment to an ISA trace |
+| Constraints imply ISA execution (CC-S) | Constraint/table implementation and design document; Lean `constraintSoundness` and `traceOf_valid` (`LeanerVM/Arithmetization/Soundness.lean`) from `SatisfiedBy`, for bytecode whose sentinel slot is not a `JUMP` (`SentinelSafe`, load-bearing) | T1-S: the `WellFormedBytecode` form, and the boundary of the hypotheses `SatisfiedBy` names (the three Clean cannot yet express, BLAKE2s validity) |
 | ISA execution yields constraints (CC-C) | Rust trace construction and honest-prover path | T1-C: satisfying-assignment existence for every in-scope execution |
 | Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests | T2: concrete generated assignment satisfies constraints and projects to its execution |
-| Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness | T1: multiset, range, count, table, bytecode, and memory composition theorem |
+| Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness; Lean `mem_channel_sound` and `bytecode_channel_sound` from `SatisfiedBy` alone, with Lemma 6.3 and the read bound derived from `Caps` (`LeanerVM/Arithmetization/Bus.lean`) | T1: state-channel composition (the run of Proposition 6.1) and its correspondence boundary |
 | Hint handling | Write-once design, guest checks, and hint-tampering tests | T1/T3: every claim-relevant hinted value is constrained or checked |
 | BLAKE2s opcode | Rust implementations and Flock R1CS relation; Lean `compress` and `CompressCells` (`LeanerVM/Semantics/Blake2s.lean`) pinned by RFC 7693, `hashlib`, and executor vectors | T1 prerequisite: both constraint directions and implementation correspondence |
 | Proof system | Protocol document with component bounds; Rust prover/verifier | T4: formal component notions, Fiat–Shamir assumptions, composed error bound, and verifier refinement |

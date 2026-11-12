@@ -23,8 +23,9 @@ public import LeanerVM.Protocol.ToCompPoly.Stacking
 
 At a point whose high coordinates are not selector bits, every block contributes. The block
 `b` contributes its extension at the point's low coordinates, weighted by
-`selectorWeight b`, the Lagrange basis of the high coordinates at the block's selector; the
-cells no block covers contribute the pad, weighted by what is left of the partition of unity
+`selectorWeight b`, the Lagrange basis of the high coordinates at the block's selector, which
+compiled code computes as one product (`selectorWeight_eq_selectorWeightFast`); the cells no
+block covers contribute the pad, weighted by what is left of the partition of unity
 (`stack_eval_ambient`). When the blocks fill the stack the weights sum to one
 (`sum_selectorWeight_of_total_eq`).
 `stack_eval₂_ambient` is the statement at a point of another ring than the entries. Over an
@@ -68,6 +69,20 @@ variable (B : Blocks)
 coordinates at the block's selector. -/
 def selectorWeight {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) : R :=
   (lagrangeBasis (B.highPoint hμ b z))[B.selector hμ b]
+
+/-- `selectorWeight` as the product over the high coordinates of the selector's bits, without
+building the Lagrange basis it reads one entry of. -/
+def selectorWeightFast {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) : R :=
+  let p := B.highPoint hμ b z
+  let s := (B.selector hμ b).val
+  prodFin fun k : Fin (μ - B.size b) ↦ if s.testBit k then p[k] else 1 - p[k]
+
+/-- Compiled code computes a block's weight as one product. -/
+@[csimp] theorem selectorWeight_eq_selectorWeightFast :
+    @selectorWeight = @selectorWeightFast := by
+  funext R _ B μ hμ b z
+  rw [selectorWeight, selectorWeightFast, Fin.getElem_fin,
+    lagrangeBasis_getElem_nat _ (B.selector hμ b).isLt, prodFin_eq_prod]
 
 /-- At a lifted point of block `b`, the weight of block `b` is one. -/
 theorem selectorWeight_extendPoint_self {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)

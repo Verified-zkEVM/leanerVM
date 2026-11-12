@@ -19,12 +19,19 @@ permissions:
 jobs:
   lean:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.6"
+          enable-cache: false
+
       - name: Set up and build Lean project
-        uses: leanprover/lean-action@v1.6.2
+        uses: leanprover/lean-action@v1.7.0
         with:
           auto-config: false
           build: true
@@ -42,7 +49,7 @@ jobs:
           axiom-audit: true
           axiom-audit-root: LeanerVM
       - name: Audit production and test axiom dependencies
-        run: python3 scripts/test-axiom-audit.py
+        run: uv run --no-project --python 3.12 python scripts/test-axiom-audit.py
       - name: Elaborate the test root with warnings as errors
         run: lake env lean -E warning tests/Main.lean
       - name: Install ripgrep
@@ -50,4 +57,4 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes ripgrep
       - name: Test imported-module warning enforcement
-        run: python3 scripts/test-warning-policy.py
+        run: uv run --no-project --python 3.12 python scripts/test-warning-policy.py

@@ -45,6 +45,7 @@ fast way to compute this table and is not defined here: the verifier never runs 
 `∏_k ((1 - r_k) + r_k Ŵ_k(x))` (`columnWeightMle`, the `mle` field of `columnWeight`), whose
 agreement with the table is the structure's proof field. The extension is evaluated in `κ`
 steps; building the table costs `2^κ`, so a verifier evaluates `columnWeightMle` directly.
+Compiled code shares the recurrence across the steps (`columnWeightFast`, through `@[csimp]`).
 
 `V_k(x)` is computed as the Rust and the Python compute it, not as the product over `U_k`:
 `V_0(x) = x` and `V_{k+1}(x) = V_k(x) · (V_k(x) + V_k(e_k))` (`lem:subspace` (i) with (ii)),
@@ -366,6 +367,73 @@ theorem encode_ofK (κ R : ℕ) (m : CMlPolynomialEval K κ) (v : Fin (2 ^ (κ +
 theorem isInK_encode_ofK (κ R : ℕ) (m : CMlPolynomialEval K κ) (v : Fin (2 ^ (κ + R))) :
     IsInK (encode (algebraMap K E) κ R (CMlPolynomialEval.map (algebraMap K E) m) v) :=
   (isInK_iff _).2 ⟨_, encode_ofK κ R m v⟩
+
+/-! ## The column weight in compiled code
+
+`columnWeightFast` evaluates the extension by running the vanishing recurrence once across the
+stages, with the roots and their inverses computed once and shared, and builds the factors only
+when the table is read. Past stage `63` the root and its inverse are `0`, as `subspaceRoot` and
+`x / 0 = 0` give. -/
+
+private def columnWeightRootTable : Array (K × Thunk K) :=
+  subspaceRoots.toArray.map fun x ↦ (x, .mk fun _ ↦ x⁻¹)
+
+private def columnWeightRootPair (k : ℕ) : K × K :=
+  match columnWeightRootTable[k]? with
+  | some (x, inverse) => (x, inverse.get)
+  | none => (0, 0)
+
+private theorem columnWeightRootPair_eq (k : ℕ) :
+    columnWeightRootPair k = (subspaceRoot k, (subspaceRoot k)⁻¹) := by
+  unfold columnWeightRootPair columnWeightRootTable subspaceRoot
+  simp only [Array.getElem?_map, List.getElem?_toArray]
+  cases h : subspaceRoots[k]? <;> simp [h, List.getD_eq_getElem?_getD, Thunk.get]
+
+private def columnWeightFrom {S : Type*} [CommRing S] {n : ℕ}
+    (φ : K →+* S) (r : Vector S n) : (m k : ℕ) → k + m ≤ n → K → S
+  | 0, _, _, _ => 1
+  | m + 1, k, hk, v =>
+    let p := columnWeightRootPair k
+    let a := r[k]'(by omega)
+    ((1 - a) + a * φ (v * p.2)) *
+      columnWeightFrom φ r m (k + 1) (by omega) (v * (v + p.1))
+
+private theorem columnWeightFrom_eq {S : Type*} [CommRing S] {n : ℕ}
+    (φ : K →+* S) (r : Vector S n) :
+    ∀ (m k : ℕ) (hk : k + m ≤ n) (x : K),
+      columnWeightFrom φ r m k hk (vanish x k) =
+        ∏ i : Fin m, ((1 - r[k + i]'(by omega)) +
+          r[k + i]'(by omega) * φ (normW (k + i) x))
+  | 0, _, _, _ => by simp [columnWeightFrom]
+  | m + 1, k, hk, x => by
+    rw [columnWeightFrom, columnWeightRootPair_eq]
+    change ((1 - r[k]) + r[k] * φ (vanish x k * (subspaceRoot k)⁻¹)) *
+      columnWeightFrom φ r m (k + 1) (by omega) (vanish x (k + 1)) = _
+    rw [columnWeightFrom_eq φ r m (k + 1) (by omega) x, Fin.prod_univ_succ]
+    simp [normW, div_eq_mul_inv, Nat.add_comm, Nat.add_left_comm]
+
+private theorem columnWeightFrom_domainPt {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+    (v : Fin (2 ^ (κ + R))) (r : Vector S κ) :
+    columnWeightFrom φ r κ 0 (by omega) (domainPt v) = columnWeightMle φ κ R v r := by
+  simpa [columnWeightMle, vanish] using columnWeightFrom_eq φ r κ 0 (by omega) (domainPt v)
+
+/-- `columnWeight` with its extension computed by one pass of the recurrence and its factors
+built inside the table's thunk. -/
+@[no_expose] def columnWeightFast {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+    (v : Fin (2 ^ (κ + R))) : Weight S κ where
+  cube := .mk fun _ ↦
+    let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
+    bitProductTable fun k b ↦ if b then w[k] else 1
+  mle r := columnWeightFrom φ r κ 0 (by omega) (domainPt v)
+  mle_eq r := (columnWeightFrom_domainPt φ κ R v r).trans ((columnWeight φ κ R v).mle_eq r)
+
+/-- Compiled code evaluates the column weight's extension by one pass of the recurrence. -/
+@[csimp] theorem columnWeight_eq_columnWeightFast : @columnWeight = @columnWeightFast := by
+  funext S _ φ κ R v
+  unfold columnWeight columnWeightFast
+  dsimp only
+  congr 1
+  exact funext fun r ↦ (columnWeightFrom_domainPt φ κ R v r).symm
 
 /-! ## The encoder is linear -/
 

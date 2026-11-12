@@ -9,6 +9,9 @@ module
 
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
+-- Public, and not only for this module: `eqWeight` is inlined where it is used, and its cube
+-- values compile there to the Lagrange basis by doubling.
+public import LeanerVM.Protocol.ToCompPoly.Doubling
 
 /-!
 # The inner-product oracle

@@ -30,8 +30,8 @@ lake env lean -E warning tests/Main.lean
 ./scripts/check-repository.sh
 ./scripts/check-imports.sh
 ./scripts/check-layers.sh
-python3 ./scripts/check-docs.py
-python3 ./scripts/test-policy-checks.py
+uv run --no-project --python 3.12 python ./scripts/check-docs.py
+uv run --no-project --python 3.12 python ./scripts/test-policy-checks.py
 ```
 
 ## Where To Work
@@ -102,7 +102,8 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   Preserve license notices and human attribution for substantially derived material.
 - Add a third-party dependency only for a named first-party consumer and a narrow import. Update
   the toolchain, upstream baseline, and manifest together where applicable.
-- Upstream candidates live under `LeanerVM/Protocol/To{ArkLib,Clean,CompPoly,VCVio}/`. The pull
+- Upstream candidates live under `LeanerVM/Protocol/To{ArkLib,Clean,CompPoly,VCVio}/`, or
+  `LeanerVM/Parameters/To<Library>/` when a lower layer must import them. The pull
   request that moves a library pin past an upstream merge deletes every local `To*` file or
   declaration the new pin contains, switches its consumers to the upstream names, and updates the
   protocol blueprint's upstream ledger and the status page's watch list in the same change.
@@ -114,6 +115,8 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 
 ## Repository Hygiene
 
+- For prose work, read the [writing workflow](docs/write-technical-prose.md). Its guide and local
+  suggestions are advice; preserve technical meaning and contribution requirements.
 - Edit source files, not generated or local state such as `.lake/` and benchmark artifacts.
 - Preserve unrelated work in a dirty tree; do not discard or rewrite changes you did not make.
 - Keep stable operating knowledge in `docs/` and update the corresponding page when commands,

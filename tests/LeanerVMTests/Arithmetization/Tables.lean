@@ -99,11 +99,12 @@ def memTable : Array (Vector K 3) :=
     #v[gpow 29, 0, 0], #v[1, 0, 0], #v[K.ofBits 9, K.ofBits 9, K.ofBits 9],
     #v[0, 0, 0]]
 
-/-- The prover data of an image, its one table matched on arity so that the kernel never
+/-- The prover data of an image: the memory block's rows holding its words (the address and
+count columns, which `imageOf` does not read, at `0`), matched on arity so that the kernel never
 compares names (as in the Layer 5 tests). -/
 def dataOf (mem : Array (Vector K 3)) : ProverData K := fun _ n ↦
   match n with
-  | 3 => mem
+  | 5 => mem.map fun v ↦ toElements (⟨0, 0, v⟩ : MemRow K)
   | _ => #[]
 
 /-- The fixture's prover data. -/
@@ -111,36 +112,30 @@ def tabData : ProverData K := dataOf memTable
 
 theorem dataOf_logSize {mem : Array (Vector K 3)} (h : mem.size = 32) :
     (imageOf (dataOf mem)).1 = 5 := by
-  show min (Nat.log 2 (memRows (dataOf mem)).size) maxLogMem = 5
-  rw [show memRows (dataOf mem) = mem from rfl, h, show (32 : ℕ) = 2 ^ 5 by decide,
-    Nat.log_pow (by norm_num)]
-  decide
+  refine imageOf_fst (by decide) ?_
+  rw [memRows, ProverData.getRows, Array.size_map, Array.size_map]
+  show (mem.map _).size = 2 ^ 5
+  rw [Array.size_map, h]
+  rfl
 
-theorem dataOf_wellShaped {mem : Array (Vector K 3)} (h : mem.size = 32) :
-    WellShapedData (dataOf mem) where
-  memRows_size := by rw [dataOf_logSize h]; exact h
-
-/-- On a well-shaped thirty-two-word data, the word at `g^k` is row `k` of the image, as
-limbs. -/
-theorem readAt {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : WellShapedData data)
+/-- On a thirty-two-word data, the word at `g^k` is row `k` of the image, as limbs. -/
+theorem readAt {data : ProverData K} (hlog : (imageOf data).1 = 5)
     (k : ℕ) (v : Vector K 3) (hk : k < 32 := by decide)
-    (hv : (memRows data)[k]'(by rw [hws.memRows_size, hlog]; exact hk) = v := by decide +kernel) :
+    (hv : (memRows data)[k]? = some v := by decide +kernel) :
     (imageOf data).2.read (gpow k) = some (E.ofLimbs v[0] v[1] v[2]) := by
   have hk' : k < 2 ^ (imageOf data).1 := by rw [hlog]; omega
   rw [show gpow k = gpow ((⟨k, hk'⟩ : Fin (2 ^ (imageOf data).1)) : ℕ) from rfl,
-    MemImage.read_gpow (by rw [hlog]; decide), imageOf_apply hws _ hv]
+    MemImage.read_gpow (by rw [hlog]; decide), imageOf_apply _ hv]
 
 /-- The word at `g^k` of the fixture's image. -/
 theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 32 := by decide)
-    (hv : memTable[k]'(by rw [show memTable.size = 32 from rfl]; exact hk) = v :=
-      by decide +kernel) :
+    (hv : (memRows tabData)[k]? = some v := by decide +kernel) :
     (imageOf tabData).2.read (gpow k) = some (E.ofLimbs v[0] v[1] v[2]) :=
-  readAt (dataOf_logSize rfl) (dataOf_wellShaped rfl) k v hk hv
+  readAt (dataOf_logSize rfl) k v hk hv
 
 /-- `read_at` with the word's three limbs spelled out, for the kernel fixtures. -/
 theorem read_lit (k : ℕ) (a b c : K) (hk : k < 32 := by decide)
-    (hv : memTable[k]'(by rw [show memTable.size = 32 from rfl]; exact hk) = #v[a, b, c] :=
-      by decide +kernel) :
+    (hv : (memRows tabData)[k]? = some #v[a, b, c] := by decide +kernel) :
     (imageOf tabData).2.read (gpow k) = some (E.ofLimbs a b c) :=
   read_at k #v[a, b, c] hk hv
 
@@ -413,7 +408,7 @@ example (next : Regs K) : ¬ DerefSpec invalidDeref next tabData := by
 /-- The flag pair `(1, 1)` cannot be pulled either: its bytecode tuple decodes to nothing, at
 this counter or any other and over any data (acceptance test 18). -/
 example (pc : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, 1, Opcode.deref.code, #v[gpow 7, 1, gpow 9, 1, 1, 0, 0]⟩
+    ¬ BytecodeChannel.Guarantees ⟨pc, 1, Opcode.deref.code, #v[gpow 7, 1, gpow 9, 1, 1, 0, 0]⟩
       data := by
   rintro ⟨ins, hdec⟩
   have h : decode (#v[Opcode.deref.code] ++ #v[gpow 7, 1, gpow 9, 1, 1, 0, 0]) = none := by
@@ -502,45 +497,44 @@ def blake2sRow : Blake2sRow K :=
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1⟩
 
 /-- A canonical cell read at `1 · g^k` of a well-shaped thirty-two-word data. -/
-theorem readCell {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : WellShapedData data)
+theorem readCell {data : ProverData K} (hlog : (imageOf data).1 = 5)
     (k : ℕ) (c : Vector K 2) (hk : k < 32 := by decide)
-    (hv : (memRows data)[k]'(by rw [hws.memRows_size, hlog]; exact hk) = cell c :=
-      by decide +kernel) :
+    (hv : (memRows data)[k]? = some (cell c) := by decide +kernel) :
     (imageOf data).2.read (1 * gpow k) = some (E.ofCell c) := by
-  rw [one_mul]; exact readAt hlog hws k (cell c) hk hv
+  rw [one_mul]; exact readAt hlog k (cell c) hk hv
 
 /-- The nine cell reads of a row over a well-shaped data whose cells at `16..24` are the row's:
 the binding. -/
 theorem blake2s_reads {data : ProverData K} (hlog : (imageOf data).1 = 5)
-    (hws : WellShapedData data) (r : Blake2sRow K)
+    (r : Blake2sRow K)
     (hr : r = ⟨gpow 5, 1, gpow 16, gpow 17, gpow 18, gpow 19, gpow 20, gpow 22, gpow 24,
       r.m0, r.m1, r.m2, r.m3, r.out0, r.out1, r.cv0, r.cv1, r.md, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1⟩)
-    (h16 : (memRows data)[16]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m0)
-    (h17 : (memRows data)[17]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m1)
-    (h18 : (memRows data)[18]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m2)
-    (h19 : (memRows data)[19]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m3)
-    (h20 : (memRows data)[20]'(by rw [hws.memRows_size, hlog]; decide) = cell r.cv0)
-    (h21 : (memRows data)[21]'(by rw [hws.memRows_size, hlog]; decide) = cell r.cv1)
-    (h22 : (memRows data)[22]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out0)
-    (h23 : (memRows data)[23]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out1)
-    (h24 : (memRows data)[24]'(by rw [hws.memRows_size, hlog]; decide) = cell r.md) :
+    (h16 : (memRows data)[16]? = some (cell r.m0))
+    (h17 : (memRows data)[17]? = some (cell r.m1))
+    (h18 : (memRows data)[18]? = some (cell r.m2))
+    (h19 : (memRows data)[19]? = some (cell r.m3))
+    (h20 : (memRows data)[20]? = some (cell r.cv0))
+    (h21 : (memRows data)[21]? = some (cell r.cv1))
+    (h22 : (memRows data)[22]? = some (cell r.out0))
+    (h23 : (memRows data)[23]? = some (cell r.out1))
+    (h24 : (memRows data)[24]? = some (cell r.md)) :
     Blake2sBindings (imageOf data).2 r := by
   rw [hr]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · exact readCell hlog hws 16 r.m0 (by decide) h16
-  · exact readCell hlog hws 17 r.m1 (by decide) h17
-  · exact readCell hlog hws 18 r.m2 (by decide) h18
-  · exact readCell hlog hws 19 r.m3 (by decide) h19
-  · exact readCell hlog hws 20 r.cv0 (by decide) h20
+  · exact readCell hlog 16 r.m0 (by decide) h16
+  · exact readCell hlog 17 r.m1 (by decide) h17
+  · exact readCell hlog 18 r.m2 (by decide) h18
+  · exact readCell hlog 19 r.m3 (by decide) h19
+  · exact readCell hlog 20 r.cv0 (by decide) h20
   · show (imageOf data).2.read (1 * (g * gpow 20)) = some (E.ofCell r.cv1)
-    rw [g_mul_gpow]; exact readCell hlog hws 21 r.cv1 (by decide) h21
-  · exact readCell hlog hws 22 r.out0 (by decide) h22
+    rw [g_mul_gpow]; exact readCell hlog 21 r.cv1 (by decide) h21
+  · exact readCell hlog 22 r.out0 (by decide) h22
   · show (imageOf data).2.read (1 * (g * gpow 22)) = some (E.ofCell r.out1)
-    rw [g_mul_gpow]; exact readCell hlog hws 23 r.out1 (by decide) h23
-  · exact readCell hlog hws 24 r.md (by decide) h24
+    rw [g_mul_gpow]; exact readCell hlog 23 r.out1 (by decide) h23
+  · exact readCell hlog 24 r.md (by decide) h24
 
 theorem blake2s_bindings : Blake2sBindings (imageOf tabData).2 blake2sRow :=
-  blake2s_reads (dataOf_logSize rfl) (dataOf_wellShaped rfl) blake2sRow rfl
+  blake2s_reads (dataOf_logSize rfl) blake2sRow rfl
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
@@ -591,7 +585,7 @@ example (get : ℕ → K) :
       ProvableType.eval_const blake2s_relation h).1
   obtain ⟨⟨-, -, -, -, -, -, -, hout1, -⟩, -⟩ := hs
   rw [show blake2sRow.fp * (g * blake2sRow.oout) = 1 * (g * gpow 22) from rfl, one_mul,
-    g_mul_gpow, readAt (dataOf_logSize (mem := badMem) rfl) (dataOf_wellShaped rfl) 23
+    g_mul_gpow, readAt (dataOf_logSize (mem := badMem) rfl) 23
       #v[rustOut1[0], rustOut1[1], 1]] at hout1
   exact absurd (Option.some.inj hout1) (by decide +kernel)
 
@@ -605,7 +599,7 @@ def wrongMem : Array (Vector K 3) := memTable.set! 23 (cell wrongOut1)
 def blake2sRow' : Blake2sRow K := { blake2sRow with out1 := wrongOut1 }
 
 theorem blake2s'_bindings : Blake2sBindings (imageOf (dataOf wrongMem)).2 blake2sRow' :=
-  blake2s_reads (dataOf_logSize (mem := wrongMem) rfl) (dataOf_wellShaped rfl) blake2sRow' rfl
+  blake2s_reads (dataOf_logSize (mem := wrongMem) rfl) blake2sRow' rfl
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)

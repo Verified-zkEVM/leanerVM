@@ -62,7 +62,7 @@ The regular gate includes all maintained Lean cases:
 For the source-pinned Rust regressions and actual Rust-to-Lean fixture checks:
 
 ```sh
-python3 scripts/test-rust-contracts.py /path/to/leanVM
+uv run --no-project --python 3.12 python scripts/test-rust-contracts.py /path/to/leanVM
 ```
 
 The Rust checkout must contain commit `48a904208d682848dac0e18ef8b01ebfc40df9ad`; its current

@@ -54,14 +54,16 @@ VCVio, or ArkLib. Until its upstream pull request merges, a generic candidate is
 one module each. A staged module imports nothing leanVM-specific and is written for that
 library's other consumers: general definitions and helper lemmas, with no special case the
 protocol chose and no protocol vocabulary. The special cases are derived in the leanVM modules,
-which is where the specification is cited.
+which is where the specification is cited. A candidate that a lower layer must compile against
+is staged under that layer instead, under the same rules: the compiled field arithmetic every
+layer runs lives in `LeanerVM/Parameters/ToCompPoly/`.
 
 The proof system has a wall: every module of the protocol layer is written over an abstract
 instance of the arithmetization and imports nothing from `LeanerVM/Arithmetization/`, so that a
 change to leanISA touches only the modules that meet it. Those are the fixed columns
 (`FixedColumns.lean`), the adaptor (`LeanIsa.lean` and the modules under `LeanIsa/`), the
 compiled verifier (`Transcript.lean`, `Proof.lean`, `Compile.lean`, `Verify.lean`) and the base
-theorems (`Soundness.lean`);
+theorems (`Headline.lean`);
 `scripts/check-layers.sh` enforces the wall with that allow-list.
 
 The target-theorem ownership is:
@@ -220,14 +222,24 @@ The public theorem ladder is:
          ISA.ValidExecution version program publicInput trace
 
    constraintCompleteness:
-     ISA.ValidExecution version program publicInput trace →
-       ∃ assignment,
-         Constraints.SatisfiedBy version program publicInput assignment ∧
-         Constraints.AssignmentRepresents assignment trace
+     ISA.ValidExecution version program publicInput trace → trace.Fits →
+       ∃ trace',
+         trace'.PaddedFrom trace ∧
+         ISA.ValidExecution version program publicInput trace' ∧
+         ∃ assignment,
+           Constraints.SatisfiedBy version program publicInput assignment ∧
+           Constraints.AssignmentRepresents assignment trace'
    ```
 
-   The advertised equivalence is therefore between valid ISA traces and constraint assignments
-   projecting to those traces. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
+   The advertised equivalence is therefore between valid ISA traces, up to padding of their
+   memory, and constraint assignments projecting to those traces. Completeness is for a padded
+   trace, with a named resource hypothesis, because the statement for the same trace is false:
+   the padding rows of every table read and write cells of the committed image, which a valid
+   execution pins only where it reads; and `Caps` bounds every table by `2^32` rows while a valid
+   execution is unbounded. `Trace.Fits` is the room above the image for the fill frames, the row
+   cap on every table, and a deliverable gap in the `JUMP` table; it is a hypothesis of
+   completeness only, since soundness extracts its trace from a witness where the caps already
+   hold. The leanISA roadmap's acceptance tests 23 to 27 give the witnesses. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
    lookup, bytecode, memory, padding, and interaction-count results; none may remain as an
    unlabelled axiom. Both directions are stated for well-formed programs: a named program-shape
    hypothesis (`WellFormedBytecode` in the leanISA roadmap: the sentinel slot is not a `JUMP`,
@@ -266,29 +278,39 @@ The public theorem ladder is:
    hashing, termination, and the exact final boundary. A completeness companion constructs a
    terminating execution from well-formed aggregation inputs within the published caps.
 
-4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution`).** First
-   prove the proof-system bridge, a random-oracle statement about a prover that makes at most `Q`
-   queries to the hash `H`, with a straight-line extractor that reads the witness off its query
-   log:
+4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution_adaptive`).**
+   First prove the proof-system bridge, a random-oracle statement about a prover that makes at most
+   `Q` queries to the hash `H`, chooses the statement itself, and is answered by a straight-line
+   extractor that reads the witness off its query log (`baseVerifier_extractsWitness_rom_adaptive`):
 
    ```text
-   WellFormedBytecode program →
-     Pr_H [ the Q-query prover makes BaseVerifier^H accept on (program, publicInput) ∧
-            ¬ Constraints.SatisfiedBy version program publicInput (extract log) ] ≤ baseError Q
+   IsTotalQueryBound A Q →
+     Pr_H [ A outputs (program, publicInput, proof) ∧ BaseVerifier^H accepts it ∧
+            ¬ Constraints.SatisfiedBy program publicInput (extract log) ]
+       ≤ (Q + 13700)/2^128 + hashTerm 13700 Q
    ```
 
-   then compose it with T1-S to obtain an ISA execution, keeping the extracted witness for T6.
-   `Accepts … → except with probability …` is not a statement: acceptance of fixed values has no
-   randomness in it. The theorem must expose the component knowledge-soundness bounds, the
-   list-binding compilation of the commitment, the Fiat–Shamir and Merkle theorems for the
-   deployed construction with its proof of work, the family over the prover's announced sizes,
-   transcript/serialization agreement, and executable-verifier refinement. The headline theorem
-   is about the deployed verifier, with `H` the deployed hash, and its one assumption is a named
-   hypothesis in its statement, never an axiom: for the adversary at hand, the deployed hash
-   raises its chance of beating the extractor by at most `δ` over a random function (per
-   adversary, since the form for all adversaries is false; the protocol blueprint's Layer 13).
-   Its completeness dual composes T2 with the honest prover and records the failure and resource
-   conditions: a valid execution may need more memory than the verifier accepts, and the
+   then compose it with T1-S to obtain an ISA execution
+   (`baseVerifier_extractsExecution_rom_adaptive`), keeping the extracted witness for T6. T1-S needs
+   the program's last slot not to hold a `JUMP` (`SentinelSafe`), which the verifier does not check,
+   so the execution form puts it in the event; the `_wellFormed` corollary takes
+   `WellFormedBytecode` of every program the adversary outputs instead. `Accepts … → except with
+   probability …` is not a statement: acceptance of fixed values has no randomness in it. The
+   theorem exposes the component knowledge-soundness bounds, the list-binding compilation of the
+   commitment, the Fiat–Shamir and Merkle theorems for the deployed construction with its proof of
+   work, the family over the prover's announced sizes, and the agreement of the executable verifier
+   with the compiled oracle verifier, proved in two directions (`compiled_of_algebra`,
+   `phasesAgree`) rather than as one biconditional. The headline theorem is about the deployed
+   verifier, with `H` the deployed hash (`baseVerifier_extractsExecution_adaptive`, with
+   fixed-statement and coins forms as instances), and its one assumption is a named hypothesis in
+   its statement, never an axiom: for the adversary at hand, BLAKE2s misbehaves on its run with
+   probability at most `δ` (`BlakeMisbehavesAdaptive`: a collision, a fresh digest equal to one
+   already in play, or a bad challenge on a Fiat–Shamir group the verifier itself queried). It is
+   stated per adversary, since the form for all adversaries is false. The comparison with a random
+   function is a corollary (`blakeMisbehavesAdaptive_of_comparison`), not the hypothesis (the
+   protocol blueprint's Layer 13). Its completeness dual (`prove_complete_of_execution`) composes T2
+   with the honest prover and records the failure and resource conditions: a valid execution may
+   need more memory than the verifier accepts (from `t.κ ≥ 26` the stack exceeds `2^maxMu`), and the
    prover's proof-of-work search has no proved bound.
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
@@ -572,7 +594,95 @@ Add a native or generated-code boundary when all of these are present:
 6. a CI lane isolated from the proof-only library.
 
 Optimize Lean's native C output before or alongside foreign backends so it remains a meaningful
-baseline. Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
+baseline. A pure-Lean fast path for an existing definition is registered with a `@[csimp]`
+theorem, a kernel-checked equation the compiler uses to substitute one constant for another in
+code compiled after it; it changes no definition a theorem mentions and is not a native boundary.
+The substituted constant must be one that compiled call sites name: for an operation reached
+through a type-class instance that is the instance constant, since the instance's own compiled
+body is fixed in the module that defined it; for a function a component's prover closes over, it
+is that function, registered in its own module before the component that names it is compiled.
+`LeanerVM.Parameters.ToCompPoly.BF64Fast`, `LeanerVM.Parameters.ToCompPoly.ExtensionFast`,
+`LeanerVM.Semantics.Blake2sFast` and `LeanerVM.Protocol.Blake2sHashFast` are the field and hashing
+fast paths. `LeanerVM.Protocol.ToCompPoly.Doubling` (the Lagrange basis by doubling, the
+multilinear extension with one product per entry), `LeanerVM.Protocol.ToCompPoly.MvEval` (sparse
+polynomial evaluation, through `CMvPolynomial.eval` and `CMvPolynomial.eval₂`) and
+`LeanerVM.Protocol.ToCompPoly.FinLoop` (sums and products as loops) serve every Protocol module.
+The sumcheck provers' round messages run on tables bound once to the challenges
+(`LeanerVM.Protocol.ToCompPoly.TableFold`, through `Sumcheck.roundPoly_eq_roundPolyFolded` and
+`ProductSum.roundPoly_eq_roundPolyFolded`), and the table sumcheck's formula on precomputed
+offsets and powers (`TableSumcheck.formula_eq_formulaFast`). Beside the definitions they replace
+are the fast paths of the bit-product table, the cube weights, the cube decoder, the stack, the
+aligned, strided and leanISA layouts, the witness's columns, an instance's column reads, rows and
+virtual tables, the bus leaves and the grand-product prover's messages
+(`Gkr.roundPoly_eq_roundPolyFast`, `Bus.sideLeaves_eq_sideLeavesFast`). The Flock rounds
+(`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round
+message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route, and the
+BLAKE2s inhabitant's honest column traces the circuit on 64-bit words
+(`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`, `Blake2sFlock.genColumn_eq_genColumnFast`,
+registered in `LeanerVM.Protocol.FlockSpec` before the inhabitant, so that the inhabitant's own
+compiled body is the fast one; no `@[csimp]` theorem is about a `FlockSpec` value). The relation
+`M3Holds`, which the extractor decides, is decided by sorting the bus's tuples' keys
+(`M3Instance.instDecidableBalanced_eq`, where `List.decidablePerm` is quadratic), with each column
+a boundary block or a count names read once (`M3Instance.boundaryTuples_eq_boundaryTuplesFast`,
+`M3Instance.instDecidableCountsNonzero_eq`) and each of the Flock region's bit tables built once
+(`BlockR1CS.instDecidableBatchHolds_eq`); the additive transform builds each half once a step
+(`fwd_eq_fwdFast`).
+
+A round message is a function of the context and the challenges, so an honest prover that is a
+composition of one-round components rebuilds what it reads each round. Prover-only state is
+carried beside the witness by a cached prover (`Component.Cached`,
+`LeanerVM.Protocol.ToArkLib.CachedProver`): a prover whose run, from the cache of its input, is
+the component's honest run with the cache of its output. Cached provers compose, and one with no
+cache on either side is a prover of the component's statements whose run is the honest prover's
+(`Component.Cached.toProver_run`), with the component's verifier and its completeness
+(`Component.Cached.complete`); no definition changes. The sumcheck's tables are bound once per
+challenge (`SumcheckRound.RoundCache`, `Sumcheck.cachedRounds`), the grand-product argument
+builds every tree's levels once and binds the children of each layer's level below once per
+challenge (`cachedGkr`), and the Flock argument walks each block once and builds its skip tables
+once at `z_skip` and its lincheck tables once at `α` (`Flock.flockCached`,
+`LeanerVM.Protocol.ToArkLib.Flock.Cached`). `leanVmFastProver` (`LeanerVM.Protocol.HonestProver`)
+is the oracle protocol's prover with the bus phase, the table sumcheck and the Flock phase cached
+and the bus phase's output tabulated once (`Bus.memoOut_eq`), proved to run as
+`leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). WHIR's opening has a cached prover of
+its own (`Whir.whirOpenCached`, `LeanerVM.Protocol.Whir.Cached`, from the generic steps of
+`LeanerVM.Protocol.ToArkLib.CachedSteps` and `LeanerVM.Protocol.ToArkLib.ProductSumCached`): the
+fold rounds' tables bound once per challenge (`ProductSum.roundCacheW`, `E`'s products on words)
+and the next level's word encoded once by the additive transform, its rows built as data
+(`Whir.wordRows`, `Whir.wordOfRows_wordRows`). The Flock argument's cached prover builds the
+switched weight's values on its terms' supports (`Flock.ringSwitchCached`,
+`Flock.ringWeightFast_eq`, through `Component.Cached.sampleOut`). This is an honest-prover
+refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or `whirOpenCached`.
+The non-interactive prover runs them together: `compiledProver`
+(`LeanerVM.Protocol.Prove.Compiled`) is the compiled protocol's cached prover, proved to run as
+`listBindingDef`'s honest prover (`compiledProver_run`), and `Prover.runWith`
+(`LeanerVM.Protocol.ToArkLib.RunCodec`) runs it round by round against the transcript writer. A
+word an honest prover sends must be built as data where its step starts and read through: compiled
+code expands a closure returning a word, a one-field structure of a function, to take the position
+as an argument, which rebuilds the word at every read (`commitWordCached`, `Whir.wordRows`).
+Running any prover through
+ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
+appended schedule with `Fin.fappend₂`, and transcripts are appended with `Fin.happend`; compiled as
+defined, both are exponential in the length of the second schedule. The forms that read an entry by
+one comparison with the seam, proposed to ArkLib with `@[csimp]` theorems, are copied in
+`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, and `LeanerVM.Protocol.ToArkLib.AppendLazy`
+compiles ArkLib's instances and `FullTranscript.append` again after them, since the pinned ArkLib
+compiled them before; both are imported where the schedules are built. A block's selector weight is
+one product (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers
+builds each table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS,
+`blake2sR1CS`, runs as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the
+compiled circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`),
+whose matrices are `ProductCircuit.toBlockR1CS`'s by `rfl` and whose walks are proved equal to
+theirs (`toBlockR1CSE_eq`). Over `E` the additive transform runs as three transforms of the limbs'
+words (`Whir.encodeE`, `Whir.encodeE_getElem`, `LeanerVM.Protocol.Whir.TransformWords`).
+The query batch's weight takes its values on words (`Whir.queryWeight_eq_queryWeightFast`,
+`LeanerVM.Protocol.Whir.QueryWords`), and the opening's batched weight its column claims' equality
+kernels on their blocks (`Opening.weight_eq_weightFast`, by
+`LeanerVM.Protocol.ToCompPoly.EqBatch`: a point read through a layout has the block's selector
+bits as coordinates). `LeanerVM.Protocol.ExtWords` has `E`'s sum and product on the limbs' words
+(`ExtWords.addW_eq`, `ExtWords.mulW_eq`), functions that code names in place of the instances.
+All are timed by the `leanervm-bench` executable ([bench/README.md](../bench/README.md)).
+
+Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A
 domain-specific compiler additionally requires source/target semantics, validation fixtures, and
 a clear preservation-proof plan.

@@ -10,6 +10,9 @@ This directory contains stable project and operating knowledge.
 - [leanisa-checker.md](leanisa-checker.md): proved exact and fuel-bounded checkers, trace
   adapters, filler validation, and the pinned Rust comparison lane.
 - [development.md](development.md): local commands, module workflow, and testing guidance.
+- [writing.md](writing.md): advice for clear, precise, correct technical prose.
+- [writing-vocabulary.md](writing-vocabulary.md): technical meanings and wording suggestions.
+- [write-technical-prose.md](write-technical-prose.md): the writing workflow and optional local checker.
 - [ci.md](ci.md): workflow responsibilities, required checks, and automation secrets.
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)
   per formalization effort.
@@ -35,6 +38,12 @@ This directory contains stable project and operating knowledge.
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
     Layer 8 constraint statement (2026-09-17), whose findings the statement now meets (the
     missing BLAKE2s validity conjunct, its finding A1).
+  - [leanisa-clean-equivalence.md](reviews/leanisa-clean-equivalence.md): the review of
+    leanISA Layers 5 to 10 and the adaptor on Clean main, with the equivalence (2026-10-29);
+    no statement defect, its documentation and hygiene findings met (disposition table).
+  - [headline-over-executions.md](reviews/headline-over-executions.md): the review of the
+    headline theorems over leanISA executions (2026-10-29), whose findings the branch now meets
+    (the grind clause on the prover's run, the positive completeness conjunct; disposition table).
   - [public-input-phase.md](reviews/public-input-phase.md): the review of the public-input
     phase (2026-09-29), whose findings the branch now meets (the two checks that are not
     equivalent, one output, the line's `sent` flag, the shared lemmas).
@@ -43,6 +52,12 @@ This directory contains stable project and operating knowledge.
     named extractor, public lines, the strong Flock predicate).
   - [protocol-survey-record.md](reviews/protocol-survey-record.md): the proof system's survey
     log up to 2026-09-29, archived from its status file.
+  - [adaptive-blake2s.md](reviews/adaptive-blake2s.md): the review of the adaptive headline at
+    BLAKE2s and the bytecode hypothesis (2026-10-27), whose findings the branch now meets (the
+    necessity claim narrowed to constraint soundness, one extractor through the trace interface).
+  - [adaptive-rom.md](reviews/adaptive-rom.md): the review of the adaptive random-oracle theorems
+    (2026-10-27), whose findings the branches now meet (the hypothesis's flips on the chosen
+    statement's chain, the arithmetization wall, the deleted event names).
   - [protocol-layer1.md](reviews/protocol-layer1.md): the review of the proof system's Layer 1
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated
@@ -125,7 +140,8 @@ This directory contains stable project and operating knowledge.
     headline theorems with the random-oracle heuristic as a named hypothesis (2026-10-19), which
     found no statement vacuous or tautological, and whose findings the branch meets (the Merkle
     nodes share the chain's domain, the error's closed form, the `η` dumped from the Rust, the
-    hash-only query bound, the honest prover as an adversary).
+    hash-only query bound, the honest prover as an adversary). Its comparison-form hypothesis is
+    superseded by decision 37 of the protocol blueprint, which makes it a corollary.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

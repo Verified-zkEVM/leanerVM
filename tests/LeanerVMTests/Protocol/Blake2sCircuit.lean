@@ -9,8 +9,8 @@ import LeanerVM.Protocol.Blake2sCircuit
   (the row table: the recorded gate, else the constant, input or zero row); the value is the one
   `scripts/dump-flock-circuit-digest.py` prints for the pinned Python verifier's
   `blake2s_row_values` (leanVM `a386121f`). The row table agrees with `rowOf`, which the
-  theorems are about, on a position of every row kind. This is test evidence of row equality,
-  not a theorem.
+  theorems are about, on a position of every row kind. The checksum is test evidence, not a
+  theorem.
 * **The trace computes `compress`.** On the RFC 7693 Appendix B vector (`BLAKE2s-256("abc")`) and
   on pseudo-random inputs, the output words of the trace are `compress` of the inputs, and the
   trace satisfies every row.
@@ -45,7 +45,7 @@ def holdsB (c : ProductCircuit m) (z : Form m) : Bool :=
     z.getLsbD k == (g.a.evalB z && g.b.evalB z)
 
 /-- The product gates. -/
-def productGates : Array (Pos m × Gate m) := (compressW.run ⟨gateBase, #[]⟩).2.gates
+def productGates : Array (Pos m × Gate m) := ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.gates
 
 /-- `Σ_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P` over the row table, `P = 2 ^ 64 - 59`: a
 prime modulo which the powers `2 ^ j`, `j < 2 ^ 14`, are distinct. -/
@@ -78,7 +78,7 @@ def outWords (z : Form m) : Vector UInt32 8 :=
 #guard blake2sCircuit.gates.size == 14720 + 256
 #guard decide blake2sCircuit.Bounded
 
-example : (compressW.run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
+example : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
 
 /-! ## The rows against the deployed walk -/
 
@@ -98,7 +98,7 @@ def samplePositions : List ℕ :=
 
 /-! ## The trace computes `compress` -/
 
-/-- RFC 7693 §2.8: the unkeyed BLAKE2s-256 parameter block XORed into `iv[0]`. -/
+/-- RFC 7693 §2.5: the unkeyed BLAKE2s-256 parameter block XORed into `iv[0]`. -/
 def paramIv : Vector UInt32 8 := iv.set 0 (iv[0] ^^^ 0x01010020)
 
 /-- The zero-padded block of `"abc"`. -/

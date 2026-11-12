@@ -18,6 +18,9 @@ or native boundary—open a design issue first. State the definitions, main theo
 source revisions, dependency direction, tests, and known fidelity gaps before investing
 in a large proof tree.
 
+Install uv as described in [Python tooling](docs/development.md#python-tooling)
+for the repository Python checks.
+
 ## Before opening a pull request
 
 Run:
@@ -40,6 +43,16 @@ Use the title form `type(scope): subject`, where `type` is normally `feat`, `fix
 without a trailing full stop. Commit subjects, pull-request titles, and issue titles use plain
 ASCII punctuation: no em dashes or en dashes. Separate a qualifier from the subject with a
 colon or a comma (`feat(semantics): leanISA Layer 3: step and valid executions`).
+
+## Writing
+
+The [writing guide](docs/writing.md) and [vocabulary](docs/writing-vocabulary.md) offer advice for
+clear, precise, correct prose. Leave clear, correct text alone, even if a suggestion flags it.
+The requirements in this document retain their wording and force; the guide adds no second set.
+
+The [writing workflow](docs/write-technical-prose.md) helps with documents, docstrings, PR text,
+and review comments. Its local checker is optional and does not judge technical accuracy or
+STE conformance. A style edit preserves claims, conditions, uncertainty, and requirement strength.
 
 ## Lean files and modules
 
@@ -153,7 +166,8 @@ Keep only leanVM-specific semantics, parameters, arithmetization instances, appl
 specifications, protocol assembly, and implementation-correspondence results here.
 
 Until its upstream pull request merges, such a result lives under
-`LeanerVM/Protocol/To<Library>/`, written for that library's other consumers. A local copy never
+`LeanerVM/Protocol/To<Library>/` (or under `LeanerVM/Parameters/To<Library>/` when a lower layer
+must compile against it), written for that library's other consumers. A local copy never
 outlives the pin: the pull request that moves a pin past the upstream merge deletes the `To*`
 files and declarations the new pin contains, moves their consumers to the upstream names, and
 updates the protocol blueprint's upstream ledger and the status page's watch list.
