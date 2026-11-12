@@ -376,7 +376,7 @@ theorem sub_iff {L a : Form m} : Sub L a ↔ ∀ j, L.getLsbD j = true → a.get
     · simp
     · simp [h j hL]
 
-theorem Sub.or_right {L a : Form m} (b : Form m) (h : Sub L a) : Sub L (a ||| b) :=
+private theorem Sub.or_right {L a : Form m} (b : Form m) (h : Sub L a) : Sub L (a ||| b) :=
   sub_iff.mpr fun j hj ↦ by rw [BitVec.getLsbD_or, sub_iff.mp h j hj, Bool.true_or]
 
 /-! ## The executable evaluation -/

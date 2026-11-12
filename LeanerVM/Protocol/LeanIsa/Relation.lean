@@ -55,21 +55,6 @@ private theorem opcode_countsAreVariables : ∀ j : Fin 6,
     CountsAreVariables (opcodeComponent j) counted := by
   decide +kernel
 
-/-- Coordinate `1` of a counted interaction, evaluated on any row, is the row's cell at its count
-column, `0` when missing. -/
-private theorem msg_one_of_countVar' {n : ℕ} {i : AbstractInteraction K} {k : Fin n}
-    (h : countVar n i = some k) (row : Array K) (data : ProverData K) :
-    (i.eval (Environment.fromArray row data)).msg[1]? = some (row[(k : ℕ)]?.getD 0) := by
-  unfold countVar at h
-  simp only [AbstractInteraction.eval, Vector.toArray_map, Array.getElem?_map]
-  split at h
-  · next v hv =>
-    split_ifs at h with hn
-    obtain rfl := Option.some.inj h
-    rw [hv]
-    simp [Expression.eval, Environment.fromArray]
-  · exact absurd h (by simp)
-
 /-- A row of a table of known length, by its index. -/
 private theorem forall_mem_table {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
     {P : Array K → Prop} :
@@ -230,7 +215,7 @@ theorem countsNonzero_iff (h : Agrees F s q w) :
   constructor
   · intro hc k hk x
     obtain ⟨ai, hai, hcnt, hk'⟩ := (mem_toM3_count_iff _ _ _ _ k).mp hk
-    have hm := msg_one_of_countVar' hk' ((opTable w j).table[x.val]'(by
+    have hm := msg_one_of_countVar hk' ((opTable w j).table[x.val]'(by
       rw [h.length j]; exact x.isLt)) (opTable w j).data
     have hsize : 1 < (ai.eval (Environment.fromArray ((opTable w j).table[x.val]'(by
         rw [h.length j]; exact x.isLt)) (opTable w j).data)).msg.size := by
@@ -245,7 +230,7 @@ theorem countsNonzero_iff (h : Agrees F s q w) :
     change (ai.eval (Environment.fromArray _ (opTable w j).data)).msg[1] ≠ 0
     have hcnt : counted ai = true := counted_iff.mpr ⟨hname, hdir⟩
     obtain ⟨k, hk'⟩ := Option.isSome_iff_exists.mp (opcode_countsAreVariables j ai hai hcnt)
-    have hm := msg_one_of_countVar' hk' ((opTable w j).table[x.val]'(by
+    have hm := msg_one_of_countVar hk' ((opTable w j).table[x.val]'(by
       rw [h.length j]; exact x.isLt)) (opTable w j).data
     rw [Array.getElem?_eq_getElem hsize] at hm
     rw [(Option.some.inj hm).trans (hcell x k)]

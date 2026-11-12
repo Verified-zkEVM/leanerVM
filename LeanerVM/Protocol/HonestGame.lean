@@ -10,6 +10,7 @@ module
 public import LeanerVM.Protocol.LeanIsa.Complete
 public import LeanerVM.Protocol.Prove.RomComplete
 public import LeanerVM.Protocol.Prove.Queries
+import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 
 /-!
 # The honest run in the random-oracle model

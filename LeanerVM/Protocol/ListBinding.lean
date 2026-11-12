@@ -551,7 +551,7 @@ abbrev honestRel {S : Type} (rel : Set ((S × ∀ i, TheOracle I i) × Unit)) :
   Component.viaRel (HonestWord I hμ) (fun q _ ↦ q) rel
 
 /-- The commitment's completeness: it sends the honest word of a stack with `M3Holds`. -/
-def commitWordComplete :
+private def commitWordComplete :
     Component.Complete (commitWord I hμ) (M3Rel I) (honestRel I hμ (Seam.commit I)) :=
   Component.sendEncodedComplete fun _ _ _ h ↦ ⟨rfl, h⟩
 
@@ -566,7 +566,7 @@ def Phase.Complete.over {StmtIn StmtOut : Type} {n : ℕ} {pSpec : ProtocolSpec 
   Pf.front.overComplete _ (fun q _ ↦ q) (HonestWord I hμ) C
 
 /-- The batching's completeness over the word. -/
-def openingBatchOverComplete :
+private def openingBatchOverComplete :
     Component.Complete (openingBatchOver I (KOracle sh κ)) (honestRel I hμ (Seam.flock I))
       (honestRel I hμ (Opening.BatchedHolds I)) :=
   Component.batchComplete (KOracle sh κ) E _ _ fun _ _ _ h ρ ↦
@@ -589,7 +589,7 @@ private theorem pair_cast_cast {R S : Type} [CommRing R] [CommRing S] (φ : R �
 
 /-- The opening's input's completeness: on the honest word of a stack on which the batched claim
 holds, WHIR's opening receives that word in `E` and the weighted claim. -/
-def openInputComplete :
+private def openInputComplete :
     Component.Complete (openInput I hμ) (honestRel I hμ (Opening.BatchedHolds I))
       (stackRel sh κ) :=
   Component.mapOraclesComplete _ _ _ _ _ fun c o q h ↦ by
@@ -604,7 +604,7 @@ def openInputComplete :
 
 /-- The compiled protocol's completeness: the commitment's, the four phases' and the batching's
 over the word, the opening's input's and WHIR's opening's. -/
-def listBindingComplete {P : Phases I} (C : P.Complete) (L : Ladder sh κ) :
+private def listBindingComplete {P : Phases I} (C : P.Complete) (L : Ladder sh κ) :
     Component.Complete (listBindingDef P hμ L) (M3Rel I) Set.univ :=
   (((((((commitWordComplete I hμ).append (C.bus.over I hμ)).append (C.table.over I hμ)).append
     (C.pub.over I hμ)).append (C.flock.over I hμ)).append (openingBatchOverComplete I hμ)).append

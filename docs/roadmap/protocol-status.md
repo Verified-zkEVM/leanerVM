@@ -65,7 +65,6 @@ and Mathlib `v4.35.0` ([dependencies.md](../dependencies.md#lean-435-port-review
 | adaptive knowledge soundness, where the adversary chooses the statement | #175 | `ce67112b` | 2026-11-06 |
 | the headline theorems over leanISA executions | #185 | `25da57d3` | 2026-11-06 |
 | the witness generator, and completeness from an execution in the random-oracle model | #192 | on merge | on merge |
-| no hole: the upgrade to Lean 4.35.0 and the new pins | on merge | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
@@ -854,14 +853,14 @@ VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest`
 probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
 (`Transcript.lean`: `Block.input`, the parser `Block.parse?` with `parse?_input`, over the byte
 decoders `digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back
-from a state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
-generic log predicates `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`; a hit is a
+from a state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over
+the generic log predicates `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`; a hit is a
 fresh answer in play after the entries before it, for an in-play function of the prefix) and
-VCVio's `QueryLog.Consistent`, in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
-fixed roots (none at leanVM's), the halves of every logged 64-byte input, the program hash every
-logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
-absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the
-charged invariant needs.
+VCVio's `QueryLog.Consistent`, in which the Merkle log replay states its binding too. The digests in
+play (`inPlay`) are fixed roots (none at leanVM's), the halves of every logged 64-byte input, the
+program hash every logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots
+the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of
+the prefix, as the charged invariant needs.
 `chainHistory_of_noCollision` (a logged chain is its history when the log has no collision and no
 later state of the chain is a start); `chainHistory_determined` (a history found in part of a log
 is the history in the whole log). A Merkle node, a 64-byte input of the same oracle, may

@@ -104,7 +104,7 @@ private theorem cast_bindLows_eq_foldTable {ℓ κ k : ℕ} (hk : k = κ)
   rw [hb, hb, ← evalMle_append_eq_bindLows, evalMle_foldTable]
 
 /-- The table bound on its lane coordinates to the fold point is the folded table. -/
-theorem castLanes_lowCache {ℓ κ : ℕ} (T : CMlPolynomialEval E (ℓ + κ)) (r : Vector E ℓ) :
+private theorem castLanes_lowCache {ℓ κ : ℕ} (T : CMlPolynomialEval E (ℓ + κ)) (r : Vector E ℓ) :
     castLanes (ProductSum.lowCache T ℓ r) = foldTable T r := by
   rw [castLanes, ProductSum.lowCache, dite_eq_left (Nat.le_add_right ℓ κ)]
   exact cast_bindLows_eq_foldTable (Nat.add_sub_cancel_left ℓ κ) T _ r

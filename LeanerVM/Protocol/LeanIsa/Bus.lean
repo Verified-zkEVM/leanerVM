@@ -39,7 +39,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 /-! ## The three channels -/
 
 /-- The three channels by name, with their arities. -/
-def channelTable : List (String × ℕ) :=
+private def channelTable : List (String × ℕ) :=
   [(StateChannel.name, 2), (MemChannel.name, 5), (BytecodeChannel.name, 10)]
 
 variable {prog : Program} {κ : ℕ}
@@ -77,12 +77,12 @@ def channelAt (k : Fin 3) : RawChannel K :=
   ![StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] k
 
 /-- The direction of a side of the bus. -/
-def dirOf : Side → BusDir
+private def dirOf : Side → BusDir
   | .push => .push
   | .pull => .pull
 
 /-- The arity of channel `k`'s messages. -/
-def arityOf (k : Fin 3) : ℕ := ![2, 5, 10] k
+private def arityOf (k : Fin 3) : ℕ := ![2, 5, 10] k
 
 /-- A direction flushes on a side exactly when it is the side's. -/
 private theorem sideOf_eq_iff (d : BusDir) (side : Side) : sideOf d = side ↔ d = dirOf side := by
@@ -124,7 +124,7 @@ private theorem channelSep_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) �
     ⟨2, (channelSep_eq_iff ch 2).mpr h⟩]
 
 /-- The sixteen-slot tuple of a message with the separator `σ`. -/
-def tupleOf (σ : K) (m : Array K) : Vector K 16 :=
+private def tupleOf (σ : K) (m : Array K) : Vector K 16 :=
   Vector.ofFn fun k ↦ if k.val = 0 then σ else m[k.val - 1]?.getD 0
 
 /-- A tuple's first slot is its separator. -/

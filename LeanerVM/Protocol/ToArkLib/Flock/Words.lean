@@ -607,7 +607,7 @@ theorem subW_inW {b : ℕ} (hb : b + 32 ≤ 2 ^ m) (h : ∀ i < 32, S.avail.getL
   exact subN_start (by rw [pos_val (by omega)]; exact h i i.isLt) n
 
 /-- The forms of a list read only positions available at `n`. -/
-def SubL (S : Start m) (l : List (Form m)) (n : ℕ) : Prop := ∀ f ∈ l, S.SubN f n
+private def SubL (S : Start m) (l : List (Form m)) (n : ℕ) : Prop := ∀ f ∈ l, S.SubN f n
 
 private theorem subN_getD {l : List (Form m)} {n : ℕ} (h : S.SubL l n) (i : ℕ) :
     S.SubN (l.getD i 0) n := by

@@ -851,7 +851,7 @@ theorem rbr :
   subst hi0
   show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
   rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
   rintro r ⟨_, hin, hout⟩
@@ -903,7 +903,7 @@ theorem deployed_rbr :
   subst hi0
   show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
   rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ∃ cs, accepts I (checkWords I) s r cs = true ∧
       ((verdict I (pooledFrom I) s r cs, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ ?_)

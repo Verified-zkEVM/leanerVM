@@ -331,7 +331,7 @@ private theorem readsN_flockDecOf (k : ℕ) : ReadsN (flockDecOf k) (readingCoun
       ring)
 
 /-- The readings of the Flock slot: the Flock phase's, or none. -/
-def flockReadings {I : M3Instance} : Option (FlockRegion I.toShape) → ℕ
+private def flockReadings {I : M3Instance} : Option (FlockRegion I.toShape) → ℕ
   | none => 0
   | some r => readingCounts.flock r.kBatch
 
@@ -341,7 +341,7 @@ private theorem readsN_flockDec (I : M3Instance) :
   | some r => readsN_flockDecOf r.kBatch
 
 /-- The readings of the front of the compiled protocol. -/
-def frontReadings (I : M3Instance) (input : I.Stmt) : ℕ :=
+private def frontReadings (I : M3Instance) (input : I.Stmt) : ℕ :=
   readingCounts.setup + readingCounts.bus I.μBus I.busClaims +
     readingCounts.tables I.τmax I.tableColumns +
     readingCounts.pub (PublicInput.sentCount I (I.publicLines input)) + flockReadings I.flock +

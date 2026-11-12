@@ -126,7 +126,7 @@ def fold1M {m κ : ℕ} (c : E) (V : Msgs (m + 1) κ) : Msgs m κ := fun u ↦
     (V ⟨2 * u.val + 1, two_mul_lt (b := 1) u (by norm_num)⟩)
 
 /-- The two-lane word of the lane pair `2u, 2u + 1`. -/
-def pairF {b : ℕ} (F : LW b) (u : ℕ) : LW b := fun y i ↦ F y (2 * u + i)
+private def pairF {b : ℕ} (F : LW b) (u : ℕ) : LW b := fun y i ↦ F y (2 * u + i)
 
 /-- The event of mutual correlated agreement for a two-lane word and a fold `c`: on some set of
 at least `a` positions the fold agrees with the code while the two lanes do not agree with the

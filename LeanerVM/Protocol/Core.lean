@@ -285,7 +285,7 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
   -- the state function, true at the end, is true after the commitment
   have hfull := ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2
     a.2.2).kSF (pure ()) noSharedOracle).toFun_full (input, fun i ↦ i.elim0) tr ()
-      (Verifier.probEvent_pos_of_runNoOracle _ (pure ()) noSharedOracle _ tr hso _ trivial)
+      (Verifier.prEvent_pos_of_runNoOracle _ (pure ()) noSharedOracle _ tr hso _ trivial)
   have hall := Verifier.KnowledgeStateFunction.exists_toFun_take_of_good
     ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).kSF
       (pure ()) noSharedOracle) _ tr hfull

@@ -199,7 +199,7 @@ private theorem planDummies_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode
   omega
 
 /-- The closing jumps the fill of table `op` adds to the `JUMP` table: one per traversal. -/
-def fillJumps (rows : Opcode → ℕ) (op : Opcode) : ℕ :=
+private def fillJumps (rows : Opcode → ℕ) (op : Opcode) : ℕ :=
   fillTraversals (fillTarget (rows op) (minRows op) - rows op)
 
 /-- The rows the `JUMP` table owes: its own, and the closing jumps of every other table's fill. -/
