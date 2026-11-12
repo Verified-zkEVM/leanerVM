@@ -46,11 +46,6 @@ open CompPoly CMlPolynomialEval SumcheckRound
 
 variable {F : Type} [Field F]
 
-/-- `Σ_{i < 3} q_i X^i` for the message `#v[q₀, q₁, q₂]`. -/
-private theorem evaluate_three (q₀ q₁ q₂ X : F) :
-    evaluate 2 (#v[q₀, q₁, q₂] : Message F 2) X = q₀ + q₁ * X + q₂ * X ^ 2 := by
-  simp [evaluate, Fin.sum_univ_three]
-
 /-! ## The zerocheck round -/
 
 /-- The zerocheck summand on three tables: `Ã · B̃ - C̃`. -/
@@ -81,7 +76,7 @@ theorem evaluate_normRound {n : ℕ} (tA tB tC : CMlPolynomialEval F n) (r : Vec
   have hj' : j + 1 ≤ n := hj
   rw [normRound, dite_eq_left hj]
   dsimp only
-  rw [evaluate_three, partialSum, dite_eq_left hj', evalMle_eq_sum, Finset.sum_mul,
+  rw [evaluate_two, partialSum, dite_eq_left hj', evalMle_eq_sum, Finset.sum_mul,
     Finset.sum_mul, ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun b _ ↦ ?_
   have hrt : (restrictTable (prodSub tA tB tC) hj' (c.push X))[b] =
@@ -129,7 +124,7 @@ theorem evaluate_highRound {s m : ℕ} (M Z : CMlPolynomialEval F (s + m)) {j : 
   have hk : m - (j + 1) < m := by omega
   rw [highRound, dite_eq_left hj]
   dsimp only
-  rw [evaluate_three, highSum, dite_eq_left hj', Finset.sum_mul, Finset.sum_mul,
+  rw [evaluate_two, highSum, dite_eq_left hj', Finset.sum_mul, Finset.sum_mul,
     ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun b _ ↦ ?_
   have hset : ∀ t : CMlPolynomialEval F m, evalMle t (highFix hj' (c.push X) (boolVec b)) =
