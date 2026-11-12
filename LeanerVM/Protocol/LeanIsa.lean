@@ -712,12 +712,6 @@ private theorem opcode_fixedRowsMatch (j : Fin 6) (rows : List (Array K)) :
     (opcodeComponent j).FixedRowsMatch rows := by
   fin_cases j <;> exact trivial
 
-/-- A typed row written as a raw row is read back by the fixed-cell check. -/
-private theorem fromElements_rowPrefix {Row : TypeMap} [ProvableType Row] (r : Row K) :
-    fromElements (Air.Flat.rowPrefix (size Row) (toElements r).toArray) = r :=
-  (Air.Flat.valueFromOffset_fromArray (Input := Row) _ fun _ _ ↦ #[]).symm.trans
-    (rowAt_toElements _ r)
-
 /-- A table of at most `2^64` rows. -/
 private theorem pow_le_uint64Size {τ : ℕ} (h : τ ≤ 64) : 2 ^ τ ≤ UInt64.size :=
   Nat.pow_le_pow_right (by norm_num) h

@@ -21,8 +21,7 @@ relation are three conjuncts of leanISA's, in both directions:
   row only within the component's width, and the table has no lookups.
 * `balanced_iff_channels`: the instance's bus balances exactly when each of leanISA's three
   channels does, pushes against pulls; `balanced_multiset_iff` reads Clean's multiset balance as
-  those three permutations and a bound on each channel's interactions, which the caps give
-  (`interactionsWith_length_lt`).
+  those three permutations.
 * `countsNonzero_iff`: every read count of the six opcode tables is nonzero exactly when every
   cell of the instance's count columns is: a count column is the coordinate-`1` variable of a
   memory or bytecode pull, and every such pull has one.
@@ -141,73 +140,22 @@ private theorem activeMessages_interactionsWith (w : EnsembleWitness (leanIsaEns
     activeMessages (w.interactionsWith (channelAt k)) d = messagesOn w (channelAt k) d := by
   rw [EnsembleWitness.interactionsWith_eq_filter_name (channelAt_mem k), messagesOn]
 
-/-- **The balance.** Clean's multiset balance holds exactly when each channel has fewer than
-`2^64` interactions and its pushes and pulls carry the same messages: every multiplicity is `1`. -/
+/-- **The balance.** Clean's multiset balance holds exactly when each channel's pushes and pulls
+carry the same messages: every multiplicity is `1`. -/
 theorem balanced_multiset_iff (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
-    w.Balanced .multiset ↔ (∀ k : Fin 3, (w.interactionsWith (channelAt k)).length < 2 ^ 64) ∧
+    w.Balanced .multiset ↔
       ∀ k : Fin 3, (messagesOn w (channelAt k) .push).Perm (messagesOn w (channelAt k) .pull) := by
   constructor
-  · intro h
-    refine ⟨fun k ↦ (h _ (channelAt_mem k)).1, fun k ↦ ?_⟩
+  · intro h k
     rw [← activeMessages_interactionsWith, ← activeMessages_interactionsWith]
-    exact (h _ (channelAt_mem k)).2.2
-  · rintro ⟨hl, hp⟩ c hc
+    exact (h _ (channelAt_mem k)).2
+  · intro hp c hc
     obtain ⟨k, rfl⟩ := exists_channelAt hc
-    refine ⟨hl k, fun i hi ↦ .inr ?_, ?_⟩
+    refine ⟨fun i hi ↦ .inr ?_, ?_⟩
     · rw [EnsembleWitness.interactionsWith_eq_filter_name hc] at hi
       exact interactions_mult_eq_one _ _ (List.mem_filter.mp hi).1
     · rw [activeMessages_interactionsWith, activeMessages_interactionsWith]
       exact hp k
-
-/-- The opcode components emit at most thirty-two interactions a row. -/
-private theorem opcode_interactions_le :
-    ∀ j : Fin 6, (opcodeComponent j).rowOperations.interactions.length ≤ 32 := by
-  decide +kernel
-
-/-- Every component of the ensemble emits at most thirty-two interactions a row. -/
-private theorem tables_interactions_le :
-    ∀ c ∈ (leanIsaEnsemble prog κ).tables, c.rowOperations.interactions.length ≤ 32 := by
-  intro c hc
-  simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact opcode_interactions_le 0
-  · exact opcode_interactions_le 1
-  · exact opcode_interactions_le 2
-  · exact opcode_interactions_le 3
-  · exact opcode_interactions_le 4
-  · exact opcode_interactions_le 5
-  · exact (by decide +kernel : (memComponent 0).rowOperations.interactions.length ≤ 32)
-  · exact (by decide +kernel : (bytecodeComponent ⟨0, Nat.zero_le _, fun _ ↦ .jump 0 0 0⟩
-      ).rowOperations.interactions.length ≤ 32)
-
-/-- Within the caps, a witness has fewer than `2^64` interactions on each channel: at most
-thirty-two a row of eight tables of at most `2^32` rows, and the verifier's two. -/
-theorem interactionsWith_length_lt (hc : Caps w) (k : Fin 3) :
-    (w.interactionsWith (channelAt k)).length < 2 ^ 64 := by
-  rw [EnsembleWitness.interactionsWith_eq_filter_name (channelAt_mem k)]
-  refine lt_of_le_of_lt (List.length_filter_le _ _) ?_
-  have ht : ∀ t ∈ w.tables, t.interactions.length ≤ 2 ^ maxLogRows * 32 := by
-    intro t ht
-    obtain ⟨τ, hτ, hlen⟩ := hc.heights t ht
-    rw [Air.Flat.Table.interactions, List.length_flatMap]
-    refine (List.sum_le_length_nsmul _ 32 fun n hn ↦ ?_).trans ?_
-    · obtain ⟨row, -, rfl⟩ := List.mem_map.mp hn
-      simp only [Operations.interactionValues, List.length_map,
-        Air.Flat.Component.interactions_eq]
-      exact tables_interactions_le _ (EnsembleWitness.component_mem_tables_of_mem ht)
-    · rw [List.length_map, hlen, smul_eq_mul]
-      exact Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) hτ)
-  have h8 : w.tables.length = 8 := w.same_length.symm
-  rw [EnsembleWitness.interactions, List.length_append, Operations.interactionValues,
-    List.length_map, verifier_interactions, List.length_flatMap]
-  have hs := List.sum_le_length_nsmul (w.tables.map fun t ↦ t.interactions.length)
-    (2 ^ maxLogRows * 32) (fun n hn ↦ by
-      obtain ⟨t, htm, rfl⟩ := List.mem_map.mp hn
-      exact ht t htm)
-  rw [List.length_map, h8, smul_eq_mul] at hs
-  have : 2 + 8 * (2 ^ maxLogRows * 32) < 2 ^ 64 := by decide
-  simp only [List.length_cons, List.length_nil] at *
-  omega
 
 /-! ## The read counts -/
 

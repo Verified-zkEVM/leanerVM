@@ -30,10 +30,9 @@ two messages, then the rows of each table, then the blocks'. For the memory and 
 the rows are the reads of one list of skeletons, numbered by the chain (`Completeness.Bus`), so
 `chain_balance` (`Completeness.Balance`) balances them against the blocks' seeds and finalizes; the
 six tables hold the rows in another order than the list, which is a permutation (`regroup_perm`).
-The state channel is the hypothesis `hstate` regrouped the same way. Fewer than `2^64` interactions:
-at most `22` per row of at most `6·2^32` skeletons, and two per row of the blocks
-(`padSends_length_lt`). The `JUMP` table is the one component with constraints, and its two
-residuals hold of the honest witnesses (`flags_complete`).
+The state channel is the hypothesis `hstate` regrouped the same way. The `JUMP` table is the one
+component with constraints, and its two residuals hold of the honest witnesses
+(`flags_complete`).
 
 ## Wrong readings excluded
 
@@ -426,41 +425,7 @@ theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : Lis
   rw [hv1, hv2, hm, hm, hb, hb, h1, h2]
   simpa only [List.append_nil, List.singleton_append] using hstate
 
-/-! ### The number of interactions -/
-
-/-- Two sends per entry. -/
-private theorem length_flatMap_pair {α β : Type} (l : List α) (f h : α → β) :
-    (l.flatMap fun x ↦ [f x, h x]).length = 2 * l.length := by
-  induction l with
-  | nil => rfl
-  | cons x l ih =>
-    rw [List.flatMap_cons, List.length_append, ih, List.length_cons]
-    simp only [List.length_cons, List.length_nil]
-    omega
-
-/-- At most `k` sends per entry. -/
-private theorem length_flatMap_le {α β : Type} (l : List α) (F : α → List β) (k : ℕ)
-    (h : ∀ a ∈ l, (F a).length ≤ k) : (l.flatMap F).length ≤ k * l.length := by
-  induction l with
-  | nil => simp
-  | cons x l ih =>
-    rw [List.flatMap_cons, List.length_append, List.length_cons, Nat.mul_succ]
-    have h1 := h x List.mem_cons_self
-    have h2 := ih fun a ha ↦ h a (List.mem_cons_of_mem _ ha)
-    omega
-
-/-- An instruction reads at most nine cells. -/
-private theorem readAddrs_length_le {κ : ℕ} (mem : MemImage κ) (fp : K) (ins : Instr) :
-    (readAddrs mem fp ins).length ≤ 9 := by
-  cases ins <;> simp [readAddrs]
-
-/-- A row sends at most twenty-two messages. -/
-private theorem PRow.sends_length_le {κ : ℕ} (img : MemImage κ) (r : PRow) :
-    (r.sends img).length ≤ 22 := by
-  rw [PRow.sends, sendsOf, List.length_append, length_flatMap_pair, readsOf, List.length_mapIdx]
-  have := readAddrs_length_le img r.sk.fp r.sk.ins
-  simp only [List.length_cons, List.length_nil]
-  omega
+/-! ### The number of skeletons -/
 
 /-- The skeletons are the rows of the six tables: at most `6 · 2^32` of them when every table's
 height is a power of two within the cap. -/
@@ -482,26 +447,6 @@ theorem skels_length_le {S : List Skel}
   rw [← hp.length_eq]
   simp only [fillTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
     List.length_append]
-  omega
-
-/-- **Fewer than `2^64` interactions**: at most twenty-two per skeleton and two per row of each
-block. -/
-theorem padSends_length_lt (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ)
-    (S : List Skel) (hlen : S.length ≤ 6 * 2 ^ 32) : (padSends prog img S).length < 2 ^ 64 := by
-  have h1 : (fillTables.flatMap fun op ↦
-      ((padRows img S).filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img)).length ≤
-      22 * S.length := by
-    rw [(tables_sends_perm img (padRows img S)).length_eq, ← padRows_length img S]
-    exact length_flatMap_le _ _ 22 fun r _ ↦ PRow.sends_length_le img r
-  have h2 : (memBlockSends img (padMemFin img S)).length = 2 * 2 ^ κ := by
-    rw [memBlockSends, length_flatMap_pair, List.length_finRange]
-  have h3 : (bcBlockSends prog (padBcFin S)).length = 2 * 2 ^ prog.logSize := by
-    rw [bcBlockSends, length_flatMap_pair, List.length_finRange]
-  have h4 : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hκ
-  have h5 : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) prog.logSize_le
-  have e32 : (2 : ℕ) ^ 32 = 4294967296 := by norm_num
-  have e64 : (2 : ℕ) ^ 64 = 18446744073709551616 := by norm_num
-  simp only [padSends, List.length_append, List.length_cons, List.length_nil, h2, h3]
   omega
 
 /-! ## The constraints -/
@@ -723,24 +668,18 @@ theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img :
 
 /-! ## The witness satisfies the statement -/
 
-/-- **The padded witness balances** on each of the three channels: fewer than `2^64`
-interactions, every multiplicity `1`, and the messages of the pushes a permutation of those of
-the pulls. -/
+/-- **The padded witness balances** on each of the three channels: every multiplicity `1`, and
+the messages of the pushes a permutation of those of the pulls. -/
 theorem padWitness_balanced (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSok : ∀ sk ∈ S, SkelOk prog img sk)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
-      (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp]))
-    (hlen : S.length ≤ 6 * 2 ^ 32) :
+      (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
     (padWitness prog input img S hκ hS).Balanced .multiset := by
   have hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next := fun sk h ↦ (hSok sk h).2
   intro c hc
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
-  refine ⟨?_, fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
-  · refine lt_of_le_of_lt (List.length_filter_le _ _) ?_
-    rw [← List.length_map (f := fun i : Interaction K ↦ (i.channel.name, i.direction, i.msg)),
-      padWitness_sends prog input img S hκ hS hSx]
-    exact padSends_length_lt prog hκ img S hlen
+  refine ⟨fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
   · have hperm : (messagesOn (padWitness prog input img S hκ hS) c .push).Perm
         (messagesOn (padWitness prog input img S hκ hS) c .pull) := by
       rw [messagesOn_padWitness prog input img S hκ hS hSx,
@@ -772,7 +711,6 @@ theorem padWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ}
     { public_input_eq := rfl
       constraints := padWitness_constraints prog input img S hκ hS
       balanced := padWitness_balanced prog input img S hκ hS hSok hstate
-        (skels_length_le hheights)
       counts_nonzero := padWitness_counts_nonzero prog input img S hκ hS hSx
       caps := padWitness_caps prog input img S hκmin hκ hS hheights hblake
       blake2s_valid := padWitness_blake2s_valid prog input img S hκ hS hSx

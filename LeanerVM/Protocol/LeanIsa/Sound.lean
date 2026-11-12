@@ -19,9 +19,7 @@ from admissibility, or from how the witness is read:
 
 * the Clean constraints, the three channels' balances and the nonzero read counts from the
   constraints, the bus and the count clauses, through the witness agreeing with its stack
-  (`agrees_witnessOf`, with the equivalences of `LeanIsa/Relation.lean`); Clean's multiset
-  balance also bounds each channel's interactions, which the caps do
-  (`interactionsWith_length_lt`);
+  (`agrees_witnessOf`, with the equivalences of `LeanIsa/Relation.lean`);
 * the public input and the two public words from the three public lines, which fix the first two
   cells of the memory columns (`publicLines_cells`), and the image the data names, derived from
   the memory block, which is the memory columns at the announced size (`imageOf_witnessOf`);
@@ -245,8 +243,7 @@ theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   obtain ⟨c00, c01, c10, c11, c20, c21⟩ := publicLines_cells F prog s q hpl
   have hκ : s.logMem < 64 := hs.fits.1
   refine ⟨?_, constraints_witnessOf F prog s q hs.fits hcv,
-    (balanced_multiset_iff _).mpr ⟨interactionsWith_length_lt hcaps,
-      (balanced_iff_channels hA).mp hbal⟩,
+    (balanced_multiset_iff _).mpr ((balanced_iff_channels hA).mp hbal),
     (countsNonzero_iff hA).mpr hcnt, hcaps, blake2sRowsValid_witnessOf F prog s q haux, ?_, ?_⟩
   · show publicInputOf F prog s q = PublicIO.ofInput input
     rw [publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]

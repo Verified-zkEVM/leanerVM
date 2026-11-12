@@ -215,8 +215,8 @@ theorem flushPolys_eval (sep : RawChannel F → F) {n : ℕ} (row : Fin n → F)
   split_ifs
   · exact CMvPolynomial.eval_C _ _
   · have : (AbstractInteraction.eval (Environment.fromArray (Array.ofFn row) data) i).msg =
-        (i.msg.toArray.map (Expression.eval (Environment.fromArray (Array.ofFn row) data))) := by
-      simp [AbstractInteraction.eval]
+        (i.msg.toArray.map (Expression.eval (Environment.fromArray (Array.ofFn row) data))) :=
+      Vector.toArray_map ..
     rw [this, Array.getElem?_map]
     cases i.msg.toArray[k - 1]? with
     | none => simp [CMvPolynomial.eval_zero]
