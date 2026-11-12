@@ -95,12 +95,13 @@ def rowOfBy (rd : K → Option E) (pc fp : K) (cnt : ℕ → K) (rbc : K) : Inst
         (cnt 0) (cnt 1) (cnt 2) (cnt 3) (cnt 4) (cnt 5) (cnt 6) (cnt 7) (cnt 8) rbc)
 
 /-- At the image's reader, the rows are `rowOf`'s. -/
-theorem rowOfBy_read {κ : ℕ} (mem : MemImage κ) : rowOfBy mem.read = rowOf mem := by
+private theorem rowOfBy_read {κ : ℕ} (mem : MemImage κ) : rowOfBy mem.read = rowOf mem := by
   funext pc fp cnt rbc ins
   cases ins <;> rfl
 
 /-- At the image's reader, the cells read are `readAddrs`'. -/
-theorem readAddrsBy_read {κ : ℕ} (mem : MemImage κ) : readAddrsBy mem.read = readAddrs mem := by
+private theorem readAddrsBy_read {κ : ℕ} (mem : MemImage κ) :
+    readAddrsBy mem.read = readAddrs mem := by
   funext fp ins
   cases ins <;> rfl
 
@@ -135,16 +136,16 @@ def mkRowsH (rd : K → Option E) : Counts → Counts → List Skel → Array PR
     mkRowsH rd p.2 (sb.insert (wordKey sk.pc) (c + 1)) rest (acc.push ⟨sk, p.1, c⟩)
 
 /-- Machine words determine field elements. -/
-theorem wordKey_inj {a b : K} : wordKey a = wordKey b ↔ a = b := by
+private theorem wordKey_inj {a b : K} : wordKey a = wordKey b ↔ a = b := by
   refine ⟨fun h ↦ BF64.toBitVec_injective (congrArg UInt64.toBitVec h), fun h ↦ h ▸ rfl⟩
 
 /-- No address of the empty counters has been read. -/
-theorem Counts.get_empty : (∅ : Counts).get = fun _ ↦ 0 := by
+private theorem Counts.get_empty : (∅ : Counts).get = fun _ ↦ 0 := by
   funext a
   exact Std.HashMap.getD_empty
 
 /-- Bumping an address updates its count. -/
-theorem Counts.get_bump (m : Counts) (a : K) :
+private theorem Counts.get_bump (m : Counts) (a : K) :
     (m.bump a).get = Function.update m.get a (m.get a + 1) := by
   funext b
   rw [Counts.get, Counts.bump, Std.HashMap.getD_insert]
@@ -157,19 +158,19 @@ theorem Counts.get_bump (m : Counts) (a : K) :
     rfl
 
 /-- A step of `readExpsH`: bump, then count the rest. -/
-theorem readExpsH_cons (m : Counts) (a : K) (rest : List K) :
+private theorem readExpsH_cons (m : Counts) (a : K) (rest : List K) :
     readExpsH m (a :: rest) =
       (m.get a :: (readExpsH (m.bump a) rest).1, (readExpsH (m.bump a) rest).2) := rfl
 
 /-- A step of `mkRowsH`: number the reads, bump the slot, write the row. -/
-theorem mkRowsH_cons (rd : K → Option E) (sm sb : Counts) (sk : Skel) (rest : List Skel)
+private theorem mkRowsH_cons (rd : K → Option E) (sm sb : Counts) (sk : Skel) (rest : List Skel)
     (acc : Array PRow) :
     mkRowsH rd sm sb (sk :: rest) acc =
       mkRowsH rd (readExpsH sm (readAddrsBy rd sk.fp sk.ins)).2 (sb.bump sk.pc) rest
         (acc.push ⟨sk, (readExpsH sm (readAddrsBy rd sk.fp sk.ins)).1, sb.get sk.pc⟩) := rfl
 
 /-- The hash-map counters number the reads as `readExps` and leave `readBump`. -/
-theorem readExpsH_spec (m : Counts) (l : List K) :
+private theorem readExpsH_spec (m : Counts) (l : List K) :
     (readExpsH m l).1 = readExps m.get l ∧ (readExpsH m l).2.get = readBump m.get l := by
   induction l generalizing m with
   | nil => exact ⟨rfl, rfl⟩
@@ -179,7 +180,7 @@ theorem readExpsH_spec (m : Counts) (l : List K) :
     exact ⟨by rw [readExpsH_cons]; simp only [readExps, h1], h2⟩
 
 /-- At the image's reader, the hash-map rows are `mkRows`, and the counters left are the reads'. -/
-theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S : List Skel)
+private theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S : List Skel)
     (acc : Array PRow) :
     (mkRowsH mem.read sm sb S acc).1.toList = acc.toList ++ mkRows mem sm.get sb.get S ∧
       (mkRowsH mem.read sm sb S acc).2.1.get =
@@ -210,7 +211,7 @@ def opRowsBy (P : PowTable) (rd : K → Option E) (R : List PRow) (op : Opcode) 
     rowOfBy rd r.sk.pc r.sk.fp (fun j ↦ P.pow (r.exps.getD j 0)) (P.pow r.bc) r.sk.ins
 
 /-- At the image's reader, the table rows are `opRows`'. -/
-theorem opRowsBy_read (P : PowTable) {κ : ℕ} (mem : MemImage κ) (R : List PRow)
+private theorem opRowsBy_read (P : PowTable) {κ : ℕ} (mem : MemImage κ) (R : List PRow)
     (op : Opcode) : opRowsBy P mem.read R op = opRows mem R op := by
   rw [opRowsBy, opRows, rowOfBy_read]
   congr 1
@@ -219,7 +220,7 @@ theorem opRowsBy_read (P : PowTable) {κ : ℕ} (mem : MemImage κ) (R : List PR
   rfl
 
 /-- A memory row's raw row, written out. -/
-theorem rawRow_memRow (a b : K) (v : Vector K 3) :
+private theorem rawRow_memRow (a b : K) (v : Vector K 3) :
     rawRow (⟨a, b, v⟩ : MemRow K) = #[a, b, v[0], v[1], v[2]] := by
   simp only [rawRow, circuit_norm, toElements]
   simp only [Vector.toArray_cast, Vector.append_empty]
@@ -234,7 +235,7 @@ def memRowsBy (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) : 
     #[a, P.pow (fin a), w.limb 0, w.limb 1, w.limb 2]
 
 /-- They are `memRowsOf`. -/
-theorem memRowsBy_eq (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
+private theorem memRowsBy_eq (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
     memRowsBy P img fin = memRowsOf img fin := by
   unfold memRowsBy memRowsOf
   congr 1
@@ -252,41 +253,42 @@ def memBlockOf {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K 
     (h ▸ memRowsOf_fixed hκ img fin)
 
 /-- It is `memBlock`. -/
-theorem memBlockOf_eq {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
+private theorem memBlockOf_eq {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
     (rows : List (Array K)) (h : rows = memRowsOf img fin) :
     memBlockOf hκ img fin rows h = memBlock hκ img fin := by
   subst h
   rfl
 
 /-- The table of an opcode from rows equal to `opRows`'. -/
-def opTableOf {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
+def opTableFrom {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
     (op : Opcode) (rows : List (Array K)) (h : rows = opRows img R op) : Air.Flat.Table K :=
   tableOf (opComponent op) rows (h ▸ opRows_width img R op)
     (h ▸ (opRows_length_le img R op).trans hR) (by cases op <;> exact trivial)
 
 /-- It is `opTable`. -/
-theorem opTableOf_eq {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
-    (op : Opcode) (rows : List (Array K)) (h : rows = opRows img R op) :
-    opTableOf img R hR op rows h = opTable img R hR op := by
+private theorem opTableFrom_eq {κ : ℕ} (img : MemImage κ) (R : List PRow)
+    (hR : R.length ≤ UInt64.size) (op : Opcode) (rows : List (Array K))
+    (h : rows = opRows img R op) :
+    opTableFrom img R hR op rows h = opTable img R hR op := by
   subst h
   rfl
 
 /-- Opcode tables of equal rows are equal. -/
-theorem opTable_congr {κ : ℕ} (img : MemImage κ) {R R' : List PRow} (h : R = R')
+private theorem opTable_congr {κ : ℕ} (img : MemImage κ) {R R' : List PRow} (h : R = R')
     (hR : R.length ≤ UInt64.size) (op : Opcode) :
     opTable img R hR op = opTable img R' (h ▸ hR) op := by
   subst h
   rfl
 
 /-- The hash-map rows at a reader equal to the image's are `padRows`. -/
-theorem mkRowsH_rows {κ : ℕ} {img : MemImage κ} {rd : K → Option E} (hrd : rd = img.read)
+private theorem mkRowsH_rows {κ : ℕ} {img : MemImage κ} {rd : K → Option E} (hrd : rd = img.read)
     (S : List Skel) : (mkRowsH rd ∅ ∅ S #[]).1.toList = padRows img S := by
   subst hrd
   rw [(mkRowsH_spec img ∅ ∅ S #[]).1, Counts.get_empty]
   rfl
 
 /-- A bytecode row's raw row, written out. -/
-theorem rawRow_bytecodeRow (a b c : K) (v : Vector K 7) :
+private theorem rawRow_bytecodeRow (a b c : K) (v : Vector K 7) :
     rawRow (⟨a, b, c, v⟩ : BytecodeRow K) =
       #[a, b, c, v[0], v[1], v[2], v[3], v[4], v[5], v[6]] := by
   simp only [rawRow, circuit_norm, toElements]
@@ -305,7 +307,7 @@ def bcRowsBy (P : PowTable) (prog : Program) (fin : K → ℕ) : List (Array K) 
     #[a, P.pow (fin a), e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7]]
 
 /-- They are `bcRowsOf`. -/
-theorem bcRowsBy_eq (P : PowTable) (prog : Program) (fin : K → ℕ) :
+private theorem bcRowsBy_eq (P : PowTable) (prog : Program) (fin : K → ℕ) :
     bcRowsBy P prog fin = bcRowsOf prog fin := by
   unfold bcRowsBy bcRowsOf
   congr 1
@@ -324,7 +326,7 @@ def bcBlockOf (prog : Program) (fin : K → ℕ) (rows : List (Array K))
     (h ▸ bcRowsOf_fixed prog fin)
 
 /-- It is `bcBlock`. -/
-theorem bcBlockOf_eq (prog : Program) (fin : K → ℕ) (rows : List (Array K))
+private theorem bcBlockOf_eq (prog : Program) (fin : K → ℕ) (rows : List (Array K))
     (h : rows = bcRowsOf prog fin) : bcBlockOf prog fin rows h = bcBlock prog fin := by
   subst h
   rfl
@@ -340,15 +342,15 @@ def padTablesOf (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (
     exact (padRows_length img S).trans_le hS
   have hrows : ∀ op, opRowsBy P rd res.1.toList op = opRows img res.1.toList op := fun op ↦ by
     rw [hrd, opRowsBy_read]
-  [opTableOf img res.1.toList hRl .xor (opRowsBy P rd res.1.toList .xor) (hrows _),
-    opTableOf img res.1.toList hRl .mulNative (opRowsBy P rd res.1.toList .mulNative) (hrows _),
-    opTableOf img res.1.toList hRl .setConstant (opRowsBy P rd res.1.toList .setConstant)
+  [opTableFrom img res.1.toList hRl .xor (opRowsBy P rd res.1.toList .xor) (hrows _),
+    opTableFrom img res.1.toList hRl .mulNative (opRowsBy P rd res.1.toList .mulNative) (hrows _),
+    opTableFrom img res.1.toList hRl .setConstant (opRowsBy P rd res.1.toList .setConstant)
       (hrows _),
-    opTableOf img res.1.toList hRl .deref (opRowsBy P rd res.1.toList .deref) (hrows _),
-    opTableOf img res.1.toList hRl .jump (opRowsBy P rd res.1.toList .jump) (hrows _),
-    opTableOf img res.1.toList hRl .blake2s (opRowsBy P rd res.1.toList .blake2s) (hrows _),
-    memBlockOf hκ img res.2.1.get (memRowsBy P img res.2.1.get) (memRowsBy_eq P img _),
-    bcBlockOf prog res.2.2.get (bcRowsBy P prog res.2.2.get) (bcRowsBy_eq P prog _)]
+    opTableFrom img res.1.toList hRl .deref (opRowsBy P rd res.1.toList .deref) (hrows _),
+    opTableFrom img res.1.toList hRl .jump (opRowsBy P rd res.1.toList .jump) (hrows _),
+    opTableFrom img res.1.toList hRl .blake2s (opRowsBy P rd res.1.toList .blake2s) (hrows _),
+    memBlockOf hκ img res.2.1.get (memRowsBy P img res.2.1.get) (by exact memRowsBy_eq P img _),
+    bcBlockOf prog res.2.2.get (bcRowsBy P prog res.2.2.get) (by exact bcRowsBy_eq P prog _)]
 
 /-- The eight tables of `padTables`, computed at a reader equal to the image's. -/
 def padTablesBy (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
@@ -357,7 +359,7 @@ def padTablesBy (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (
   padTablesOf prog P img rd hrd S hκ hS (mkRowsH rd ∅ ∅ S #[]) rfl
 
 /-- The computed tables are `padTables`. -/
-theorem padTablesBy_eq (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ)
+private theorem padTablesBy_eq (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ)
     (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
     (hS : S.length ≤ UInt64.size) :
     padTablesBy prog P img rd hrd S hκ hS = padTables prog img S hκ hS := by
@@ -369,11 +371,11 @@ theorem padTablesBy_eq (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImag
     subst hrd
     rw [(mkRowsH_spec img ∅ ∅ S #[]).2.2, Counts.get_empty]
     rfl
-  simp only [padTablesBy, padTablesOf, opTableOf_eq, memBlockOf_eq, bcBlockOf_eq, padTables, hm,
+  simp only [padTablesBy, padTablesOf, opTableFrom_eq, memBlockOf_eq, bcBlockOf_eq, padTables, hm,
     hb, opTable_congr img (mkRowsH_rows hrd S)]
 
 /-- Witnesses of equal tables are equal. -/
-theorem witnessOfTables_congr {prog : Program} {κ : ℕ} {pi : PublicIO K}
+private theorem witnessOfTables_congr {prog : Program} {κ : ℕ} {pi : PublicIO K}
     {ts ts' : List (Air.Flat.Table K)} (h : ts = ts')
     (hc : ts.map (·.component) = (leanIsaEnsemble prog κ).tables)
     (hc' : ts'.map (·.component) = (leanIsaEnsemble prog κ).tables) :
@@ -387,11 +389,12 @@ def padWitnessBy (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ
     (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
     EnsembleWitness (leanIsaEnsemble prog κ) :=
   witnessOfTables prog κ (PublicIO.ofInput input) (padTablesBy prog P img rd hrd S hκ hS)
-    ((congrArg _ (padTablesBy_eq prog P img rd hrd S hκ hS)).trans
-      (padTables_components prog img S hκ hS))
+    (by
+      exact (congrArg _ (padTablesBy_eq prog P img rd hrd S hκ hS)).trans
+        (padTables_components prog img S hκ hS))
 
 /-- **The computed witness is `padWitness`.** -/
-theorem padWitnessBy_eq (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
+private theorem padWitnessBy_eq (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
     (img : MemImage κ) (rd : K → Option E) (hrd : rd = img.read) (S : List Skel)
     (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
     padWitnessBy prog input P img rd hrd S hκ hS = padWitness prog input img S hκ hS :=
@@ -404,7 +407,8 @@ section Run
 variable {prog : Program} {t : Trace prog}
 
 /-- Stepping forward from step `k` collects the skeletons of the steps `k, k + 1, …`. -/
-theorem runSkelsBy_stateAt (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+private theorem runSkelsBy_stateAt
+    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {fetch : K → Option Instr} (hf : fetch = prog.fetch)
     {exec : Regs K → Instr → Option (Regs K)} (he : exec = execute t.image) :
     ∀ n k (acc : Array Skel), k + n = t.steps →
@@ -495,8 +499,9 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
   exact congrArg some (padWitnessBy_eq _ _ _ _ _ _ _ _ _)
 
 /-- An opcode table of the padded witness has a row per skeleton of its opcode. -/
-theorem padWitness_opLength {prog : Program} {input : PublicInput} {κ : ℕ} {img : MemImage κ}
-    {S : List Skel} {hκ : κ ≤ maxLogMem} {hS : S.length ≤ UInt64.size} (j : Fin 6) :
+private theorem padWitness_opLength {prog : Program} {input : PublicInput} {κ : ℕ}
+    {img : MemImage κ} {S : List Skel} {hκ : κ ≤ maxLogMem} {hS : S.length ≤ UInt64.size}
+    (j : Fin 6) :
     (tableAt (padWitness prog input img S hκ hS) ⟨j, by omega⟩).table.length =
       Skel.count (fillTables.getD j .xor) S := by
   rw [(padWitness_tableAt _).2]

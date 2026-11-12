@@ -17,15 +17,18 @@ The reference semantics (`gLog?`, `MemImage.read`, `Program.fetch`, `execute`, `
 `ValidExecution`) is noncomputable and is what a reader audits. This module is its computable
 carrier: one address search, `addressIndex`, replaces the chosen logarithm `gLog?`; the checked
 step `stepChecked` is `executeWith` (the reference's six arms, `LeanerVM.Semantics.Step`) at the
-carrier's reader; `checkWithinFuel` searches for the halting time within a budget and
-`checkTrace` checks an announced one.
+carrier's reader; `runToHalt` runs to the sentinel through a growing table of powers
+(`stepTable`); `checkWithinFuel` searches for the halting time within a budget and `checkTrace`
+checks an announced one.
 
 **What is trusted here is the statements of the equivalence theorems**, not the bodies:
 `addressIndex_eq_gLog`, `readImage_eq_read`, `fetchInstruction_eq_fetch`,
 `executeChecked_eq_execute`, `stepChecked_eq_step`, `runToHalt_eq_ok_iff`,
-`checkBoundary_eq_true_iff`, `checkWithinFuel_eq_ok_iff`, `checkTrace_eq_true_iff`. Each says
-that a carrier function agrees with the reference on every input (within the address bound
-`κ < 64`, which every public entry point discharges from the caps `κ ≤ 32` and
+`checkBoundary_eq_true_iff`, `checkWithinFuel_eq_ok_iff`, `checkTrace_eq_true_iff`, and for the
+reads through a table of powers `addressIndexBy_eq_gLog`, `readBy_eq_read`, `fetchBy_eq_fetch`,
+`executeWith_readBy`, which the witness generator's correctness (`witnessGen_correct`) consumes.
+Each says that a carrier function agrees with the reference on every input (within the address
+bound `κ < 64`, which every public entry point discharges from the caps `κ ≤ 32` and
 `logSize ≤ 32`). The bodies may hold any speedup that keeps those theorems true.
 
 **Hints and tables of powers.** Every carrier function takes an untrusted list of suggested cell
@@ -150,7 +153,7 @@ def indexFrom (pows : Array K) : ℕ → ℕ → Std.HashMap UInt64 ℕ → Std.
   | n + 1, j, m => indexFrom pows n (j + 1) (m.insert (wordKey (pows.getD j 0)) j)
 
 /-- The running product appends the powers. -/
-theorem powsFrom_spec : ∀ (n : ℕ) (cur : K) (acc : Array K), cur = gpow acc.size →
+private theorem powsFrom_spec : ∀ (n : ℕ) (cur : K) (acc : Array K), cur = gpow acc.size →
     (∀ i (h : i < acc.size), acc[i] = gpow i) →
     ∀ i (h : i < (powsFrom n cur acc).size), (powsFrom n cur acc)[i] = gpow i := by
   intro n
@@ -171,7 +174,7 @@ theorem powsFrom_spec : ∀ (n : ℕ) (cur : K) (acc : Array K), cur = gpow acc.
 /-- The table of the powers `g ^ i`, `i < n`. -/
 def powTable (n : ℕ) : PowTable :=
   let pows := powsFrom n 1 (Array.mkEmpty n)
-  ⟨pows, powsFrom_spec n 1 _ (by simp) (by simp),
+  ⟨pows, by exact powsFrom_spec n 1 _ (by simp) (by simp),
     indexFrom pows n 0 (Std.HashMap.emptyWithCapacity n)⟩
 
 /-- The cells an instruction reads at frame `fp`, in the circuit's order, at a reader: the second
@@ -187,7 +190,7 @@ def readAddrsBy (rd : K → Option E) (fp : K) : Instr → List K
         fp * (g * oout), fp * omd]
 
 /-- Appending `g ^ pows.size` keeps an array of powers. -/
-theorem pows_push_spec {pows : Array K} (hp : ∀ i (h : i < pows.size), pows[i] = gpow i)
+private theorem pows_push_spec {pows : Array K} (hp : ∀ i (h : i < pows.size), pows[i] = gpow i)
     {cur : K} (h : cur = gpow pows.size) :
     ∀ i (hi : i < (pows.push cur).size), (pows.push cur)[i] = gpow i := by
   intro i hi
@@ -204,10 +207,10 @@ before the array, so that the array is no longer read once pushed and is pushed 
 def PowTable.push : (P : PowTable) → (cur : K) → cur = gpow P.pows.size → PowTable
   | ⟨pows, hp, index⟩, cur, h =>
     let index := index.insert (wordKey cur) pows.size
-    ⟨pows.push cur, pows_push_spec hp h, index⟩
+    ⟨pows.push cur, by exact pows_push_spec hp h, index⟩
 
 /-- Pushing adds one power. -/
-theorem PowTable.push_size (P : PowTable) (cur : K) (h : cur = gpow P.pows.size) :
+private theorem PowTable.push_size (P : PowTable) (cur : K) (h : cur = gpow P.pows.size) :
     (P.push cur h).pows.size = P.pows.size + 1 := by
   cases P
   simp [PowTable.push]
@@ -433,12 +436,6 @@ theorem fetchBy_eq_fetch (prog : Program) (P : PowTable) (pc : K) :
   have hκ : prog.logSize < 64 := lt_of_le_of_lt prog.logSize_le (by decide)
   rw [fetchBy, Program.fetch, addressIndexBy_eq_gLog hκ]
 
-/-- The limbs at the reference reader are `MemImage.limbsAt`. -/
-theorem limbsBy_read {κ : ℕ} (L : MemImage κ) : limbsBy L.read = L.limbsAt := rfl
-
-/-- The cell at the reference reader is `MemImage.cellAt`. -/
-theorem cellBy_read {κ : ℕ} (L : MemImage κ) : cellBy L.read = L.cellAt := rfl
-
 /-- Execution at a guessed reader is the reference execution. -/
 theorem executeWith_readBy {κ : ℕ} (hκ : κ < 64) (image : MemImage κ) (P : PowTable) :
     executeWith (readBy image P) = execute image := by
@@ -446,7 +443,7 @@ theorem executeWith_readBy {κ : ℕ} (hκ : κ < 64) (image : MemImage κ) (P :
   rw [execute, show readBy image P = image.read from funext (readBy_eq_read hκ image P)]
 
 /-- The table-driven step is the reference step, whatever the table. -/
-theorem stepTable_snd {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ) (n : ℕ)
+private theorem stepTable_snd {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ) (n : ℕ)
     (P : PowTable) (r : Regs K) : (stepTable prog image n P r).2 = step prog image r := by
   unfold stepTable step
   simp only [fetchBy_eq_fetch]
@@ -456,7 +453,7 @@ theorem stepTable_snd {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemIm
 
 /-- The table-driven run succeeds exactly on the reference executions within the budget, whatever
 the table. -/
-theorem runToHaltBy_eq_ok_iff {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ)
+private theorem runToHaltBy_eq_ok_iff {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ)
     (m fuel n : ℕ) (P : PowTable) (r : Regs K) :
     runToHaltBy prog image m fuel P r = .ok n ↔
       n ≤ fuel ∧ run prog image n r = some (Regs.final prog) := by

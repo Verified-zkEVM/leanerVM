@@ -52,3 +52,5 @@ jobs:
         run: .lake/build/bin/leanervm-prove m3
       - name: Proof of a statement with no execution
         run: .lake/build/bin/leanervm-prove sentinel
+      - name: Guarded prover from an execution, its checks and the witness generator
+        run: .lake/build/bin/leanervm-prove execution
