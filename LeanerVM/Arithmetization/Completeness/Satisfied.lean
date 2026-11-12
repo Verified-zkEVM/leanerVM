@@ -55,7 +55,7 @@ open Air.Flat (Component EnsembleWitness)
 /-! ## What the bus carries -/
 
 /-- The sends of rows of a component over the data `data`. -/
-def rowsSends (c : Component K) (rows : List (Array K)) (data : ProverData K) :
+private def rowsSends (c : Component K) (rows : List (Array K)) (data : ProverData K) :
     List (String × BusDir × Array K) :=
   rows.flatMap fun row ↦ rowSends c (Environment.fromArray row data)
 
@@ -105,7 +105,7 @@ private theorem opTable_sends {κ : ℕ} (img : MemImage κ) (R : List PRow)
   exact PRow.rowSends_raw (hRx r hr1) data
 
 /-- The sends of the memory block: per cell, the seed push and the finalize pull. -/
-def memBlockSends {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
+private def memBlockSends {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
     List (String × BusDir × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
     [(MemChannel.name, .push, #[gpow i, 1, (img i).limb 0, (img i).limb 1, (img i).limb 2]),
@@ -126,7 +126,7 @@ private theorem memBlock_sends {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemIma
   rfl
 
 /-- The sends of the bytecode block: per slot, the seed push and the finalize pull. -/
-def bcBlockSends (prog : Program) (fin : K → ℕ) : List (String × BusDir × Array K) :=
+private def bcBlockSends (prog : Program) (fin : K → ℕ) : List (String × BusDir × Array K) :=
   (List.finRange (2 ^ prog.logSize)).flatMap fun i : Fin (2 ^ prog.logSize) ↦
     [(BytecodeChannel.name, .push, bcMsgOf (gpow i) 1 (entry (prog.code i))),
       (BytecodeChannel.name, .pull, bcMsgOf (gpow i) (g ^ fin (gpow i)) (entry (prog.code i)))]
@@ -148,7 +148,7 @@ private theorem bcBlock_sends (prog : Program) (fin : K → ℕ) (data : ProverD
 
 /-- Everything the padded witness sends, in the ensemble's order: the verifier's two messages, the
 rows of the six tables, the memory block, the bytecode block. -/
-noncomputable def padSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
+private noncomputable def padSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
     List (String × BusDir × Array K) :=
   [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] ++
     (fillTables.flatMap fun op ↦

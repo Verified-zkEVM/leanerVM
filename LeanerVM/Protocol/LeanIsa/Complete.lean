@@ -135,7 +135,7 @@ private theorem toElements_rowAt {Row : TypeMap} [ProvableType Row] {row : Array
 variable {F prog s w}
 
 /-- The sizes a witness carries: its memory log-size and its tables' log-heights. -/
-def witnessSizes (w : EnsembleWitness (leanIsaEnsemble prog κ)) (h : 0 < κ) : Sizes :=
+private def witnessSizes (w : EnsembleWitness (leanIsaEnsemble prog κ)) (h : 0 < κ) : Sizes :=
   ⟨κ, h, fun j ↦ Nat.log 2 (opTable w j).table.length⟩
 
 /-- `Sizes.ofWitness` returns the sizes the witness carries. -/

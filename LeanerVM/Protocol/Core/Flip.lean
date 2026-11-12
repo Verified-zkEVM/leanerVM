@@ -464,7 +464,7 @@ private theorem mem_queries_squeezes {x : Digest} {m : ℕ} (hm : 0 < m) (ds : F
   simp [squeezeBlocks, List.ofFn_succ, HashChain.queries, squeezeInput]
 
 /-- The challenge a transcript carries at `i` is bad at the prefix before it. -/
-def _root_.LeanerVM.Protocol.SlotReader.BadIn (R : SlotReader) {a : R.Ann}
+private def _root_.LeanerVM.Protocol.SlotReader.BadIn (R : SlotReader) {a : R.Ann}
     (tr : (R.spec a).FullTranscript) (i : (R.spec a).ChallengeIdx) : Prop :=
   challengeAt tr i ∈ R.Bad a i (prefixBefore tr i)
 
