@@ -674,11 +674,10 @@ as an argument, which rebuilds the word at every read (`commitWordCached`, `Whir
 Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
 appended schedule with `Fin.fappend₂`, and transcripts are appended with `Fin.happend`; compiled as
-defined, both are exponential in the length of the second schedule. The forms that read an entry by
-one comparison with the seam, proposed to ArkLib with `@[csimp]` theorems, are copied in
-`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, and `LeanerVM.Protocol.ToArkLib.AppendLazy`
-compiles ArkLib's instances and `FullTranscript.append` again after them, since the pinned ArkLib
-compiled them before; both are imported where the schedules are built. A block's selector weight is
+defined, both are exponential in the length of the second schedule. ArkLib's `@[csimp]` theorems
+(`ArkLib.Data.Fin.Tuple.Lemmas`, ArkLib #1344) replace them with forms that read an entry by one
+comparison with the seam, and ArkLib compiles its instances and `FullTranscript.append` after them;
+`tests/LeanerVMTests/Protocol/AppendLazy.lean` guards the running time. A block's selector weight is
 one product (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers
 builds each table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS,
 `blake2sR1CS`, runs as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the

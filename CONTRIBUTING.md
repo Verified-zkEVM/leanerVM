@@ -86,9 +86,9 @@ end
 end LeanerVM.Example
 ```
 
-Production declaration files use Lean's module system, including `Parameters/CleanField.lean`
-and the Clean-consuming `Arithmetization` files. Clean and ArkLib both use it at the current
-pins. The historical restriction requiring plain Clean bridges no longer applies.
+Production declaration files use Lean's module system, including the Clean-consuming
+`Arithmetization` files and the Clean bridge `Protocol/ToClean/ComponentPolynomial.lean`. Clean
+and ArkLib both use it at the current pins. The historical restriction requiring plain Clean bridges no longer applies.
 
 Tests may use modules or remain classic; root aggregates remain classic. A classic test loads
 full definition bodies
