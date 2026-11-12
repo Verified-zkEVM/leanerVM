@@ -193,7 +193,7 @@ private theorem readKey_readBump (l : List K) : readKey (readBump l) = readKey l
   rcases l with _ | ⟨a, _ | ⟨b, l⟩⟩ <;> rfl
 
 private theorem readCount_readBump (l : List K) : readCount (readBump l) = g * readCount l := by
-  rcases l with _ | ⟨a, _ | ⟨b, l⟩⟩ <;> first | rfl | exact (mul_zero g).symm
+  rcases l with _ | ⟨a, _ | ⟨b, l⟩⟩ <;> first | exact (mul_zero g).symm | rfl
 
 /-- A memory read's push, as coordinates. -/
 private theorem memMsg_bump_toList (m : MemMsg K) :
@@ -293,7 +293,8 @@ private theorem readCount_ne {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h 
   obtain ⟨i, hi, hiname, hidir, rfl⟩ := exists_interaction_of_mem_rowMessagesOn hrow ha
   have hs := hsize t ht row _ ha
   have hne := h t ht i hi (by rw [hiname]; exact hname) hidir hs
-  rwa [readCount, List.getD_eq_getElem _ _ (by rwa [Array.length_toList]), Array.getElem_toList]
+  rwa [readCount, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_getElem (by rwa [Array.length_toList]), Option.getD_some, Array.getElem_toList]
 
 /-- A message's key is good when its pull's is: the key of a bumped read is the read's. -/
 private theorem good_of_bump {Good : List K → Prop} {reads : List (List K)}

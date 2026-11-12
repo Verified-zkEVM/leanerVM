@@ -7,8 +7,7 @@ import LeanerVM.Protocol.LeanIsa.Sound
   `M3Holds` of the leanISA instance give `SatisfiedBy` of the witness read off the stack, with no
   other hypothesis. Its BLAKE2s conjunct alone needs only the Flock clause.
 * **The bus as one bus.** On any witness of the ensemble, the two sides' tuples are one multiset
-  exactly when the three channels balance, pushes against pulls; Clean's multiset balance is
-  that and a bound on each channel's interactions, which the caps give.
+  exactly when the three channels balance, pushes against pulls.
 * **The relation's clauses are equivalences**, the direction this module does not use included:
   the counts, on a stack and a witness that agree.
 * **The limbs are read at the deployed slots.** At a size vector of the instance tests, the
@@ -45,12 +44,6 @@ example (prog : Program) (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble prog �
             (messagesOn w BytecodeChannel.toRaw .pull) := by
   rw [balanced_iff]
   exact ⟨fun h ↦ ⟨h 0, h 1, h 2⟩, fun h k ↦ by fin_cases k; exacts [h.1, h.2.1, h.2.2]⟩
-
-/-- Clean's multiset balance, within the caps, is the three channels' permutations. -/
-example (prog : Program) (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble prog κ)) (hc : Caps w) :
-    w.Balanced .multiset ↔ ∀ k : Fin 3,
-      (messagesOn w (channelAt k) .push).Perm (messagesOn w (channelAt k) .pull) :=
-  (balanced_multiset_iff w).trans ⟨And.right, fun h ↦ ⟨interactionsWith_length_lt hc, h⟩⟩
 
 /-- The counts, both ways, on a stack and a witness that agree. -/
 example (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (κ : ℕ)

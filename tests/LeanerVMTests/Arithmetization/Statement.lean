@@ -43,8 +43,8 @@ which the kernel does not reduce. On the three channels the messages of the veri
 opcode tables and the bytecode block are first rewritten to their closed forms
 (`intsOver_messages`, `verifier_msgs`, from `Arithmetization.Messages`), so that the kernel decides
 each permutation without evaluating a circuit. Balance is Clean's multiset check on the three
-channels (`balanced_of`): every multiplicity `1` (`interactions_mult_eq_one`), fewer than `2^64`
-interactions, and each channel's pushes a permutation of its pulls.
+channels (`balanced_of`): every multiplicity `1` (`interactions_mult_eq_one`), and each
+channel's pushes a permutation of its pulls.
 
 **Rejections**, each the honest witness with one thing changed, and each failing exactly the
 conjunct named. A wrong finalize count unbalances the memory channel (§6.2 "Nothing checks the
@@ -220,7 +220,7 @@ theorem memRowArr_eq (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
 /-- A typed row read back from its raw row. -/
 theorem fromElements_rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) :
     (fromElements (Air.Flat.rowPrefix (size Row) (rawRow r)) : Row K) = r :=
-  (Air.Flat.valueFromOffset_fromArray (rawRow r) fun _ _ ↦ #[]).symm.trans (rowAt_toElements _ r)
+  fromElements_rowPrefix r
 
 /-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
 theorem cons_append_ops (e : Vector K 8) :
@@ -339,7 +339,8 @@ theorem tableAt_seven (c rA : K) (cnt : ℕ → K) :
 
 /-- The witness's data is derived from its tables. -/
 theorem fillW_data (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).data =
-    Air.Flat.deriveProverData [xorT, mulT rA, setT c, derefT, jumpT, blakeT, memT cnt, bcT] :=
+    Air.Flat.deriveProverData [xorT, mulT rA, setT c, derefT, jumpT, blakeT, memT cnt, bcT]
+      (toElements (PublicIO.ofInput mulInput)).toArray :=
   witnessOfTables_data (hc := rfl)
 
 /-- A table of a built witness has the component and rows of one of the tables it was built
@@ -361,9 +362,10 @@ theorem fill_memRows_get? (c rA : K) (cnt : ℕ → K) (k : ℕ) (hk : k < 2 ^ m
       (fillImage ⟨k, hk⟩).limb 1, (fillImage ⟨k, hk⟩).limb 2] := by
   have hmem : memT cnt ∈ [xorT, mulT rA, setT c, derefT, jumpT, blakeT, memT cnt, bcT] := by
     simp only [List.mem_cons, true_or, or_true]
-  rw [memRows, ProverData.getRows, fillW_data,
-    show memDataName = (memT cnt).component.circuit.name from rfl,
-    Air.Flat.deriveProverData_eq_of_mem _ (names_nodup rfl) hmem, Air.Flat.Table.rowPrefixes,
+  rw [memRows, ProverData.getRows, fillW_data]
+  dsimp only [Air.Flat.deriveProverData]
+  rw [show memDataName = (memT cnt).component.circuit.name from rfl,
+    Air.Flat.deriveTables_eq_of_mem _ (names_nodup rfl) hmem, Air.Flat.Table.rowPrefixes,
     memT_table, Array.getElem?_map, Array.getElem?_map, List.getElem?_toArray, List.getElem?_map,
     List.getElem?_ofFn, dite_eq_left hk, Option.map_some, Option.map_some]
   exact congrArg (fun r : MemRow K ↦ some r.m) (fromElements_rawRow _)
@@ -488,14 +490,15 @@ def intsOver (D : ProverData K) (t : Air.Flat.Table K) : List (Interaction K) :=
     t.component.rowOperations.interactions.map (·.eval (Environment.fromArray row D))
 
 theorem mkW_data (ts : List (Air.Flat.Table K)) (hc) :
-    (mkW ts hc).data = Air.Flat.deriveProverData ts :=
+    (mkW ts hc).data =
+      Air.Flat.deriveProverData ts (toElements (PublicIO.ofInput mulInput)).toArray :=
   witnessOfTables_data
 
 /-- A built witness's interactions: the verifier's, then each table's over the derived data. -/
 theorem mkW_interactions (ts : List (Air.Flat.Table K)) (hc) :
     (mkW ts hc).interactions =
       (leanIsaEnsemble fillProg minLogMem).verifierOperations.interactionValues
-          (.fromInput (PublicIO.ofInput mulInput) (mkW ts hc).data) ++
+          (mkW ts hc).data.publicEnvironment ++
         ts.flatMap (intsOver (mkW ts hc).data) := by
   rw [EnsembleWitness.interactions]
   congr 1
@@ -743,35 +746,21 @@ theorem fins_split (cnt : ℕ → K) (h : ∀ i, touched ≤ i → cnt i = 1) :
 theorem fillW_interactions (c rA : K) (cnt : ℕ → K) :
     (fillW c rA cnt).interactions =
       (leanIsaEnsemble fillProg minLogMem).verifierOperations.interactionValues
-          (.fromInput (PublicIO.ofInput mulInput) (fillW c rA cnt).data) ++
+          (fillW c rA cnt).data.publicEnvironment ++
         [xorT, mulT rA, setT c, derefT, jumpT, blakeT, memT cnt, bcT].flatMap
           (intsOver (fillW c rA cnt).data) :=
   mkW_interactions _ _
 
-/-- Fewer interactions than `2^64`, for every count. -/
-theorem fill_length (c rA : K) (cnt : ℕ → K) :
-    (fillW c rA cnt).interactions.length < FiniteField.size K := by
-  rw [fillW_interactions]
-  simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.length_append,
-    intsOver_length, Operations.interactionValues, List.length_map,
-    show (mulT rA).table.length = 1 from rfl, show (setT c).table.length = 2 from rfl,
-    show (mulT rA).component = mulComponent from rfl,
-    show (setT c).component = setComponent from rfl,
-    show (memT cnt).component = memComponent minLogMem from rfl, memT_table, List.length_ofFn]
-  decide +kernel
-
-/-- The multiset check on each channel, from its permutation, the multiplicities and the
-length. -/
+/-- The multiset check on each channel, from its permutation and the multiplicities. -/
 theorem balanced_of {w : EnsembleWitness (leanIsaEnsemble fillProg minLogMem)}
-    (hm : ∀ i ∈ w.interactions, i.mult = 1) (hl : w.interactions.length < FiniteField.size K)
+    (hm : ∀ i ∈ w.interactions, i.mult = 1)
     (hs : (messagesOn w StateChannel.toRaw .push).Perm (messagesOn w StateChannel.toRaw .pull))
     (hmem : (messagesOn w MemChannel.toRaw .push).Perm (messagesOn w MemChannel.toRaw .pull))
     (hb : (messagesOn w BytecodeChannel.toRaw .push).Perm
       (messagesOn w BytecodeChannel.toRaw .pull)) : w.Balanced .multiset := by
   intro c hc
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
-  refine ⟨lt_of_le_of_lt (List.length_filter_le _ _) hl,
-    fun i hi ↦ Or.inr (hm i (List.mem_of_mem_filter hi)), ?_⟩
+  refine ⟨fun i hi ↦ Or.inr (hm i (List.mem_of_mem_filter hi)), ?_⟩
   have hp : (messagesOn w c .push).Perm (messagesOn w c .pull) := by
     simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl
@@ -786,7 +775,7 @@ theorem perm_of_balanced {w : EnsembleWitness (leanIsaEnsemble fillProg minLogMe
     (h : w.Balanced .multiset) {c : RawChannel K}
     (hc : c ∈ (leanIsaEnsemble fillProg minLogMem).channels) :
     (messagesOn w c .push).Perm (messagesOn w c .pull) := by
-  have hb := (h c hc).2.2
+  have hb := (h c hc).2
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc] at hb
   unfold messagesOn
   convert hb using 3
@@ -794,7 +783,7 @@ theorem perm_of_balanced {w : EnsembleWitness (leanIsaEnsemble fillProg minLogMe
 /-- The memory messages of the verifier and the six opcode tables. -/
 def memSmall (c rA : K) (cnt : ℕ → K) : List (Interaction K) :=
   ((leanIsaEnsemble fillProg minLogMem).verifierOperations.interactionValues
-      (.fromInput (PublicIO.ofInput mulInput) (fillW c rA cnt).data) ++
+      (fillW c rA cnt).data.publicEnvironment ++
     [xorT, mulT rA, setT c, derefT, jumpT, blakeT].flatMap (intsOver (fillW c rA cnt).data)).filter
       (·.channel.name = MemChannel.toRaw.name)
 
@@ -845,7 +834,7 @@ theorem jumpT_constraints (D : ProverData K) :
   · rw [Component.constraintsHold_iff]
     simp only [circuit_norm, jumpComponent, jumpTable, instructionStep, memRead, bytecodeRead,
       -BitVec.reduceNeg]
-    rintro e (rfl | rfl) <;> rw [eval_fromArray _ D fun _ _ ↦ #[]] <;> decide +kernel
+    rintro e (rfl | rfl) <;> rw [eval_fromArray _ D (.empty K)] <;> decide +kernel
 
 /-- A table of a built witness: its rows' constraints are those of the table it was built from,
 over the witness's data. -/
@@ -910,8 +899,7 @@ theorem fill_mem_perm : (messagesOn (fillW 1 g memCnt) MemChannel.toRaw .push).P
 
 /-- The three channels balance as multisets. -/
 theorem fill_balanced : (fillW 1 g memCnt).Balanced .multiset :=
-  balanced_of (interactions_mult_eq_one _) (fill_length 1 g memCnt) fill_state_perm fill_mem_perm
-    fill_bytecode_perm
+  balanced_of (interactions_mult_eq_one _) fill_state_perm fill_mem_perm fill_bytecode_perm
 
 /-- Every read count is nonzero. -/
 theorem fill_countsNonzero : CountsNonzero (fillW 1 g memCnt) := by
@@ -1103,8 +1091,7 @@ theorem zero_count_witness :
     (imageOf (fillW 0 1 zeroCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
     ¬ CountsNonzero (fillW 0 1 zeroCnt) :=
   ⟨rfl, fill_constraints 0 1 zeroCnt,
-    balanced_of (interactions_mult_eq_one _) (fill_length 0 1 zeroCnt) zero_state_perm zero_mem_perm
-      zero_bytecode_perm,
+    balanced_of (interactions_mult_eq_one _) zero_state_perm zero_mem_perm zero_bytecode_perm,
     fill_caps 0 1 zeroCnt, fill_blake2sValid 0 1 zeroCnt, fill_word0 0 1 zeroCnt,
     fill_word1 0 1 zeroCnt, by
       unfold CountsNonzero

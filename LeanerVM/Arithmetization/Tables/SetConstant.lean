@@ -151,8 +151,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hk⟩
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
-    refine (set_refines_iff _ _ _).mpr ⟨?_, rfl⟩
-    simpa only [Vector.getElem_map] using hk
+    exact (set_refines_iff _ _ _).mpr ⟨hk, rfl⟩
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]

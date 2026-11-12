@@ -20,7 +20,7 @@ proposition on any two data.
 The last section pins Clean's direction-tagged bus over `K` (roadmap acceptance tests 13 and
 14): a direction is an interaction's tag, independent of `-1 = 1`; a pull of multiplicity `1`
 is granted the channel's guarantee and an active push owes it; `Balance.logUp`, whose
-characteristic bound is `ringChar K = 2`, admits at most one interaction, while
+characteristic bound is `ringChar K = 2`, is sound for at most one interaction, while
 `Balance.multiset`, the check the statement uses, rejects a message pushed twice and never
 pulled, which the field sum `1 + 1 = 0` would accept.
 -/
@@ -56,7 +56,7 @@ def foreign : RawChannel K where
   Requirements _ _ _ _ := True
 
 #guard channelSep foreign = 0
-example : channelSep foreign ≠ channelSep MemChannel.toRaw := by decide
+example : channelSep foreign ≠ channelSep MemChannel.toRaw := by decide +kernel
 
 /-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs:127-166`) -/
 
@@ -71,7 +71,8 @@ def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gp
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
 example : (toElements st).toList = [gpow 3, gpow 5] := regs_toElements st
-example : (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
+example :
+    (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
     [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0] := by
@@ -101,7 +102,7 @@ example : (busTuple MemChannel.toRaw (toElements mm).toList)[0] = g ∧
     (busTuple MemChannel.toRaw (toElements mm).toList)[3] = K.ofBits 7 ∧
     (busTuple MemChannel.toRaw (toElements mm).toList)[6] = 0 := by
   simp only [busTuple_getElem, memMsg_toElements]
-  decide
+  decide +kernel
 
 /-! ## The read gadgets (specification §6.2 "Flush rules") -/
 
@@ -127,26 +128,26 @@ example (pc c o : Expression K) (op : Vector (Expression K) 7) :
 
 /-- Two memory block rows `(idx, cntFin, m)`, matched on arity so that the kernel never
 compares table names. The program has no table: it is public (decision 14). -/
-def sampleData : ProverData K := fun _ n ↦
-  match n with
-  | 5 => #[#v[1, 1, 1, K.ofBits 2, K.ofBits 3], #v[g, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6]]
-  | _ => #[]
+def sampleData : ProverData K where
+  tables _ n := match n with
+    | 5 => #[#v[1, 1, 1, K.ofBits 2, K.ofBits 3], #v[g, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6]]
+    | _ => #[]
+  publicInput := #[]
 
 /-- A store whose table is told apart by name: `imageOf` reads the memory block's `"mem"`. -/
-def namedData : ProverData K := fun name n ↦
-  match name, n with
-  | "mem", 5 => #[#v[1, 1, K.ofBits 9, K.ofBits 9, K.ofBits 9]]
-  | _, _ => #[]
+def namedData : ProverData K where
+  tables name n := match name, n with
+    | "mem", 5 => #[#v[1, 1, K.ofBits 9, K.ofBits 9, K.ofBits 9]]
+    | _, _ => #[]
+  publicInput := #[]
 
 /-- Three memory rows: not a power of two. -/
-def threeRows : ProverData K := fun _ n ↦
-  match n with
-  | 5 => #[#v[1, 1, 1, K.ofBits 2, K.ofBits 3], #v[g, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6],
-      #v[g ^ 2, 1, K.ofBits 7, K.ofBits 8, K.ofBits 9]]
-  | _ => #[]
-
-/-- The empty store. -/
-def emptyData : ProverData K := fun _ _ ↦ #[]
+def threeRows : ProverData K where
+  tables _ n := match n with
+    | 5 => #[#v[1, 1, 1, K.ofBits 2, K.ofBits 3], #v[g, 1, K.ofBits 4, K.ofBits 5, K.ofBits 6],
+        #v[g ^ 2, 1, K.ofBits 7, K.ofBits 8, K.ofBits 9]]
+    | _ => #[]
+  publicInput := #[]
 
 #guard (imageOf sampleData).1 = 1
 #guard (imageOf sampleData).2 0 = E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)
@@ -158,8 +159,8 @@ def emptyData : ProverData K := fun _ _ ↦ #[]
 #guard (imageOf threeRows).1 = 1
 #guard (imageOf threeRows).2 1 = E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6)
 -- The empty store: one word `0`.
-#guard (imageOf emptyData).1 = 0
-#guard (imageOf emptyData).2 0 = 0
+#guard (imageOf (ProverData.empty K)).1 = 0
+#guard (imageOf (ProverData.empty K)).2 0 = 0
 
 /-- The log-size of two rows is `1`, through `imageOf_fst`, under the cap. -/
 theorem sampleData_logSize : (imageOf sampleData).1 = 1 :=
@@ -178,26 +179,30 @@ example : 2 ^ (imageOf threeRows).1 < (memRows threeRows).size := by
   decide +kernel
 
 /-- The empty store's image still has one word. -/
-example : (imageOf emptyData).1 = 0 ∧ (memRows emptyData).size = 0 := by
+example : (imageOf (ProverData.empty K)).1 = 0 ∧ (memRows (ProverData.empty K)).size = 0 := by
   refine ⟨?_, by decide +kernel⟩
-  show min (Nat.log 2 (memRows emptyData).size) maxLogMem = 0
-  rw [show (memRows emptyData).size = 0 by decide +kernel, Nat.log_zero_right]
+  show min (Nat.log 2 (memRows (ProverData.empty K)).size) maxLogMem = 0
+  rw [show (memRows (ProverData.empty K)).size = 0 by decide +kernel, Nat.log_zero_right]
   decide
 
 /-- Index `1` of the sample image. -/
 def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; decide⟩
 
 /-- A correct read satisfies the memory guarantee: word `1` sits at `g^1`. -/
-example : MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
-  show (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
+example :
+    MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
+  show (imageOf sampleData).2.read (gpow 1) =
+    some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
     MemImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   rfl
 
 /-- A wrong word does not: the guarantee is a statement about the committed image. -/
-example : ¬ MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
-  show ¬ (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
+example :
+    ¬ MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
+  show ¬ (imageOf sampleData).2.read (gpow 1) =
+    some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
     MemImage.read_gpow (by rw [sampleData_logSize]; decide),
     imageOf_apply one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
@@ -267,12 +272,12 @@ example (v : Vector K 5) (data : ProverData K) :
 /-- The characteristic of `K` is `2`. -/
 example : ringChar K = 2 := ringChar.eq K 2
 
-/-- `Balance.logUp` admits at most one interaction over `K`: its bound is the characteristic. -/
-example (i j : Interaction K) (rest : List (Interaction K)) :
-    ¬ Balance.logUp.Balanced (i :: j :: rest) := by
-  rintro ⟨h, -⟩
-  rw [ringChar.eq K 2] at h
-  simp at h
+/-- The characteristic of `K` as data, which `Balance.logUp` reads. -/
+instance : ComputableRingChar K := ⟨2, (ringChar.eq K 2).symm⟩
+
+/-- `Balance.logUp` is sound for at most one interaction over `K`: its bound is the
+characteristic. -/
+example : (Balance.logUp (F := K)).fits 1 ∧ ¬ (Balance.logUp (F := K)).fits 2 := by decide
 
 /-- A message pushed twice and never pulled. -/
 def twicePushed : List (Interaction K) := [MemChannel.pushedValue mm, MemChannel.pushedValue mm]
@@ -288,7 +293,7 @@ example (msg : Array K) : balanceOf twicePushed msg = 0 := by
 
 /-- `Balance.multiset` rejects it: its pushes are no permutation of its pulls. -/
 example : ¬ Balance.multiset.Balanced twicePushed := by
-  rintro ⟨-, -, h⟩
+  rintro ⟨-, h⟩
   have hl := h.length_eq
   simp [twicePushed, activeMessages, Channel.pushedValue] at hl
 

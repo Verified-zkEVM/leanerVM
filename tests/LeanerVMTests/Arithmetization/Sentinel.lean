@@ -39,7 +39,9 @@ theorem sent_not_safe : ¬ SentinelSafe sentProg := by decide
 theorem bcTS_table : bcTS.table = bcRowsS := by
   dsimp only [bcTS, mkT, tableOf]
 
-theorem sentW_data : sentW.data = Air.Flat.deriveProverData sentTables :=
+theorem sentW_data :
+    sentW.data =
+      Air.Flat.deriveProverData sentTables (toElements (PublicIO.ofInput mulInput)).toArray :=
   witnessOfTables_data (hc := rfl)
 
 /-- A table of the witness has the component and rows of one of `sentTables`. -/
@@ -64,9 +66,10 @@ theorem sent_memRows_get? (k : ℕ) (hk : k < 2 ^ minLogMem) :
       (fillImage ⟨k, hk⟩).limb 1, (fillImage ⟨k, hk⟩).limb 2] := by
   have hmem : memT sentCnt ∈ sentTables := by
     simp only [sentTables, List.mem_cons, true_or, or_true]
-  rw [memRows, ProverData.getRows, sentW_data,
-    show memDataName = (memT sentCnt).component.circuit.name from rfl,
-    Air.Flat.deriveProverData_eq_of_mem _ (names_nodup rfl) hmem, Air.Flat.Table.rowPrefixes,
+  rw [memRows, ProverData.getRows, sentW_data]
+  dsimp only [Air.Flat.deriveProverData]
+  rw [show memDataName = (memT sentCnt).component.circuit.name from rfl,
+    Air.Flat.deriveTables_eq_of_mem _ (names_nodup rfl) hmem, Air.Flat.Table.rowPrefixes,
     memT_table, Array.getElem?_map, Array.getElem?_map, List.getElem?_toArray, List.getElem?_map,
     List.getElem?_ofFn, dite_eq_left hk, Option.map_some, Option.map_some]
   exact congrArg (fun r : MemRow K ↦ some r.m) (fromElements_rawRow _)
@@ -103,7 +106,7 @@ data. -/
 theorem witnessOfTables_interactions (ts : List (Air.Flat.Table K)) (hc) :
     (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).interactions =
       (leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
-          (.fromInput (PublicIO.ofInput mulInput)
+          (ProverData.publicEnvironment
             (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).data) ++
         ts.flatMap (intsOver
           (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).data) := by
@@ -119,7 +122,7 @@ theorem witnessOfTables_interactions (ts : List (Air.Flat.Table K)) (hc) :
 theorem sentW_interactions :
     sentW.interactions =
       (leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
-          (.fromInput (PublicIO.ofInput mulInput) sentW.data) ++
+          sentW.data.publicEnvironment ++
         sentTables.flatMap (intsOver sentW.data) :=
   witnessOfTables_interactions _ _
 
@@ -130,18 +133,6 @@ theorem bcTS_filter (c : RawChannel K) (hc : c.name ≠ BytecodeChannel.name) (D
     rw [show bcTS.component = bytecodeComponent sentProg from rfl, bytecodeComponent_rowOps]
     simp only [List.mem_cons, List.not_mem_nil, or_false]
     rintro i (rfl | rfl) <;> exact fun h ↦ hc (h.symm.trans rfl))
-
-/-- Fewer interactions than `2^64`. -/
-theorem sent_length : sentW.interactions.length < FiniteField.size K := by
-  rw [sentW_interactions]
-  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.length_append, intsOver_length, Operations.interactionValues, List.length_map,
-    show mulTS.table.length = 1 from rfl, show setTS.table.length = 2 from rfl,
-    show mulTS.component = mulComponent from rfl,
-    show setTS.component = setComponent from rfl,
-    show (memT sentCnt).component = memComponent minLogMem from rfl, memT_table,
-    List.length_ofFn]
-  decide +kernel
 
 /-- Rewrites the messages of the verifier, the six opcode tables and the bytecode block over the
 witness's data to their closed forms (`intsOver_messages`). -/
@@ -177,7 +168,7 @@ local macro "rw_sent_msgs" loc:(ppSpace Lean.Parser.Tactic.location)? : tactic =
 /-- The memory messages of the verifier and the six opcode tables. -/
 def sentMemSmall : List (Interaction K) :=
   ((leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
-      (.fromInput (PublicIO.ofInput mulInput) sentW.data) ++
+      sentW.data.publicEnvironment ++
     [xorT, mulTS, setTS, derefTS, jumpTS, blakeT].flatMap (intsOver sentW.data)).filter
       (·.channel.name = MemChannel.toRaw.name)
 
@@ -213,7 +204,7 @@ theorem jumpTS_constraints (D : ProverData K) :
   · rw [Component.constraintsHold_iff]
     simp only [circuit_norm, jumpComponent, jumpTable, instructionStep, memRead, bytecodeRead,
       -BitVec.reduceNeg]
-    rintro e (rfl | rfl) <;> rw [eval_fromArray _ D fun _ _ ↦ #[]] <;> decide +kernel
+    rintro e (rfl | rfl) <;> rw [eval_fromArray _ D (.empty K)] <;> decide +kernel
 
 /-! ## The witness satisfies the statement -/
 
@@ -265,8 +256,7 @@ theorem sent_mem_perm : (messagesOn sentW MemChannel.toRaw .push).Perm
 theorem sent_balanced : sentW.Balanced .multiset := by
   intro c hc
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
-  refine ⟨lt_of_le_of_lt (List.length_filter_le _ _) sent_length,
-    fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
+  refine ⟨fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
   have hp : (messagesOn sentW c .push).Perm (messagesOn sentW c .pull) := by
     simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl

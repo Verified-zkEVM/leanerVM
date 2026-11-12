@@ -27,7 +27,6 @@ import LeanerVM.Arithmetization.Tables.Xor
 import LeanerVM.Arithmetization.WitnessGen
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
-import LeanerVM.Parameters.CleanField
 import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Flock
 import LeanerVM.Parameters.Generator

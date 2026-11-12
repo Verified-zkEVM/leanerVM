@@ -169,10 +169,8 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hA, fun _ ↦ hB, fun _ ↦ hC⟩
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    refine (mul_refines_iff _ _ _).mpr ⟨⟨?_, ?_⟩, ?_, rfl⟩
-    · simpa only [Vector.getElem_map] using hA
-    · simpa only [Vector.getElem_map] using hB
-    · simpa only [mul_limbs, Vector.getElem_map] using hC
+    refine (mul_refines_iff _ _ _).mpr ⟨⟨hA, hB⟩, ?_, rfl⟩
+    simpa only [mul_limbs] using hC
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]

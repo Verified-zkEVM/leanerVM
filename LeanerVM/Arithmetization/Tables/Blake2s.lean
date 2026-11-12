@@ -265,15 +265,15 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
     refine (blake2s_refines_iff _ _ _).mpr
       ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, h_assumptions, rfl⟩
-    · simpa only [E.ofCell, Vector.getElem_map] using hm0
-    · simpa only [E.ofCell, Vector.getElem_map] using hm1
-    · simpa only [E.ofCell, Vector.getElem_map] using hm2
-    · simpa only [E.ofCell, Vector.getElem_map] using hm3
-    · simpa only [E.ofCell, Vector.getElem_map] using hcv0
-    · simpa only [E.ofCell, Vector.getElem_map] using hcv1
-    · simpa only [E.ofCell, Vector.getElem_map] using hout0
-    · simpa only [E.ofCell, Vector.getElem_map] using hout1
-    · simpa only [E.ofCell, Vector.getElem_map] using hmd
+    · simpa only [E.ofCell] using hm0
+    · simpa only [E.ofCell] using hm1
+    · simpa only [E.ofCell] using hm2
+    · simpa only [E.ofCell] using hm3
+    · simpa only [E.ofCell] using hcv0
+    · simpa only [E.ofCell] using hcv1
+    · simpa only [E.ofCell] using hout0
+    · simpa only [E.ofCell] using hout1
+    · simpa only [E.ofCell] using hmd
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead, E.ofCell]

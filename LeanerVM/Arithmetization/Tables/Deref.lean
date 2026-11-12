@@ -233,11 +233,8 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     obtain ⟨mode, rfl, hflags⟩ := decode_deref_eq_some_iff.mp hdec
     obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
     subst h4 h5
-    simp only at h3 h2
     rw [storeCoords_eval] at h2
-    refine (deref_refines_iff _ _ _).mpr ⟨mode, ⟨rfl, h1, ?_⟩, ?_, rfl⟩
-    · simpa only [Vector.getElem_map] using h3
-    · simpa only [Vector.getElem_map] using h2
+    exact (deref_refines_iff _ _ _).mpr ⟨mode, ⟨rfl, h1, h3⟩, h2, rfl⟩
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]

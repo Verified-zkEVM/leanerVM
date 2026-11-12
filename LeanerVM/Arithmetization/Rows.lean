@@ -193,7 +193,7 @@ def blake2sSends (r : Blake2sRow K) : OpcodeSends where
 def verifierMessagesOn {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (c : RawChannel K) (d : BusDir) : List (Array K) :=
   activeMessages (((leanIsaEnsemble prog κ).verifierOperations.interactionValues
-    (.fromInput w.publicInput w.data)).filter (·.channel.name = c.name)) d
+    w.data.publicEnvironment).filter (·.channel.name = c.name)) d
 
 /-! ## Proof helpers -/
 

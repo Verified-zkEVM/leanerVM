@@ -467,7 +467,8 @@ private theorem boundaryTuples_push :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
@@ -498,7 +499,8 @@ private theorem boundaryTuples_pull :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
@@ -616,7 +618,7 @@ theorem tuples_perm {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees 
     (side : Side) : ((leanIsaInstance F prog s).tuples q side).Perm (sideTuples w side) := by
   have hb : (leanIsaInstance F prog s).boundaryTuples q side =
       tuplesOn ((leanIsaEnsemble prog κ).verifierOperations.interactionValues
-          (.fromInput w.publicInput w.data)) side ++ tuplesOn (tableAt w 6).interactions side ++
+          w.data.publicEnvironment) side ++ tuplesOn (tableAt w 6).interactions side ++
         tuplesOn (tableAt w 7).interactions side := by
     rw [tuplesOn_verifier, tuplesOn_memBlock h, tuplesOn_bytecodeBlock h]
     cases side

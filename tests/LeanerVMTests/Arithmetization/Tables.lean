@@ -21,9 +21,9 @@ functional specification (`*Spec`, with Layer 3's `execute` of the row's instruc
 the kernel, which also names the successor `main` returns), and every valid execution of the
 fixture yields a satisfying row from the execution alone (`*_exec_complete`, on the row
 `*RowOf` reads back from the image): the `DEREF` executions in the three store modes, the `JUMP`
-executions on both branches in their honest environment `jumpEnv`, whose two witness slots are
-what the witness programs compute (`jump_env_iff`); Clean's array generator `Circuit.witgen`
-computes the same two values (`#guard`, compiled).
+executions on both branches in Clean's honest prover environment, whose two witness slots are
+what the witness programs compute (`#guard`, compiled, as Clean's array generator
+`Circuit.witgen` does).
 
 Rejections use actual rows and the tables' own theorems: the review's counterexample to the
 old step-only contract, a `DEREF` row with the flag pair `(1, 1)`, executes from its registers
@@ -102,10 +102,11 @@ def memTable : Array (Vector K 3) :=
 /-- The prover data of an image: the memory block's rows holding its words (the address and
 count columns, which `imageOf` does not read, at `0`), matched on arity so that the kernel never
 compares names (as in the Layer 5 tests). -/
-def dataOf (mem : Array (Vector K 3)) : ProverData K := fun _ n ↦
-  match n with
-  | 5 => mem.map fun v ↦ toElements (⟨0, 0, v⟩ : MemRow K)
-  | _ => #[]
+def dataOf (mem : Array (Vector K 3)) : ProverData K where
+  tables _ n := match n with
+    | 5 => mem.map fun v ↦ toElements (⟨0, 0, v⟩ : MemRow K)
+    | _ => #[]
+  publicInput := #[]
 
 /-- The fixture's prover data. -/
 def tabData : ProverData K := dataOf memTable
@@ -459,29 +460,30 @@ theorem jump0_spec : JumpSpec jumpRow0 ⟨g * gpow 8, 1⟩ tabData :=
       read_at 12 #v[1, 0, 0]]
     decide +kernel⟩
 
-/-- Either valid execution alone yields a satisfying row, in its honest environment, witnesses
-included; `jump_spec` and `jump0_spec` name the successors `main` returns. -/
-example : ConstraintsHold.Completeness
-    (jumpEnv tabData
-      (jumpRowOf (imageOf tabData).2 (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main (const (jumpRowOf (imageOf tabData).2
-      (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+/-- Either valid execution alone yields a satisfying row, in Clean's honest prover environment,
+witnesses included; `jump_spec` and `jump0_spec` name the successors `main` returns. -/
+example : Operations.ConstraintsHold
+    (jumpTable.proverEnvironment
+      (jumpRowOf (imageOf tabData).2 (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1) tabData
+      default)
+    ((jumpTable.main (varFromOffset JumpRow 0)).operations (size JumpRow)) :=
   jump_exec_complete jump_spec.exec_eq 1 1 1 1
 
-example : ConstraintsHold.Completeness
-    (jumpEnv tabData
-      (jumpRowOf (imageOf tabData).2 (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main (const (jumpRowOf (imageOf tabData).2
-      (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+example : Operations.ConstraintsHold
+    (jumpTable.proverEnvironment
+      (jumpRowOf (imageOf tabData).2 (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1) tabData
+      default)
+    ((jumpTable.main (varFromOffset JumpRow 0)).operations (size JumpRow)) :=
   jump_exec_complete jump0_spec.exec_eq 1 1 1 1
 
--- Clean's array generator computes the same two witnesses as `jumpEnv` holds: `w = 1⁻¹ = 1`,
--- `b = 1` on the taken row, `w = 0`, `b = 0` on the untaken one (compiled).
-#guard (jumpTable.main (const jumpRow)).witgen default #[] = #[1, 1]
-#guard (jumpTable.main (const jumpRow0)).witgen default #[] = #[0, 0]
-
-example : (jumpEnv tabData jumpRow).get 0 = 1 ∧ (jumpEnv tabData jumpRow).get 1 = 1 := by
-  decide +kernel
+-- The honest environment's two witness slots, after the row: `w = 1⁻¹ = 1`, `b = 1` on the taken
+-- row, `w = 0`, `b = 0` on the untaken one, as Clean's array generator computes them (compiled).
+#guard (jumpTable.proverEnvironment jumpRow tabData default).get (size JumpRow) = 1
+#guard (jumpTable.proverEnvironment jumpRow tabData default).get (size JumpRow + 1) = 1
+#guard (jumpTable.proverEnvironment jumpRow0 tabData default).get (size JumpRow) = 0
+#guard (jumpTable.proverEnvironment jumpRow0 tabData default).get (size JumpRow + 1) = 0
+#guard (jumpTable.main (const jumpRow)).witgen (.empty K) default #[] = #[1, 1]
+#guard (jumpTable.main (const jumpRow0)).witgen (.empty K) default #[] = #[0, 0]
 
 /-- With `v_cond = 0` the two residuals `main` asserts force `b = 0`, whatever the inverse `w`
 (acceptance test 8): booleanity of `b` alone would have accepted `b = 1`. -/

@@ -62,9 +62,9 @@ products by Karatsuba (`LeanerVM.Parameters.ToCompPoly.BF64Fast`,
 
 ## Clean's field interface
 
-Clean's `FiniteField K` is `instFiniteFieldK` in `LeanerVM.Parameters.CleanField`.
-Clean now uses Lean's module system. The Clean bridge is a separate module, keeping the field carrier independent of that
-interface for the Semantics layer.
+Clean's `FiniteField K` is Clean's own `FiniteField BF64` (`Clean.Utils.BinaryField`), imported by
+the Arithmetization layer: `val` is the word's value, `fromNat` is `K.ofBits`, and its field
+structure is CompPoly's. This module stays free of Clean for the Semantics layer.
 -/
 
 namespace LeanerVM.Parameters
