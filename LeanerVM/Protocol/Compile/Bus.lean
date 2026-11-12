@@ -106,17 +106,6 @@ private theorem childTables_ofFn {ρ : ℕ} (ch : Fin 3 → Vector E (2 ^ ρ)) :
 
 /-! ## The wire of the grand product -/
 
-/-- A layer's transcript is its combiner, its rounds, its descendants and its combination
-challenges. -/
-private theorem exists_eq_stepTr {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
-    ∃ (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
-      (u : Vector E ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
-  obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
-  refine ⟨t.fst.fst.fst 0, t.fst.fst.snd, t.fst.snd 0, Vector.ofFn f, ?_⟩
-  conv_lhs => rw [Gkr.eq_stepTr t]
-  rw [hf]
-  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
-
 /-- The wire of a layer's transcript in its parts. -/
 private theorem layerWire_mk {ρ m : ℕ} (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript)
     (ch : Fin 3 → Vector E (2 ^ ρ)) (u : Vector E ρ) (next : E) :
@@ -237,7 +226,7 @@ to. -/
 private theorem layerTr?_layerWire_of_solved (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
     (t : (stepSpec E 3 ρ m).FullTranscript) (next : E) (hs : LayerSolved ρ m ℓ t) :
     layerTr? ρ m ℓ (layerCombiner t) (layerWire t next) = some t := by
-  obtain ⟨lam, R, ch, u, rfl⟩ := exists_eq_stepTr t
+  obtain ⟨lam, R, ch, u, rfl⟩ := Gkr.exists_eq_stepTr t
   obtain ⟨hlam, hwire⟩ := layerWire_mk lam R ch u next
   rw [LayerSolved, hlam] at hs
   simp only [FullTranscript.append_fst, FullTranscript.append_snd] at hs
@@ -253,7 +242,7 @@ private theorem layerSolved_of_check (ρ m : ℕ) {S : Type} (inp : S → Gkr.La
     (t : (stepSpec E 3 ρ m).FullTranscript)
     (hc : (Gkr.layerStepFront 3 μ leaves ρ m inp).check s t = true) :
     LayerSolved ρ m (inp s) t := by
-  obtain ⟨lam, R, ch, u, rfl⟩ := exists_eq_stepTr t
+  obtain ⟨lam, R, ch, u, rfl⟩ := Gkr.exists_eq_stepTr t
   have hrun := (Gkr.layerStepFront 3 μ leaves ρ m inp).run_of_check hc
   rw [Gkr.run_layerStepFront] at hrun
   obtain ⟨st, hR, -⟩ := Option.bind_eq_some_iff.mp hrun
