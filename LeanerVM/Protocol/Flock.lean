@@ -63,12 +63,9 @@ private theorem K.eq_sum_bits (a : K) :
     rw [BF64.toQuot, BF64.toPolyBF64, g, K.ofBits, BF64.toBitVec_ofBitVec,
       show BitVec.ofNat 64 2 = (1 <<< 1 : BitVec 64) by decide,
       BinaryField.toPoly_one_shiftLeft 1 (by norm_num), pow_one, AdjoinRoot.mk_X]
-  have hsum : ∀ (s : Finset (Fin 64)) (f : Fin 64 → K),
-      BF64.toQuot (∑ i ∈ s, f i) = ∑ i ∈ s, BF64.toQuot (f i) := fun s f ↦ by
-    classical
-    induction s using Finset.induction_on with
-    | empty => simp
-    | insert a s ha ih => rw [Finset.sum_insert ha, Finset.sum_insert ha, BF64.toQuot_add, ih]
+  have hsum := map_sum (AddMonoidHom.mk' BF64.toQuot BF64.toQuot_add)
+    (fun i : Fin 64 ↦ if a.toBitVec.getLsbD i then g ^ (i : ℕ) else 0) Finset.univ
+  simp only [AddMonoidHom.mk'_apply] at hsum
   rw [hsum]
   conv_lhs => rw [BF64.toQuot, BF64.toPolyBF64, BinaryField.toPoly, map_sum]
   refine Finset.sum_congr rfl fun i _ ↦ ?_

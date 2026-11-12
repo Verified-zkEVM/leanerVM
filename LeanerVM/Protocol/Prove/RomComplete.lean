@@ -205,14 +205,8 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
 
 private theorem pow_le_exp :
     ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-128) := by
-  have h1 : (1 : ℝ) - (2 ^ 17 : ℝ)⁻¹ ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) := by
-    have := Real.add_one_le_exp (-(2 ^ 17 : ℝ)⁻¹)
-    linarith
-  calc ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) :=
-        pow_le_pow_left₀ (by norm_num) h1 _
-    _ = Real.exp (-128) := by
-        rw [← Real.exp_nat_mul]
-        norm_num
+  have h := Real.one_sub_div_pow_le_exp_neg (n := 2 ^ 24) (t := 128) (by norm_num)
+  rwa [show (128 : ℝ) / ((2 ^ 24 : ℕ) : ℝ) = (2 ^ 17 : ℝ)⁻¹ by norm_num] at h
 
 private theorem exp_le : Real.exp (-128) ≤ (2 ^ 184 : ℝ)⁻¹ := by
   rw [Real.exp_neg, inv_le_inv₀ (Real.exp_pos _) (by positivity)]

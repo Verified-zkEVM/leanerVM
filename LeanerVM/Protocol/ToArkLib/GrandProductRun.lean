@@ -21,7 +21,7 @@ rounds from the combined claim, checks the descendants against the rounds' final
 (`Gkr.combineCheck`) and moves to the point of the combination challenges and the rounds'
 challenges, each tree's descendants interpolated there (`Gkr.interpDone`):
 `Gkr.run_layerStepFront`. The combination challenges alone are `Gkr.run_interpolateFront`.
-`Gkr.eq_stepTr` splits a layer's transcript into its four parts.
+`Gkr.eq_stepTr` and `Gkr.exists_eq_stepTr` split a layer's transcript into its four parts.
 -/
 
 namespace LeanerVM.Protocol
@@ -42,6 +42,17 @@ theorem eq_stepTr (t : (stepSpec F nside ρ m).FullTranscript) :
     t = ((chalTr (t.fst.fst.fst 0) ++ₜ t.fst.fst.snd) ++ₜ msgTr (t.fst.snd 0)) ++ₜ t.snd := by
   rw [← eq_chalTr, ← eq_msgTr, FullTranscript.append_fst_snd, FullTranscript.append_fst_snd,
     FullTranscript.append_fst_snd]
+
+/-- A transcript of a layer is a combiner, rounds, descendants and a vector of combination
+challenges. -/
+theorem exists_eq_stepTr (t : (stepSpec F nside ρ m).FullTranscript) :
+    ∃ (lam : F) (R : (roundsSpec F (2 ^ ρ) m).FullTranscript) (ch : Fin nside → Vector F (2 ^ ρ))
+      (u : Vector F ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
+  obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
+  refine ⟨t.fst.fst.fst 0, t.fst.fst.snd, t.fst.snd 0, Vector.ofFn f, ?_⟩
+  conv_lhs => rw [eq_stepTr t]
+  rw [hf]
+  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
 
 /-- The transcript of `k + 1` layers of radix four: the first layer's, then the rest. -/
 def stepsCons {k : ℕ} (t : (stepSpec F nside 2 m).FullTranscript)

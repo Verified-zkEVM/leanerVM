@@ -185,10 +185,15 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   history.
 * **Spelling and visibility only.** `SlotDecoder.run_succ_eq_some` (`ReaderSlots.lean`) is public
   and also concludes `tr = Transcript.concat x t`: a stronger statement.
-  `Component.mapWitnessSecurity` and `Component.sendOracleSecurity` take `back`, `h` and `rel` as explicit binders, not section
-  variables, and `subspaceVanish_add`, `sumFin_eq_sum` and `prodFin_eq_prod` bind their arguments
+  `Component.mapWitnessSecurity` and `Component.sendOracleSecurity` take `back`, `h` and `rel` as
+  explicit binders, not section variables, and `subspaceVanish_add`, `sumFin_eq_sum` and `prodFin_eq_prod` bind their arguments
   plainly, not by pattern: the same propositions. `Verifier.prEvent_pos_of_runNoOracle` and
   `prEvent_uniformSample_le_of_subsingleton` carry VCVio's `prEvent` names (formerly `probEvent_…`).
+* **A weaker hypothesis, a stronger walk.** `exists_toFun_take_of_good` (`ToArkLib/StateWalk.lean`)
+  takes the round `m` before its hypothesis and asks only the challenges from round `m` on to keep
+  the state function true, not every challenge; for `m = 0` it is the old statement. The copy in
+  `ToArkLib/Refutation.lean`, which walked back over prover rounds only, is deleted: there the
+  hypothesis holds vacuously.
 * **Lean 4.35's `Vector` and `Array` equality (finding L1).** Core derives `Vector`'s
   `DecidableEq` with `@[expose]` and exposes `Array`'s, so `decide` and the kernel reduce
   equalities of vectors across module boundaries. The `CompressCells` instance unfolds to the

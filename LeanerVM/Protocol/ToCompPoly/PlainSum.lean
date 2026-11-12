@@ -54,39 +54,17 @@ theorem plainSum_self {m : ℕ} (g : Vector R m → R) (c : Vector R m) : plainS
   rw [Fintype.sum_unique]
   simp only [fixLow_self]
 
-/-- A sum over `2 n` terms is the sum over the pairs of an even and the next odd term. -/
-private theorem sum_even_odd {M : Type*} [AddCommMonoid M] (f : ℕ → M) (n : ℕ) :
-    ∑ i ∈ Finset.range (2 * n), f i =
-      ∑ i ∈ Finset.range n, (f (2 * i) + f (2 * i + 1)) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
-      ih, Finset.sum_range_succ, add_assoc]
-
 /-- Fixing one more coordinate: the partial sum at `j` is the sum of the partial sums at `j + 1`
 with the coordinate fixed to `0` and to `1`. -/
 theorem plainSum_split {m : ℕ} (g : Vector R m → R) {j : ℕ} (hj : j < m) (c : Vector R j) :
     plainSum g j c = plainSum g (j + 1) (c.push 0) + plainSum g (j + 1) (c.push 1) := by
-  have hm : 2 ^ (m - j) = 2 * 2 ^ (m - (j + 1)) := by
+  have hm : 2 * 2 ^ (m - (j + 1)) = 2 ^ (m - j) := by
     rw [show m - j = (m - (j + 1)) + 1 by omega, pow_succ]; ring
   rw [plainSum, plainSum, plainSum, dite_eq_left hj.le, dite_eq_left (Nat.succ_le_of_lt hj),
-    dite_eq_left (Nat.succ_le_of_lt hj)]
-  rw [← Finset.sum_add_distrib]
-  let G : ℕ → R := fun i ↦
-    if h : i < 2 ^ (m - j) then g (fixLow hj.le c (boolVec (⟨i, h⟩ : Fin (2 ^ (m - j))))) else 0
-  have h1 : ∑ x : Fin (2 ^ (m - j)), g (fixLow hj.le c (boolVec x)) =
-      ∑ i ∈ Finset.range (2 ^ (m - j)), G i := by
-    rw [← Fin.sum_univ_eq_sum_range G]
-    refine Finset.sum_congr rfl fun x _ ↦ ?_
-    simp [G, x.isLt]
-  rw [h1, hm, sum_even_odd,
-    ← Fin.sum_univ_eq_sum_range (fun i ↦ G (2 * i) + G (2 * i + 1)) (2 ^ (m - (j + 1)))]
-  refine Finset.sum_congr rfl fun x' _ ↦ ?_
-  have hx := x'.isLt
-  rw [fixLow_push_zero hj c x' (by omega), fixLow_push_one hj c x' (by omega)]
-  simp only [G, show 2 * x'.val < 2 ^ (m - j) by omega,
-    show 2 * x'.val + 1 < 2 ^ (m - j) by omega, dite_true]
+    dite_eq_left (Nat.succ_le_of_lt hj), ← Fin.sum_congr' _ hm, Fin.sum_univ_split_even_add_odd]
+  congr 1 <;> refine Finset.sum_congr rfl fun x' _ ↦ ?_
+  · rw [fixLow_push_zero hj c x' (by omega)]; rfl
+  · rw [fixLow_push_one hj c x' (by omega)]; rfl
 
 end
 end LeanerVM.Protocol

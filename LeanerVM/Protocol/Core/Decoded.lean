@@ -179,15 +179,6 @@ theorem toVec_toList {n : ℕ} (v : Vector E n) : toVec n v.toList = v := by
   intro i _
   simp [toVec]
 
-private theorem exists_eq_stepTr' {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
-    ∃ (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
-      (u : Vector E ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
-  obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
-  refine ⟨t.fst.fst.fst 0, t.fst.fst.snd, t.fst.snd 0, Vector.ofFn f, ?_⟩
-  conv_lhs => rw [Gkr.eq_stepTr t]
-  rw [hf]
-  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
-
 private theorem out_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
     (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
     (u : Vector E ρ) :
@@ -207,7 +198,7 @@ private theorem out_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → Gkr.Laye
 private theorem stRel_layerNext (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
     (t : (stepSpec E 3 ρ m).FullTranscript) :
     StRel (layerNext t) ((Gkr.layerStepFront 3 μ leaves ρ m inp).out s t) := by
-  obtain ⟨lam, R, ch, u, rfl⟩ := exists_eq_stepTr' t
+  obtain ⟨lam, R, ch, u, rfl⟩ := Gkr.exists_eq_stepTr t
   rw [out_layerStepFront]
   obtain ⟨-, h₂, -⟩ := out_roundsFront (Gkr.roundPoly 3 μ leaves ρ m) (Gkr.weights 3 m) m m 0
     (Nat.zero_add m) ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R

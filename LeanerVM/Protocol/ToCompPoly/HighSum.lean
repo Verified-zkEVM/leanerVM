@@ -86,17 +86,6 @@ theorem highFix_push_set {m j : ℕ} (hj : j < m) (c : Vector R j) (x : Vector R
     · rw [ite_eq_right h2, Vector.getElem_push, Vector.getElem_push, dite_eq_left (by omega),
         dite_eq_left (by omega)]
 
-/-- Bit `i` of `x + 2^p` for `x < 2^p` and `i < p` is bit `i` of `x`. -/
-private theorem testBit_add_two_pow_low {x p i : ℕ} (hi : i < p) :
-    (x + 2 ^ p).testBit i = x.testBit i := by
-  rw [add_comm, Nat.testBit_two_pow_add_gt hi]
-
-/-- Bit `p` of `x + 2^p` for `x < 2^p` is set. -/
-private theorem testBit_add_two_pow_self {x p : ℕ} (hx : x < 2 ^ p) :
-    (x + 2 ^ p).testBit p = true := by
-  rw [add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hx]
-  rfl
-
 /-- The point at a cube index whose top bit is `b`: one more challenge, `b`. -/
 private theorem highFix_boolVec_top {m j : ℕ} (hj : j < m) (c : Vector R j)
     (x' : Fin (2 ^ (m - (j + 1)))) (b : Bool)

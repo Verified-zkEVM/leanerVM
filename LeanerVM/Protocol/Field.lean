@@ -68,18 +68,11 @@ structure Column (n : ℕ) where
 
 /-! ## Sampling -/
 
-/-- `K` as the `2^64` bit patterns, the `BitVec` view of `Fin (2^64)`. -/
-def finEquivK : Fin (2 ^ 64) ≃ K where
-  toFun := fun i ↦ BF64.ofBitVec (BitVec.ofFin i)
-  invFun := fun x ↦ x.toBitVec.toFin
-  left_inv _ := rfl
-  right_inv _ := rfl
-
 /-- Uniform sampling of `K`: a uniform `Fin (2^64)` read as a bit pattern. It is only the
 building block of the `E` sampler; no challenge of the protocol is drawn in `K`. -/
 instance instSampleableTypeK : SampleableType K :=
   haveI : NeZero (2 ^ 64) := ⟨by norm_num⟩
-  SampleableType.ofEquiv finEquivK
+  SampleableType.ofEquiv BF64.equivFin.symm
 
 /-- `E` as its three limbs, CompPoly's carrier view. -/
 def limbsEquiv : Vector K 3 ≃ E where

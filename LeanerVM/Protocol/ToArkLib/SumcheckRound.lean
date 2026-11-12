@@ -88,6 +88,11 @@ abbrev Message (F : Type) (d : ℕ) : Type := Vector F (d + 1)
 /-- The value of a message at a point, `Σ_i q_i · x^i`. -/
 def evaluate (d : ℕ) (q : Message F d) (x : F) : F := ∑ i : Fin (d + 1), q[i] * x ^ (i : ℕ)
 
+/-- A message of degree two evaluates as its three coefficients. -/
+theorem evaluate_two (q₀ q₁ q₂ x : F) :
+    evaluate 2 (#v[q₀, q₁, q₂] : Message F 2) x = q₀ + q₁ * x + q₂ * x ^ 2 := by
+  simp [evaluate, Fin.sum_univ_three]
+
 /-- `evaluate` by Horner's rule: what compiled code runs (`evaluate_eq_evaluateHorner`). -/
 def evaluateHorner (d : ℕ) (q : Message F d) (x : F) : F :=
   hornerFin (fun i : Fin (d + 1) ↦ q[i]) x

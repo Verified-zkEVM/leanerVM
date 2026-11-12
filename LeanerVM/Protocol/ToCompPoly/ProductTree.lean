@@ -66,11 +66,7 @@ def contractPow : (ρ : ℕ) → {n : ℕ} → CMlPolynomialEval R (n + ρ) → 
 
 /-- The index of descendant `c` of node `x`, `ρ` levels down: `c + 2 ^ ρ · x`. -/
 def childIndex (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) : Fin (2 ^ (n + ρ)) :=
-  ⟨c.val + 2 ^ ρ * x.val, by
-    have h := (cubeIndex c x).isLt
-    rw [cubeIndex_val, pow_add] at h
-    rw [pow_add, Nat.mul_comm (2 ^ n) (2 ^ ρ)]
-    exact h⟩
+  (cubeIndex c x).cast (by rw [Nat.add_comm])
 
 /-- The descendant's index as a number. -/
 @[simp] theorem childIndex_val (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) :
@@ -85,9 +81,8 @@ def childPoint (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (y : Vector R n) : Vector
 node above. -/
 private theorem testBit_childIndex (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) (a : ℕ) :
     (childIndex ρ c x).val.testBit a =
-      if a < ρ then c.val.testBit a else x.val.testBit (a - ρ) := by
-  rw [childIndex_val, add_comm]
-  exact Nat.testBit_two_pow_mul_add x.val c.isLt a
+      if a < ρ then c.val.testBit a else x.val.testBit (a - ρ) :=
+  testBit_cubeIndex c x a
 
 /-- The descendant of a Boolean point is the Boolean point of the descendant index. -/
 private theorem childPoint_boolVec (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) :

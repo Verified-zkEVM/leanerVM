@@ -173,25 +173,6 @@ private theorem m3_countsNonzero_iff :
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
       exact hc ⟨j, by omega⟩
 
-/-- An interaction of a table of known length: one of its component's, on one of its rows. -/
-private theorem forall_mem_interactions {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
-    {P : Interaction K → Prop} :
-    (∀ i ∈ t.interactions, P i) ↔
-      ∀ x : Fin n, ∀ ai ∈ t.component.rowOperations.interactions,
-        P (ai.eval (t.environment (t.table[x.val]'(by rw [hn]; exact x.isLt)))) := by
-  constructor
-  · intro hP x ai hai
-    refine hP _ ?_
-    simp only [Air.Flat.Table.interactions, List.mem_flatMap, Operations.interactionValues,
-      List.mem_map, Air.Flat.Component.interactions_eq]
-    exact ⟨_, List.getElem_mem _, ai, hai, rfl⟩
-  · intro hP i hi
-    simp only [Air.Flat.Table.interactions, List.mem_flatMap, Operations.interactionValues,
-      List.mem_map, Air.Flat.Component.interactions_eq] at hi
-    obtain ⟨row, hrow, ai, hai, rfl⟩ := hi
-    obtain ⟨x, hx, rfl⟩ := List.getElem_of_mem hrow
-    exact hP ⟨x, hn ▸ hx⟩ ai hai
-
 /-- A counted interaction is a pull on the memory or bytecode channel. -/
 private theorem counted_iff {i : AbstractInteraction K} :
     counted i = true ↔
@@ -206,7 +187,8 @@ theorem countsNonzero_iff (h : Agrees F s q w) :
   rw [m3_countsNonzero_iff, CountsNonzero, take_six_tables, List.forall_mem_map]
   refine forall_congr' fun j ↦ ?_
   simp only [List.mem_finRange, true_implies]
-  rw [forall_mem_interactions (h.length j), opTable_component]
+  rw [Air.Flat.Table.forall_interactions_iff, forall_mem_table (h.length j), opTable_component,
+    Air.Flat.Component.interactions_eq]
   have hcell : ∀ (x : Fin (2 ^ s.τ j)) (k : Fin (opcodeComponent j).width),
       ((opTable w j).table[x.val]'(by rw [h.length j]; exact x.isLt))[k.val]?.getD 0 =
         (leanIsaInstance F prog s).row q (opIdx j) x k := fun x k ↦ by

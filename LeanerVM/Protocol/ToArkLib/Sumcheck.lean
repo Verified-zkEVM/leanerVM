@@ -678,56 +678,31 @@ variable {X : Type} {ι : Type} {O : ι → Type}
 
 /-- The wire's message: the coefficients but coefficient `k`, in order. -/
 def encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) : Vector F d :=
-  Vector.ofFn fun i : Fin d ↦ if i.val < k.val then q[i.val] else q[i.val + 1]
+  (q.eraseIdx k).cast (by omega)
 
-/-- The coefficients read off the wire, with `0` in position `k`. -/
-def expandWire (k : Fin (d + 1)) (w : Vector F d) : SumcheckRound.Message F d :=
-  Vector.ofFn fun i : Fin (d + 1) ↦
-    if h : i.val < k.val then w[i.val]'(by omega)
-    else if h' : i.val = k.val then 0 else w[i.val - 1]'(by omega)
-
-/-- The round message decoded from the wire: coefficient `k` derived from the running claim. -/
+/-- The round message decoded from the wire: `0` inserted in position `k`, then coefficient `k`
+derived from the running claim. -/
 def decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim : F)
     (w : Vector F d) : SumcheckRound.Message F d :=
-  decodeRound dom k claim (expandWire k w)
-
-/-- Expanding the wire of a message is the message with coefficient `k` set to `0`. -/
-private theorem expandWire_encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) :
-    expandWire k (encodeWire k q) = q.set k 0 := by
-  apply Vector.ext
-  intro i hi
-  simp only [expandWire, encodeWire, Vector.getElem_ofFn, Vector.getElem_set]
-  by_cases h1 : i < k.val
-  · simp [h1, show (k : ℕ) ≠ i by omega]
-  · by_cases h2 : i = k.val
-    · simp [h2]
-    · simp only [h1, h2, dite_false, ite_false, show ¬ (i - 1 < k.val) by omega,
-        show (k : ℕ) ≠ i by omega]
-      congr 1
-      omega
+  decodeRound dom k claim (w.insertIdx k 0 (by omega))
 
 /-- The wire of a message that passes the round's check decodes to the message. -/
 theorem decodeWire_encodeWire {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
     (hk : coeffWeight dom k ≠ 0) {claim : F} {q : SumcheckRound.Message F d}
     (hq : SumcheckRound.weightedSum d dom q = claim) :
     decodeWire dom k claim (encodeWire k q) = q := by
-  rw [decodeWire, expandWire_encodeWire, decodeRound_set, decodeRound_of_weightedSum hk hq]
+  have h : (encodeWire k q).insertIdx k 0 (by omega) = q.set k 0 := by
+    refine Vector.ext fun i hi ↦ ?_
+    simp only [encodeWire, Vector.getElem_insertIdx, Vector.getElem_cast, Vector.getElem_eraseIdx,
+      Vector.getElem_set]
+    split_ifs <;> first | rfl | omega | (congr 1; omega)
+  rw [decodeWire, h, decodeRound_set, decodeRound_of_weightedSum hk hq]
 
 /-- The decoded message carries the wire in every other position: the decoding is injective. -/
 theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
     (claim : F) (w : Vector F d) : encodeWire k (decodeWire dom k claim w) = w := by
-  apply Vector.ext
-  intro i hi
-  by_cases h1 : i < k.val
-  · have h1' : (⟨i, by omega⟩ : Fin (d + 1)) < k := h1
-    simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
-      show (k : ℕ) ≠ i by omega]
-  · have h1' : ¬ (⟨i + 1, by omega⟩ : Fin (d + 1)) < k := fun h ↦ h1 (by
-      have := Fin.lt_def.mp h
-      simp only at this
-      omega)
-    simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
-      show (k : ℕ) ≠ i + 1 by omega, show i + 1 ≠ (k : ℕ) by omega]
+  rw [encodeWire, decodeWire, decodeRound, Vector.eraseIdx_set_eq, Vector.eraseIdx_insertIdx_self,
+    Vector.cast_rfl]
 
 /-- One round on the wire: `d` of the `d + 1` coefficients, then the challenge. -/
 abbrev wireSpec (F : Type) (d : ℕ) : ProtocolSpec 2 := say (Vector F d) ++ₚ draw F

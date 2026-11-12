@@ -222,18 +222,13 @@ def setBitW (zw : Array UInt64) (k : ℕ) (b : Bool) : Array UInt64 :=
     if b then w ||| ((1 : UInt64) <<< (k % 64).toUInt64)
     else w &&& ~~~((1 : UInt64) <<< (k % 64).toUInt64)
 
-private theorem getLsbD_mask {s c : ℕ} (hs : s < 64) (hc : c < 64) :
+private theorem getLsbD_mask {s c : ℕ} (hs : s < 64) :
     ((1 : UInt64) <<< s.toUInt64).toBitVec.getLsbD c = decide (s = c) := by
   rw [UInt64.toBitVec_shiftLeft, BitVec.shiftLeft_eq']
   have : (s.toUInt64.toBitVec % 64).toNat = s := by
     simp [Nat.toUInt64, Nat.mod_eq_of_lt hs, BitVec.toNat_umod]
-  rw [this, BitVec.getLsbD_shiftLeft]
-  simp only [UInt64.toBitVec_one, BitVec.getLsbD_one, hc, decide_true, Bool.true_and]
-  by_cases h : s = c
-  · subst h; simp
-  · by_cases hlt : c < s
-    · simp [hlt, h]
-    · simp [hlt, h, show c - s ≠ 0 by omega]
+  rw [this, UInt64.toBitVec_one, ← BitVec.twoPow_eq, BitVec.getLsbD_twoPow]
+  simp [hs]
 
 /-- Setting a bit through the words sets it in the bitset they hold. -/
 private theorem rep_setBitW {zw : Array UInt64} {z : Form m} (hz : Rep zw z) (k : Pos m)
@@ -257,12 +252,12 @@ private theorem rep_setBitW {zw : Array UInt64} {z : Form m} (hz : Rep zw z) (k 
     rw [Array.getElem?_eq_getElem hjw, Option.map_some, Option.getD_some, Option.getD_some]
     cases b
     · simp only [Bool.false_eq_true, ite_false, UInt64.toBitVec_and, UInt64.toBitVec_not,
-        BitVec.getLsbD_and, BitVec.getLsbD_not, getLsbD_mask hkc hc, hc, decide_true,
+        BitVec.getLsbD_and, BitVec.getLsbD_not, getLsbD_mask hkc, hc, decide_true,
         Bool.true_and]
       by_cases h : (k : ℕ) = j
       · simp [h]
       · simp [h, hiff.not.mpr h]
-    · simp only [ite_true, UInt64.toBitVec_or, BitVec.getLsbD_or, getLsbD_mask hkc hc]
+    · simp only [ite_true, UInt64.toBitVec_or, BitVec.getLsbD_or, getLsbD_mask hkc]
       by_cases h : (k : ℕ) = j
       · simp [h]
       · simp [h, hiff.not.mpr h]

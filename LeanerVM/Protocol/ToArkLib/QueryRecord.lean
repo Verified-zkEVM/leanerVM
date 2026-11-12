@@ -104,22 +104,8 @@ theorem queryRecordVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
       if check s (answerOf OStmt o (query s)) then
         pure (out s (answerOf OStmt o (query s)), fun i ↦ o (keep i))
       else failure := by
-  simp only [OracleVerifier.toVerifier]
-  rw [queryRecord_materializeOutput]
-  simp only [queryRecordVerifier]
-  rw [show (liftM (askInput OStmt (query s)) :
-      OptionT (OracleComp ([]ₒ + ([OStmt]ₒ + [(!p[] : ProtocolSpec 0).Message]ₒ))) _) =
-      OptionT.lift (liftM (askInput OStmt (query s)) :
-        OracleComp ([]ₒ + ([OStmt]ₒ + [(!p[] : ProtocolSpec 0).Message]ₒ)) _) from
-    (OracleComp.monadLift_liftM_OptionT _).symm]
-  rw [simulateQ_optionT_bind_elimM, OptionT.run_lift, simulateQ_bind, simulateQ_askInput,
-    pure_bind, simulateQ_pure]
-  simp only [Option.elimM, pure_bind, Option.elim]
-  by_cases h : check s (answerOf OStmt o (query s)) = true
-  · rw [ite_eq_left h, ite_eq_left h]
-    rfl
-  · rw [ite_eq_right h, ite_eq_right h]
-    rfl
+  rw [toVerifier_verify_of_askInput OStmt query check _ out (fun _ _ ↦ rfl),
+    queryRecord_materializeOutput]
 
 /-- The verifier is a check followed by a verdict, as data. -/
 def queryRecordGuarded :

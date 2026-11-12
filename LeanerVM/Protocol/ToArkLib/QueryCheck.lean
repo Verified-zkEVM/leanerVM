@@ -74,15 +74,22 @@ def queryCheckVerifier : OracleVerifier []ₒ StmtIn OStmt StmtOut OStmt !p[] wh
 def queryCheck : Def StmtIn OStmt W StmtOut OStmt W !p[] where
   red := ⟨passThroughProver OStmt f, queryCheckVerifier OStmt query check f⟩
 
-/-- As an ordinary verifier: if the check holds of the oracles' answer, the verdict is the mapped
-statement and the oracles; otherwise it rejects. -/
-theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
-    (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
-    (queryCheckVerifier OStmt query check f).toVerifier.verify (s, o) tr =
-      if check s (answerOf OStmt o (query s)) then pure (f s, o) else failure := by
-  simp only [OracleVerifier.toVerifier]
-  rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
-  simp only [queryCheckVerifier]
+/-- An oracle verifier with no round that asks the input oracles the question, rejects unless the
+check holds of the answer and returns `out` of it: as an ordinary verifier, the verdict is `out`
+of the oracles' answer and the materialized output oracles when the check holds, a rejection
+otherwise. -/
+theorem toVerifier_verify_of_askInput {ι' StmtOut' : Type} {OStmtOut : ι' → Type}
+    [∀ i, OracleInterface (OStmtOut i)] (V : OracleVerifier []ₒ StmtIn OStmt StmtOut' OStmtOut !p[])
+    (out : (s : StmtIn) → [OStmt]ₒ.Range (query s) → StmtOut')
+    (hV : ∀ s ch, V.verify s ch = do
+      let a ← liftM (askInput OStmt (query s))
+      if check s a then pure (out s a) else failure)
+    (s : StmtIn) (o : ∀ i, OStmt i) (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
+    V.toVerifier.verify (s, o) tr =
+      if check s (answerOf OStmt o (query s)) then
+        pure (out s (answerOf OStmt o (query s)), V.materializeOutput tr.challenges o tr.messages)
+      else failure := by
+  simp only [OracleVerifier.toVerifier, hV]
   rw [show (liftM (askInput OStmt (query s)) :
       OptionT (OracleComp ([]ₒ + ([OStmt]ₒ + [(!p[] : ProtocolSpec 0).Message]ₒ))) _) =
       OptionT.lift (liftM (askInput OStmt (query s)) :
@@ -96,6 +103,15 @@ theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
     rfl
   · rw [ite_eq_right h, ite_eq_right h]
     rfl
+
+/-- As an ordinary verifier: if the check holds of the oracles' answer, the verdict is the mapped
+statement and the oracles; otherwise it rejects. -/
+theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
+    (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
+    (queryCheckVerifier OStmt query check f).toVerifier.verify (s, o) tr =
+      if check s (answerOf OStmt o (query s)) then pure (f s, o) else failure := by
+  rw [toVerifier_verify_of_askInput OStmt query check _ (fun s _ ↦ f s) (fun _ _ ↦ rfl),
+    OracleVerifier.materializeOutput_of_keepOracles _ rfl]
 
 /-- The query-check verifier is a check followed by a verdict, as data: the check reads the
 statement and the oracles' answer. -/

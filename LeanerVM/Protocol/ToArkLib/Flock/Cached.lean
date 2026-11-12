@@ -52,30 +52,6 @@ section Bytes
 
 /-! ## Combinations of `0`/`1` tables a byte at a time -/
 
-/-- `Σ_{i < k} 2^i · f i`: the number whose bit `i < k` is `f i`. -/
-def bitsNat (f : ℕ → Bool) : ℕ → ℕ
-  | 0 => 0
-  | k + 1 => 2 * bitsNat (fun i ↦ f (i + 1)) k + if f 0 then 1 else 0
-
-private theorem testBit_bitsNat : ∀ (f : ℕ → Bool) (k i : ℕ),
-    (bitsNat f k).testBit i = (decide (i < k) && f i)
-  | f, 0, i => by simp [bitsNat]
-  | f, k + 1, 0 => by
-    rw [bitsNat, Nat.testBit_zero]
-    cases f 0 <;> simp
-  | f, k + 1, i + 1 => by
-    rw [bitsNat, Nat.testBit_succ, show (2 * bitsNat (fun i ↦ f (i + 1)) k +
-      (if f 0 then 1 else 0)) / 2 = bitsNat (fun i ↦ f (i + 1)) k by split <;> omega,
-      testBit_bitsNat]
-    simp
-
-private theorem bitsNat_lt : ∀ (f : ℕ → Bool) (k : ℕ), bitsNat f k < 2 ^ k
-  | _, 0 => by simp [bitsNat]
-  | f, k + 1 => by
-    have := bitsNat_lt (fun i ↦ f (i + 1)) k
-    rw [bitsNat, pow_succ]
-    split <;> omega
-
 variable {F : Type} [Field F]
 
 /-- The subset sums of `w 0, …, w (k - 1)`: entry `β < 2 ^ k` is the sum of `w i` over the set
@@ -121,7 +97,7 @@ private def famBit {n N : ℕ} (T : Vector (CMlPolynomialEval F n) N) (u : Fin (
 /-- The bytes of entry `u` of a family: byte `b` holds the bits `8 b, …, 8 b + 7`. -/
 @[no_expose] def famBytes {n N : ℕ} (T : Vector (CMlPolynomialEval F n) N) (u : Fin (2 ^ n)) :
     Array ℕ :=
-  Array.ofFn fun b : Fin (N / 8) ↦ bitsNat (fun i' ↦ famBit T u (8 * b.val + i')) 8
+  Array.ofFn fun b : Fin (N / 8) ↦ Nat.ofBits fun i' : Fin 8 ↦ famBit T u (8 * b.val + i')
 
 /-- The subset sums of the weights `8 b, …, 8 b + 7`. -/
 def byteSums {N : ℕ} (L : Vector F N) (b : ℕ) : Array F :=
@@ -161,13 +137,12 @@ theorem combBytes_eq {n N : ℕ} (hN : 8 ∣ N) (L : Vector F N) (T : Vector (CM
   have hb : b.val < N' := by have := b.isLt; omega
   have h1 : (Array.ofFn fun b : Fin (8 * N' / 8) ↦ byteSums L b).getD b #[] = byteSums L b := by
     simp [Array.getD_eq_getD_getElem?, hb]
-  have h2 : (famBytes T u).getD b 0 = bitsNat (fun i' ↦ famBit T u (8 * b.val + i')) 8 := by
+  have h2 : (famBytes T u).getD b 0 = Nat.ofBits fun i' : Fin 8 ↦ famBit T u (8 * b.val + i') := by
     simp [famBytes, Array.getD_eq_getD_getElem?, hb]
-  rw [h1, h2, byteSums, getD_subsetSums _ _ _ (bitsNat_lt _ 8)]
+  rw [h1, h2, byteSums, getD_subsetSums _ _ _ (Nat.ofBits_lt_two_pow _)]
   simp only [finCongr_apply, Fin.val_cast]
   refine Finset.sum_congr rfl fun i' hi' ↦ ?_
-  rw [testBit_bitsNat]
-  simp [Finset.mem_range.mp hi']
+  rw [Nat.testBit_ofBits_lt _ _ (Finset.mem_range.mp hi')]
 
 /-- Whether every entry of a family is `0` or `1`. -/
 def famBool {n N : ℕ} (T : Vector (CMlPolynomialEval F n) N) : Bool :=

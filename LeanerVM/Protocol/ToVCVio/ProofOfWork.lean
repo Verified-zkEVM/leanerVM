@@ -270,25 +270,21 @@ private theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [Decidab
     ((Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome).card : ℝ≥0∞) ≤
       c.enncard := by
   classical
-  let g : Y → (t : D) × (D →ₒ Y).Range t := fun b ↦
-    if h : ∃ n < S.F, (c (S.cand b n)).isSome then
-      ⟨S.cand b h.choose, (c (S.cand b h.choose)).get h.choose_spec.2⟩
-    else ⟨S.cand b 0, b⟩
-  have hmaps : Set.MapsTo g (Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome :
-      Finset Y) c.toSet := fun b hb ↦ by
-    have h : ∃ n < S.F, (c (S.cand b n)).isSome := (Finset.mem_filter.mp hb).2
-    simp only [g, dite_eq_left h, QueryCache.mem_toSet, Option.some_get]
-  have hinj : Set.InjOn g (Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome :
-      Finset Y) := fun b hb b' hb' he ↦ by
-    have h : ∃ n < S.F, (c (S.cand b n)).isSome := (Finset.mem_filter.mp hb).2
-    have h' : ∃ n < S.F, (c (S.cand b' n)).isSome := (Finset.mem_filter.mp hb').2
+  let g : Y → D := fun b ↦
+    if h : ∃ n < S.F, (c (S.cand b n)).isSome then S.cand b h.choose else S.cand b 0
+  set A := Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome
+  have hinj : Set.InjOn g A := fun b hb b' hb' he ↦ by
+    have h := (Finset.mem_filter.mp hb).2
+    have h' := (Finset.mem_filter.mp hb').2
     simp only [g, dite_eq_left h, dite_eq_left h'] at he
-    exact (S.cand_inj h.choose_spec.1 h'.choose_spec.1 (Sigma.mk.inj he).1).1
-  have := Set.encard_le_encard_of_injOn hmaps hinj
-  rw [Set.encard_coe_eq_coe_finsetCard] at this
-  unfold QueryCache.enncard
-  rw [← ENat.toENNReal_coe]
-  exact ENat.toENNReal_le.mpr this
+    exact (S.cand_inj h.choose_spec.1 h'.choose_spec.1 he).1
+  have hS : ∀ t ∈ g '' A, (c t).isSome := by
+    rintro _ ⟨b, hb, rfl⟩
+    have h := (Finset.mem_filter.mp hb).2
+    rw [show g b = S.cand b h.choose from dite_eq_left h]
+    exact h.choose_spec.2
+  rw [← ENat.toENNReal_coe, ← Set.encard_coe_eq_coe_finsetCard, ← hinj.encard_image]
+  exact QueryCache.encard_le_enncard _ hS
 
 omit [DecidableEq D] in
 /-- The expected failure probability of the search from a uniform base: `q^F`, or up to `1` for
