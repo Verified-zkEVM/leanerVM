@@ -57,6 +57,17 @@ def drawsList : (k : ℕ) → (draws E k).FullTranscript → List E
   | k + 1, t => drawsList k (FullTranscript.fst (pSpec₁ := draws E k) (pSpec₂ := draw E) t) ++
       [drawOf (FullTranscript.snd (pSpec₁ := draws E k) (pSpec₂ := draw E) t)]
 
+/-- `k` draws carry `k` challenges. -/
+theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript), (drawsList k t).length = k
+  | 0, _ => rfl
+  | k + 1, t => by simp [drawsList, length_drawsList k]
+
+/-- A list of length `n` is its entries, padded with zeros. -/
+theorem ofFn_getD {n : ℕ} {l : List E} (h : l.length = n) :
+    List.ofFn (fun i : Fin n ↦ l.getD i 0) = l := by
+  subst h
+  exact List.ext_getElem (by simp) fun _ _ _ ↦ by simp
+
 /-! ## The wire of a transcript -/
 
 /-- A round polynomial's wire, the coefficient at `drop` left out. -/
@@ -160,6 +171,37 @@ from the first challenge, the rounds and the last polynomial's wire. -/
 def foldsWire : E → List Round → List E → List Fold
   | c, [], w => [⟨c, w⟩]
   | c, r :: rs, w => ⟨c, r.wire⟩ :: foldsWire r.chal rs w
+
+section Walk
+
+variable {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n)
+
+/-- `k + 1` fold rounds: the first challenge, then `k` rounds of a polynomial and a challenge,
+then the last polynomial. -/
+theorem walkFolds_eq : ∀ k, walkFolds ops (k + 1) = do
+    let c ← ops.sample
+    let rs ← readRounds ops 2 k
+    let w ← ops.nextScalars 2
+    return foldsWire c rs w
+  | 0 => by simp [walkFolds, readRounds, foldsWire]
+  | k + 1 => by
+    conv_lhs => rw [walkFolds, walkFolds_eq k]
+    conv_rhs => rw [readRounds, readRound]
+    simp [foldsWire]
+
+/-- `k + 1` tail rounds: the first challenge, then `k` rounds of a polynomial and a
+challenge. -/
+theorem walkTail_eq : ∀ k, walkTail ops (k + 1) = do
+    let c ← ops.sample
+    let rs ← readRounds ops 2 k
+    return foldsWire c rs []
+  | 0 => by simp [walkTail, readRounds, foldsWire]
+  | k + 1 => by
+    conv_lhs => rw [walkTail, walkTail_eq k]
+    conv_rhs => rw [readRounds, readRound]
+    simp [foldsWire]
+
+end Walk
 
 /-- The query positions as numbers. -/
 def positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) : List ℕ := List.ofFn fun q ↦ (pos q).val

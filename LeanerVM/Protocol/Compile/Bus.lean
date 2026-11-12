@@ -29,12 +29,11 @@ of `busSpec I`, every round polynomial whole.
 
 **The bus phase is the oracle verifier's** (`busStep_eq`): the executable's algebra is the
 oracle verifier's guarded form run on the decoded transcript,
-`busStep I h input w = (busTr? I input w).bind ((busPhase I h).front.run input)`. So the
+`busStep I h input w = (busTr? I input w).bind ((busPhase I h).front.run input)`, so the
 executable accepts exactly when the decoded transcript exists and the oracle verifier accepts it,
-with the same output (`busStep_eq_some_iff`). A transcript the oracle verifier accepts is the one
-its wire decodes to (`busTr?_busWireOf`), so on it the executable accepts with the oracle
-verifier's output (`busStep_busWireOf`); and the decoded transcript carries its wire
-(`busWireOf_busTr?`).
+with the same output. A transcript the oracle verifier accepts is the one its wire decodes to
+(`busTr?_busWireOf`), so on it the executable accepts with the oracle verifier's output
+(`busStep_busWireOf`).
 
 A transcript the oracle verifier rejects need not be the one its wire decodes to: the wire drops a
 coefficient of every round polynomial, which the decoding rebuilds from the running claim. It is
@@ -98,29 +97,12 @@ theorem length_of_replayRounds {d : ℕ} {eq? : ℕ → Option E} :
 /-! ## The descendants -/
 
 /-- The descendants' lists read back as the descendants. -/
-theorem childTables_ofFn {ρ : ℕ} (ch : Fin 3 → Vector E (2 ^ ρ)) :
+private theorem childTables_ofFn {ρ : ℕ} (ch : Fin 3 → Vector E (2 ^ ρ)) :
     childTables ρ (List.ofFn fun i ↦ (ch i).toList) = some ch := by
   simp only [List.ofFn_succ, List.ofFn_zero, childTables, ofList?_toList, Option.bind_eq_bind,
     Option.bind_some, Option.pure_def, Option.some.injEq]
   funext i
   fin_cases i <;> rfl
-
-/-- Descendants read off lists carry them. -/
-theorem ofFn_of_childTables {ρ : ℕ} {cs : List (List E)} {ch : Fin 3 → CMlPolynomialEval E ρ}
-    (h : childTables ρ cs = some ch) : List.ofFn (fun i ↦ Vector.toList (ch i)) = cs := by
-  match cs, h with
-  | [a, b, c], h =>
-    revert h
-    simp only [childTables, Option.bind_eq_bind, Option.pure_def]
-    rcases ha : RoundPoly.ofList? (2 ^ ρ) a with _ | ta
-    · simp
-    rcases hb : RoundPoly.ofList? (2 ^ ρ) b with _ | tb
-    · simp
-    rcases hc : RoundPoly.ofList? (2 ^ ρ) c with _ | tc
-    · simp
-    simp only [Option.bind_some, Option.some.injEq]
-    rintro rfl
-    simp [List.ofFn_succ, toList_of_ofList? ha, toList_of_ofList? hb, toList_of_ofList? hc]
 
 /-! ## The wire of the grand product -/
 
@@ -179,7 +161,7 @@ private theorem dropped_eq (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (k : ℕ) (hk
 /-- **The executable's layer is the oracle verifier's**: the grand product's replay of a layer,
 from the statement `inp s`, is the oracle verifier's layer run on the transcript the layer's wire
 decodes to, and the rest replays from that layer's verdict with the combiner recorded after it. -/
-theorem replayGkr_cons (ρ : ℕ) (ρs : List ℕ) (m : ℕ) {S : Type}
+private theorem replayGkr_cons (ρ : ℕ) (ρs : List ℕ) (m : ℕ) {S : Type}
     (inp : S → Gkr.LayerStmt X E 3 m) (s : S) (lam : E) (l : GkrLayer) (ls : List GkrLayer) :
     replayGkr (ρ :: ρs) m (inp s) lam (l :: ls) =
       ((layerTr? ρ m (inp s) lam l).bind ((Gkr.layerStepFront 3 μ leaves ρ m inp).run s)).bind
@@ -254,7 +236,7 @@ def LayerSolved (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (t : (stepSpec E 3 ρ
 
 /-- A layer's transcript whose round polynomials pass their checks is the one its wire decodes
 to. -/
-theorem layerTr?_layerWire_of_solved (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
+private theorem layerTr?_layerWire_of_solved (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
     (t : (stepSpec E 3 ρ m).FullTranscript) (next : E) (hs : LayerSolved ρ m ℓ t) :
     layerTr? ρ m ℓ (layerCombiner t) (layerWire t next) = some t := by
   obtain ⟨lam, R, ch, u, rfl⟩ := exists_eq_stepTr t
@@ -269,7 +251,7 @@ theorem layerTr?_layerWire_of_solved (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
 
 /-- A layer's transcript the oracle verifier accepts has round polynomials that pass their
 checks. -/
-theorem layerSolved_of_check (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
+private theorem layerSolved_of_check (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
     (t : (stepSpec E 3 ρ m).FullTranscript)
     (hc : (Gkr.layerStepFront 3 μ leaves ρ m inp).check s t = true) :
     LayerSolved ρ m (inp s) t := by
@@ -284,27 +266,6 @@ theorem layerSolved_of_check (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt 
     ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R
     (fun k _ hk ↦ weights_eq m (inp s, lam) k (by omega))
     ((Component.Front.run_eq_some_iff _).mp hR).1
-
-/-- A layer's transcript the oracle verifier accepts is the one its wire decodes to. -/
-theorem layerTr?_layerWire (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
-    (t : (stepSpec E 3 ρ m).FullTranscript) (next : E)
-    (hc : (Gkr.layerStepFront 3 μ leaves ρ m inp).check s t = true) :
-    layerTr? ρ m (inp s) (layerCombiner t) (layerWire t next) = some t :=
-  layerTr?_layerWire_of_solved ρ m (inp s) t next (layerSolved_of_check μ leaves ρ m inp s t hc)
-
-/-- The transcript a layer's wire decodes to carries the wire and its combiner. -/
-theorem layerWire_layerTr? {ρ m : ℕ} {ℓ : Gkr.LayerStmt X E 3 m} {lam : E} {l : GkrLayer}
-    {t : (stepSpec E 3 ρ m).FullTranscript} (h : layerTr? ρ m ℓ lam l = some t) :
-    layerCombiner t = lam ∧ layerWire t l.combiner = l := by
-  simp only [layerTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨R, hR, ch, hch, u, hu, rfl⟩ := h
-  obtain ⟨hlam, hwire⟩ := layerWire_mk lam R ch u l.combiner
-  refine ⟨hlam, hwire.trans ?_⟩
-  rcases l with ⟨rounds, children, combos, combiner⟩
-  simp only at hR hch hu
-  rw [roundsWire_roundsTr? (fun j ↦ ℓ.2.1[j]?) 0 m 0 _ rounds R
-      (fun k _ hk ↦ dropped_eq m ℓ k (by omega)) hR,
-    ofFn_of_childTables hch, toList_of_ofList? hu]
 
 /-! ## Layers of radix four -/
 
@@ -323,7 +284,7 @@ def stepsTr? : (k m : ℕ) → Gkr.LayerStmt X E 3 m → E → List GkrLayer →
 
 /-- The executable's layers of radix four are the oracle verifier's, run on the transcript their
 wires decode to. -/
-theorem replayGkr_replicate : ∀ (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.LayerStmt X E 3 m)
+private theorem replayGkr_replicate : ∀ (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.LayerStmt X E 3 m)
     (lam : E) (ls : List GkrLayer),
     replayGkr (List.replicate k 2) m ℓ lam ls =
       (stepsTr? μ leaves k m ℓ lam ls).bind fun p ↦
@@ -375,7 +336,7 @@ theorem stepsSolved_stepsCons {k m : ℕ} (ℓ : Gkr.LayerStmt X E 3 m)
 
 /-- Transcripts of layers of radix four whose round polynomials pass their checks are the ones
 their wires decode to. -/
-theorem stepsTr?_stepsWire_of_solved : ∀ (k m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
+private theorem stepsTr?_stepsWire_of_solved : ∀ (k m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m)
     (t : (stepsSpec E 3 k m).FullTranscript) (last : E),
     StepsSolved μ leaves k m ℓ t →
       stepsTr? μ leaves k m ℓ (stepsWire k m t last).1 (stepsWire k m t last).2 = some (t, last)
@@ -397,7 +358,7 @@ theorem stepsTr?_stepsWire_of_solved : ∀ (k m : ℕ) (ℓ : Gkr.LayerStmt X E 
 
 /-- Layers of radix four the oracle verifier accepts have round polynomials that pass their
 checks. -/
-theorem stepsSolved_of_check : ∀ (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.LayerStmt X E 3 m)
+private theorem stepsSolved_of_check : ∀ (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.LayerStmt X E 3 m)
     (t : (stepsSpec E 3 k m).FullTranscript),
     (Gkr.layerStepsFront 3 μ leaves k m h).check ℓ t = true → StepsSolved μ leaves k m ℓ t
   | 0, _, _, _, _, _ => trivial
@@ -412,32 +373,6 @@ theorem stepsSolved_of_check : ∀ (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.L
       stepsSolved_of_check k (m + 2) (by omega) ℓ' t₂
         ((Component.Front.run_eq_some_iff _).mp h₂).1⟩
 
-/-- Transcripts of layers of radix four the oracle verifier accepts are the ones their wires
-decode to. -/
-theorem stepsTr?_stepsWire (k m : ℕ) (h : m + 2 * k = μ) (ℓ : Gkr.LayerStmt X E 3 m)
-    (t : (stepsSpec E 3 k m).FullTranscript) (last : E)
-    (hc : (Gkr.layerStepsFront 3 μ leaves k m h).check ℓ t = true) :
-    stepsTr? μ leaves k m ℓ (stepsWire k m t last).1 (stepsWire k m t last).2 = some (t, last) :=
-  stepsTr?_stepsWire_of_solved μ leaves k m ℓ t last (stepsSolved_of_check μ leaves k m h ℓ t hc)
-
-/-- The transcript of layers of radix four their wires decode to carries the wires. -/
-theorem stepsWire_stepsTr? : ∀ (k m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (lam : E)
-    (ls : List GkrLayer) (t : (stepsSpec E 3 k m).FullTranscript) (last : E),
-    stepsTr? μ leaves k m ℓ lam ls = some (t, last) → stepsWire k m t last = (lam, ls)
-  | 0, _, _, lam, [], t, last, h => by
-    simp only [stepsTr?, Option.some.injEq] at h
-    cases h
-    rfl
-  | 0, _, _, _, _ :: _, _, _, h => nomatch h
-  | _ + 1, _, _, _, [], _, _, h => nomatch h
-  | k + 1, m, ℓ, lam, l :: ls, t, last, h => by
-    simp only [stepsTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff, Prod.mk.injEq] at h
-    obtain ⟨t₁, h₁, ⟨t₂, last'⟩, h₂, rfl, rfl⟩ := h
-    obtain ⟨hlam, hwire⟩ := layerWire_layerTr? h₁
-    have ih := stepsWire_stepsTr? k (m + 2) _ l.combiner ls t₂ last' h₂
-    simp only [stepsWire, Gkr.stepsCons, FullTranscript.append_fst, FullTranscript.append_snd, ih,
-      hlam, hwire]
-
 /-! ## The grand product -/
 
 /-- The transcript of the binary layer its wire decodes to, if there is one, with the combiner
@@ -450,7 +385,7 @@ def oddTr? : (r : ℕ) → (X × (Fin 3 → E)) → E → List GkrLayer →
   | _ + 2, _, _, _ => none
 
 /-- The executable's binary layer, if there is one, is the oracle verifier's. -/
-theorem replayGkr_odd (r : ℕ) (hr : r ≤ 1) (ρs : List ℕ) (s : X × (Fin 3 → E)) (lam : E)
+private theorem replayGkr_odd (r : ℕ) (hr : r ≤ 1) (ρs : List ℕ) (s : X × (Fin 3 → E)) (lam : E)
     (ls : List GkrLayer) :
     replayGkr ((if r = 1 then [1] else []) ++ ρs) 0 (Gkr.rootStmt 3 s) lam ls =
       (oddTr? r s lam ls).bind fun p ↦
@@ -472,7 +407,7 @@ def OddSolved : (r : ℕ) → X × (Fin 3 → E) → (oddSpec E 3 r).FullTranscr
 
 /-- The binary layer's transcript whose round polynomials pass their checks is the one its wire
 decodes to. -/
-theorem oddTr?_oddWire_of_solved : ∀ (r : ℕ) (_ : r ≤ 1) (s : X × (Fin 3 → E))
+private theorem oddTr?_oddWire_of_solved : ∀ (r : ℕ) (_ : r ≤ 1) (s : X × (Fin 3 → E))
     (t : (oddSpec E 3 r).FullTranscript) (p : E × List GkrLayer),
     OddSolved r s t → oddTr? r s (oddWire r t p).1 (oddWire r t p).2 = some (t, p.1, p.2)
   | 0, _, s, t, p, _ => by
@@ -486,42 +421,12 @@ theorem oddTr?_oddWire_of_solved : ∀ (r : ℕ) (_ : r ≤ 1) (s : X × (Fin 3 
 
 /-- The binary layer's transcript the oracle verifier accepts has round polynomials that pass
 their checks. -/
-theorem oddSolved_of_check : ∀ (r : ℕ) (hr : r ≤ 1) (s : X × (Fin 3 → E))
+private theorem oddSolved_of_check : ∀ (r : ℕ) (hr : r ≤ 1) (s : X × (Fin 3 → E))
     (t : (oddSpec E 3 r).FullTranscript), (Gkr.oddFront 3 μ leaves r hr).check s t = true →
       OddSolved r s t
   | 0, _, _, _, _ => trivial
   | 1, _, s, t, hc => layerSolved_of_check μ leaves 1 0 (Gkr.rootStmt 3) s t hc
   | n + 2, h, _, _, _ => absurd h (by omega)
-
-/-- The binary layer's transcript the oracle verifier accepts is the one its wire decodes to. -/
-theorem oddTr?_oddWire (r : ℕ) (hr : r ≤ 1) (s : X × (Fin 3 → E))
-    (t : (oddSpec E 3 r).FullTranscript) (p : E × List GkrLayer)
-    (hc : (Gkr.oddFront 3 μ leaves r hr).check s t = true) :
-    oddTr? r s (oddWire r t p).1 (oddWire r t p).2 = some (t, p.1, p.2) :=
-  oddTr?_oddWire_of_solved r hr s t p (oddSolved_of_check μ leaves r hr s t hc)
-
-/-- The binary layer's transcript its wire decodes to carries the wire. -/
-theorem oddWire_oddTr? : ∀ (r : ℕ) (s : X × (Fin 3 → E)) (lam : E) (ls : List GkrLayer)
-    (t : (oddSpec E 3 r).FullTranscript) (lam' : E) (ls' : List GkrLayer),
-    oddTr? r s lam ls = some (t, lam', ls') → oddWire r t (lam', ls') = (lam, ls)
-  | 0, s, lam, ls, t, lam', ls', h => by
-    simp only [oddTr?, Option.some.injEq] at h
-    cases h
-    rfl
-  | 1, s, lam, [], t, lam', ls', h => nomatch h
-  | 1, s, lam, l :: ls, t, lam', ls', h => by
-    revert h
-    show (layerTr? 1 0 (Gkr.rootStmt 3 s) lam l).map (fun t ↦ (t, l.combiner, ls)) =
-      some (t, lam', ls') → _
-    rcases ht' : layerTr? 1 0 (Gkr.rootStmt 3 s) lam l with _ | t'
-    · intro h
-      nomatch h
-    · intro h
-      simp only [Option.map_some] at h
-      cases h
-      obtain ⟨hlam, hwire⟩ := layerWire_layerTr? ht'
-      simp only [oddWire, hlam, hwire]
-  | n + 2, s, lam, ls, t, lam', ls', h => nomatch h
 
 /-- The transcript of the grand product its wire decodes to, from the roots `s` and the first
 combiner `lam`: the binary layer, if there is one, the layers of radix four from the oracle
@@ -535,7 +440,7 @@ def gkrTr? (s : X × (Fin 3 → E)) (lam : E) (ls : List GkrLayer) :
 
 /-- **The executable's grand product is the oracle verifier's**, run on the transcript its wire
 decodes to: the last statement, at depth `μ`. -/
-theorem replayGkr_gkr (s : X × (Fin 3 → E)) (lam : E) (ls : List GkrLayer) :
+private theorem replayGkr_gkr (s : X × (Fin 3 → E)) (lam : E) (ls : List GkrLayer) :
     replayGkr (gkrRadices μ) 0 (Gkr.rootStmt 3 s) lam ls =
       (gkrTr? μ leaves s lam ls).bind fun t ↦ ((gkrFront 3 μ leaves).run s t).map (⟨μ, ·⟩) := by
   rw [gkrRadices, replayGkr_odd μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))]
@@ -574,7 +479,7 @@ def GkrSolved (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript) : P
 
 /-- A transcript of the grand product whose round polynomials pass their checks is the one its
 wire decodes to. -/
-theorem gkrTr?_gkrWire_of_solved (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript)
+private theorem gkrTr?_gkrWire_of_solved (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript)
     (hs : GkrSolved μ leaves s t) :
     gkrTr? μ leaves s (gkrWire μ t).1 (gkrWire μ t).2 = some t := by
   obtain ⟨t₁₂, tc, rfl⟩ := exists_eq_append
@@ -595,7 +500,7 @@ theorem gkrTr?_gkrWire_of_solved (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).
 
 /-- A transcript of the grand product the oracle verifier accepts has round polynomials that pass
 their checks. -/
-theorem gkrSolved_of_check (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript)
+private theorem gkrSolved_of_check (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript)
     (hc : (gkrFront 3 μ leaves).check s t = true) : GkrSolved μ leaves s t := by
   obtain ⟨t₁₂, tc, rfl⟩ := exists_eq_append
     (p₁ := oddSpec E 3 (μ % 2) ++ₚ stepsSpec E 3 (μ / 2) (μ % 2)) (p₂ := draw E) t
@@ -611,23 +516,6 @@ theorem gkrSolved_of_check (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTr
   exact ⟨oddSolved_of_check μ leaves _ _ s t₁ hc₀,
     stepsSolved_of_check μ leaves _ _ (Nat.mod_add_div μ 2) ℓ₀ t₂
       ((Component.Front.run_eq_some_iff _).mp h₂).1⟩
-
-/-- A transcript of the grand product the oracle verifier accepts is the one its wire decodes
-to. -/
-theorem gkrTr?_gkrWire (s : X × (Fin 3 → E)) (t : (gkrSpec E 3 μ).FullTranscript)
-    (hc : (gkrFront 3 μ leaves).check s t = true) :
-    gkrTr? μ leaves s (gkrWire μ t).1 (gkrWire μ t).2 = some t :=
-  gkrTr?_gkrWire_of_solved μ leaves s t (gkrSolved_of_check μ leaves s t hc)
-
-/-- The transcript of the grand product its wire decodes to carries the wire. -/
-theorem gkrWire_gkrTr? {s : X × (Fin 3 → E)} {lam : E} {ls : List GkrLayer}
-    {t : (gkrSpec E 3 μ).FullTranscript} (h : gkrTr? μ leaves s lam ls = some t) :
-    gkrWire μ t = (lam, ls) := by
-  simp only [gkrTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨⟨t₁, lam₁, ls₁⟩, h₁, ⟨t₂, last⟩, h₂, rfl⟩ := h
-  simp only [gkrWire, FullTranscript.append_fst, FullTranscript.append_snd, chalTr_zero]
-  rw [stepsWire_stepsTr? μ leaves _ _ _ _ _ t₂ last h₂]
-  exact oddWire_oddTr? _ s lam ls t₁ lam₁ ls₁ h₁
 
 end Layer
 
@@ -662,7 +550,8 @@ private theorem busWireOf_busTrOf (ab : (Fin 4 → E) × E) (r : E × E)
 
 /-- The bus phase's run on a transcript in its parts: the count root checked, the grand product
 from the roots, and the output from its last statement and the values. -/
-theorem run_busPhase (h : Bus.Conditions I) (input : I.Stmt) (ab : (Fin 4 → E) × E) (r : E × E)
+private theorem run_busPhase (h : Bus.Conditions I) (input : I.Stmt) (ab : (Fin 4 → E) × E)
+    (r : E × E)
     (g : (gkrSpec E 3 I.μBus).FullTranscript) (vals : Vector E I.busClaims) :
     (busPhase I h).front.run input (busTrOf I ab r g vals) =
       if r.2 = 0 then none else
@@ -689,7 +578,7 @@ theorem run_busPhase (h : Bus.Conditions I) (input : I.Stmt) (ab : (Fin 4 → E)
 
 /-- **The executable verifier's bus phase is the oracle verifier's**: its algebra on the wire is
 the bus phase's guarded verifier run on the transcript the wire decodes to. -/
-theorem busStep_eq (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire) :
+private theorem busStep_eq (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire) :
     busStep I h input w = (busTr? I input w).bind ((busPhase I h).front.run input) := by
   simp only [busStep, busReplay, busTr?, Option.bind_eq_bind, Option.pure_def]
   rcases RoundPoly.ofList? 4 w.alpha with _ | α
@@ -729,15 +618,6 @@ theorem busStep_eq (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire) :
     have hin : ℓ.1.1 = input := congrArg Prod.fst (hfst _ key)
     simp only [hc, ↓reduceIte, Option.bind_some, Option.map_some, dite_true, hin]
 
-/-- The executable accepts the bus phase's wire exactly when the transcript it decodes to exists
-and the oracle verifier accepts it, with the oracle verifier's output. -/
-theorem busStep_eq_some_iff (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire)
-    (o : I.Stmt × BusOut I) :
-    busStep I h input w = some o ↔ ∃ t, busTr? I input w = some t ∧
-      (busPhase I h).front.check input t = true ∧ (busPhase I h).front.out input t = o := by
-  rw [busStep_eq, Option.bind_eq_some_iff]
-  exact exists_congr fun t ↦ and_congr_right fun _ ↦ Component.Front.run_eq_some_iff _
-
 /-- The bus phase's round polynomials pass their checks: the grand product's, from the roots. -/
 def BusSolved (input : I.Stmt) (t : (busSpec I).FullTranscript) : Prop :=
   ∃ ab r g vals, t = busTrOf I ab r g vals ∧
@@ -745,7 +625,7 @@ def BusSolved (input : I.Stmt) (t : (busSpec I).FullTranscript) : Prop :=
 
 /-- A transcript of the bus phase whose round polynomials pass their checks is the one its wire
 decodes to. -/
-theorem busTr?_busWireOf_of_solved (input : I.Stmt) (t : (busSpec I).FullTranscript)
+private theorem busTr?_busWireOf_of_solved (input : I.Stmt) (t : (busSpec I).FullTranscript)
     (hs : BusSolved I input t) : busTr? I input (busWireOf I t) = some t := by
   obtain ⟨ab, r, g, vals, rfl, hg⟩ := hs
   rw [busWireOf_busTrOf]
@@ -758,7 +638,7 @@ theorem busTr?_busWireOf_of_solved (input : I.Stmt) (t : (busSpec I).FullTranscr
 
 /-- A transcript of the bus phase the oracle verifier accepts has round polynomials that pass their
 checks. -/
-theorem busSolved_of_check (h : Bus.Conditions I) (input : I.Stmt)
+private theorem busSolved_of_check (h : Bus.Conditions I) (input : I.Stmt)
     (t : (busSpec I).FullTranscript) (hc : (busPhase I h).front.check input t = true) :
     BusSolved I input t := by
   obtain ⟨t₃, vals, rfl⟩ := exists_eq_append
@@ -779,21 +659,11 @@ theorem busSolved_of_check (h : Bus.Conditions I) (input : I.Stmt)
     ((Component.Front.run_eq_some_iff _).mp hg).1⟩
 
 /-- A transcript of the bus phase the oracle verifier accepts is the one its wire decodes to. -/
-theorem busTr?_busWireOf (h : Bus.Conditions I) (input : I.Stmt) (t : (busSpec I).FullTranscript)
+private theorem busTr?_busWireOf (h : Bus.Conditions I) (input : I.Stmt)
+    (t : (busSpec I).FullTranscript)
     (hc : (busPhase I h).front.check input t = true) :
     busTr? I input (busWireOf I t) = some t :=
   busTr?_busWireOf_of_solved I input t (busSolved_of_check I h input t hc)
-
-/-- The transcript the bus phase's wire decodes to carries the wire. -/
-theorem busWireOf_busTr? {input : I.Stmt} {w : BusWire} {t : (busSpec I).FullTranscript}
-    (h : busTr? I input w = some t) : busWireOf I t = w := by
-  simp only [busTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨α, hα, g, hg, vals, hv, rfl⟩ := h
-  rcases w with ⟨alpha, beta, shared, count, combiner, layers, values⟩
-  simp only at hα hg hv
-  rw [busWireOf_busTrOf, gkrWire_gkrTr? I.μBus (Bus.leaves I) hg]
-  simp only
-  rw [ofFn_getElem_eq_toList, toList_of_ofList? hα, toList_of_ofList? hv]
 
 /-- **On a transcript the oracle verifier accepts, the executable accepts its wire** with the
 oracle verifier's output. -/
@@ -809,13 +679,6 @@ theorem busStep_busWireOf_of_solved (h : Bus.Conditions I) (input : I.Stmt)
     (t : (busSpec I).FullTranscript) (hs : BusSolved I input t) :
     busStep I h input (busWireOf I t) = (busPhase I h).front.run input t := by
   rw [busStep_eq, busTr?_busWireOf_of_solved I input t hs, Option.bind_some]
-
-/-- At leanVM's instance the bus phase's algebra, with the program's share settled, is the
-oracle verifier's run on the transcript the wire decodes to. -/
-theorem leanVmBus_eq (prog : Program) (s : Sizes) (input : PublicInput) (w : BusWire) :
-    leanVmBus prog s input w = (busTr? (leanVm prog s) input w).bind
-      ((busPhase (leanVm prog s) (leanIsa_conditions _ prog s)).front.run input) := by
-  rw [leanVmBus_eq_busStep, busStep_eq]
 
 end Compile
 

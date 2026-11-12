@@ -31,10 +31,9 @@ each block of its region once and builds its skip and lincheck tables once (`flo
 
 `leanVmFastProver` is its prover. **`leanVmFastProver_run`**: its run is the run of
 `leanVmProver (leanVmPhases I h)`, on every statement, stack and challenge sequence. The oracle
-reduction with it and leanVM's verifier, `leanVmFastPiop`, has leanVM's verifier
-(`leanVmFastPiop_verifier`, by `rfl`), so `leanVm_rbrKnowledgeSoundness` is a statement about
-it, and it is perfectly complete (`leanVmFast_perfectCompleteness`). No definition or statement of
-the protocol changes.
+reduction with it and leanVM's verifier, `leanVmFastPiop`, has leanVM's verifier by `rfl`,
+so `leanVm_rbrKnowledgeSoundness` is a statement about it, and it is perfectly complete
+(`leanVmFast_perfectCompleteness`). No definition or statement of the protocol changes.
 -/
 
 namespace LeanerVM.Protocol
@@ -164,11 +163,6 @@ theorem leanVmFastProver_run (s : I.Stmt × ∀ i, NoOracle i) (w : Column I.μ)
 def leanVmFastPiop :
     OracleReduction []ₒ I.Stmt NoOracle (Column I.μ) Unit (TheOracle I) Unit (piopSpec I) :=
   (leanVmCached I h).toDef.red
-
-/-- Its verifier is leanVM's. -/
-theorem leanVmFastPiop_verifier :
-    (leanVmFastPiop I h).verifier = leanVmVerifier (leanVmPhases I h) :=
-  rfl
 
 /-- **Perfect completeness with the prover with state**: on every statement and stack with
 `M3Holds`, it convinces leanVM's verifier with probability one. -/

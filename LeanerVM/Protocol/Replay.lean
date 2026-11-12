@@ -44,7 +44,7 @@ def replay (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
   (verifyWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input proof).run []
 
 /-- The replay is the verifier on the oracle, simulated by the log's answers. -/
-theorem replay_eq_simulateQ (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
+private theorem replay_eq_simulateQ (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) :
     replay log prog input proof =
       (simulateQ (QueryLog.replayImpl (MerkleTree.logAnswer log))

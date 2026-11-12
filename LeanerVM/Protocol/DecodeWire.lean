@@ -113,18 +113,6 @@ private theorem refines_polySlot {d : ℕ} (hd : 0 < d) (claim : Thunk E) (e : T
   simp only [hc]
   rfl
 
-/-- `k + 1` challenges read by the walk are the first `k`, then the last. -/
-private theorem samples_succ' {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
-    ∀ k, samples ops (k + 1) = do
-      let xs ← samples ops k
-      let x ← ops.sample
-      return xs ++ [x]
-  | 0 => by simp [samples]
-  | k + 1 => by
-    conv_lhs => rw [samples, samples_succ' ops k]
-    conv_rhs => rw [samples]
-    simp
-
 /-- `k` challenges, read as the walk reads them and as a run of draws. -/
 private theorem refines_draws : ∀ k : ℕ,
     Refines (fun xs t ↦ drawsList k t = xs) (samples historyOps k)
@@ -133,7 +121,7 @@ private theorem refines_draws : ∀ k : ℕ,
     cases h
     exact ⟨_, rfl, rfl⟩
   | k + 1 => by
-    rw [samples_succ', toSlot_draws_succ]
+    rw [samples_succ, toSlot_draws_succ]
     refine Refines.bind (refines_draws k) fun xs t h ↦
       Refines.bind (Refines.refl _) fun x y hxy ↦ Refines.pure ?_
     subst hxy
@@ -167,11 +155,6 @@ private theorem refines_roundsDec {d : ℕ} (hd : 0 < d) (eq? : ℕ → Option E
     show (⟨p.toList.eraseIdx drop, c⟩ : Round) =
       ⟨p.toList.eraseIdx (RoundPoly.dropped (eq? σ.2)), c⟩
     rw [hdrop σ.2 le_rfl (by omega)]
-
-private theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript),
-    (drawsList k t).length = k
-  | 0, _ => rfl
-  | k + 1, t => by simp [drawsList, length_drawsList k]
 
 private theorem length_roundsChals {d : ℕ} :
     ∀ (m : ℕ) (t : (roundsSpec E d m).FullTranscript), (roundsChals m t).length = m
@@ -279,12 +262,6 @@ end Reads
 section Bus
 
 open Slot
-
-/-- A list of length `n` is its entries, padded with zeros. -/
-private theorem ofFn_getD {n : ℕ} {l : List E} (h : l.length = n) :
-    List.ofFn (fun i : Fin n ↦ l.getD i 0) = l := by
-  subst h
-  exact List.ext_getElem (by simp) fun _ _ _ ↦ by simp
 
 /-- A layer's descendants, read as three runs of scalars, then anything after. -/
 private theorem refines_childrenSlot {γ γ' : Type} {R : γ → γ' → Prop} (ρ : ℕ)
@@ -534,17 +511,6 @@ private theorem refines_pubDec (n : ℕ) (K : PubWire → Slot Reading γ)
   rw [read_bind, read_toSlot_pubDec, h₁, Option.bind_some, h₂, Option.map_some, Option.bind_some]
   exact hy
 
-/-- `a + b` rounds read by the walk are the first `a`, then the next `b`. -/
-private theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n)
-    (d b : ℕ) : ∀ a, readRounds ops d (a + b) = do
-      let rs₁ ← readRounds ops d a
-      let rs₂ ← readRounds ops d b
-      return rs₁ ++ rs₂
-  | 0 => by simp [readRounds]
-  | a + 1 => by
-    rw [Nat.add_right_comm, readRounds, readRounds_add ops d b a, readRounds]
-    simp
-
 theorem roundsNext_snd {d : ℕ} :
     ∀ (σ : Thunk E × ℕ) (m : ℕ) (t : (roundsSpec E d m).FullTranscript),
     (roundsNext σ m t).2 = σ.2 + m
@@ -595,33 +561,6 @@ section Whir
 open Slot
 
 variable {γ γ' : Type} {R : γ → γ' → Prop}
-
-/-- `k + 1` fold rounds read by the walk: the first challenge, then `k` rounds of a polynomial
-and a challenge, then the last polynomial. -/
-private theorem walkFolds_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
-    ∀ k, walkFolds ops (k + 1) = do
-      let c ← ops.sample
-      let rs ← readRounds ops 2 k
-      let w ← ops.nextScalars 2
-      return foldsWire c rs w
-  | 0 => by simp [walkFolds, readRounds, foldsWire]
-  | k + 1 => by
-    conv_lhs => rw [walkFolds, walkFolds_eq ops k]
-    conv_rhs => rw [readRounds, readRound]
-    simp [foldsWire]
-
-/-- `k + 1` tail rounds read by the walk: the first challenge, then `k` rounds of a polynomial and
-a challenge. -/
-private theorem walkTail_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
-    ∀ k, walkTail ops (k + 1) = do
-      let c ← ops.sample
-      let rs ← readRounds ops 2 k
-      return foldsWire c rs []
-  | 0 => by simp [walkTail, readRounds, foldsWire]
-  | k + 1 => by
-    conv_lhs => rw [walkTail, walkTail_eq ops k]
-    conv_rhs => rw [readRounds, readRound]
-    simp [foldsWire]
 
 /-- The query positions, read as the walk reads them and as their slot does. -/
 private theorem refines_positionsSlot (b t : ℕ) :
@@ -945,7 +884,7 @@ variable (prog : Program) (input : PublicInput) (s : Sizes) (hs : s.Admissible p
 /-- **The walk's history decodes**: if the chain walk at leanVM's chain reads the whole of a
 history whose first eight scalars are the announcement, the history decodes, with any words, to a
 transcript whose wire is the walk's, viewed. -/
-theorem walkChain_decodes (W : LeanWords prog s hs ρ hρ) {hist : List Reading} {w : Wire}
+private theorem walkChain_decodes (W : LeanWords prog s hs ρ hρ) {hist : List Reading} {w : Wire}
     (hw : (walkChain historyOps prog s input (leanIsaChain prog s hs ρ hρ).ladder.shapes).read
       hist = some (w, []))
     (hann : (streamOf hist).take 8 = announcement s ρ) :
@@ -988,23 +927,6 @@ theorem walkChainLogged_decodes (W : LeanWords prog s hs ρ hρ) {H : List UInt8
   rw [hst, streamOf_of_read_nextScalars hxs, List.append_assoc,
     List.take_left' h₈] at hann
   rw [streamOf_of_read_nextScalars hxs, List.take_left' h₈, hann]
-
-/-- **An accepted walk's history decodes**: if the chain walk on the proof reader at leanVM's chain
-succeeds from a stream whose first eight scalars are the announcement, the logged walk succeeds
-with the same wire, and its history decodes, with any words, to a transcript whose wire is the
-walk's, viewed. -/
-theorem walkChain_reader_decodes (W : LeanWords prog s hs ρ hρ) {H : List UInt8 → Id Digest}
-    {st st' : ReaderState PrunedMerklePaths} {w : Wire}
-    (h : runPlain (walkChain (readerOps H) prog s input
-      (leanIsaChain prog s hs ρ hρ).ladder.shapes) st = .ok (w, st'))
-    (hann : st.stream.take 8 = announcement s ρ) :
-    ∃ hist, walkChainLogged prog s input (leanIsaChain prog s hs ρ hρ).ladder.shapes H st =
-        .ok ((w, hist), st') ∧
-      ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
-        wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
-          Wire.view (leanIsaChain prog s hs ρ hρ).ladder.shapes w := by
-  obtain ⟨hist, hl⟩ := walkChainLogged_of_walkChain H h
-  exact ⟨hist, hl, walkChainLogged_decodes prog input s hs ρ hρ W hl hann⟩
 
 end Deployed
 

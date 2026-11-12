@@ -122,11 +122,6 @@ columns' cells rounded up to whole lanes, at least one (`StackShape::n_lanes`,
 def level0Lanes (prog : Program) (s : Sizes) (κ : ℕ) : ℕ :=
   max 1 (((LeanIsa.blocks prog s).total + 2 ^ κ - 1) / 2 ^ κ)
 
-/-- The executable verifier's row width is the lanes at `μ - initialFold`. -/
-theorem nLanes_eq_level0Lanes (prog : Program) (s : Sizes) :
-    Verify.nLanes prog s = level0Lanes prog s (leanIsaμ prog s - Parameters.Whir.initialFold) :=
-  rfl
-
 /-- Level 0 of every admissible chain leaves `μ - initialFold` variables: one decision on the
 window. -/
 theorem deployedHeadKap_eq {μ ρ : ℕ} (h : Parameters.Whir.Admissible μ ρ) :

@@ -201,34 +201,6 @@ theorem verifyFrom_of_setup {m : Type → Type} [Monad m] (H : List UInt8 → m 
     (h : setup? prog proof = none) : verifyFrom H seed prog input proof = pure false := by
   simp only [verifyFrom, h]
 
-/-- A proof the setup rejects is rejected without a hash, whatever answers it. -/
-theorem verifyWith_of_setup {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
-    (h : setup? prog proof = none) : verifyWith H prog input proof = pure false :=
-  verifyFrom_of_setup H _ h
-
-/-- A proof whose openings have another number or shape than the ladder fixes is rejected
-without a hash or the seed, whatever answers it. -/
-theorem verifyFrom_of_openings {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    (seed : m FsState) {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
-    {s : Sizes} {ρ : ℕ} {levels : List Whir.Level} (hs : setup? prog proof = some (s, ρ))
-    (hl : ladderOf prog s ρ = some levels)
-    (ho : openingsOk (nLanes prog s) true (levelShapes (stackMu prog s) levels) proof.merkle =
-      false) :
-    verifyFrom H seed prog input proof = pure false := by
-  simp only [verifyFrom, hs, hl, ho, Bool.not_false, ↓reduceIte]
-
-/-- A proof whose openings have another number or shape than the ladder fixes is rejected
-without a hash, whatever answers it. -/
-theorem verifyWith_of_openings {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
-    {levels : List Whir.Level} (hs : setup? prog proof = some (s, ρ))
-    (hl : ladderOf prog s ρ = some levels)
-    (ho : openingsOk (nLanes prog s) true (levelShapes (stackMu prog s) levels) proof.merkle =
-      false) :
-    verifyWith H prog input proof = pure false :=
-  verifyFrom_of_openings H _ hs hl ho
-
 end Verify
 
 end

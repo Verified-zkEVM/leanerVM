@@ -85,13 +85,6 @@ def walkChainLogged (prog : Program) (s : Sizes) (input : PublicInput) (shs : Li
     Except ReadError ((Wire × List Reading) × ReaderState PrunedMerklePaths) :=
   runLogged (walkChain (stepOps H) prog s input shs) [] st
 
-private theorem runPlain_bind {α β : Type} (b : Walk Id α) (f : α → Walk Id β) (st) :
-    runPlain (b >>= f) st = match runPlain b st with
-      | .ok (x, st') => runPlain (f x) st'
-      | .error e => .error e := by
-  simp only [runPlain, StateT.run_bind, ExceptT.run_bind]
-  rcases (b.run st).run with e | ⟨x, st'⟩ <;> rfl
-
 theorem runLogged_bind {α β : Type} (a : LoggedWalk Id α) (f : α → LoggedWalk Id β) (log st) :
     runLogged (a >>= f) log st = match runLogged a log st with
       | .ok ((x, log'), st') => runLogged (f x) log' st'
@@ -101,9 +94,6 @@ theorem runLogged_bind {α β : Type} (a : LoggedWalk Id α) (f : α → LoggedW
 
 theorem runLogged_pure {α : Type} (x : α) (log st) :
     runLogged (pure x : LoggedWalk Id α) log st = .ok ((x, log), st) := rfl
-
-private theorem runPlain_pure {α : Type} (x : α) (st) :
-    runPlain (pure x : Walk Id α) st = .ok (x, st) := rfl
 
 /-- A reader step, then its block logged with the chain state after it. -/
 theorem runLogged_logged {α : Type} (b : Walk Id α) (g : α → Block) (log st) :
@@ -194,25 +184,6 @@ private def simRel : MonadRel (LoggedWalk Id) (Slot Reading) where
       rw [Slot.read_bind, List.append_assoc, hr₁, Option.bind_some, hr₂]
     · cases h
 
-/-- `b` succeeds only where the logged `a` succeeds, with the same value and reader state. -/
-private def backRel : MonadRel (LoggedWalk Id) (Walk Id) where
-  R a b := ∀ st x st', runPlain b st = .ok (x, st') → ∀ log, ∃ log',
-    runLogged a log st = .ok ((x, log'), st')
-  pure x := by
-    intro st y st' h log
-    rw [runPlain_pure] at h
-    cases h
-    exact ⟨log, rfl⟩
-  bind {α β a₁ a₂ f₁ f₂} h₁ h₂ := by
-    intro st y st'' h log
-    rw [runPlain_bind] at h
-    split at h
-    · rename_i x st' hx
-      obtain ⟨log', hl'⟩ := h₁ st x st' hx log
-      obtain ⟨log'', hl''⟩ := h₂ x st' y st'' h log'
-      exact ⟨log'', by rw [runLogged_bind, hl']; exact hl''⟩
-    · cases h
-
 /-- A reader step, its block logged, simulates a slot that reads that block back. -/
 private theorem sim_logged {α : Type} {b : Walk Id α} {g : α → Block} {s : Slot Reading α}
     (hb : ∀ {st x st'}, runPlain b st = .ok (x, st') →
@@ -227,13 +198,6 @@ private theorem sim_logged {α : Type} {b : Walk Id α} {g : α → Block} {s : 
     obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
     exact ⟨_, rfl, (hb hy).1, (hb hy).2⟩
   · cases h
-
-/-- A reader step, its block logged, succeeds where the step does. -/
-private theorem back_logged {α : Type} (b : Walk Id α) (g : α → Block) :
-    backRel.R (do let x ← b; logStep (g x); return x) b := by
-  intro st x st' h log
-  rw [runLogged_logged, h]
-  exact ⟨_, rfl⟩
 
 variable (H : List UInt8 → Id Digest)
 
@@ -254,17 +218,6 @@ private theorem related_sim : ChainOps.Related simRel (stepOps H) historyOps whe
   checkPow bits := sim_logged fun hy ↦
     ⟨by simp [runPlain_checkPow H bits hy, streamOf], fun _ ↦ rfl⟩
 
-/-- The logged reader succeeds wherever the proof reader does. -/
-private theorem related_back : ChainOps.Related backRel (stepOps H) (readerOps H) where
-  nextScalar := back_logged _ _
-  sample := back_logged _ _
-  nextRoot := by
-    refine backRel.bind (back_logged _ _) fun a ↦ backRel.bind (back_logged _ _) fun b ↦ ?_
-    rcases digestOfScalars (a, b) with _ | d
-    · exact fun _ _ _ h ↦ nomatch h
-    · exact backRel.pure d
-  checkPow _ := back_logged _ _
-
 /-- **The logged walk reads its own history**: if the chain walk succeeds on the logged reader,
 the walk on the history it logged reads the same wire, and the history accounts for the stream's
 scalars the walk read. -/
@@ -277,14 +230,6 @@ theorem walkChain_history {prog : Program} {s : Sizes} {input : PublicInput}
   rw [List.nil_append] at hc
   subst hc
   exact ⟨by simpa using hr [], hs⟩
-
-/-- **The logged walk succeeds where the walk does**: a chain walk the proof reader accepts is
-accepted by the logged reader, with the same wire and reader state. -/
-theorem walkChainLogged_of_walkChain {prog : Program} {s : Sizes} {input : PublicInput}
-    {shs : List LevelShape} {st st' : ReaderState PrunedMerklePaths} {w : Wire}
-    (h : runPlain (walkChain (readerOps H) prog s input shs) st = .ok (w, st')) :
-    ∃ hist, walkChainLogged prog s input shs H st = .ok ((w, hist), st') :=
-  walkChain_rel (related_back H) prog s input shs st w st' h []
 
 end DecodeChain
 

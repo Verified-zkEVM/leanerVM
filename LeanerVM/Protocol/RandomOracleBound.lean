@@ -112,7 +112,7 @@ def StartsSafe : Prop :=
   ∀ l σ st, R.stmtAt l σ = some st → σ ∈ seedRoots ∨ R.announcementOf st [] = none
 
 /-- **Starts among the roots are safe.** -/
-theorem startsSafe_of_roots (h : ∀ l d, R.isStart l d = true → d ∈ seedRoots) :
+private theorem startsSafe_of_roots (h : ∀ l d, R.isStart l d = true → d ∈ seedRoots) :
     R.StartsSafe seedRoots :=
   fun l σ _ hσ ↦ .inl (h l σ (by simp [ChainStarts.isStart, hσ]))
 

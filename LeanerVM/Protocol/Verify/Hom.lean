@@ -84,7 +84,7 @@ abbrev ReadM.mapHom {M : Type} : ReadM m M →ᵐ ReadM m' M := StateT.mapHom (E
 variable {M : Type}
 
 /-- A reader's run, mapped, is the mapped reader's run. -/
-theorem ReadM.run'_mapHom {α : Type} (x : ReadM m M α) (st : ReaderState M) :
+private theorem ReadM.run'_mapHom {α : Type} (x : ReadM m M α) (st : ReaderState M) :
     φ ((x.run' st).run) = ((ReadM.mapHom φ x).run' st).run := by
   simp [StateT.run', ReadM.mapHom]
   rfl

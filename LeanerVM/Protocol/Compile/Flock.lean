@@ -30,11 +30,10 @@ within-block coordinates' and the batch coordinates'.
 **The Flock phase is the oracle verifier's** (`flockStep_eq`): when the walk `rows` the executable
 evaluates the circuit's matrices by is the region's (`r.r1cs.rows`), its algebra is the oracle
 verifier's guarded form run on the decoded transcript. At leanVM's instance the walk is
-`blake2sRows`, the region's by `blake2sRows_eq_region` (`leanVmFlock_eq`). `flockStep_eq_some_iff`,
-`flockTr?_flockWireOf` (an accepted transcript is the one its wire decodes to),
-`flockWireOf_flockTr?` and `flockStep_flockWireOf` follow as for the other phases, and so do
-`flockTr?_flockWireOf_of_solved` and `flockStep_flockWireOf_of_solved` for a transcript whose round
-polynomials pass their checks (`FlockSolved`, `flockSolved_of_check`).
+`blake2sRows`, the region's by `blake2sRows_eq_region`. `flockTr?_flockWireOf` (an accepted
+transcript is the one its wire decodes to) and `flockStep_flockWireOf` follow as for the other
+phases, and so do `flockTr?_flockWireOf_of_solved` and `flockStep_flockWireOf_of_solved` for a
+transcript whose round polynomials pass their checks (`FlockSolved`, `flockSolved_of_check`).
 -/
 
 namespace LeanerVM.Protocol
@@ -51,7 +50,7 @@ namespace Compile
 /-! ## A replay in two parts -/
 
 /-- A replay of rounds in two runs is the first run's, then the second's from its final claim. -/
-theorem replayRounds_append {d : ℕ} {eq? : ℕ → Option E} :
+private theorem replayRounds_append {d : ℕ} {eq? : ℕ → Option E} :
     ∀ (j : ℕ) (claim : E) (rs₁ rs₂ : List Round),
       replayRounds d eq? j claim (rs₁ ++ rs₂) =
         (replayRounds d eq? j claim rs₁).bind fun p ↦
@@ -232,7 +231,7 @@ private theorem zc_dropped (r : FlockRegion I.toShape)
 /-- **The executable verifier's Flock phase is the oracle verifier's**: when the walk `rows` it
 evaluates the circuit's matrices by is the region's, its algebra on the wire is the Flock phase's
 guarded verifier run on the transcript the wire decodes to. -/
-theorem flockStep_eq (r : FlockRegion I.toShape) (hr : I.flock = some r)
+private theorem flockStep_eq (r : FlockRegion I.toShape) (hr : I.flock = some r)
     (rows : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) →
       CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn))
     (hrows : ∀ x, rows x = r.r1cs.rows x) (s : I.Stmt × PubOut I) (w : FlockWire) :
@@ -365,19 +364,6 @@ theorem flockStep_eq (r : FlockRegion I.toShape) (hr : I.flock = some r)
     | exact absurd (of_decide_eq_true h₂) h₁
     | exact absurd (decide_eq_true (not_not.mp h₁)) h₂
 
-/-- The executable accepts the Flock phase's wire exactly when the transcript it decodes to
-exists and the oracle verifier accepts it, with the oracle verifier's output. -/
-theorem flockStep_eq_some_iff (r : FlockRegion I.toShape) (hr : I.flock = some r)
-    (rows : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) →
-      CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn))
-    (hrows : ∀ x, rows x = r.r1cs.rows x) (s : I.Stmt × PubOut I) (w : FlockWire)
-    (o : I.Stmt × FlockOut I) :
-    flockStep I r hr rows s w = some o ↔ ∃ t, flockTr? I r s w = some t ∧
-      (flockPhaseSome I r hr).front.check s t = true ∧
-        (flockPhaseSome I r hr).front.out s t = o := by
-  rw [flockStep_eq I r hr rows hrows, Option.bind_eq_some_iff]
-  exact exists_congr fun t ↦ and_congr_right fun _ ↦ Component.Front.run_eq_some_iff _
-
 /-- The Flock phase's round polynomials on the region `r` pass their checks: the zerocheck's
 within-block rounds from `P(z_skip)` and its batch rounds from their final claim, with the
 point's equality weights, and the lincheck's rounds from its batched claim, each from the oracle
@@ -397,7 +383,7 @@ def FlockSolved (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I)
 
 /-- A transcript of the Flock phase whose round polynomials pass their checks is the one its wire
 decodes to. -/
-theorem flockTr?_flockWireOf_of_solved (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I)
+private theorem flockTr?_flockWireOf_of_solved (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I)
     (t : (flockSpecOf r.kBatch).FullTranscript) (hs : FlockSolved I r s t) :
     flockTr? I r s (flockWireOf r.kBatch t) = some t := by
   obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl, hL, hH, hLin⟩ := hs
@@ -446,7 +432,7 @@ theorem flockTr?_flockWireOf_of_solved (r : FlockRegion I.toShape) (s : I.Stmt �
 
 /-- A transcript of the Flock phase the oracle verifier accepts has round polynomials that pass
 their checks. -/
-theorem flockSolved_of_check (r : FlockRegion I.toShape) (hr : I.flock = some r)
+private theorem flockSolved_of_check (r : FlockRegion I.toShape) (hr : I.flock = some r)
     (s : I.Stmt × PubOut I) (t : (flockSpecOf r.kBatch).FullTranscript)
     (hc : (flockPhaseSome I r hr).front.check s t = true) : FlockSolved I r s t := by
   obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl⟩ := exists_eq_flockTrOf r.kBatch t
@@ -485,29 +471,11 @@ theorem flockSolved_of_check (r : FlockRegion I.toShape) (hr : I.flock = some r)
 
 /-- A transcript of the Flock phase the oracle verifier accepts is the one its wire decodes
 to. -/
-theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
+private theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
     (s : I.Stmt × PubOut I) (t : (flockSpecOf r.kBatch).FullTranscript)
     (hc : (flockPhaseSome I r hr).front.check s t = true) :
     flockTr? I r s (flockWireOf r.kBatch t) = some t :=
   flockTr?_flockWireOf_of_solved I r s t (flockSolved_of_check I r hr s t hc)
-
-/-- The transcript the Flock phase's wire decodes to carries the wire. -/
-theorem flockWireOf_flockTr? {r : FlockRegion I.toShape} {s : I.Stmt × PubOut I}
-    {w : FlockWire} {t : (flockSpecOf r.kBatch).FullTranscript} (h : flockTr? I r s w = some t) :
-    flockWireOf r.kBatch t = w := by
-  simp only [flockTr?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨v, hv, msg, hmsg, zcL, hzcL, pL, -, zcH, hzcH, pH, -, χ, -, ab, hab, lin, hlin, sv, hsv,
-    fs, hfs, rfl⟩ := h
-  rcases w with ⟨point, skip, zskip, zc, wab, alpha, wlin, slices, ring⟩
-  simp only at hv hmsg hzcL hzcH hab hlin hsv hfs
-  rw [flockWireOf_flockTrOf]
-  have hL := roundsWire_roundsTr? _ 0 _ 0 _ _ zcL
-    (fun k _ hk ↦ zc_dropped I r _ k (by omega)) hzcL
-  have hH := roundsWire_roundsTr? _ 0 _ _ _ _ zcH
-    (fun k _ hk ↦ zc_dropped I r _ k hk) hzcH
-  have hLin := roundsWire_roundsTr? (fun _ ↦ none) 1 _ 0 _ _ lin (fun _ _ _ ↦ rfl) hlin
-  rw [hL, hH, hLin, List.take_append_drop, toList_of_ofList? hv, toList_of_ofList? hmsg,
-    toList_of_ofList? hab, toList_of_ofList? hsv, toList_of_ofList? hfs]
 
 /-- **On a transcript the oracle verifier accepts, the executable accepts its wire** with the
 oracle verifier's output, when its walk is the region's. -/
@@ -540,18 +508,6 @@ theorem blake2sRows_eq_region (prog : Program) (sz : Sizes)
     blake2sRows x = (flockRegion prog sz Blake2sFlock.blake2sFlockSpec).r1cs.rows x := by
   rw [blake2sRows_eq]
   rfl
-
-/-- At leanVM's instance the Flock phase's algebra, with the BLAKE2s circuit's walk
-`blake2sRows`, is the oracle verifier's run on the transcript the wire decodes to. -/
-theorem leanVmFlock_eq (prog : Program) (sz : Sizes) (s : PublicInput × PubOut (leanVm prog sz))
-    (w : FlockWire) :
-    flockStep (leanVm prog sz) (flockRegion prog sz Blake2sFlock.blake2sFlockSpec) rfl blake2sRows
-        s w =
-      (flockTr? (leanVm prog sz) (flockRegion prog sz Blake2sFlock.blake2sFlockSpec) s w).bind
-        ((flockPhaseSome (leanVm prog sz) (flockRegion prog sz Blake2sFlock.blake2sFlockSpec)
-          rfl).front.run s) :=
-  flockStep_eq (leanVm prog sz) (flockRegion prog sz Blake2sFlock.blake2sFlockSpec) rfl
-    blake2sRows (blake2sRows_eq_region prog sz) s w
 
 end Compile
 

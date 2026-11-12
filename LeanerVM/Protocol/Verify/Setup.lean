@@ -193,6 +193,27 @@ def readRounds (d : ℕ) : ℕ → n (List Round)
     let rs ← readRounds d k
     return r :: rs
 
+/-- `k + 1` challenges are the first `k`, then the last. -/
+theorem samples_succ [LawfulMonad n] : ∀ k, samples ops (k + 1) = do
+    let xs ← samples ops k
+    let x ← ops.sample
+    return xs ++ [x]
+  | 0 => by simp [samples]
+  | k + 1 => by
+    conv_lhs => rw [samples, samples_succ k]
+    conv_rhs => rw [samples]
+    simp
+
+/-- `a + b` rounds are the first `a`, then the next `b`. -/
+theorem readRounds_add [LawfulMonad n] (d b : ℕ) : ∀ a, readRounds ops d (a + b) = do
+    let rs₁ ← readRounds ops d a
+    let rs₂ ← readRounds ops d b
+    return rs₁ ++ rs₂
+  | 0 => by simp [readRounds]
+  | a + 1 => by
+    rw [Nat.add_right_comm, readRounds, readRounds_add d b a, readRounds]
+    simp
+
 /-- The setup's reads: the eight announced scalars, observed, then the commitment root
 (`read_public`, `read_commitment`). -/
 def walkSetup : n Digest := do

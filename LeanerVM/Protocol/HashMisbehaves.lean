@@ -90,7 +90,7 @@ def twoRunGame {β : Type} (proofOf : β → Proof PrunedMerklePaths) (A : Oracl
   return (p.1, ⟨proofOf p.1, p.2, q.2, q.1⟩)
 
 /-- The game on a statement is the game in two runs of the prover and the verifier on it. -/
-theorem loggedGame_eq_twoRunGame (V : VerifierWith) (prog : Program) (input : PublicInput)
+private theorem loggedGame_eq_twoRunGame (V : VerifierWith) (prog : Program) (input : PublicInput)
     (A : Adversary) :
     loggedGame V prog input A = Prod.snd <$> twoRunGame id A (V hashQuery prog input) := by
   simp only [twoRunGame, map_bind, map_pure]
@@ -208,7 +208,7 @@ theorem mem_support_runRandom {V : VerifierWith} {prog : Program} {input : Publi
 collision, a hit from `seedRoots` or a flip of `R` on the joint log is one on the log with each
 query at its first occurrence, and a verifier's query answered by a proof root is past the
 prover's part. -/
-theorem badLog_of_hashMisbehavesFrom (R : SlotReader) {seedRoots : List Digest}
+private theorem badLog_of_hashMisbehavesFrom (R : SlotReader) {seedRoots : List Digest}
     {rootsOf : Proof PrunedMerklePaths → List Digest} {g : Run}
     (hcons : QueryLog.Consistent g.log) (h : HashMisbehavesFrom seedRoots rootsOf R.Flip g) :
     ¬ R.Clean seedRoots (rootsOf g.proof) (List.dedupKeys g.logA).length

@@ -163,7 +163,7 @@ def Solved (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ) (hρ
 
 /-- The algebra's front, once the algebra accepts: its four steps return some output `f`, and
 WHIR's algebra accepts on the opening claim. -/
-theorem front_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
+private theorem front_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
     {shs : List LevelShape} {w : Wire} {rows : List (List (List K))}
     (h : algebra prog s input shs w rows = true) :
     ∃ f, ((((leanVmBus prog s input w.bus).bind fun b ↦ tableStep (leanVm prog s) b w.table).bind
@@ -190,7 +190,7 @@ transcripts of the bus phase, the table sumcheck and the Flock phase whose round
 their checks, each from the oracle verifier's statement before it, if the algebra's four steps
 return `f` on their wires and the public input's, the four oracle verifiers accept, and `f` is
 the Flock phase's output. -/
-theorem leanVmFront_checks_of_solved (prog : Program) (s : Sizes) (input : PublicInput)
+private theorem leanVmFront_checks_of_solved (prog : Program) (s : Sizes) (input : PublicInput)
     (t₂ : (busSpec (leanVm prog s)).FullTranscript)
     (t₃ : (tableSpec (leanVm prog s)).FullTranscript) (t₄ : pubSpec.FullTranscript)
     (t₅ : (flockSpecOf (flockRegion prog s Blake2sFlock.blake2sFlockSpec).kBatch).FullTranscript)
@@ -446,7 +446,7 @@ namespace Prove
 a proof `proveFrom` returns for a witness satisfying leanISA's constraint statement on the public
 input, at the deployed Flock specification, is accepted by the executable verifier at `H` from the
 same start. -/
-theorem baseProver_complete_from (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ)
+private theorem baseProver_complete_from (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ)
     {prog : Program} {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)}
     {ρ : ℕ} {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hp : proveFrom (m := Id) H seed fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =

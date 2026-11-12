@@ -381,11 +381,6 @@ private theorem always_flockDecOf (k : ℕ) :
     simp only [FullTranscript.append_fst, FullTranscript.append_snd]
     exact ⟨h₁, h₂⟩
 
-private theorem toVec_ofFn {n : ℕ} (f : Fin n → E) : toVec n (List.ofFn f) = Vector.ofFn f := by
-  apply Vector.ext
-  intro i _
-  simp [toVec]
-
 private theorem exists_eq_chalsTr_vec {k : ℕ} (t : (draws E k).FullTranscript) :
     ∃ v : Vector E k, t = chalsTr k fun i ↦ v[i] := by
   obtain ⟨f, rfl⟩ := exists_eq_chalsTr k t
@@ -573,13 +568,13 @@ theorem Always.and {α β : Type} {s : Slot α β} {P Q : β → Prop} (h₁ : A
     (h₂ : Always s Q) : Always s fun x ↦ P x ∧ Q x :=
   fun l x r h ↦ ⟨h₁ l x r h, h₂ l x r h⟩
 
-theorem always_seqTail {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
+private theorem always_seqTail {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
     {Q : (seqSpec l).FullTranscript → Prop} (h : ∀ t, Always (D.2 t).toDecoder.toSlot Q) :
     Always D.toDecoder.toSlot fun T ↦ Q (seqTail T) :=
   always_append (Always.true _) (fun t _ ↦ h t) fun _ _ _ h₂ ↦ by
     simpa only [seqTail, FullTranscript.append_snd] using h₂
 
-theorem always_seqHead {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
+private theorem always_seqHead {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
     {P : a.spec.FullTranscript → Prop} (h : Always D.1.toSlot P) :
     Always D.toDecoder.toSlot fun T ↦ P (seqHead T) :=
   always_append h (fun _ _ ↦ Always.true _) fun _ _ h₁ _ ↦ by
