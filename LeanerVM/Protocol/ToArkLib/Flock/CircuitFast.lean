@@ -35,7 +35,7 @@ namespace ProductCircuit
 def bitOf (w : UInt64) (b : ℕ) : Bool := (w >>> b.toUInt64) &&& 1 != 0
 
 /-- `bitOf` reads the bit. -/
-theorem bitOf_eq (w : UInt64) {b : ℕ} (hb : b < 64) : bitOf w b = w.toBitVec.getLsbD b := by
+private theorem bitOf_eq (w : UInt64) {b : ℕ} (hb : b < 64) : bitOf w b = w.toBitVec.getLsbD b := by
   have hsh : (w >>> b.toUInt64 &&& 1).toBitVec = (w.toBitVec >>> b) &&& 1#64 := by
     rw [UInt64.toBitVec_and, UInt64.toBitVec_shiftRight, BitVec.ushiftRight_eq']
     congr 2
@@ -65,7 +65,7 @@ def parityAux (w : UInt64) : ℕ → Bool → Bool
   | 0, a => a
   | n + 1, a => parityAux w n (a ^^ bitOf w n)
 
-theorem toZ_parityAux (w : UInt64) : (n : ℕ) → n ≤ 64 → (a : Bool) →
+private theorem toZ_parityAux (w : UInt64) : (n : ℕ) → n ≤ 64 → (a : Bool) →
     toZ (parityAux w n a) = toZ a + ∑ b ∈ Finset.range n, toZ (w.toBitVec.getLsbD b)
   | 0, _, a => by simp [parityAux]
   | n + 1, hn, a => by
@@ -81,7 +81,7 @@ def xorAnd (Lw zw : Array UInt64) : ℕ → UInt64
   | 0 => 0
   | n + 1 => xorAnd Lw zw n ^^^ (Lw.getD n 0 &&& zw.getD n 0)
 
-theorem toZ_getLsbD_xorAnd (Lw zw : Array UInt64) (b : ℕ) : (n : ℕ) →
+private theorem toZ_getLsbD_xorAnd (Lw zw : Array UInt64) (b : ℕ) : (n : ℕ) →
     toZ ((xorAnd Lw zw n).toBitVec.getLsbD b) =
       ∑ i ∈ Finset.range n,
         toZ ((Lw.getD i 0).toBitVec.getLsbD b && (zw.getD i 0).toBitVec.getLsbD b)
@@ -113,7 +113,7 @@ def wordsAux : (k : ℕ) → ℕ → Array UInt64 → Array UInt64
   | k + 1, x, acc =>
     wordsAux k (x >>> (64 * 2 ^ k)) (wordsAux k (x % 2 ^ (64 * 2 ^ k)) acc)
 
-theorem size_wordsAux : (k x : ℕ) → (acc : Array UInt64) →
+private theorem size_wordsAux : (k x : ℕ) → (acc : Array UInt64) →
     (wordsAux k x acc).size = acc.size + 2 ^ k
   | 0, x, acc => by simp [wordsAux]
   | k + 1, x, acc => by
@@ -122,7 +122,7 @@ theorem size_wordsAux : (k x : ℕ) → (acc : Array UInt64) →
 
 /-- `wordsAux` keeps `acc` and appends the words of `x`, word `i` holding the bits
 `64 i, …, 64 i + 63`. -/
-theorem wordsAux_getD : (k x : ℕ) → (acc : Array UInt64) → (i : ℕ) →
+private theorem wordsAux_getD : (k x : ℕ) → (acc : Array UInt64) → (i : ℕ) →
     (i < acc.size → (wordsAux k x acc).getD i 0 = acc.getD i 0) ∧
       (acc.size ≤ i → i < acc.size + 2 ^ k → ∀ c < 64,
         ((wordsAux k x acc).getD i 0).toBitVec.getLsbD c = x.testBit (64 * (i - acc.size) + c))
@@ -208,7 +208,7 @@ theorem evalW_eq_evalB {Lw zw : Array UInt64} {L z : Form m} (hL : Rep Lw L) (hz
 /-! ## Setting a bit -/
 
 /-- Bit `j` of a bitset after its bit `k` is set to `b`. -/
-theorem getLsbD_setBitB (w : Form m) (k : Pos m) (b : Bool) (j : ℕ) (hj : j < 2 ^ m) :
+private theorem getLsbD_setBitB (w : Form m) (k : Pos m) (b : Bool) (j : ℕ) (hj : j < 2 ^ m) :
     (setBitB w k b).getLsbD j = if (k : ℕ) = j then b else w.getLsbD j := by
   unfold setBitB
   by_cases hkj : (k : ℕ) = j
@@ -236,7 +236,8 @@ private theorem getLsbD_mask {s c : ℕ} (hs : s < 64) (hc : c < 64) :
     · simp [hlt, h, show c - s ≠ 0 by omega]
 
 /-- Setting a bit through the words sets it in the bitset they hold. -/
-theorem rep_setBitW {zw : Array UInt64} {z : Form m} (hz : Rep zw z) (k : Pos m) (b : Bool) :
+private theorem rep_setBitW {zw : Array UInt64} {z : Form m} (hz : Rep zw z) (k : Pos m)
+    (b : Bool) :
     Rep (setBitW zw k b) (setBitB z k b) := by
   refine ⟨by rw [setBitW, Array.size_modify, hz.1], fun j hj ↦ ?_⟩
   have hset : (setBitB z k b).getLsbD j = if (k : ℕ) = j then b else z.getLsbD j := by

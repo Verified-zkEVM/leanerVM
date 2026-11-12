@@ -283,11 +283,11 @@ theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consisten
     (hj : j < m) (p : MidStmt X F j d) (o : ∀ i, O i) (hc : check j Φ.weight p.1 p.2 = true) :
     Nat.card {x // Component.badChallenge O F (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
       (relIn := relMid Φ j) (relOut := rel Φ (j + 1)) p o x} ≤ d := by
-  have := Fintype.ofFinite F
-  classical
-  rw [natCard_subtype_eq_card_filter]
   by_cases hW : Nonempty W
   · obtain ⟨w⟩ := hW
+    have := Fintype.ofFinite F
+    classical
+    rw [natCard_subtype_eq_card_filter]
     obtain ⟨s, q⟩ := p
     have hbad : ∀ x, Component.badChallenge O F (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
         (relIn := relMid Φ j) (relOut := rel Φ (j + 1)) (s, q) o x ↔
@@ -313,22 +313,15 @@ theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consisten
         rw [← H.check ((s.1, o), w) j s.2.1 hj, ← hqh]
         exact hc.symm
       · -- Another polynomial: bad challenges are where it agrees with the honest one.
-        refine (Finset.card_le_card fun x hx ↦ ?_).trans
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun x _ hx ↦ ?_)).trans
           (card_filter_evaluate_eq_le q (Φ.poly ((s.1, o), w) j s.2.1) hqh)
-        rw [Finset.mem_filter] at hx ⊢
-        refine ⟨Finset.mem_univ _, ?_⟩
-        have hnext : evaluate d q x = Φ.claim ((s.1, o), w) (j + 1) (s.2.1.push x) := hx.2.2.2
+        have hnext : evaluate d q x = Φ.claim ((s.1, o), w) (j + 1) (s.2.1.push x) := hx.2.2
         rw [hnext, H.next ((s.1, o), w) j s.2.1 x hj]
     · -- The invariant fails: a bad challenge restores it.
-      refine (Finset.card_le_card fun x hx ↦ ?_).trans
-        ((natCard_subtype_eq_card_filter _).symm.trans_le
-          (S ((s.1, o), w) j s.2.1 hj hinv))
-      rw [Finset.mem_filter] at hx ⊢
-      exact ⟨Finset.mem_univ _, hx.2.2.1⟩
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le d)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    rintro x _ ⟨w, -⟩
-    exact hW ⟨w⟩
+      exact (Finset.card_le_card (Finset.monotone_filter_right _ fun _ _ hx ↦ hx.2.1)).trans
+        ((natCard_subtype_eq_card_filter _).symm.trans_le (S ((s.1, o), w) j s.2.1 hj hinv))
+  · rw [natCard_subtype_eq_zero fun _ ⟨w, _⟩ ↦ hW ⟨w⟩]
+    exact Nat.zero_le d
 
 /-- The security half of the challenge, at `d / |F|`. -/
 def drawChallengeSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)

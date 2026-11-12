@@ -16,7 +16,7 @@ public import LeanerVM.Protocol.ToArkLib.RunCodec
 along the monad morphism `ψ : w →ᵐ w'`. `Prover.runWith_hom`: mapping the run of a prover with no
 shared oracle against `c` is its run against `c.map ψ`. The wires of
 `LeanerVM.Protocol.ToArkLib.RunCodec` map to the same wires over the mapped encoders and sources
-(`RoundCodec.map_append`, `map_msg`, `map_chal`, `map_rounds`, `map_gkr`, …); `map_append` rests on
+(`RoundCodec.map_append`, `map_msg`, `map_chal`, `map_rounds`, …); `map_append` rests on
 `Fin.fappend₂` commuting with a map applied at every index (`Fin.fappend₂_map`). The `_of` forms
 (`map_append_of`, …) conclude at a given target wire, so that `apply` unfolds a composite wire.
 -/
@@ -36,7 +36,7 @@ universe u v w₁ w₂
 variable {A : Sort u} {B : Sort v} {F : A → B → Sort w₁} {G : A → B → Sort w₂}
   (g : ∀ a b, F a b → G a b)
 
-theorem fcons₂_map {n : ℕ} {α₁ : A} {β₁ : Fin n → A} {α₂ : B} {β₂ : Fin n → B}
+private theorem fcons₂_map {n : ℕ} {α₁ : A} {β₁ : Fin n → A} {α₂ : B} {β₂ : Fin n → B}
     (a : F α₁ α₂) (b : (i : Fin n) → F (β₁ i) (β₂ i)) (i : Fin (n + 1)) :
     g _ _ (Fin.fcons₂ (F := F) a b i) =
       Fin.fcons₂ (F := G) (g _ _ a) (fun i ↦ g _ _ (b i)) i := by
@@ -44,7 +44,7 @@ theorem fcons₂_map {n : ℕ} {α₁ : A} {β₁ : Fin n → A} {α₂ : B} {β
   | zero => match i with | ⟨0, _⟩ => rfl
   | succ n => match i with | ⟨0, _⟩ => rfl | ⟨k + 1, _⟩ => rfl
 
-theorem fconcat₂_map {n : ℕ} {α₁ : Fin n → A} {β₁ : A} {α₂ : Fin n → B} {β₂ : B}
+private theorem fconcat₂_map {n : ℕ} {α₁ : Fin n → A} {β₁ : A} {α₂ : Fin n → B} {β₂ : B}
     (u : (i : Fin n) → F (α₁ i) (α₂ i)) (a : F β₁ β₂) (i : Fin (n + 1)) :
     g _ _ (Fin.fconcat₂ (F := F) u a i) =
       Fin.fconcat₂ (F := G) (fun i ↦ g _ _ (u i)) (g _ _ a) i := by
@@ -55,10 +55,9 @@ theorem fconcat₂_map {n : ℕ} {α₁ : Fin n → A} {β₁ : A} {α₂ : Fin 
     have h' : (fun j ↦ g _ _ (Fin.fconcat₂ (F := F) (fun i ↦ u (Fin.succ i)) a j)) =
         Fin.fconcat₂ (F := G) (fun i ↦ g _ _ (u (Fin.succ i))) (g _ _ a) :=
       funext fun j ↦ ih _ j
-    rw [h'] at h
-    exact h
+    rwa [h'] at h
 
-theorem fappend₂_map {m n : ℕ} {α₁ : Fin m → A} {β₁ : Fin n → A} {α₂ : Fin m → B}
+private theorem fappend₂_map {m n : ℕ} {α₁ : Fin m → A} {β₁ : Fin n → A} {α₂ : Fin m → B}
     {β₂ : Fin n → B} (u : (i : Fin m) → F (α₁ i) (α₂ i)) (v : (i : Fin n) → F (β₁ i) (β₂ i))
     (i : Fin (m + n)) :
     g _ _ (Fin.fappend₂ (F := F) u v i) =
@@ -72,8 +71,7 @@ theorem fappend₂_map {m n : ℕ} {α₁ : Fin m → A} {β₁ : Fin n → A} {
         Fin.fappend₂ (F := G) (fun i ↦ g _ _ (u i)) (fun i ↦ g _ _ (v (Fin.castSucc i))) :=
       funext fun j ↦ ih _ j
     rw [h'] at h
-    rw [Fin.fappend₂_succ, Fin.fappend₂_succ]
-    exact h
+    rwa [Fin.fappend₂_succ, Fin.fappend₂_succ]
 
 end Fin
 
@@ -117,37 +115,39 @@ theorem map_append {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (
 theorem map_msg {M : Type} (enc : M → w Unit) : (msg enc).map ψ = msg fun x ↦ ψ (enc x) :=
   ext' (fun | ⟨0, _⟩, _, _ => rfl) fun | ⟨0, _⟩, h => nomatch h
 
-theorem map_sendOne {M : Type} (enc : M → w Unit) :
+private theorem map_sendOne {M : Type} (enc : M → w Unit) :
     (sendOne enc).map ψ = sendOne fun x ↦ ψ (enc x) :=
   ext' (fun | ⟨0, _⟩, _, _ => rfl) fun | ⟨0, _⟩, h => nomatch h
 
 theorem map_chal {C : Type} (smp : w C) : (chal smp).map ψ = chal (ψ smp) :=
   ext' (fun | ⟨0, _⟩, h, _ => nomatch h) fun | ⟨0, _⟩, _ => rfl
 
-theorem map_chals {C : Type} (smp : w C) (k : ℕ) : (chals smp k).map ψ = chals (ψ smp) k := by
+private theorem map_chals {C : Type} (smp : w C) (k : ℕ) : (chals smp k).map ψ = chals
+    (ψ smp) k := by
   induction k with
   | zero => exact map_empty ψ
   | succ k ih => exact (map_append ψ (chals smp k) (chal smp)).trans (by rw [ih, map_chal]; rfl)
 
-theorem map_round {C : Type} {d : ℕ} (enc : Vector C (d + 1) → w Unit) (smp : w C) :
-    (round enc smp).map ψ = round (fun x ↦ ψ (enc x)) (ψ smp) := by
-  exact (map_append ψ _ _).trans (by rw [map_msg, map_chal]; rfl)
+private theorem map_round {C : Type} {d : ℕ} (enc : Vector C (d + 1) → w Unit) (smp : w C) :
+    (round enc smp).map ψ = round (fun x ↦ ψ (enc x)) (ψ smp) :=
+  (map_append ψ _ _).trans (by rw [map_msg, map_chal]; rfl)
 
-theorem map_rounds {C : Type} {d : ℕ} (enc : Vector C (d + 1) → w Unit) (smp : w C) (k : ℕ) :
+private theorem map_rounds {C : Type} {d : ℕ} (enc : Vector C (d + 1) → w Unit) (smp : w C)
+    (k : ℕ) :
     (rounds enc smp k).map ψ = rounds (fun x ↦ ψ (enc x)) (ψ smp) k := by
   induction k with
   | zero => exact map_empty ψ
   | succ k ih =>
     exact (map_append ψ (round enc smp) (rounds enc smp k)).trans (by rw [ih, map_round]; rfl)
 
-theorem map_step {C : Type} {nside : ℕ} (ρ m : ℕ) (enc : Vector C (2 ^ ρ + 1) → w Unit)
+private theorem map_step {C : Type} {nside : ℕ} (ρ m : ℕ) (enc : Vector C (2 ^ ρ + 1) → w Unit)
     (children : (Fin nside → Vector C (2 ^ ρ)) → w Unit) (smp : w C) :
     (step ρ m enc children smp).map ψ =
-      step ρ m (fun x ↦ ψ (enc x)) (fun x ↦ ψ (children x)) (ψ smp) := by
-  exact (map_append ψ _ _).trans (by
+      step ρ m (fun x ↦ ψ (enc x)) (fun x ↦ ψ (children x)) (ψ smp) :=
+  (map_append ψ _ _).trans (by
     rw [map_append, map_append, map_chal, map_rounds, map_msg, map_chals]; rfl)
 
-theorem map_steps {C : Type} {nside : ℕ} (enc : Vector C (2 ^ 2 + 1) → w Unit)
+private theorem map_steps {C : Type} {nside : ℕ} (enc : Vector C (2 ^ 2 + 1) → w Unit)
     (children : (Fin nside → Vector C (2 ^ 2)) → w Unit) (smp : w C) (k m : ℕ) :
     (steps enc children smp k m).map ψ =
       steps (fun x ↦ ψ (enc x)) (fun x ↦ ψ (children x)) (ψ smp) k m := by
@@ -157,22 +157,13 @@ theorem map_steps {C : Type} {nside : ℕ} (enc : Vector C (2 ^ 2 + 1) → w Uni
     exact (map_append ψ (step 2 m enc children smp) (steps enc children smp k (m + 2))).trans
       (by rw [ih, map_step]; rfl)
 
-theorem map_odd {C : Type} {nside : ℕ} (enc : Vector C (2 ^ 1 + 1) → w Unit)
+private theorem map_odd {C : Type} {nside : ℕ} (enc : Vector C (2 ^ 1 + 1) → w Unit)
     (children : (Fin nside → Vector C (2 ^ 1)) → w Unit) (smp : w C) (r : ℕ) :
     (odd enc children smp r).map ψ =
       odd (fun x ↦ ψ (enc x)) (fun x ↦ ψ (children x)) (ψ smp) r := by
   cases r with
   | zero => exact map_empty ψ
   | succ r => exact map_step ψ 1 0 enc children smp
-
-theorem map_gkr {C : Type} {nside : ℕ} (μ : ℕ)
-    (enc₁ : Vector C (2 ^ 1 + 1) → w Unit) (children₁ : (Fin nside → Vector C (2 ^ 1)) → w Unit)
-    (enc₂ : Vector C (2 ^ 2 + 1) → w Unit) (children₂ : (Fin nside → Vector C (2 ^ 2)) → w Unit)
-    (smp : w C) :
-    (gkr μ enc₁ children₁ enc₂ children₂ smp).map ψ =
-      gkr μ (fun x ↦ ψ (enc₁ x)) (fun x ↦ ψ (children₁ x)) (fun x ↦ ψ (enc₂ x))
-        (fun x ↦ ψ (children₂ x)) (ψ smp) := by
-  exact (map_append ψ _ _).trans (by rw [map_append, map_odd, map_steps, map_chal]; rfl)
 
 /-! ### The mapped wire, stated at the target wire
 
@@ -251,9 +242,7 @@ private theorem stepWith_hom (j : Fin n) (tr : pSpec.Transcript j.castSucc)
     (st : P.PrvState j.castSucc) :
     ψ (stepWith c P j tr st) = stepWith (c.map ψ) P j tr st := by
   unfold stepWith
-  split
-  · simp only [MonadHom.mmap_bind, MonadHom.mmap_pure, runNoOracle_hom, RoundCodec.map]
-  · simp only [MonadHom.mmap_bind, MonadHom.mmap_pure, runNoOracle_hom, RoundCodec.map]
+  split <;> simp only [MonadHom.mmap_bind, MonadHom.mmap_pure, runNoOracle_hom, RoundCodec.map]
 
 private theorem runToRoundWith_hom (i : Fin (n + 1)) (stmt : S) (wit : W) :
     ψ (runToRoundWith c P i stmt wit) = runToRoundWith (c.map ψ) P i stmt wit := by

@@ -28,7 +28,9 @@ Codecs compose as schedules do (`RoundCodec.append`, by `Fin.fappend₂` as ArkL
 `++ₚ` are, which compiled code reads by one comparison with the seam); there is one for each
 schedule built by `LeanerVM.Protocol.ToArkLib.Schedule` from encoders of its messages and a
 source of its challenges: `msg` for `say`, `chal` for `draw`, `chals` for `draws`, `round` and
-`rounds` for sumcheck rounds, `step` for a grand-product layer and `gkr` for `gkrSpec`.
+`rounds` for sumcheck rounds, `step` for a grand-product layer and `gkr` for `gkrSpec`. Across
+the seam an appended codec's encoders and sources are its parts' (`send_append_left`, …), up to
+the casts the appended types carry (`apply_heq_send`, `apply_heq_draw`, `prop_heq`).
 
 A prover of an oracle reduction with no shared oracle (`[]ₒ`) makes no query: its oracle
 computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`), with that
@@ -148,6 +150,74 @@ def gkr {C : Type} {nside : ℕ} (μ : ℕ)
   ((odd enc₁ children₁ smp (μ % 2)).append (steps enc₂ children₂ smp (μ / 2) (μ % 2))).append
     (chal smp)
 
+/-! ### The seam -/
+
+section Seam
+
+variable {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (c₁ : RoundCodec w p₁)
+  (c₂ : RoundCodec w p₂)
+
+/-- A function of a round's direction and type, carried along equalities of both, applies as
+before. -/
+theorem apply_heq_send {R : Type} {A A' : Direction} {B B' : Type}
+    {f : A = .P_to_V → B → R} {f' : A' = .P_to_V → B' → R} (hA : A = A') (hB : B = B')
+    (hf : HEq f f') (h : A = .P_to_V) (h' : A' = .P_to_V) {x : B} {x' : B'} (hx : HEq x x') :
+    f h x = f' h' x' := by
+  subst hA hB
+  obtain rfl := eq_of_heq hf
+  obtain rfl := eq_of_heq hx
+  rfl
+
+/-- Below the seam, the appended wire writes as the first. -/
+theorem send_append_left (i : Fin m) :
+    HEq ((c₁.append c₂).send (Fin.castAdd n i)) (c₁.send i) := by
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
+    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.castAdd n i)) _
+  rw [Fin.fappend₂_left]
+  exact cast_heq _ _
+
+/-- Past the seam, the appended wire writes as the second. -/
+theorem send_append_right (i : Fin n) :
+    HEq ((c₁.append c₂).send (Fin.natAdd m i)) (c₂.send i) := by
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
+    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.natAdd m i)) _
+  rw [Fin.fappend₂_right]
+  exact cast_heq _ _
+
+/-- Below the seam, the appended wire reads as the first. -/
+theorem draw_append_left (i : Fin m) :
+    HEq ((c₁.append c₂).draw (Fin.castAdd n i)) (c₁.draw i) := by
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
+    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.castAdd n i)) _
+  rw [Fin.fappend₂_left]
+  exact cast_heq _ _
+
+/-- Past the seam, the appended wire reads as the second. -/
+theorem draw_append_right (i : Fin n) :
+    HEq ((c₁.append c₂).draw (Fin.natAdd m i)) (c₂.draw i) := by
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
+    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.natAdd m i)) _
+  rw [Fin.fappend₂_right]
+  exact cast_heq _ _
+
+/-- A property carried along an equality of value types. -/
+theorem prop_heq {P : ∀ α : Type, w α → Prop} {α β : Type} (hab : α = β) {x : w α} {y : w β}
+    (hxy : HEq x y) (hx : P α x) : P β y := by
+  subst hab
+  obtain rfl := eq_of_heq hxy
+  exact hx
+
+/-- A source of a round's challenge, carried along equalities of its direction and type, reads
+as before. -/
+theorem apply_heq_draw {A A' : Direction} {B B' : Type} {f : A = .V_to_P → w B}
+    {f' : A' = .V_to_P → w B'} (hA : A = A') (hB : B = B') (hf : HEq f f') (h : A = .V_to_P)
+    (h' : A' = .V_to_P) : HEq (f h) (f' h') := by
+  subst hA hB
+  obtain rfl := eq_of_heq hf
+  rfl
+
+end Seam
+
 end RoundCodec
 
 /-! ## The run -/
@@ -219,7 +289,7 @@ theorem runNoOracle_eq_pure {w : Type → Type} [Monad w] [LawfulMonad w] {α : 
   | query_bind t _ _ => exact isEmptyElim t
 
 /-- An oracle computation with no oracle has one outcome: the value it returns in `Id`. -/
-theorem support_eq_runNoOracle {α : Type} (oa : OracleComp []ₒ α) :
+private theorem support_eq_runNoOracle {α : Type} (oa : OracleComp []ₒ α) :
     support oa = {Id.run (runNoOracle oa)} := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp [runNoOracle]
@@ -350,12 +420,12 @@ def challengesImpl (ch : pSpec.Challenges) :
 
 omit [LawfulMonad r] in
 /-- Simulating an oracle computation with no oracle is running it. -/
-theorem simulateQ_empty {α : Type} (oa : OracleComp []ₒ α) :
+private theorem simulateQ_empty {α : Type} (oa : OracleComp []ₒ α) :
     simulateQ (fun t ↦ isEmptyElim t : QueryImpl []ₒ r) oa = runNoOracle oa :=
   rfl
 
 /-- A challenge query answered off the vector. -/
-theorem simulateQ_liftM_getChallenge (ch : pSpec.Challenges) (i : pSpec.ChallengeIdx) :
+private theorem simulateQ_liftM_getChallenge (ch : pSpec.Challenges) (i : pSpec.ChallengeIdx) :
     simulateQ ((fun t ↦ isEmptyElim t : QueryImpl []ₒ r) + challengesImpl (r := r) ch)
       (liftM (pSpec.getChallenge i) : OracleComp ([]ₒ + [pSpec.Challenge]ₒ) _) = pure (ch i) := by
   rw [QueryImpl.simulateQ_add_liftM_right]
@@ -363,7 +433,7 @@ theorem simulateQ_liftM_getChallenge (ch : pSpec.Challenges) (i : pSpec.Challeng
 
 omit [LawfulMonad r] in
 /-- ArkLib's round `j` binds the rounds before it. -/
-theorem processRound_eq_bind (j : Fin n)
+private theorem processRound_eq_bind (j : Fin n)
     (cur : OracleComp ([]ₒ + [pSpec.Challenge]ₒ)
       (pSpec.Transcript j.castSucc × P.PrvState j.castSucc)) :
     Prover.processRound j P cur = cur >>= fun x ↦ Prover.processRound j P (pure x) := by
@@ -371,7 +441,8 @@ theorem processRound_eq_bind (j : Fin n)
 
 /-- ArkLib's rounds up to `i`, the challenge oracle answered off a vector, are the run on those
 challenges. -/
-theorem simulateQ_runToRound (ch : pSpec.Challenges) (stmt : S) (wit : W) (i : Fin (n + 1)) :
+private theorem simulateQ_runToRound (ch : pSpec.Challenges) (stmt : S) (wit : W) (i : Fin
+    (n + 1)) :
     simulateQ ((fun t ↦ isEmptyElim t : QueryImpl []ₒ r) + challengesImpl (r := r) ch)
         (P.runToRound i stmt wit) =
       pure (Id.run (runToRoundWith (w := Id) (RoundCodec.ofChallenges ch) P i stmt wit)) := by
@@ -458,7 +529,7 @@ theorem mem_support_simulateQ_challenges [∀ i, SampleableType (pSpec.Challenge
 
 /-- An oracle computation with no oracle, lifted into a computation that may fail on any oracle,
 is pure. -/
-theorem liftM_noOracle {β : Type} (X : OracleComp []ₒ β) :
+private theorem liftM_noOracle {β : Type} (X : OracleComp []ₒ β) :
     (monadLift X : OptionT (OracleComp ([]ₒ + [pSpec.Challenge]ₒ)) β) =
       pure (Id.run (runNoOracle X)) := by
   induction X using OracleComp.inductionOn with
@@ -467,7 +538,7 @@ theorem liftM_noOracle {β : Type} (X : OracleComp []ₒ β) :
 
 /-- A reduction's run, the challenge oracle answered off a vector: the prover's run on those
 challenges, then the verifier on its transcript. -/
-theorem simulateQ_reduction_run {StmtIn WitIn StmtOut WitOut : Type}
+private theorem simulateQ_reduction_run {StmtIn WitIn StmtOut WitOut : Type}
     (R : Reduction []ₒ StmtIn WitIn StmtOut WitOut pSpec) (ch : pSpec.Challenges)
     (stmt : StmtIn) (wit : WitIn) :
     Id.run (simulateQ ((fun t ↦ isEmptyElim t : QueryImpl []ₒ Id) + challengesImpl (r := Id) ch)

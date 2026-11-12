@@ -60,13 +60,7 @@ def chalsTr {C : Type} : (k : ℕ) → (Fin k → C) → (draws C k).FullTranscr
 /-- A vector is its first entries with its last one pushed. -/
 theorem push_ofFn_castSucc {C : Type} {n : ℕ} (u : Vector C (n + 1)) :
     (Vector.ofFn fun i : Fin n ↦ u[i.castSucc]).push u[Fin.last n] = u := by
-  refine Vector.ext fun j hj ↦ ?_
-  simp only [Vector.getElem_push, Vector.getElem_ofFn, Fin.getElem_fin, Fin.val_castSucc,
-    Fin.val_last]
-  split
-  · rfl
-  · congr 1
-    omega
+  simpa using (Vector.ofFn_succ (f := fun i : Fin (n + 1) ↦ u[i])).symm
 
 /-- The message of the transcript of one message. -/
 @[simp] theorem msgTr_zero {M : Type} (m : M) : msgTr m 0 = m := rfl

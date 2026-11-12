@@ -133,24 +133,10 @@ theorem sendOracleBeside_complete
       ((out s, besideData OStmt M o (honest ((s, o), w))), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendOracleBeside OStmt M honest out).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sendBesideVerifierPure OStmt M out).toGuardedForm (s, o) witIn hx
-  have hrun : (sendBesideProver OStmt M honest out).run (s, o) witIn =
-      pure (show (sayO M).FullTranscript from
-        ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-          (default : (sayO M).Transcript 0),
-        (out s, besideData OStmt M o (honest ((s, o), witIn))), witIn) := rfl
-  have hpr' : pr ∈ support ((sendBesideProver OStmt M honest out).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (sendBesideVerifierPure OStmt M out).toGuardedForm.check (s, o)
-      (ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-        (default : (sayO M).Transcript 0)) = true := rfl
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, h s o witIn hIn, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendBesideVerifierPure OStmt M out).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-- The completeness half. -/
 def sendOracleBesideComplete

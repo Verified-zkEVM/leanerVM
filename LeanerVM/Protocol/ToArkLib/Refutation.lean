@@ -29,8 +29,7 @@ Two facts about what a verifier cannot have, for showing that a check is load-be
   `Reduction.not_perfectCompleteness_of_reject'` is the case without shared oracles, where
   they are the prover's own runs.
 
-The supporting facts: the prefix of length `j + 1` of a full transcript is its prefix of length
-`j` followed by its entry at `j`; a knowledge state function true at the end of a transcript is
+The supporting facts: a knowledge state function true at the end of a transcript is
 true, for some witness, at every earlier round after which only the prover speaks; and an
 implementation under which every answer to every query is reachable does not shrink a
 computation's support. The facts about guarded verifiers are ArkLib's
@@ -46,15 +45,6 @@ public section
 
 variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn StmtOut WitOut : Type} {n : ℕ}
   {pSpec : ProtocolSpec n}
-
-/-! ## Transcript prefixes -/
-
-/-- The prefix of length `j + 1` of a full transcript is its prefix of length `j` followed by
-its entry at `j`. -/
-private theorem FullTranscript.take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
-    full.take j.succ.val j.succ.is_le =
-      Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
-  Fin.take_succ_eq_snoc j.val j.isLt full
 
 /-! ## Knowledge state functions along a transcript -/
 
@@ -78,7 +68,9 @@ theorem Verifier.KnowledgeStateFunction.exists_toFun_take (s : StmtIn)
   | cast j ih =>
     obtain ⟨w', hw'⟩ := ih fun j' hj' ↦
       hlater j' (le_trans (Fin.val_castSucc j).le (le_trans (Nat.le_succ _) hj'))
-    rw [FullTranscript.take_succ_eq_concat] at hw'
+    rw [show full.take j.succ.val j.succ.is_le =
+      Transcript.concat (m := j) (full j) (full.take j.val j.castSucc.is_le) from
+        Fin.take_succ_eq_snoc j.val j.isLt full] at hw'
     exact ⟨_, kSF.toFun_next j (hlater j (Fin.val_castSucc j).le) s _ _ w' hw'⟩
 
 /-- Where the statement has no witness, a knowledge state function is false at round zero for

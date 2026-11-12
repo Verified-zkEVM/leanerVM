@@ -60,15 +60,10 @@ theorem sendEncoded_complete {relIn : Set ((S × ∀ i, NoOracle i) × W)}
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((s, fun _ ↦ enc w), w) ∈ relOut) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendEncoded S M W enc).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  have hrun : ((sendEncoded S M W enc).red.toReduction.run (s, o) witIn).run =
-      pure (some (((show (sendSpec M).FullTranscript from
-        ProtocolSpec.Transcript.concat (m := 0) (enc witIn) (default : (sendSpec M).Transcript 0)),
-        (s, fun _ ↦ enc witIn), witIn), (s, fun _ ↦ enc witIn))) := rfl
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hx
-  exact ⟨_, hx, h s o witIn hIn, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendVerifierPure (S := S) (M := M)).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-- The completeness half. -/
 def sendEncodedComplete {relIn : Set ((S × ∀ i, NoOracle i) × W)}

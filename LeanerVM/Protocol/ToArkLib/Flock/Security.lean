@@ -72,7 +72,7 @@ theorem errAppend_le {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Protoco
   | inr j => exact h₂ j
 
 /-- One challenge's error grows with its bound. -/
-theorem drawError_mono {C : Type} {e e' : ℝ≥0} (h : e ≤ e') (i : (draw C).ChallengeIdx) :
+private theorem drawError_mono {C : Type} {e e' : ℝ≥0} (h : e ≤ e') (i : (draw C).ChallengeIdx) :
     drawError C e i ≤ drawError C e' i := h
 
 /-- The draws' errors grow with their bound. -/
@@ -92,18 +92,6 @@ variable {F : Type}
 /-- `N / |F|`, with `|F|` counted by `Nat.card`. -/
 noncomputable abbrev overF (F : Type) (N : ℕ) : ℝ≥0 := (N : ℝ≥0) / (Nat.card F : ℝ≥0)
 
-/-- A predicate that implies another holds of fewer elements. -/
-theorem natCard_subtype_mono {α : Type} [Finite α] {p q : α → Prop} (h : ∀ a, p a → q a) :
-    Nat.card {a // p a} ≤ Nat.card {a // q a} :=
-  Nat.card_le_card_of_injective (fun a ↦ ⟨a.1, h a.1 a.2⟩) fun _ _ hab ↦
-    Subtype.ext (congrArg Subtype.val hab :)
-
-/-- A predicate that holds of nothing holds of no element. -/
-theorem natCard_subtype_eq_zero {α : Type} {p : α → Prop} (h : ∀ a, ¬ p a) :
-    Nat.card {a // p a} = 0 := by
-  have : IsEmpty {a // p a} := ⟨fun a ↦ h a.1 a.2⟩
-  exact Nat.card_of_isEmpty
-
 /-! ## The fixed coordinates and Boolean residuals -/
 
 section Lemmas
@@ -111,7 +99,7 @@ section Lemmas
 variable [Field F] (P : Params F)
 
 /-- A completion of the fixed coordinates alone: the fixed coordinates, then a cube point. -/
-theorem point_pointPartial_empty (h : Fin (2 ^ P.nRand)) :
+private theorem point_pointPartial_empty (h : Fin (2 ^ P.nRand)) :
     (P.pointPartial (#v[] : Vector F 0)).point
         (Fin.cast (congrArg (2 ^ ·) P.hpoint) (cubeIndex (0 : Fin (2 ^ P.nFix)) h)) =
       Vector.cast P.hpoint (P.fixed ++ (boolVec h : Vector F P.nRand)) := by
@@ -273,14 +261,12 @@ def skipDrawSecurity
       classical
       by_cases hpre : side s.1.1 o ∧ ∀ t : Fin (2 ^ P.κ), (constTable P.cpos (z o))[t] = 0
       · rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
-        refine (Finset.card_le_card fun Y hY ↦ ?_).trans
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun Y _ hY ↦ ?_)).trans
           (card_interpolateAt_eq_le P.nodes.pts hnodes _ _
             (degree_pPoly_lt P.nodes C (z o) (P.point s.1.2))
             (skipValues_ne P C z side hnodes s o hpre hin))
-        rw [Finset.mem_filter] at hY ⊢
-        refine ⟨Finset.mem_univ _, ?_⟩
         have hc : skipClaim P.nodes s.2 Y =
-            (zcFamily P C z side).claim (((s.1.1, P.point s.1.2, Y), o), ()) 0 #v[] := hY.2.2
+            (zcFamily P C z side).claim (((s.1.1, P.point s.1.2, Y), o), ()) 0 #v[] := hY.2
         rw [zcFamily_claim_zero, skipClaim, P.nodes.allInv_eq, interpolateWith_lagrangeInv] at hc
         rw [hc, eval_pPoly]
       · rw [natCard_subtype_eq_zero fun Y hY ↦ hpre ⟨hY.1.1, by
@@ -403,11 +389,10 @@ def alphaDrawSecurity :
             simp [highVec]]
           linear_combination h3
         rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
-        refine (Finset.card_le_card fun l hl ↦ ?_).trans (card_filter_powerSum_eq_le _ _ hne)
-        rw [Finset.mem_filter] at hl ⊢
-        refine ⟨Finset.mem_univ _, ?_⟩
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun l _ hl ↦ ?_)).trans
+          (card_filter_powerSum_eq_le _ _ hne)
         have hc : t.2.2.1 + l * t.2.2.2.1 + l ^ 2 * t.2.2.2.2 + l ^ 3 =
-            (linFamily P C z side).claim (((t, l), o), ()) 0 #v[] := hl.2.2
+            (linFamily P C z side).claim (((t, l), o), ()) 0 #v[] := hl.2
         rw [linFamily_claim_zero] at hc
         rw [sum_four, sum_four, mul_one]
         exact hc
@@ -595,11 +580,9 @@ def ringDrawSecurity (p : ℕ) (hp : p ≤ s') :
           by_contra hk0
           exact hall ⟨k, two_pow_succ_sub s' hp ▸ hk, hk0⟩
         rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
-        refine (Finset.card_le_card fun x hx ↦ ?_).trans
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun x _ hx k hk ↦ ?_)).trans
           (card_stage_zero_le_one Finset.univ _ _ (2 ^ (s' - p)) hne)
-        rw [Finset.mem_filter] at hx ⊢
-        refine ⟨Finset.mem_univ _, fun k hk ↦ ?_⟩
-        have := hx.2.2 k (by rwa [show s' + 1 - (p + 1) = s' - p by omega])
+        have := hx.2 k (by rwa [show s' + 1 - (p + 1) = s' - p by omega])
         simpa only [frobMap_ringStages_push] using this
       · rw [natCard_subtype_eq_zero fun x hx ↦ hside hx.1]
         exact zero_le_one
@@ -644,12 +627,10 @@ def ringFinalSecurity {StmtOut : Type} (finish : S → Weight F μ → F → Stm
           by_contra hk0
           exact hall ⟨k, by simpa using hk, hk0⟩
         rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
-        refine (Finset.card_le_card fun x hx ↦ ?_).trans
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun x _ hx k hk ↦ ?_)).trans
           (card_stage_zero_le_one Finset.univ _ _ 1 hne)
-        rw [Finset.mem_filter] at hx ⊢
-        refine ⟨Finset.mem_univ _, fun k hk ↦ ?_⟩
         obtain rfl : k = 0 := by omega
-        have hpair := (hOut _ _ _ _ hx.2).2
+        have hpair := (hOut _ _ _ _ hx).2
         rw [pair_ringWeight P z s' φ g lift col stack hcell hbool hread, ringTarget] at hpair
         have hΦ : ∀ a, frobMap (ringStages s' (st.2.push x)) a =
             frobMap (ringStages s' st.2) a + x * frobMap (ringStages s' st.2) a ^ 2 ^ 1 :=

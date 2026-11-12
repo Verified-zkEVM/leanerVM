@@ -46,16 +46,6 @@ variable {ι ι' : Type} (OStmt : ι → Type) [∀ i, OracleInterface (OStmt i)
   (check : (s : StmtIn) → [OStmt]ₒ.Range (query s) → Bool)
   (out : (s : StmtIn) → [OStmt]ₒ.Range (query s) → StmtOut)
 
-/-- A question to the input oracles, lifted past the shared oracles and the messages and
-simulated with the oracles and the messages, is answered by the oracles. -/
-private theorem simulateQ_askInput' {n : ℕ} {pSpec : ProtocolSpec n}
-    [∀ i, OracleInterface (pSpec.Message i)] (o : ∀ i, OStmt i) (msgs : pSpec.Messages)
-    (t : [OStmt]ₒ.Domain) :
-    simulateQ (OracleInterface.simOracle2 []ₒ o msgs)
-      (liftM (askInput OStmt t) : OracleComp ([]ₒ + ([OStmt]ₒ + [pSpec.Message]ₒ)) _) =
-      pure (answerOf OStmt o t) :=
-  rfl
-
 /-- The oracles handed on: the input oracles at `keep`. -/
 abbrev keptOracles (i : ι') : Type := OStmt (keep i)
 
@@ -122,7 +112,7 @@ theorem queryRecordVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
       OptionT.lift (liftM (askInput OStmt (query s)) :
         OracleComp ([]ₒ + ([OStmt]ₒ + [(!p[] : ProtocolSpec 0).Message]ₒ)) _) from
     (OracleComp.monadLift_liftM_OptionT _).symm]
-  rw [simulateQ_optionT_bind_elimM, OptionT.run_lift, simulateQ_bind, simulateQ_askInput',
+  rw [simulateQ_optionT_bind_elimM, OptionT.run_lift, simulateQ_bind, simulateQ_askInput,
     pure_bind, simulateQ_pure]
   simp only [Option.elimM, pure_bind, Option.elim]
   by_cases h : check s (answerOf OStmt o (query s)) = true
@@ -149,21 +139,10 @@ theorem queryRecord_complete
         ((out s (answerOf OStmt o (query s)), fun i ↦ o (keep i)), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (queryRecord OStmt keep query check out).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (queryRecordGuarded OStmt keep query check out) (s, o) witIn hx
-  have hrun : (queryRecordProver OStmt keep query out).run (s, o) witIn =
-      pure ((show (!p[] : ProtocolSpec 0).FullTranscript from fun i ↦ Fin.elim0 i),
-        (out s (answerOf OStmt o (query s)), fun i ↦ o (keep i)), witIn) := rfl
-  have hpr' : pr ∈ support ((queryRecordProver OStmt keep query out).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (queryRecordGuarded OStmt keep query check out).check (s, o)
-      (fun i ↦ Fin.elim0 i) = true := (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (queryRecordGuarded OStmt keep query check out) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def queryRecordComplete

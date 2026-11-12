@@ -55,7 +55,7 @@ private theorem simulateQ_simOracle2_liftM_query (o : ∀ i, OStmt i) (msgs : pS
 
 /-- Simulating a computation lifted past the input oracles with the oracles and the messages is
 simulating the computation with the messages. -/
-theorem OracleInterface.simulateQ_simOracle2_liftM_run (o : ∀ i, OStmt i)
+private theorem OracleInterface.simulateQ_simOracle2_liftM_run (o : ∀ i, OStmt i)
     (msgs : pSpec.Messages) {α : Type} (mx : OptionT (OracleComp (oSpec + [pSpec.Message]ₒ)) α) :
     simulateQ (OracleInterface.simOracle2 oSpec o msgs)
       (liftM mx : OptionT (OracleComp (oSpec + ([OStmt]ₒ + [pSpec.Message]ₒ))) α).run =

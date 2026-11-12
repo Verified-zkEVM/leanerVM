@@ -176,7 +176,7 @@ evaluations of the formula. -/
 omit [BEq F] [LawfulBEq F] in
 /-- The point that completes the challenges and the round's coordinate `a` with the Boolean point
 `x`: `x`, then `a`, then the challenges from the last drawn to the first. -/
-theorem point_push_boolVec {j : ℕ} (hj : j < n) (c : Vector F j) (a : F)
+private theorem point_push_boolVec {j : ℕ} (hj : j < n) (c : Vector F j) (a : F)
     (x : Fin (2 ^ (n - (j + 1)))) :
     point (Nat.succ_le_of_lt hj) (c.push a) (boolVec x) =
       Vector.cast (by omega) ((boolVec x : Vector F (n - (j + 1))).push a ++ c.reverse) := by
@@ -204,7 +204,7 @@ def claimFolded (V : Virtual F X O W n m) (wt : CoordWeights F X n)
       (Vector.ofFn fun i ↦ bindHighAt ts[i] a x))
 
 /-- From the bound tables, the folded claim is the next claim. -/
-theorem claimFolded_boundTables (V : Virtual F X O W n m) (wt : CoordWeights F X n)
+private theorem claimFolded_boundTables (V : Virtual F X O W n m) (wt : CoordWeights F X n)
     (ctx : SumcheckRound.Ctx X O W) {j : ℕ} (hj : j < n) (c : Vector F j) (a : F) :
     claimFolded V wt ctx hj c (boundTables V ctx hj c) a = claim V wt ctx (j + 1) (c.push a) := by
   rw [claim, dite_eq_left (Nat.succ_le_of_lt hj), weightedCubeSum_eq_weightFold, claimFolded]
@@ -326,11 +326,6 @@ def finalFront (V : Virtual F X O W n m) {T : Type}
     (out : SumcheckRound.Stmt X F n → Vector F m → T) :
     Component.Front (final (W := W) (O := O) V out) :=
   Component.sendCheckedFront _ _ _ _ _
-
-/-- The sumcheck is front: its verifier reads the transcript, never the oracles. -/
-def weightedFront (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
-    (nodes : Fin (d + 1) → F) : Component.Front (weighted V wt nodes) :=
-  (roundsFront V wt nodes).append (finalFront V finalOut)
 
 end Def
 
@@ -652,14 +647,6 @@ theorem weightedSum_eq_sum (dom : SumcheckRound.WeightedDomain F) (q : SumcheckR
     congr 1
     exact Finset.sum_congr rfl fun i _ ↦ by ring
 
-/-- In the two-point domain, coefficient `0` weighs the sum of the weights. -/
-theorem coeffWeight_pair_zero (a b : F) : coeffWeight [(0, a), (1, b)] 0 = a + b := by
-  simp [coeffWeight]
-
-/-- In the two-point domain, every other coefficient weighs the weight of `1`. -/
-theorem coeffWeight_pair_succ (a b : F) (i : ℕ) : coeffWeight [(0, a), (1, b)] (i + 1) = b := by
-  simp [coeffWeight]
-
 /-- The message with coefficient `k` derived from the running claim: the value that makes the
 round's check hold, whatever the message carried there. -/
 def decodeRound (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim : F)
@@ -673,19 +660,6 @@ theorem decodeRound_set (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
   have h : ∀ i ∈ Finset.univ.erase k, (q.set k a)[i] = q[i] := fun i hi ↦
     Vector.getElem_set_ne _ _ fun h ↦ (Finset.mem_erase.mp hi).1 (Fin.ext h).symm
   rw [decodeRound, decodeRound, Finset.sum_congr rfl fun i hi ↦ by rw [h i hi], Vector.set_set]
-
-/-- A decoded message passes the round's check, when the derived coefficient has an invertible
-weight. -/
-theorem weightedSum_decodeRound {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) (claim : F) (q : SumcheckRound.Message F d) :
-    SumcheckRound.weightedSum d dom (decodeRound dom k claim q) = claim := by
-  rw [weightedSum_eq_sum, ← Finset.add_sum_erase _ _ (Finset.mem_univ k)]
-  have h : ∀ i ∈ Finset.univ.erase k, (decodeRound dom k claim q)[i] = q[i] := fun i hi ↦
-    Vector.getElem_set_ne _ _ fun h ↦ (Finset.mem_erase.mp hi).1 (Fin.ext h).symm
-  rw [Finset.sum_congr rfl fun i hi ↦ by rw [h i hi]]
-  simp only [decodeRound, Fin.getElem_fin, Vector.getElem_set_self]
-  field_simp
-  ring
 
 /-- Decoding a message that passes the round's check returns it: the honest message survives
 the wire. -/
@@ -718,7 +692,7 @@ def decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim :
   decodeRound dom k claim (expandWire k w)
 
 /-- Expanding the wire of a message is the message with coefficient `k` set to `0`. -/
-theorem expandWire_encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) :
+private theorem expandWire_encodeWire (k : Fin (d + 1)) (q : SumcheckRound.Message F d) :
     expandWire k (encodeWire k q) = q.set k 0 := by
   apply Vector.ext
   intro i hi
@@ -739,13 +713,6 @@ theorem decodeWire_encodeWire {dom : SumcheckRound.WeightedDomain F} {k : Fin (d
     decodeWire dom k claim (encodeWire k q) = q := by
   rw [decodeWire, expandWire_encodeWire, decodeRound_set, decodeRound_of_weightedSum hk hq]
 
-/-- A decoded message passes the round's check, when the derived coefficient has an invertible
-weight. -/
-theorem weightedSum_decodeWire {dom : SumcheckRound.WeightedDomain F} {k : Fin (d + 1)}
-    (hk : coeffWeight dom k ≠ 0) (claim : F) (w : Vector F d) :
-    SumcheckRound.weightedSum d dom (decodeWire dom k claim w) = claim :=
-  weightedSum_decodeRound hk claim _
-
 /-- The decoded message carries the wire in every other position: the decoding is injective. -/
 theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
     (claim : F) (w : Vector F d) : encodeWire k (decodeWire dom k claim w) = w := by
@@ -761,11 +728,6 @@ theorem encodeWire_decodeWire (dom : SumcheckRound.WeightedDomain F) (k : Fin (d
       omega)
     simp [encodeWire, decodeWire, decodeRound, expandWire, Vector.getElem_set, h1, h1',
       show (k : ℕ) ≠ i + 1 by omega, show i + 1 ≠ (k : ℕ) by omega]
-
-/-- The decoding of the wire is injective. -/
-theorem decodeWire_injective (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1))
-    (claim : F) : Function.Injective (decodeWire dom k claim) :=
-  Function.LeftInverse.injective (encodeWire_decodeWire dom k claim)
 
 /-- One round on the wire: `d` of the `d + 1` coefficients, then the challenge. -/
 abbrev wireSpec (F : Type) (d : ℕ) : ProtocolSpec 2 := say (Vector F d) ++ₚ draw F

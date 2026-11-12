@@ -110,12 +110,6 @@ def ofMatrices (A B : Fin (2 ^ m) → Fin (2 ^ m) → Bool) : BlockR1CS R m wher
 
 /-! ## Linearity -/
 
-private theorem sum_ite_add (p : Fin (2 ^ m) → Bool) (W W' : Fin (2 ^ m) → R) :
-    (∑ j, if p j then W j + W' j else 0) =
-      (∑ j, if p j then W j else 0) + ∑ j, if p j then W' j else 0 := by
-  rw [← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun j _ ↦ by split <;> simp
-
 /-- The forward walk of a weighted sum of blocks is the weighted sum of their walks, left
 product. -/
 theorem rows_fst_sum {ι : Type*} (s : Finset ι) (a : ι → R) (W : ι → CMlPolynomialEval R m)

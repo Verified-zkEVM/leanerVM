@@ -78,7 +78,8 @@ theorem roundsError_le (d : ℕ) (e : ℝ≥0) : (m : ℕ) → ∀ i, roundsErro
 
 /-- A layer's challenges: the combiner's error, the rounds' `2 ^ ρ · u`, the combination
 challenges' `u`, all below `c`. -/
-theorem stepError_le [SampleableType C] (nside ρ m : ℕ) {combiner u c : ℝ≥0} (hc : combiner ≤ c)
+private theorem stepError_le [SampleableType C] (nside ρ m : ℕ) {combiner u c : ℝ≥0}
+    (hc : combiner ≤ c)
     (hr : ((2 ^ ρ : ℕ) : ℝ≥0) * u ≤ c) (hu : u ≤ c) :
     ∀ i, stepError C nside ρ m combiner u i ≤ c :=
   errAppend_le_const (errAppend_le_const (errAppend_le_const (fun _ ↦ hc)
@@ -87,7 +88,7 @@ theorem stepError_le [SampleableType C] (nside ρ m : ℕ) {combiner u c : ℝ�
 
 /-- The layers of radix four: every challenge below `c`, when `(nside − 1) · u`, `4 · u` and
 `u` are. -/
-theorem stepsError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
+private theorem stepsError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
     (hc : ((nside - 1 : ℕ) : ℝ≥0) * u ≤ c)
     (hr : ((2 ^ 2 : ℕ) : ℝ≥0) * u ≤ c) (hu : u ≤ c) :
     (k m : ℕ) → ∀ i, stepsError C nside u k m i ≤ c
@@ -96,7 +97,7 @@ theorem stepsError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
       (stepsError_le nside hc hr hu k (m + 2))
 
 /-- The binary layer: every challenge below `c`, when `(nside − 1) · u`, `2 · u` and `u` are. -/
-theorem oddError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
+private theorem oddError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
     (hc : ((nside - 1 : ℕ) : ℝ≥0) * u ≤ c)
     (hr : ((2 ^ 1 : ℕ) : ℝ≥0) * u ≤ c) (hu : u ≤ c) : (r : ℕ) → ∀ i, oddError C nside u r i ≤ c
   | 0 => fun i ↦ Fin.elim0 i.1

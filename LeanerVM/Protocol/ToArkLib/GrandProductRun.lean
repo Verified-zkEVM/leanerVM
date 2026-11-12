@@ -62,7 +62,7 @@ variable {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableT
 
 omit [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] in
 /-- The first `i` combination challenges append themselves to the statement. -/
-theorem run_interpPrefixFront (ρ m : ℕ) :
+private theorem run_interpPrefixFront (ρ m : ℕ) :
     ∀ (i : ℕ) (s : InterpStmt X F nside m ρ 0) (f : Fin i → F),
       (interpPrefixFront (F := F) (X := X) (O := O) nside ρ m i).run s (chalsTr i f) =
         some (s.1, Vector.ofFn f)
@@ -115,12 +115,9 @@ theorem run_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → LayerStmt X F ns
           (Nat.zero_add m)).run ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R).bind
         fun st ↦ if combineCheck nside ρ m st ch then
           some (interpDone nside ρ m ((st.1.1.1, (st.2.1, ch)), u)) else none := by
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
+  iterate 3
+    erw [Component.Front.run_append]
+    simp only [FullTranscript.append_fst, FullTranscript.append_snd]
   change (((some ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam))).bind fun s₁ ↦
       (SumcheckRound.roundsFront (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
         (Nat.zero_add m)).run s₁ R).bind fun st ↦
@@ -156,18 +153,15 @@ theorem run_gkrFront (s : X × (Fin nside → F)) (t₁ : (oddSpec F nside (μ %
       ((oddFront nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).run s
         t₁).bind fun ℓ ↦
         (layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2)).run ℓ t₂ := by
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
+  iterate 2
+    erw [Component.Front.run_append]
+    simp only [FullTranscript.append_fst, FullTranscript.append_snd]
   rcases (oddFront nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).run s t₁
     with _ | ℓ
   · rfl
   · simp only [Option.bind_some]
     rcases (layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2)).run ℓ t₂
-      with _ | ℓ'
-    · rfl
-    · rfl
+      with _ | ℓ' <;> rfl
 
 end Gkr
 

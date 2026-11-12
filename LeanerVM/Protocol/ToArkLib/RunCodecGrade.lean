@@ -55,23 +55,6 @@ theorem GradedOn.mono {n : ℕ} {pSpec : ProtocolSpec n} {c : RoundCodec w pSpec
 
 /-! ### The seam -/
 
-private theorem send_heq' {R : Type} {A A' : Direction} {B B' : Type}
-    {f : A = .P_to_V → B → R} {f' : A' = .P_to_V → B' → R} (hA : A = A') (hB : B = B')
-    (hf : HEq f f') (h : A = .P_to_V) (h' : A' = .P_to_V) {x : B} {x' : B'} (hx : HEq x x') :
-    f h x = f' h' x' := by
-  subst hA hB
-  obtain rfl := eq_of_heq hf
-  obtain rfl := eq_of_heq hx
-  rfl
-
-omit [Monad w] in
-private theorem draw_heq' {A A' : Direction} {B B' : Type} {f : A = .V_to_P → w B}
-    {f' : A' = .V_to_P → w B'} (hA : A = A') (hB : B = B') (hf : HEq f f') (h : A = .V_to_P)
-    (h' : A' = .V_to_P) : HEq (f h) (f' h') := by
-  subst hA hB
-  obtain rfl := eq_of_heq hf
-  rfl
-
 private theorem grade_heq {α β : Type} (hab : α = β) {x : w α} {y : w β} (hxy : HEq x y)
     {k : ℕ} (hx : 𝓖.P x k) : 𝓖.P y k := by
   subst hab
@@ -80,42 +63,8 @@ private theorem grade_heq {α β : Type} (hab : α = β) {x : w α} {y : w β} (
 
 section Seam
 
-variable {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (c₁ : RoundCodec w p₁)
-  (c₂ : RoundCodec w p₂)
-
-omit [Monad w] in
-private theorem send_left (i : Fin m) :
-    HEq ((c₁.append c₂).send (Fin.castAdd n i)) (c₁.send i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.castAdd n i)) _
-  rw [Fin.fappend₂_left]
-  exact cast_heq _ _
-
-omit [Monad w] in
-private theorem send_right (i : Fin n) :
-    HEq ((c₁.append c₂).send (Fin.natAdd m i)) (c₂.send i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.natAdd m i)) _
-  rw [Fin.fappend₂_right]
-  exact cast_heq _ _
-
-omit [Monad w] in
-private theorem draw_left (i : Fin m) :
-    HEq ((c₁.append c₂).draw (Fin.castAdd n i)) (c₁.draw i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.castAdd n i)) _
-  rw [Fin.fappend₂_left]
-  exact cast_heq _ _
-
-omit [Monad w] in
-private theorem draw_right (i : Fin n) :
-    HEq ((c₁.append c₂).draw (Fin.natAdd m i)) (c₂.draw i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.natAdd m i)) _
-  rw [Fin.fappend₂_right]
-  exact cast_heq _ _
-
-variable {c₁ c₂}
+variable {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} {c₁ : RoundCodec w p₁}
+  {c₂ : RoundCodec w p₂}
 
 /-- **Two wires in sequence**: their counts add, each on its half of the transcript. -/
 theorem GradedOn.append {G₁ : p₁.FullTranscript → Prop} {G₂ : p₂.FullTranscript → Prop}
@@ -131,13 +80,13 @@ theorem GradedOn.append {G₁ : p₁.FullTranscript → Prop} {G₂ : p₂.FullT
     | left j =>
       have hA : (p₁ ++ₚ p₂).dir (Fin.castAdd n j) = p₁.dir j := Fin.vappend_left _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.castAdd n j) = p₁.Type j := Fin.vappend_left _ _ _
-      rw [send_heq' hA hB (send_left c₁ c₂ j) h (hA.symm.trans h)
+      rw [apply_heq_send hA hB (send_append_left c₁ c₂ j) h (hA.symm.trans h)
         (FullTranscript.fst_apply_heq tr j).symm, Fin.append_left]
       exact hS₁ _ hG.1 j _
     | right j =>
       have hA : (p₁ ++ₚ p₂).dir (Fin.natAdd m j) = p₂.dir j := Fin.vappend_right _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.natAdd m j) = p₂.Type j := Fin.vappend_right _ _ _
-      rw [send_heq' hA hB (send_right c₁ c₂ j) h (hA.symm.trans h)
+      rw [apply_heq_send hA hB (send_append_right c₁ c₂ j) h (hA.symm.trans h)
         (FullTranscript.snd_apply_heq tr j).symm, Fin.append_right]
       exact hS₂ _ hG.2 j _
   · induction i using Fin.addCases with
@@ -145,14 +94,14 @@ theorem GradedOn.append {G₁ : p₁.FullTranscript → Prop} {G₂ : p₂.FullT
       have hA : (p₁ ++ₚ p₂).dir (Fin.castAdd n j) = p₁.dir j := Fin.vappend_left _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.castAdd n j) = p₁.Type j := Fin.vappend_left _ _ _
       rw [Fin.append_left]
-      exact grade_heq hB.symm (draw_heq' hA hB (draw_left c₁ c₂ j) h (hA.symm.trans h)).symm
-        (hD₁ j _)
+      exact grade_heq hB.symm (apply_heq_draw hA hB (draw_append_left c₁ c₂ j) h
+        (hA.symm.trans h)).symm (hD₁ j _)
     | right j =>
       have hA : (p₁ ++ₚ p₂).dir (Fin.natAdd m j) = p₂.dir j := Fin.vappend_right _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.natAdd m j) = p₂.Type j := Fin.vappend_right _ _ _
       rw [Fin.append_right]
-      exact grade_heq hB.symm (draw_heq' hA hB (draw_right c₁ c₂ j) h (hA.symm.trans h)).symm
-        (hD₂ j _)
+      exact grade_heq hB.symm (apply_heq_draw hA hB (draw_append_right c₁ c₂ j) h
+        (hA.symm.trans h)).symm (hD₂ j _)
 
 end Seam
 
@@ -247,7 +196,7 @@ private theorem runTo_prefix (ch : pSpec.Challenges) :
 
 /-- **The message of round `j` of the run on given challenges** is the message the prover sends
 from its state before round `j`. -/
-theorem runWithChallenges_message (ch : pSpec.Challenges) (j : Fin n)
+private theorem runWithChallenges_message (ch : pSpec.Challenges) (j : Fin n)
     (h : pSpec.dir j = .P_to_V) :
     (runWithChallenges P ch stmt wit).1 j =
       (Id.run (runNoOracle (P.sendMessage ⟨j, h⟩ (runTo P stmt wit ch j.castSucc).2))).1 := by

@@ -7,7 +7,7 @@ A toy two-phase schedule decoded from a list of natural numbers: the first phase
 off one reading and a challenge read as the sum of the next two, the second a message read as its
 reading less the first message, rejected below it. Every prefix of an input decodes to a prefix of
 what the input decodes to (`decodePrefix_mono`), every cut where a round begins decodes to at
-least that round (`decodePrefix_of_run_append`), and the full decoding is the first phase's run
+least that round, and the full decoding is the first phase's run
 followed by the second phase's decoding (`decode_append`). Readings left over, a slot cut short and
 a reading the second phase rejects decode to nothing. A schedule ending in a message of no reading
 decodes to its longest prefix. Sumcheck rounds rebuild the dropped coefficient from the claim they

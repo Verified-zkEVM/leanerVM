@@ -65,7 +65,7 @@ def adaptProver (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S
   output := fun st ↦ fOut <$> P.output st
 
 /-- The adapted prover reaches every round as `P` does from the mapped input. -/
-theorem adaptProver_runToRound (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S₄ × W₄)
+private theorem adaptProver_runToRound (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S₄ × W₄)
     (P : Prover oSpec S₂ W₂ S₃ W₃ pSpec) (i : Fin (n + 1)) (s : S₁) (w : W₁) :
     (adaptProver fIn fOut P).runToRound i s w = P.runToRound i (fIn (s, w)).1 (fIn (s, w)).2 :=
   rfl

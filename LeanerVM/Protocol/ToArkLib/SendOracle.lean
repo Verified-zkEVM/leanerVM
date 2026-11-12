@@ -72,7 +72,7 @@ def sendOracle_relOut (rel : Set ((S × ∀ i, NoOracle i) × M)) :
 /-! ## Completeness -/
 
 /-- The output oracle is the message. -/
-theorem send_materializeOutput (challenges : (sendSpec M).Challenges) (o : ∀ i, NoOracle i)
+private theorem send_materializeOutput (challenges : (sendSpec M).Challenges) (o : ∀ i, NoOracle i)
     (messages : (sendSpec M).Messages) :
     (sendVerifier S M).materializeOutput challenges o messages = fun _ ↦ messages ⟨0, rfl⟩ := by
   unfold OracleVerifier.materializeOutput sendVerifier
@@ -100,16 +100,11 @@ def sendVerifierPure : (sendVerifier S M).toVerifier.PureForm where
 theorem sendOracle_complete (rel : Set ((S × ∀ i, NoOracle i) × M)) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendOracle S M).red.perfectCompleteness init impl rel (sendOracle_relOut rel) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  have hrun : ((sendOracle S M).red.toReduction.run (s, o) witIn).run =
-      pure (some (((show (sendSpec M).FullTranscript from
-        ProtocolSpec.Transcript.concat (m := 0) witIn (default : (sendSpec M).Transcript 0)),
-        (s, fun _ ↦ witIn), ()), (s, fun _ ↦ witIn))) := rfl
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hx
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendVerifierPure (S := S) (M := M)).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
   rw [noOracle_eq o (fun i ↦ i.elim0)] at hIn
-  exact ⟨_, hx, hIn, rfl⟩
+  exact ⟨rfl, hIn, rfl⟩
 
 /-- The completeness half. -/
 def sendOracleComplete (rel : Set ((S × ∀ i, NoOracle i) × M)) :

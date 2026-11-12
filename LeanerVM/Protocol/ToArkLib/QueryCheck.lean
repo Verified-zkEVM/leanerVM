@@ -51,7 +51,7 @@ def askInput (t : [OStmt]ₒ.Domain) : OracleComp [OStmt]ₒ ([OStmt]ₒ.Range t
 
 /-- A question to the input oracles, lifted past the shared oracles and the messages and
 simulated with the oracles and the messages, is answered by the oracles. -/
-private theorem simulateQ_askInput {n : ℕ} {pSpec : ProtocolSpec n}
+theorem simulateQ_askInput {n : ℕ} {pSpec : ProtocolSpec n}
     [∀ i, OracleInterface (pSpec.Message i)] (o : ∀ i, OStmt i) (msgs : pSpec.Messages)
     (t : [OStmt]ₒ.Domain) :
     simulateQ (OracleInterface.simOracle2 []ₒ o msgs)
@@ -113,21 +113,10 @@ theorem queryCheck_complete
       check s (answerOf OStmt o (query s)) = true ∧ ((f s, o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (queryCheck OStmt query check f).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (queryCheckGuarded OStmt query check f) (s, o) witIn hx
-  have hrun : (passThroughProver OStmt f).run (s, o) witIn =
-      pure ((show (!p[] : ProtocolSpec 0).FullTranscript from fun i ↦ Fin.elim0 i),
-        (f s, o), witIn) := rfl
-  have hpr' : pr ∈ support ((passThroughProver OStmt f).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (queryCheckGuarded OStmt query check f).check (s, o)
-      (fun i ↦ Fin.elim0 i) = true := (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (queryCheckGuarded OStmt query check f) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def queryCheckComplete
