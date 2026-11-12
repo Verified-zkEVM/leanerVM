@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.ToArkLib.SendChecked
 public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import CompPoly.Univariate.ToPoly.Impl
 public import LeanerVM.Protocol.ToCompPoly.FinLoop
+public import LeanerVM.Protocol.ToCompPoly.PowerBatching
 
 /-!
 # A sumcheck round
@@ -199,33 +200,9 @@ def Family.Sound [Finite F] (Φ : Family F X O W d) (m : ℕ) : Prop :=
 nonzero polynomial of degree at most `d`. -/
 theorem card_filter_evaluate_eq_le [Fintype F] [DecidableEq F] (q q' : Message F d)
     (hne : q ≠ q') :
-    (Finset.univ.filter fun x ↦ evaluate d q x = evaluate d q' x).card ≤ d := by
-  let p : Polynomial F := ∑ i : Fin (d + 1), Polynomial.monomial (i : ℕ) (q[i] - q'[i])
-  have hcoeff : ∀ i : Fin (d + 1), p.coeff i = q[i] - q'[i] := fun i ↦ by
-    simp only [p, Polynomial.finsetSum_coeff, Polynomial.coeff_monomial]
-    rw [Finset.sum_eq_single i]
-    · simp
-    · intro j _ hji
-      rw [ite_eq_right fun h ↦ hji (Fin.ext h)]
-    · intro h
-      exact absurd (Finset.mem_univ _) h
-  have hp0 : p ≠ 0 := by
-    intro hp
-    apply hne
-    ext i hi
-    have := hcoeff ⟨i, hi⟩
-    rw [hp, Polynomial.coeff_zero] at this
-    exact (sub_eq_zero.mp this.symm)
-  have hdeg : p.natDegree ≤ d := by
-    refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun i _ ↦ ?_
-    exact (Polynomial.natDegree_monomial_le _).trans (Nat.le_of_lt_succ i.isLt)
-  have heval : ∀ x : F, p.eval x = evaluate d q x - evaluate d q' x := fun x ↦ by
-    simp only [p, Polynomial.eval_finsetSum, Polynomial.eval_monomial, evaluate,
-      ← Finset.sum_sub_distrib, sub_mul]
-  refine (Polynomial.card_le_degree_of_subset_roots (p := p) ?_).trans hdeg
-  intro x hx
-  rw [Finset.mem_val, Finset.mem_filter] at hx
-  rw [Polynomial.mem_roots hp0, Polynomial.IsRoot, heval, hx.2, sub_self]
+    (Finset.univ.filter fun x ↦ evaluate d q x = evaluate d q' x).card ≤ d :=
+  card_false_batch_le (J := d + 1) (fun i ↦ q[i]) (fun i ↦ q'[i])
+    (not_forall.mp fun h ↦ hne (Vector.ext fun i hi ↦ h ⟨i, hi⟩))
 
 /-! ## The round -/
 
