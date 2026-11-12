@@ -4,14 +4,14 @@ The repository tracks eight upstreams and six direct Lake packages:
 
 | Component | Tracked ref | Role |
 | --- | --- | --- |
-| Lean | `v4.34.1` | Root toolchain |
-| Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
+| Lean | `v4.35.0` | Root toolchain |
+| Mathlib | `v4.35.0` (`56a00585`) | Algebra, finite types, probability measures, and tactics |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
-| CompPoly | `572f997390aa4fc131ef30b1186fa1dcf292ca10` (current main) | Computable polynomial and field infrastructure |
-| Clean | `ce2eee63870e258eb56b2d1c58083b579a584049` (current main) | Circuit, AIR, channel, and witness-generation infrastructure |
-| ArkLib | `7653a901ed466c88a2e61a3075011b73d7bb2316` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
-| VCVio | `a4232d084aa18aa71f75b92b64082b457ffdb77b` (compatibility fix over current main) | Native probability measures and oracle computation security carriers |
-| PolyFun | `41d3b21dcc99817fe4f9f24ca7b2b58f0578083d` (current main) | Polynomial functors and free monads underlying oracle computations |
+| CompPoly | `e28da34817c3775cfb935376acf5d416f555d64f` (current main) | Computable polynomial and field infrastructure |
+| Clean | `a985c76c845e1d69ab320831d535072fcadb7c76` (current main; needs Clean #513, see below) | Circuit, AIR, channel, and witness-generation infrastructure |
+| ArkLib | `011391e592df184540b4b52edc2c64ee300b00ab` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
+| VCVio | `fc54dd3d7691d6f5db7dc829e321a727f095bc2d` (ArkLib main's pin) | Native probability measures and oracle computation security carriers |
+| PolyFun | `d3ec3a414c233203e2050ed0f33fae8647f57eb7` (ArkLib main's pin) | Polynomial functors and free monads underlying oracle computations |
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
 Lake graph. The weekly drift workflow reports newer releases or commits but never rewrites
@@ -35,75 +35,123 @@ Add a dependency only with a named first-party use and a narrow import. A depend
    the new pin contains, move its consumers to the upstream names, and update the protocol
    blueprint's upstream ledger and the status page's watch list.
 
-## Lean 4.34 port review
+## Lean 4.35 port review
 
-The previous baseline was Lean `v4.33.1`, CompPoly `3468b38c`, ArkLib `dca90385`, and Clean
-`93c9d1ef`. Lean `v4.34.1` is the patch release in the requested 4.34 series. Compiled artifacts
-from `v4.34.0` have incompatible headers, so Mathlib is now an explicit root requirement at
-`v4.34.1`. Existing first-party consumers include `LeanerVM.Parameters.Generator` and the
-polynomial and probability bridges under `LeanerVM.Protocol`. This requirement overrides the
-`v4.34.0` Mathlib requirements inherited from CompPoly and ArkLib.
+The previous baseline was Lean and Mathlib `v4.34.1` (`d13f23b7`), CompPoly `572f9973`, Clean
+`ce2eee63`, ArkLib `7653a901`, VCVio `a4232d08` (the compatibility commit of VCVio #820 over
+`f5119c64`) and PolyFun `41d3b21d`. Lean and Mathlib move to `v4.35.0`, the release every upstream's
+manifest requires (Mathlib `56a00585`), so the root Mathlib requirement agrees with the inherited
+ones. ArkLib, Clean and CompPoly move to their current main. VCVio and PolyFun move to the
+revisions ArkLib's main pins, `fc54dd3d` and `d3ec3a41`, not to their own main: VCVio's later
+commits refactor `simulateQ` and its program logic, and ArkLib `011391e5` is built against
+`fc54dd3d`. #820 is upstream in that range (`bc3433e3`), so the compatibility pin is retired.
+CompPoly `e28da348` overrides ArkLib's requirement `a1ac8925` and Clean's `06686e4c`; the two
+commits past ArkLib's (#406, #409) change only documentation and CI. VCVio #921 brings a new
+transitive package, QuantumFoundations (`901aaab7`).
 
-Regenerate the graph with `lake update`, then fetch matching artifacts with
-`lake exe cache get`. Do not use `lake --keep-toolchain update`: in Lake 4.34 that option also
-changes dependency traversal, allowing inherited manifests to resolve a package before later
-root requirements. Check the resolved revisions in the manifest after an update.
+Regenerate the graph with plain `lake update`, then fetch Mathlib's artifacts with
+`lake exe cache get`, and check the resolved revisions in the manifest. Do not use
+`lake --keep-toolchain update`: in Lake 4.34 that option also changed dependency traversal, so
+that an inherited manifest could resolve a package before a later root requirement.
 
-CompPoly's current main revision overrides ArkLib's `v4.34.0` CompPoly requirement. The
-complete first-party import cone must be compiled against that single resolved revision.
-`BF64` is now a structure wrapping `BitVec 64`, with characteristic-two natural-number casts:
-`(2 : K) = 0`. Encoded words use `K.ofBits n = BF64.ofBitVec (BitVec.ofNat 64 n)` instead.
-The generator remains the encoded word `0x2`; BLAKE2s cells, Clean's `val`/`fromNat` interface,
-protocol fixtures, and exported Rust contract fixtures retain their original bit coordinates.
-Regression tests distinguish casts from encoded words explicitly. `DecidableEq K` compares bit
-coordinates through an equivalence proof: the upstream derived wrapper instance makes kernel
-checks of computed words stall on dependent transport. The existing register-equality
-regression checks this boundary without unchecked evaluation. The `Fintype K` instance is
-proof-only; executable samplers use coordinate equivalences without enumerating `2^64` words.
+**The Clean import clash.** At `a985c76c`, `Clean.Utils.Vector` declares
+`Vector.get_eq_getElem`, which `Batteries.Data.Vector.Lemmas` also declares with the same
+statement. A module whose imports reach both fails at import; `ToClean/ComponentPolynomial.lean`
+reaches Batteries' through CompPoly's multivariate polynomials. Clean PR #513 deletes Clean's copy
+and imports Batteries' lemma. Until it merges, `a985c76c` does not build this repository unpatched:
+the port was built with #513's change applied to the package checkout, and the committed manifest
+names `a985c76c` with no local override. Owed: when #513 merges, move the Clean pin to its merge
+commit (`lakefile.toml`, `lake-manifest.json`, `upstreams.json` and this page).
 
-ArkLib's current source supplies native dependent composition and computable sumcheck as well
-as the security definitions migrated to VCVio's native measure API. The guarded
-verdict, guarded append, and uniform counting bridges use `Pr{let x ← computation}[P x]`
-and native event lemmas. Their relations, extraction conditions, and error bounds are retained.
-The retired `Pr[P | computation]` interface is no longer used by first-party probability proofs.
-Review these statement changes alongside the kernel audit, rather than relying on successful
-elaboration alone.
+The semantic changes were reviewed separately from the mechanical port (renames, imports, proof
+steps). None changes the statement of a headline theorem, `verify`, `prove`, `SatisfiedBy`,
+`ValidExecution`, `PaddedFrom`, `Trace.Fits` or `WellFormedBytecode`.
 
-Clean is pinned to upstream main `ce2eee63`, which builds unchanged under the root Lean 4.34.1
-toolchain: Clean PR #493 rewrote the balance lemma that the former compatibility pin
-([PR #474](https://github.com/Verified-zkEVM/clean/pull/474), `42fe4b26`) patched, so that pin is
-retired. Clean PR [#497](https://github.com/Verified-zkEVM/clean/pull/497) moved the direction
-type to `Channel.Direction` and the verifier monad to `VerifierM`, out of the root namespace where
-ArkLib declares `Direction` and `Verifier` too
-([Clean #496](https://github.com/Verified-zkEVM/clean/issues/496)), so the two libraries import
-together. leanerVM names the type only in `abbrev BusDir` (`Arithmetization/Channels.lean`). The bump brings three API changes that leanISA's Layers 5–10 consume, reviewed as
-semantic changes rather than mechanical ones (status page, "Clean main"):
+* **ArkLib #1373: a one-way initial law.** `Extractor.RoundByRound.eqIn : WitMid 0 = WitIn` is
+  replaced by a field `extractIn : StmtIn → WitMid 0 → WitIn`, and the initial law of a knowledge
+  state function is now one-way, `toFun 0 s default w → (s, E.extractIn s w) ∈ relIn`; it was an
+  equivalence through `cast eqIn`. A knowledge state function owes less, so `Component.Security`,
+  every phase certificate built on it, and `piop_rbrKnowledgeSoundness` are weaker statements than
+  at the old pin. No local proof used the dropped direction. No headline theorem moves: they are
+  stated on `verify` and `extract`, not on state functions. The local full-transcript extraction
+  is rebuilt on ArkLib's `foldPrefix` as `Extractor.RoundByRound.extractFull` (the local name
+  `extractIn` would collide with the new field), and `ReadsFirst` and `DecodesFirst` read the fold
+  from round 1, which is the first step for every extractor here (their `extractIn` is the
+  identity).
+* **ArkLib #1413 and #1421: names.** The fixed-prefix round-by-round notions are
+  `rbrKnowledgeSoundnessWith` and `rbrKnowledgeSoundness` (formerly
+  `rbrKnowledgeSoundnessWorstCaseWith` and `rbrKnowledgeSoundnessWorstCase`), with unchanged
+  bodies; #1421 deletes the averaged and one-shot notions, which nothing here used.
+  `Component.rbrKnowledgeSoundnessWorstCaseWith_of_eq` follows as
+  `Component.rbrKnowledgeSoundnessWith_of_eq`.
+* **ArkLib #1347.** `knowledgeSoundnessWith` quantifies the type of the prover's auxiliary input,
+  so `Refinement.knowledge_transport` now holds for every prover: a stronger statement.
+* **ArkLib #1295, adopted.** `ToArkLib/KnowledgeAppend.lean`, the port of #615, is deleted. Its
+  consumers use `Composition/Sequential/Append/GuardedRoundByRound.lean`:
+  `Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first`,
+  `KnowledgeStateFunction.appendGuarded` and `Transcript.fstUpTo`/`sndUpTo`, the same theorem with
+  the same extractor, error and witness family. ArkLib's `OracleVerifier.appendGuardedForm`,
+  `Verifier.GuardedForm.check_and_of_prEvent_pos`, `Verifier.GuardedForm.prEvent_pos_of_check` and
+  `Reduction.run_eq_of_guarded_verifier` replace local lemmas of the same content.
+* **ArkLib #1344, adopted.** `ToArkLib/TupleCompiledForms.lean` and `ToArkLib/AppendLazy.lean` are
+  deleted: ArkLib's `@[csimp]` forms of `Fin` tuple appends (`ArkLib.Data.Fin.Tuple.Lemmas`) read an
+  entry by one comparison with the seam, and ArkLib compiles its appended-schedule instances and
+  `FullTranscript.append` after them.
+* **VCVio's measure-only probability API** (#829–#837, names standardized by #839). The discrete
+  layer is removed. `prEvent mx` is the mass the output measure of a `Prop`-valued computation puts
+  on `True`, and `Pr{let x ← mx}[p x]` elaborates the last draw to a map, `prEvent (p <$> mx)`; the
+  headline mixtures over coins are therefore folded with `map_bind`. Modules are renamed
+  (`SampleableType/NativeMeasure` to `SampleableType/Measure`; `StateT/Basic/Native` merged into
+  `StateT/Basic`), and `OracleComp.prEvent_mono_of_support` gives way to the root
+  `prEvent_mono_of_support` with explicit events. These change proof terms only. VCVio's
+  `docs/agents/probability-migration.md` lists the symptoms.
+* **VCVio #817 and #766, adopted.** #817's scalar-expectation laws are upstream, so the verbatim
+  copy `ToVCVio/ScalarExpectation.lean` is deleted. `ToVCVio/ChargedInvariant.lean` is rebuilt on
+  #766's budgeted supermartingale bound `OracleComp.lintegral_run_le_of_isQueryBoundP`, every query
+  charged (`isQueryBoundP_true_iff`). The charged oracle and its expected-charge bounds are
+  deleted. `QueryHistory.prEvent_le_of_potential` and `QueryHistory.prEvent_bind_le_of_potential`
+  now take a query bound `n` and a per-query bound `κ` that need hold only within the budget, and
+  conclude `Φ s + n * κ` (plus `ε` for two runs); as statements they are incomparable to the old
+  ones, and each consumer (`ProofOfWork`, `HashMisbehaves`) reaches the same final bound.
+  `ToVCVio/RandomOracleReplay.lean` is deleted for #766's caching lemmas
+  (`QueryImpl.le_snd_of_mem_support_run_simulateQ_withCaching`,
+  `QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching`,
+  `QueryCache.evalWithAnswerFn_eq_of_agreesWithFn`).
+* **Clean's prover data.** `ProverData` is a structure `{tables, publicInput}` (with
+  `ProverData.empty` and `publicEnvironment`), `deriveProverData` takes the public input (the old
+  function is `deriveTables`), and `Circuit.witgen` and `proverEnvironment` take the data (#511).
+  `witnessOfTables_data` is restated with the public input, with the same meaning.
+* **Clean's balance without an interaction bound** (`21247235`). `Balance.multiset` is the
+  multiplicities `0` or `1` and the permutation of active pushes and pulls; it no longer requires
+  fewer than `FiniteField.size F` interactions per channel. `SatisfiedBy` keeps its text and its
+  meaning: the old relation is the new one together with "each channel has fewer than `2^64`
+  interactions", and that conjunct followed from the field `caps` for each of the three channels
+  (the deleted `interactionsWith_length_lt`). The proofs of the bound (`padSends_length_lt`,
+  `interactionsWith_length_lt`, the `hlen` hypothesis of `padWitness_balanced`) are deleted, and
+  `balanced_multiset_iff` states the three permutations.
+* **Clean #511 and the field instance.** `jump_exec_complete` is stated in Clean's honest
+  environment `proverEnvironment`, so the hand-built `jumpEnv` and `jump_env_iff` are deleted (only
+  tests consume the theorem). `Parameters/CleanField.lean` and `instFiniteFieldK` are deleted for
+  Clean's `instFiniteFieldBF64` (`Clean.Utils.BinaryField`), whose `val`, `fromNat` (`K.ofBits`) and
+  `size` agree by `rfl`.
+* **Lean 4.35's `Vector` and `Array` equality (finding L1).** Core derives `Vector`'s
+  `DecidableEq` with `@[expose]` and exposes `Array`'s, so `decide` and the kernel reduce
+  equalities of vectors across module boundaries. The `CompressCells` instance unfolds to the
+  conjuncts' instances and the BLAKE2s tests decide vector equalities directly; the kernel time is
+  unchanged.
+* **Lean 4.35's `Fin.foldl` (finding L2).** `Fin.foldl` is structural, compiled through
+  `@[csimp] Fin.foldl_eq_foldlTR`, and reduces in the kernel and in `whnf`. Products in `K` fold
+  over `Fin`, so elaborator-side `rfl` and `decide` on `K` arithmetic now unfold further and can
+  exhaust the recursion depth; those sites rewrite first or decide in the kernel. `congr 1` now
+  closes goals in `Vector R 0`.
+* **Mathlib's private imports.** Many of Mathlib's `public import`s became `import`s, so names stop
+  reaching modules transitively. Direct imports are added where a module used one:
+  `Mathlib.Data.List.GetD` (`List.getD_eq_getElem`), `Mathlib.Control.Lawful` (the `ExceptT` simp
+  lemmas) and `Batteries.Control.Lemmas` (`StateT` lemmas). No Mathlib name that the repository uses
+  is deprecated or removed.
 
-* **Direction tags** (#493): every interaction carries a direction (`push` or `pull`; `Channel.Direction`), never
-  read off the multiplicity's sign; a pull of multiplicity `1` gets its channel's `Guarantees`
-  and an active push owes them (`Channel.Direction.Requirements`). The leanISA channel pairs become three
-  channels, and every table's soundness now also proves what its pushes owe.
-* **Multiset balance** (#493, `Clean/Air/Balance.lean`): `Balance.multiset` (multiplicities `0`
-  or `1`, fewer than `FiniteField.size F` interactions per channel, active pushes a permutation of
-  active pulls) and `EnsembleWitness.Balanced`. The bound on the number of interactions is the
-  pin's; Clean main drops it after the pin (`21247235`). It replaces leanerVM's `BalancedPair`;
-  Clean's field-sum `Balance.logUp` stays unused over `K`.
-* **Fixed columns and derived data** (#446, #495): a component's `generation` is `demand` or
-  `preallocated`; a preallocated component's height is part of it, its fixed cells are checked of
-  every row (`Table.fixed_rows_match`), and a witness's prover data is derived from its tables'
-  input rows (`deriveProverData`, `Table.data_consistent`). The verifier is a
-  `Verifier.Program`, no longer a component. The leanISA ensemble becomes `leanIsaEnsemble prog
-  κ`, and the three named hypotheses of Layer 8 are deleted (issue #23).
-
-`Clean/Circuit/ExpressionPolynomial.lean` (Clean #466) is upstream at the pin, so the verbatim
-copy under `LeanerVM/Protocol/ToClean/` is deleted. The upstream `main` commit is pinned directly;
-local package overrides must never be written into the committed manifest.
-
-VCVio's query-log counting bridge needs one proof adjustment for current PolyFun's sealed
-free-monoid trace interface. The compatibility commit in [VCVio #820](https://github.com/Verified-zkEVM/VCVio/pull/820)
-over `f5119c64` normalizes the target to
-list counting before induction, retaining the theorem statement. The complete source file is
-checked against both PolyFun `3710d71b` and current `41d3b21d` under Lean 4.34.1.
+CompPoly #404 and #405 supply facts leanerVM proved locally (see the CompPoly limits below); their
+consumers' statements are unchanged.
 
 ## Dependency boundaries
 
@@ -115,13 +163,24 @@ CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
 - `E = GF(2^192)`: `CompPoly.Fields.Binary.BF64.Ext3`, the cubic extension
   `K[y]/(y^3 + y + 1)` on a `Vector BF64 3` carrier via `CompPoly.Fields.Extension`.
 
+Since CompPoly `572f9973`, `BF64` is a structure wrapping `BitVec 64`, with characteristic-two
+natural-number casts: `(2 : K) = 0`. Encoded words use
+`K.ofBits n = BF64.ofBitVec (BitVec.ofNat 64 n)` instead. The generator remains the encoded word
+`0x2`; BLAKE2s cells, Clean's `val`/`fromNat` interface, protocol fixtures, and exported Rust
+contract fixtures retain their original bit coordinates. Regression tests distinguish casts from encoded words explicitly. `DecidableEq K`
+compares bit coordinates through an equivalence proof: the upstream derived wrapper instance makes
+kernel checks of computed words stall on dependent transport. The existing register-equality
+regression checks this boundary without unchecked evaluation. The `Fintype K` instance is
+proof-only; executable samplers use coordinate equivalences without enumerating `2^64` words.
+
 ArkLib's Lake package name is `Arklib`, which is what the `[[require]]` must say. Its first
-consumer is `LeanerVM/Protocol/Field.lean`. VCVio is an explicit root requirement because
-`LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean` and the probability bridges consume its native
-measure and security interfaces. PolyFun is an explicit root requirement for the free-monad carrier of the oracle computations
-used by `LeanerVM/Protocol/ToArkLib/Oracles.lean` through VCVio.
-These requirements select current source over the older revisions in inherited manifests.
-ArkLib also brings cslib, checkdecls, and doc-gen4's dependencies into the graph. Tooling and
+consumer is `LeanerVM/Protocol/Field.lean`. VCVio is an explicit root requirement because the
+`ToVCVio/` modules (for example `ChargedInvariant.lean` and `UniformSample.lean`) and
+`ToArkLib/TranscriptMap.lean` consume its native measure and security interfaces. PolyFun is an
+explicit root requirement for the free-monad carrier of the oracle computations used by
+`LeanerVM/Protocol/ToArkLib/Oracles.lean` through VCVio. These requirements select current source
+over the older revisions in inherited manifests. ArkLib also brings cslib, checkdecls, and
+doc-gen4's dependencies into the graph, and VCVio brings QuantumFoundations. Tooling and
 Mathlib-owned transitive packages retain the revisions selected by those upstream manifests.
 The consumer tables and the upstream ledger
 are in [roadmap/protocol-blueprint.md](roadmap/protocol-blueprint.md). Upstream admitted results
@@ -139,8 +198,9 @@ warnings; it does not change upstream options. Mathlib's artifacts come from
 CompPoly's current source may have no matching release archive; its affected source is rebuilt
 under the root Lean patch version.
 
-Clean's first consumers are the leanISA table components and the `FiniteField BF64` instance
-in [roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md). Its core is generic over
+Clean's first consumers are the leanISA table components in
+[roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md); `K`'s `FiniteField` instance is
+Clean's own `instFiniteFieldBF64` (`Clean.Utils.BinaryField`). Its core is generic over
 `FiniteField F`; its `ZMod p` gadget tree is not used. `Expression` still has no degree bound.
 Clean's pinned source and first-party Clean bridges now use Lean's module system; the
 historical import restriction C8 no longer applies. Message-flattening proofs use Clean's
@@ -161,28 +221,34 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 
 **ArkLib.**
 
-- Relations are `Set (Stmt × Wit)`. `OracleReduction` is the framework ArkLib calls legacy; its
-  typed `Interaction` framework proves plain soundness and composition, with no round-by-round
-  notion, no knowledge notion and no extractor, so the spine stays on the legacy one.
-- A round-by-round extractor is any function: the existential forms `rbrKnowledgeSoundness` and
-  `rbrKnowledgeSoundnessWorstCase` are met by an extractor chosen by classical choice (ArkLib's own
-  `toRoundByRoundOfRel` is one) and prove soundness only. The averaged `rbrKnowledgeSoundness` is
-  weaker than the literature's; the worst-case named form `rbrKnowledgeSoundnessWorstCaseWith` is
-  the one used.
-- Admitted: the knowledge-soundness composition (`Append/Security.lean`; ArkLib #615 proves it,
-  open), the round-by-round-to-plain implications, context lifting, `fiatShamir_completeness`
-  (for a constant oracle), the sumcheck's classical leaf, the correlated-agreement theorem
-  `rs_mcaError_le_in_johnson_range`, and the ring-switching packing leaves. `BCSTransform` and the
-  round-by-round to state-restoration implication are commented out;
-  `Commitments/Functional/Basic.lean`'s `extractability` has body `False`; two `addSalt`
-  implications carry `sorry` in their types.
-- False as stated: the classical leaf `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness`
-  (the verifier reads the input polynomial for its next target; ArkLib #1244 repairs it), and
-  `rbrSoundness_implies_soundness` for a stateful shared oracle (ArkLib #1245 proves it for a
-  stateless one).
+- Relations are `Set (Stmt × Wit)`. `OracleReduction` is the framework ArkLib calls legacy. Its
+  typed `Interaction` framework now has knowledge, round-by-round and state-restoration notions
+  (`Interaction/Oracle/Security/`; #1259, #1260, #1473–#1481) and an embedding of the legacy
+  framework (#1480) whose transfer of knowledge back to it yields a classically chosen extractor.
+  Decision 24's condition for revisiting the framework has therefore fired; the revisit is owed,
+  and until it is made the spine stays on the legacy framework.
+- A round-by-round extractor is any function: the existential form `rbrKnowledgeSoundness` is met
+  by an extractor chosen by classical choice (ArkLib's `Extractor.RoundByRound.ofRelation` is one)
+  and proves soundness only; the named form `rbrKnowledgeSoundnessWith` is the one used. Both are
+  fixed-prefix notions (#1413 gave them these names; #1421 deleted the averaged ones). An
+  extractor's input witness passes through its field `extractIn`, and a knowledge state function's
+  initial law is one-way (#1373).
+- Admitted: nothing outside two solicited capacity-range results,
+  `CodingTheory.exists_rs_epsCa_large_near_capacity` and `CodingTheory.rs_random_domain_lambda_le`
+  (ArkLib issue #1352), on which ArkLib's baseline lets no other declaration depend. Proved since
+  the previous pin: the guarded knowledge-soundness composition (#1295), the guarded
+  round-by-round-to-plain bridges (`Security/GuardedBridges.lean`, #1349, which deleted the
+  unrestricted implications), context lifting (#1371, #1374, #1380, #1395), Fiat–Shamir
+  completeness (#1362), the classical sumcheck with its round-by-round knowledge soundness (#1244,
+  #1382, #1391), and `rs_mcaError_le_in_johnson_range` (#1369). `Commitments/Functional/Basic.lean`'s
+  extractability is a real experiment (#1422); the duplex-sponge Fiat–Shamir tree (#1368) and the
+  legacy state restoration (#1409) are retired.
 - Proved and usable: `ReedSolomon.mcaError_affineLine_johnson_le` (a Johnson-range correlated
-  agreement bound with its own constant, any characteristic); the capacity-range theorems assume
-  characteristic 0 or `k − 1 < ringChar F`, false over `E`.
+  agreement bound with its own constant, any characteristic, no longer assuming `√ρ + η ≤ 1`),
+  `johnsonExceptionCount_le_comparisonEstimate` (no longer assuming `1 ≤ D`), and
+  `rs_mcaError_le_in_johnson_range` (any characteristic, at [BCHKS25]'s printed constant); the
+  capacity-range theorems assume characteristic 0 or `k − 1 < ringChar F`, false over `E` (not
+  rechecked at `011391e5`).
 - `OracleInterface (Vector α m)` (position queries) is a global instance, so a column type with
   another interface is a structure, not an abbreviation of `Vector`; no default interface is
   registered for scalars or lists (`OracleInterface.instDefault` is for no type).
@@ -191,25 +257,47 @@ checked at the pins of `upstreams.json` unless a line names another revision.
   instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
   does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
 - The typed framework's computable sumcheck (`ProofSystem/Sumcheck/Impl/Representation.lean`,
-  `ProofSystem/Sumcheck/Interaction/Protocol.lean`) sums a round message, a polynomial with a
-  degree bound queried by evaluation, over its domain with unit weights, and nothing adapts a
-  protocol of the typed framework to an `OracleReduction`; the proof system's normalized round
-  (`ToArkLib/SumcheckRound.lean`) sends the coefficients as one message and weights the domain.
+  `ProofSystem/Sumcheck/Interaction/Protocol.lean`, and the interaction-layer protocol
+  `ProofSystem/Sumcheck/Core/` of #1474, perfectly complete and round-by-round sound, with no
+  extractor) sums a round message, a polynomial with a degree bound queried by evaluation, over its
+  domain with unit weights, and nothing adapts a protocol of the typed framework to an
+  `OracleReduction`; the proof system's normalized round (`ToArkLib/SumcheckRound.lean`) sends the
+  coefficients as one message and weights the domain. ArkLib's message contracts
+  (`Sumcheck/Message/`: decoding may use the running claim, and a compressed quadratic message
+  drops `c_1` on `{0, 1}`) and prover models are unit-weight and noncomputable in their model, so
+  they do not replace the wire codec of `ToArkLib/Sumcheck.lean`.
 - `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
   and fail one link; a second build proceeds.
 
 **CompPoly.** No hypercube sum and no pointwise product of tables (the proof system's Layer 1
-supplies them); the additive NTT is instantiated only at `GF(2^8)`; no Frobenius on `Ext`; the
-conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; inside a `module`,
-`decide` cannot unfold `CMvPolynomial`'s `X` and `*`. `LawfulBEq (Ext P)` exists at `572f9973`.
+supplies them). The polynomial-basis additive NTT is instantiated only at `GF(2^8)`. The coset
+additive NTT and its inverse over any field and basis (`Fields/Binary/AdditiveNTT/Coset.lean`,
+#405) act on functions `ℕ → V`, with no executable array form, and are not instantiated at `K`;
+`Protocol/NovelBasis.lean` takes its subspace-polynomial facts (`vanishing`, `vanishing_add`,
+`vanishing_succ'`, `vanishing_basis_ne_zero`) through a private bridge, and `Whir/Transform.lean`
+keeps its own executable network. Boolean vertices and multilinear uniqueness
+(`Multilinear/Unique.lean`, #404): `ToCompPoly/Multilinear.lean` takes `vertex`,
+`lagrangeBasis_vertex` and `eval_vertex` (its `boolVec` is `vertex` by definition). No Frobenius on
+`Ext`; the conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; inside a
+`module`, `decide` cannot unfold `CMvPolynomial`'s `X` and `*`. `LawfulBEq (Ext P)` exists at
+`e28da348`.
 
-**Clean.** No degree notion; heights are fixed only for preallocated components. The ensemble
-generator (`Clean/Air/WitnessGeneration`) exists but no leanerVM theorem uses it; leanISA's
-counted memory is not a Clean sound channel (Clean #494, open).
+**Clean.** No degree notion. Table heights are an argument of `Ensemble.Statement`; with the
+`.multiset` balance it is counted in ℕ, but it is existential over witnesses and lacks leanISA's
+counts, caps, BLAKE2s validity and public words, so it is not the protocol's relation. #511 gives
+per-circuit completeness as the existence of an environment and the honest environment
+`FormalCircuitBase.proverEnvironment` (used for `JUMP`), and no ensemble-level completeness
+theorem; the ensemble generator (`Clean/Air/WitnessGeneration`) has no correctness theorem, and no
+leanerVM theorem uses it. leanISA's counted memory is not a Clean sound channel (Clean #494, open).
 
 **VCVio.** Merkle trees with proved completeness and random-oracle extraction, for one opening
 and for a sequence of commitments with path-pruned openings (`CryptoFoundations/MerkleTree/`,
 `MultiExtractability/`), for leaves that are digests and an adversary that draws no coins; trees
-with hashed leaves (`Hashing/`) come with binding only.
+with hashed leaves (`Hashing/`) come with binding only. `MerkleTreeHashing.QueryEncoding` (#858)
+encodes leaves and nodes in one domain, and salted Merkle trees on one shared oracle have
+deterministic binding over a collision-free full table (`SaltedMerkle.extract_binding`) with
+extraction in the quantum random-oracle model; classical extraction with hashed leaves from a log
+prefix is still absent. `OracleComp.lintegral_run_le_of_isQueryBoundP` (#766), a budgeted
+supermartingale bound, is what `ToVCVio/ChargedInvariant.lean` instantiates.
 `SampleableType.prEvent_uniformSample_le_div_iff` is the counting bound behind
 `ToVCVio/UniformSample.lean`'s subsingleton form.

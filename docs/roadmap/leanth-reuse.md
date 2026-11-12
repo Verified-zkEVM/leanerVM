@@ -354,8 +354,9 @@ Patterns worth adopting, each with the leanth evidence.
 1. **Fixed-prefix worst-case round-by-round only.** leanth's averaged notion
    (`IsRBRKnowledgeSoundWith`, `RBR.lean:1840`) was abandoned (decision DR-113) yet still
    consumed by the transcript layer; a rare prefix satisfies an averaged bound while violating
-   the per-prefix one, and no upgrade exists. The roadmap's `rbrKnowledgeSoundnessWorstCase`
-   everywhere is the right choice.
+   the per-prefix one, and no upgrade exists. The roadmap's fixed-prefix form everywhere
+   (`rbrKnowledgeSoundnessWith`, named `rbrKnowledgeSoundnessWorstCaseWith` before ArkLib #1413)
+   is the right choice.
 2. **The degree cap lives in the message type**, not in an acceptance conjunct
    (`ZeroCheck.lean:1120-1146` needed the conjunct because its wire type was unrestricted).
 3. **The verifier computes constraints itself.** Prover-supplied residuals need a routing
@@ -455,7 +456,7 @@ Where a leanth proof is the port source for an ArkLib ledger item.
 | Ledger | ArkLib gap at `dca90385` | leanth port source |
 | --- | --- | --- |
 | A1 sumcheck round-by-round knowledge soundness | `Sumcheck.Spec.SingleRound.verifier_rbrKnowledgeSoundness` admitted | `ZeroCheck.lean:3455-3675` (algebra), `:2925` (root count), `:2010` (state) |
-| A2 knowledge-soundness composition | `append_rbrKnowledgeSoundness`, `seqCompose_rbrKnowledgeSoundness` admitted | `RBR.lean:5042` and the seam design `:2580-2621`; `Protocol.lean:2490-2520` for the error split; not used: leanerVM ported ArkLib #615's proof instead (`ToArkLib/KnowledgeAppend.lean`, 2026-09-28) |
+| A2 knowledge-soundness composition | `append_rbrKnowledgeSoundness`, `seqCompose_rbrKnowledgeSoundness` admitted | `RBR.lean:5042` and the seam design `:2580-2621`; `Protocol.lean:2490-2520` for the error split; not used: leanerVM ported ArkLib #615's proof instead (`ToArkLib/KnowledgeAppend.lean`, 2026-09-28), replaced by ArkLib's own #1295 at the Lean 4.35 bump |
 | A3 round-by-round implies plain | `rbrKnowledgeSoundness_implies_knowledgeSoundness` admitted | `RBR.lean:2422-2453, 2051`; `Security/Protocol.lean:1053` |
 | A6 grand product, GKR, batching, stacking | absent | `Logup.lean:275-444, 804-831`; `GKR.lean:439-640, 3596-3830`; `Stacking.lean` (stacking, done here); `ZeroCheck.lean:670-697` (batching) |
 | A7 WHIR, Merkle | absent | `WHIR.lean:271-684, 928-960` as the reference shape only |
@@ -478,7 +479,9 @@ consumer before attempting a competing proof. This branch is not the pinned depe
 no adoption or axiom-closure result for leanerVM follows from inspecting its source.
 (2026-09-28: adopted. The file was ported to
 `LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean` with the spine, and the master knowledge
-theorem closes on the kernel's three axioms.)
+theorem closes on the kernel's three axioms. At the Lean 4.35 bump the port was deleted: ArkLib
+#1295 contains the same theorem as `Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first`
+in `Composition/Sequential/Append/GuardedRoundByRound.lean`.)
 
 ArkLib's `Verifier.PureForm` at the pin is total: its output has type `StmtOut`, not
 `Option StmtOut`. Absence of oracle queries does not make a rejecting verifier a `PureForm`.
