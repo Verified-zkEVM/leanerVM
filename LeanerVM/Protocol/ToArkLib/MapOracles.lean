@@ -8,7 +8,6 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryCheck
 
 /-!
@@ -117,7 +116,7 @@ variable (back : W' → W) {relIn : Set ((StmtIn × ∀ i, O i) × W)}
 /-- The knowledge state function: the input relation, at the witness that `back` extracts. -/
 def mapOraclesStateFunction :
     (mapOraclesVerifier O O' f M).toVerifier.KnowledgeStateFunction init impl relIn relOut
-      (backExtractor back (StmtIn × ∀ i, O i) !p[]) where
+      (ReduceClaim.extractor fun _ ↦ back) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
   toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
@@ -131,7 +130,7 @@ def mapOraclesSecurity :
     Security (mapOracles O O' f g M) relIn relOut (fun i ↦ Fin.elim0 i.1) where
   guarded := (mapOraclesPure O O' f M).toGuardedForm
   witMid := fun _ ↦ W
-  extractor := backExtractor back (StmtIn × ∀ i, O i) !p[]
+  extractor := ReduceClaim.extractor fun _ ↦ back
   kSF := mapOraclesStateFunction O O' f M back h
   rbr := fun _ _ _ i ↦ Fin.elim0 i.1
 

@@ -47,7 +47,7 @@ variable {ιi : Type} (O : ιi → Type) [∀ i, OracleInterface (O i)] {S T W W
 
 section MapWitness
 
-variable (f : S → T) (g : (S × ∀ i, O i) × W → W')
+variable (f : S → T) (g : S → W → W')
   (g' : (S × ∀ i, O i) × W → CIn → W') (upd : (S × ∀ i, O i) × W → CIn → COut)
 
 /-- The cached prover of a witness map: the new witness and the cache read off the cache. -/
@@ -63,15 +63,15 @@ variable {O f g g' upd} {cin : (S × ∀ i, O i) × W → CIn} {cout : (T × ∀
 
 /-- The cached form of `Component.mapWitness`: the new witness read off the cache, which must give
 the witness map's, and the cache updated, which must give the cache of the output. -/
-def Cached.mapWitness (hg : ∀ p, g' p (cin p) = g p)
-    (hupd : ∀ p, upd p (cin p) = cout ((f p.1.1, p.1.2), g p)) :
+def Cached.mapWitness (hg : ∀ p, g' p (cin p) = g p.1.1 p.2)
+    (hupd : ∀ p, upd p (cin p) = cout ((f p.1.1, p.1.2), g p.1.1 p.2)) :
     Cached (Component.mapWitness O f g) cin cout where
   prover := cachedMapProver O f g' upd
   run_eq s w := by
     change (pure _ : OracleComp _ _) = _ <$> (pure _ : OracleComp _ _)
     rw [map_pure]
-    simp only [cachedMapProver, Component.mapWitness, Component.mapWitnessProver, _root_.id, hg,
-      hupd]
+    simp only [cachedMapProver, _root_.id, hg, hupd]
+    rfl
 
 end MapWitness
 
