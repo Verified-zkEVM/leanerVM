@@ -319,7 +319,7 @@ The public theorem ladder is:
    In the random-oracle model
    (`proveExecution_rom_complete`) the honest run from an execution, the generator, the prover and
    the verifier at one random function, is rejected with probability at most
-   `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel`, below `2^-154` at
+   `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel`, at most `2^-154` at
    fuel `2^24`, when the stack of the execution fits (`StackFits`, a predicate on the trace through
    the generated witness's sizes `execSizes`). The guarded prover `proveChecked` decides every
    hypothesis first, and every proof it returns is accepted with no hypothesis

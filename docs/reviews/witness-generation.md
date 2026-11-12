@@ -182,7 +182,7 @@ code in leanVM files, and the documentation and evidence.
 | The grind bound's audit surface (72 public declarations in `Prove/Queries.lean`, 46 in `Prove/Hom.lean`) | Fixed (`4cb6ea299`): 11 and 2 public; `Prove.pubLength_of_algebra`, `VerifierQueries.isTotalQueryBound_hashQuery` and `Verify.positionsWith_hom` stay public, each used by another file |
 | `nonempty_of_sampleable` duplicated VCVio's `SampleableType.nonempty` | Fixed (`4cb6ea299`): deleted |
 | The replay lemma restated VCVio vocabulary in the wrong file | Fixed (`4cb6ea299`): `evalWithAnswerFn_eq_of_mem_support_randomOracle`, over any `OracleSpec`, in `ToVCVio/RandomOracleReplay.lean` |
-| Generic lemmas in leanVM files | Fixed (`4cb6ea299`, moved again in `531b400ed`): the Merkle tree lemmas in `ToVCVio/Merkle.lean`, `Vector.mapM_hom` in `ToVCVio/MonadRel.lean`, the generic query bounds in `ToVCVio/QueryBound.lean` and `ToVCVio/MerkleQueries.lean` |
+| Generic lemmas in leanVM files | Fixed (`4cb6ea299`, moved again in `d2b8496fa` and `7ba5599af`): the Merkle tree lemmas in `ToVCVio/Merkle.lean`, `Vector.mapM_hom` in `ToVCVio/MonadRel.lean`, the generic query bounds in `ToVCVio/QueryBound.lean` and `ToVCVio/MerkleQueries.lean` |
 | Flexible `simp` calls; wording | Fixed (`4cb6ea299`, `b84d51c18`) |
 | No CI built `leanervm-witgen`, ran `leanervm-prove execution`, or read the execution vectors | Fixed (`a9ad13991` and the documentation commit): both run in the `Executables` workflow; `docs/ci.md`, `docs/development.md`, `tests/vectors/README.md` |
 | The status page rewrote #185's *on merge* paragraph | Fixed (documentation commit): #185's paragraph restored, #192's own paragraph and row added |
@@ -207,8 +207,8 @@ statements, the grind bound and the evidence:
 | `docs/ci.md`'s workflow row stale; no step timeout on the two new `Executables` steps | Fixed (`788f46b96`): the row names `leanervm-witgen` and both steps; `timeout 900` and `timeout 300` |
 | `leanervm-witgen` with no file exited `0`; the dump script's `--offline` undocumented; two line ranges off at the pin | Fixed (`788f46b96`): exit `2` with a usage line; the prerequisite in the script and `scripts/README.md`; `hash_chain.rs:20-58`, `:75-82`, `py_source.rs:22-52` |
 | The prover's timings stated three ways | Fixed (documentation commit): four recorded runs, 83 to 143 s |
-| A private copy of VCVio's `isTotalQueryBound_listMapM_const` | Fixed (`531b400ed`): deleted; `isTotalQueryBound_vector_mapM` uses VCVio's |
-| `ProofOfWork.lean`'s potential argument public | Fixed (`531b400ed`): 17 private; public are `PowSearch`, `Counted`, `Exhausted`, `prEvent_exhausted_le` |
-| `Vector.mapM_hom` and `exists_isTotalQueryBound` away from their vocabulary | Fixed (`531b400ed`): `ToVCVio/MonadRel.lean` and the new `ToVCVio/QueryBound.lean` |
-| `Prove/Queries.lean` slow to elaborate | Fixed (`531b400ed`): `queryGrade` irreducible in `writeProof_grade` alone, and one count rewritten so unification does not run the prover; the file from 26 s to 12 s |
-| Unused and internal-only `RunCodecHom` lemmas; wording in `HonestGame.lean` and `grindSearch` | Fixed (`531b400ed` and the merge): `map_gkr_of` deleted, three run lemmas private; "at most `2^-154`"; tags named |
+| A private copy of VCVio's `isTotalQueryBound_listMapM_const` | Fixed (`7ba5599af`): deleted; `isTotalQueryBound_vector_mapM` uses VCVio's |
+| `ProofOfWork.lean`'s potential argument public | Fixed (`7ba5599af`): 17 more private; public are `PowSearch`, `Counted`, `Exhausted`, `prEvent_exhausted_le` |
+| `Vector.mapM_hom` and `exists_isTotalQueryBound` away from their vocabulary | Fixed (`d2b8496fa`, `7ba5599af`): `ToVCVio/MonadRel.lean` and the new `ToVCVio/QueryBound.lean` |
+| `Prove/Queries.lean` slow to elaborate | Fixed (`2054eae67`): `queryGrade` irreducible in `writeProof_grade` alone, and one count rewritten so unification does not run the prover; the file from 26 s to 12 s |
+| Unused and internal-only `RunCodecHom` lemmas; wording in `HonestGame.lean` and `grindSearch` | Fixed (`531b400ed`, `5a9d419ec`): `map_gkr_of` deleted, three run lemmas private; "at most `2^-154`"; tags named |

@@ -63,7 +63,7 @@ proveExecution_rom_complete (hwf) (h) (hstack : StackFits prog t) (hρ : validRa
   Pr over a lazy random oracle that the honest run from t (witnessGen, then the prover and the
       verifier asking the oracle) rejects
     ≤ (N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256,  N = 264246250 + 6 · fuel
-  (below 2^-154 at fuel 2^24); StackFits: the stack at the generated witness's sizes
+  (at most 2^-154 at fuel 2^24); StackFits: the stack at the generated witness's sizes
   execSizes t.κ t.runRows τ is within 2^maxMu; it implies t.Fits (StackFits.fits)
 verify_proveChecked :
   proveChecked fuel prog input t ρ = some proof → verify prog input proof = true
