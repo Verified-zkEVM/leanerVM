@@ -42,6 +42,8 @@ leaves) is outside the timed interval.
 | `BLAKE2s 64 B`, `512 B` | `Blake2sHash.blake2sBytes` |
 | `Merkle root 2^12 rows x 8 K` | `merkleRoot` of 4096 leaves of eight `K` words |
 | `evalMle 2^16 E-table` | `CMlPolynomialEval.evalMle` of a 2^16-entry `E` table at an `E` point |
+| `column weight mle 22` | `(columnWeight _ 22 1 v).mle` at an `E` point, as a verifier reads it |
+| `column weight product 22` | the product `columnWeightMle` at the same points |
 
 The fast paths are the `@[csimp]` theorems of `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
 `LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
@@ -377,6 +379,12 @@ Each line came from its own fix. Before them, at `μ = 19`: the word took 256 s,
   12.6 s through the field instances.
 * Before `batchWeight_eq_batchWeightFast`, the combination by powers rebuilt every table at every
   entry: 213 s at `μ = 15`.
+* The verifier evaluates one column weight's extension per sampled position per level.
+  `columnWeight_eq_columnWeightFast` runs the vanishing recurrence once across the stages, the
+  roots' inverses shared: 0.12-0.14 ms on 22 variables, 0.21-0.25 ms by the product
+  `columnWeightMle` (`arith`, `column weight mle 22` and `column weight product 22`; recorded on
+  2026-11-11 on the same machine, shared with other builds, one thread, three runs, equal
+  checksums).
 
 `μ = 19` is the size of the smallest leanVM stack (`2^19` cells); there Rust leanVM's commitment
 takes 48 ms and its PCS opening 1.00 s on one thread. What is left at `μ = 19` is `E` arithmetic:
