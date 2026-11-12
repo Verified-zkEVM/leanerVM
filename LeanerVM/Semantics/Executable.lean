@@ -143,12 +143,12 @@ def cellBy (rd : K → Option E) (a : K) : Vector K 2 :=
 
 /-- The powers `g ^ i` for `i` from `acc.size` on, `n` of them, appended to `acc` from the running
 product `cur`. -/
-def powsFrom : ℕ → K → Array K → Array K
+private def powsFrom : ℕ → K → Array K → Array K
   | 0, _, acc => acc
   | n + 1, cur, acc => powsFrom n (g * cur) (acc.push cur)
 
 /-- The index of the powers `pows[i]`, `i ≥ j`, `n` of them, inserted into `m`. -/
-def indexFrom (pows : Array K) : ℕ → ℕ → Std.HashMap UInt64 ℕ → Std.HashMap UInt64 ℕ
+private def indexFrom (pows : Array K) : ℕ → ℕ → Std.HashMap UInt64 ℕ → Std.HashMap UInt64 ℕ
   | 0, _, m => m
   | n + 1, j, m => indexFrom pows n (j + 1) (m.insert (wordKey (pows.getD j 0)) j)
 
@@ -172,7 +172,7 @@ private theorem powsFrom_spec : ∀ (n : ℕ) (cur : K) (acc : Array K), cur = g
       omega
 
 /-- The table of the powers `g ^ i`, `i < n`. -/
-def powTable (n : ℕ) : PowTable :=
+@[no_expose] def powTable (n : ℕ) : PowTable :=
   let pows := powsFrom n 1 (Array.mkEmpty n)
   ⟨pows, by exact powsFrom_spec n 1 _ (by simp) (by simp),
     indexFrom pows n 0 (Std.HashMap.emptyWithCapacity n)⟩
@@ -204,7 +204,7 @@ private theorem pows_push_spec {pows : Array K} (hp : ∀ i (h : i < pows.size),
 
 /-- The table with the next power `cur = g ^ n` at index `n`, its size. The index is updated
 before the array, so that the array is no longer read once pushed and is pushed in place. -/
-def PowTable.push : (P : PowTable) → (cur : K) → cur = gpow P.pows.size → PowTable
+private def PowTable.push : (P : PowTable) → (cur : K) → cur = gpow P.pows.size → PowTable
   | ⟨pows, hp, index⟩, cur, h =>
     let index := index.insert (wordKey cur) pows.size
     ⟨pows.push cur, by exact pows_push_spec hp h, index⟩
@@ -216,7 +216,7 @@ private theorem PowTable.push_size (P : PowTable) (cur : K) (h : cur = gpow P.po
   simp [PowTable.push]
 
 /-- Push the powers from `cur = g ^ P.pows.size` on, at most `fuel` of them, stopping after `a`. -/
-def PowTable.extendLoop (a : K) :
+private def PowTable.extendLoop (a : K) :
     ℕ → (P : PowTable) → (cur : K) → cur = gpow P.pows.size → PowTable
   | 0, P, _, _ => P
   | fuel + 1, P, cur, h =>
@@ -225,23 +225,23 @@ def PowTable.extendLoop (a : K) :
       (by rw [PowTable.push_size, gpow_succ, h])
 
 /-- Whether the index guesses for `a` a power the array holds. -/
-def PowTable.holds (P : PowTable) (a : K) : Bool :=
+private def PowTable.holds (P : PowTable) (a : K) : Bool :=
   match P.guess a with
   | some i => if h : i < P.pows.size then P.pows[i] == a else false
   | none => false
 
 /-- The table extended by powers until it holds `a`, to at most `n` powers; unchanged when its
 array already holds `a`, and for `0`, which is no power. -/
-def PowTable.extendTo (n : ℕ) (P : PowTable) (a : K) : PowTable :=
+private def PowTable.extendTo (n : ℕ) (P : PowTable) (a : K) : PowTable :=
   if a = 0 ∨ P.holds a = true then P
   else P.extendLoop a (n - P.pows.size) (P.pow P.pows.size) (P.pow_eq _)
 
 /-- The table extended until it holds each of `as`. -/
-def PowTable.extendAll (n : ℕ) (P : PowTable) (as : List K) : PowTable :=
+private def PowTable.extendAll (n : ℕ) (P : PowTable) (as : List K) : PowTable :=
   as.foldl (PowTable.extendTo n) P
 
 /-- The table with no powers whose index guesses the hinted indices. -/
-def PowTable.ofHints (hints : List ℕ) : PowTable :=
+private def PowTable.ofHints (hints : List ℕ) : PowTable :=
   ⟨#[], by simp, hints.foldl (fun m i ↦ m.insert (wordKey (gpow i)) i) ∅⟩
 
 /-! ## The checked step -/
@@ -259,7 +259,7 @@ def stepChecked {κ : ℕ} (prog : Program) (image : MemImage κ) (hints : List 
 /-- One step through a table of powers of at most `n` entries, the table extended first by the
 program counter and the cells the instruction reads, so that each guess is likely a hit; the
 extended table and the next state. -/
-def stepTable {κ : ℕ} (prog : Program) (image : MemImage κ) (n : ℕ) (P : PowTable)
+private def stepTable {κ : ℕ} (prog : Program) (image : MemImage κ) (n : ℕ) (P : PowTable)
     (r : Regs K) : PowTable × Option (Regs K) :=
   let P := P.extendTo n r.pc
   match fetchBy prog P r.pc with
@@ -282,7 +282,7 @@ inductive CheckError
 
 /-- Run to the sentinel in at most `fuel` transitions, reading through a table of powers of at
 most `n` entries that grows as the run reaches new addresses. -/
-def runToHaltBy {κ : ℕ} (prog : Program) (image : MemImage κ) (n : ℕ) :
+private def runToHaltBy {κ : ℕ} (prog : Program) (image : MemImage κ) (n : ℕ) :
     ℕ → PowTable → Regs K → Except CheckError ℕ
   | fuel, P, r =>
     if r.pc = prog.finalPc then
@@ -300,7 +300,7 @@ steps; no filler rows are appended. At zero fuel an already halted state
 succeeds, while a nonterminal state reports exhaustion. Addresses are read through a table of
 powers grown along the run from the hints (`runToHaltBy`), so each new cell costs the powers up to
 it once, not a scan per read. -/
-def runToHalt {κ : ℕ} (prog : Program) (image : MemImage κ) (hints : List ℕ) (fuel : ℕ)
+@[no_expose] def runToHalt {κ : ℕ} (prog : Program) (image : MemImage κ) (hints : List ℕ) (fuel : ℕ)
     (r : Regs K) : Except CheckError ℕ :=
   runToHaltBy prog image (2 ^ max κ prog.logSize) fuel (PowTable.ofHints hints) r
 

@@ -51,26 +51,26 @@ open Air.Flat (EnsembleWitness)
 /-! ## Rows at a reader -/
 
 /-- `xorRowOf` at a reader. -/
-def xorRowBy (rd : K → Option E) (pc fp oA oB oC rA rB rC rbc : K) : XorRow K :=
+private def xorRowBy (rd : K → Option E) (pc fp oA oB oC rA rB rC rbc : K) : XorRow K :=
   ⟨pc, fp, oA, oB, oC, limbsBy rd (fp * oA), limbsBy rd (fp * oB), rA, rB, rC, rbc⟩
 
 /-- `mulRowOf` at a reader. -/
-def mulRowBy (rd : K → Option E) (pc fp oA oB oC rA rB rC rbc : K) : MulRow K :=
+private def mulRowBy (rd : K → Option E) (pc fp oA oB oC rA rB rC rbc : K) : MulRow K :=
   ⟨pc, fp, oA, oB, oC, limbsBy rd (fp * oA), limbsBy rd (fp * oB), rA, rB, rC, rbc⟩
 
 /-- `derefRowOf` at a reader. -/
-def derefRowBy (rd : K → Option E) (pc fp o1 o2 o3 : K) (mode : DerefMode)
+private def derefRowBy (rd : K → Option E) (pc fp o1 o2 o3 : K) (mode : DerefMode)
     (r1 r2 r3 rbc : K) : DerefRow K :=
   ⟨pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
     (limbsBy rd (fp * o1))[0], limbsBy rd (fp * o3), r1, r2, r3, rbc⟩
 
 /-- `jumpRowOf` at a reader. -/
-def jumpRowBy (rd : K → Option E) (pc fp oc od of rc rdd rf rbc : K) : JumpRow K :=
+private def jumpRowBy (rd : K → Option E) (pc fp oc od of rc rdd rf rbc : K) : JumpRow K :=
   ⟨pc, fp, oc, od, of, (limbsBy rd (fp * oc))[0], (limbsBy rd (fp * od))[0],
     (limbsBy rd (fp * of))[0], rc, rdd, rf, rbc⟩
 
 /-- `blake2sRowOf` at a reader. -/
-def blake2sRowBy (rd : K → Option E) (pc fp om0 om1 om2 om3 ocv oout omd : K)
+private def blake2sRowBy (rd : K → Option E) (pc fp om0 om1 om2 om3 ocv oout omd : K)
     (rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc : K) : Blake2sRow K :=
   ⟨pc, fp, om0, om1, om2, om3, ocv, oout, omd,
     cellBy rd (fp * om0), cellBy rd (fp * om1), cellBy rd (fp * om2), cellBy rd (fp * om3),
@@ -80,7 +80,7 @@ def blake2sRowBy (rd : K → Option E) (pc fp om0 om1 om2 om3 ocv oout omd : K)
     rm0, rm1, rm2, rm3, rcv0, rcv1, rout0, rout1, rmd, rbc⟩
 
 /-- `rowOf` at a reader. -/
-def rowOfBy (rd : K → Option E) (pc fp : K) (cnt : ℕ → K) (rbc : K) : Instr → Array K
+private def rowOfBy (rd : K → Option E) (pc fp : K) (cnt : ℕ → K) (rbc : K) : Instr → Array K
   | .xor oA oB oC => rawRow (xorRowBy rd pc fp oA oB oC (cnt 0) (cnt 1) (cnt 2) rbc)
   | .mulNative oA oB oC => rawRow (mulRowBy rd pc fp oA oB oC (cnt 0) (cnt 1) (cnt 2) rbc)
   | .setConstant o k => rawRow (setRowOf pc fp o k (cnt 0) rbc)
@@ -114,11 +114,11 @@ abbrev Counts : Type := Std.HashMap UInt64 ℕ
 def Counts.get (m : Counts) (a : K) : ℕ := m.getD (wordKey a) 0
 
 /-- One more read of an address. -/
-def Counts.bump (m : Counts) (a : K) : Counts := m.insert (wordKey a) (m.get a + 1)
+private def Counts.bump (m : Counts) (a : K) : Counts := m.insert (wordKey a) (m.get a + 1)
 
 /-- The numbers of a sequence of reads and the counters after it: `readExps` and `readBump`.
 The count is read before the map is bumped, so that the map is updated in place. -/
-def readExpsH : Counts → List K → List ℕ × Counts
+private def readExpsH : Counts → List K → List ℕ × Counts
   | m, [] => ([], m)
   | m, a :: rest =>
     let c := m.get a
@@ -127,7 +127,7 @@ def readExpsH : Counts → List K → List ℕ × Counts
 
 /-- The rows of a list of skeletons with their counters: `mkRows` at a reader, appended to `acc`,
 and the counters after it. -/
-def mkRowsH (rd : K → Option E) : Counts → Counts → List Skel → Array PRow →
+@[no_expose] def mkRowsH (rd : K → Option E) : Counts → Counts → List Skel → Array PRow →
     Array PRow × Counts × Counts
   | sm, sb, [], acc => (acc, sm, sb)
   | sm, sb, sk :: rest, acc =>
@@ -205,7 +205,7 @@ private theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S 
 /-! ## The witness at a reader -/
 
 /-- `opRows` at a reader, the counts' powers read from a table of powers. -/
-def opRowsBy (P : PowTable) (rd : K → Option E) (R : List PRow) (op : Opcode) :
+@[no_expose] def opRowsBy (P : PowTable) (rd : K → Option E) (R : List PRow) (op : Opcode) :
     List (Array K) :=
   (R.filter fun r ↦ r.sk.ins.opcode = op).map fun r ↦
     rowOfBy rd r.sk.pc r.sk.fp (fun j ↦ P.pow (r.exps.getD j 0)) (P.pow r.bc) r.sk.ins
@@ -245,7 +245,7 @@ private theorem memRowsBy_eq (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin 
   rfl
 
 /-- The memory block from rows equal to `memRowsOf`'s. -/
-def memBlockOf {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
+private def memBlockOf {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
     (rows : List (Array K)) (h : rows = memRowsOf img fin) : Air.Flat.Table K :=
   tableOf (memComponent κ) rows (h ▸ memRowsOf_width img fin)
     (h ▸ (memRowsOf_length img fin).trans_le
@@ -260,7 +260,7 @@ private theorem memBlockOf_eq {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImag
   rfl
 
 /-- The table of an opcode from rows equal to `opRows`'. -/
-def opTableFrom {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
+private def opTableFrom {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
     (op : Opcode) (rows : List (Array K)) (h : rows = opRows img R op) : Air.Flat.Table K :=
   tableOf (opComponent op) rows (h ▸ opRows_width img R op)
     (h ▸ (opRows_length_le img R op).trans hR) (by cases op <;> exact trivial)
@@ -317,7 +317,7 @@ private theorem bcRowsBy_eq (P : PowTable) (prog : Program) (fin : K → ℕ) :
   rfl
 
 /-- The bytecode block from rows equal to `bcRowsOf`'s. -/
-def bcBlockOf (prog : Program) (fin : K → ℕ) (rows : List (Array K))
+private def bcBlockOf (prog : Program) (fin : K → ℕ) (rows : List (Array K))
     (h : rows = bcRowsOf prog fin) : Air.Flat.Table K :=
   tableOf (bytecodeComponent prog) rows (h ▸ bcRowsOf_width prog fin)
     (h ▸ (bcRowsOf_length prog fin).trans_le
@@ -333,9 +333,10 @@ private theorem bcBlockOf_eq (prog : Program) (fin : K → ℕ) (rows : List (Ar
 
 /-- The eight tables of `padTables` from the hash-map rows `res` of the skeletons at a reader
 equal to the image's, the powers read from a table. -/
-def padTablesOf (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
-    (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
-    (res : Array PRow × Counts × Counts) (hres : res = mkRowsH rd ∅ ∅ S #[]) :
+private def padTablesOf (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ)
+    (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
+    (hS : S.length ≤ UInt64.size) (res : Array PRow × Counts × Counts)
+    (hres : res = mkRowsH rd ∅ ∅ S #[]) :
     List (Air.Flat.Table K) :=
   have hRl : res.1.toList.length ≤ UInt64.size := by
     rw [hres, mkRowsH_rows hrd S]
@@ -353,8 +354,9 @@ def padTablesOf (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (
     bcBlockOf prog res.2.2.get (bcRowsBy P prog res.2.2.get) (by exact bcRowsBy_eq P prog _)]
 
 /-- The eight tables of `padTables`, computed at a reader equal to the image's. -/
-def padTablesBy (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
-    (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
+private def padTablesBy (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ)
+    (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
+    (hS : S.length ≤ UInt64.size) :
     List (Air.Flat.Table K) :=
   padTablesOf prog P img rd hrd S hκ hS (mkRowsH rd ∅ ∅ S #[]) rfl
 
@@ -384,7 +386,7 @@ private theorem witnessOfTables_congr {prog : Program} {κ : ℕ} {pi : PublicIO
   rfl
 
 /-- `padWitness`, computed at a reader equal to the image's. -/
-def padWitnessBy (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
+private def padWitnessBy (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
     (img : MemImage κ) (rd : K → Option E) (hrd : rd = img.read) (S : List Skel)
     (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
     EnsembleWitness (leanIsaEnsemble prog κ) :=
@@ -443,7 +445,7 @@ end Run
 
 /-- The witness of the skeletons `S` over the image padded at the fill starts `pcs`, read through
 the table of powers `P`; `none` when the padded memory or the skeletons exceed the caps. -/
-def witnessAt (prog : Program) (input : PublicInput) (t : Trace prog) (pcs : Opcode → ℕ → ℕ)
+private def witnessAt (prog : Program) (input : PublicInput) (t : Trace prog) (pcs : Opcode → ℕ → ℕ)
     (P : PowTable) (S : List Skel) :
     Option (EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) :=
   if hκ : t.κ + 1 ≤ maxLogMem then
@@ -456,7 +458,7 @@ def witnessAt (prog : Program) (input : PublicInput) (t : Trace prog) (pcs : Opc
 /-- **The witness generator.** Search the fill starts and pad the image; step the run forward
 once and count its rows per table; search the `JUMP` exponent; append the fill's skeletons; write
 the tables. Addresses are read through one table of powers, checked on every read. -/
-def witnessGen (prog : Program) (input : PublicInput) (t : Trace prog) :
+@[no_expose] def witnessGen (prog : Program) (input : PublicInput) (t : Trace prog) :
     Option (EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) :=
   let pcs := startsOf (fillStartTable prog)
   let P := powTable (2 ^ max (t.κ + 1) prog.logSize)
