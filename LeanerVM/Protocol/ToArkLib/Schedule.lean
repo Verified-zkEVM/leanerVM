@@ -234,7 +234,7 @@ noncomputable def stepError (nside ρ m : ℕ) (combiner u : ℝ≥0) :
   errAppend (errAppend (errAppend (drawError C combiner)
     (roundsError C (2 ^ ρ) (((2 ^ ρ : ℕ) : ℝ≥0) * u) m)) (sayError _)) (drawsError C u ρ)
 
-theorem sum_stepError (nside ρ m : ℕ) (combiner u : ℝ≥0) :
+private theorem sum_stepError (nside ρ m : ℕ) (combiner u : ℝ≥0) :
     ∑ i, stepError C nside ρ m combiner u i =
       combiner + m * (((2 ^ ρ : ℕ) : ℝ≥0) * u) + ρ * u := by
   rw [stepError, sum_errAppend, sum_errAppend, sum_errAppend, sum_drawError, sum_roundsError,
@@ -271,7 +271,7 @@ noncomputable def stepsError (nside : ℕ) (u : ℝ≥0) :
     errAppend (stepError C nside 2 m (((nside - 1 : ℕ) : ℝ≥0) * u) u) (stepsError nside u k (m + 2))
 
 /-- The layers' errors sum to at most `k` layers of the deepest: a crude bound. -/
-theorem sum_stepsError_le (nside : ℕ) (u : ℝ≥0) :
+private theorem sum_stepsError_le (nside : ℕ) (u : ℝ≥0) :
     (k m : ℕ) → ∑ i, stepsError C nside u k m i ≤
       ((k * ((nside - 1) + (m + 2 * k) * 4 + 2) : ℕ) : ℝ≥0) * u
   | 0, m => by
@@ -321,7 +321,7 @@ noncomputable def oddError (nside : ℕ) (u : ℝ≥0) :
   | 0 => fun (i : (!p[] : ProtocolSpec 0).ChallengeIdx) ↦ Fin.elim0 i.1
   | _ + 1 => stepError C nside 1 0 (((nside - 1 : ℕ) : ℝ≥0) * u) u
 
-theorem sum_oddError_le (nside : ℕ) (u : ℝ≥0) (r : ℕ) :
+private theorem sum_oddError_le (nside : ℕ) (u : ℝ≥0) (r : ℕ) :
     ∑ i, oddError C nside u r i ≤ (((nside - 1) + 1 : ℕ) : ℝ≥0) * u := by
   cases r with
   | zero =>

@@ -78,7 +78,7 @@ def answerOracles (o₀ : ∀ i, O i) :
 
 omit [∀ i, SampleableType (pSpec.Challenge i)] in
 /-- Answering the oracles with `o₀`, then the messages, is answering both. -/
-theorem simulateQ_answerOracles (o₀ : ∀ i, O i) (msgs : pSpec.Messages) {α : Type}
+private theorem simulateQ_answerOracles (o₀ : ∀ i, O i) (msgs : pSpec.Messages) {α : Type}
     (mx : OracleComp ([]ₒ + ([O]ₒ + [pSpec.Message]ₒ)) α) :
     simulateQ (OracleInterface.simOracle []ₒ msgs) (simulateQ (answerOracles o₀) mx) =
       simulateQ (OracleInterface.simOracle2 []ₒ o₀ msgs) mx := by
@@ -162,7 +162,7 @@ omit [∀ i, OracleInterface (O i)] [∀ i, OracleInterface (pSpec.Message i)]
   [∀ i, SampleableType (pSpec.Challenge i)] [∀ i, OracleInterface (O' i)] in
 /-- Every round of `proverVia` is the round of the prover it wraps, the new oracles and witness
 beside it. -/
-theorem runToRound_proverVia (P : OracleProver []ₒ StmtIn O WitIn StmtOut O WitOut pSpec)
+private theorem runToRound_proverVia (P : OracleProver []ₒ StmtIn O WitIn StmtOut O WitOut pSpec)
     (read : W' → (∀ i, O i) × WitIn) (s : StmtIn) (o' : ∀ i, O' i) (w : W') (i : Fin (n + 1)) :
     (proverVia (O' := O') P read).runToRound i (s, o') w =
       (fun r ↦ (r.1, (r.2, (o', w)))) <$> P.runToRound i (s, (read w).1) (read w).2 := by

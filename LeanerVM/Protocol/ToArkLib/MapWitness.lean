@@ -53,15 +53,10 @@ def mapWitnessComplete
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), g ((s, o), w)) ∈ relOut) :
     Complete (mapWitness OStmt f g) relIn relOut where
   guarded := (passThroughPure OStmt f).toGuardedForm
-  complete := fun init impl ↦ by
-    apply Reduction.perfectCompleteness_of_run_support
-    intro stmtIn witIn hIn x hx
-    obtain ⟨s, o⟩ := stmtIn
-    have hrun : ((mapWitness OStmt f g).red.toReduction.run (s, o) witIn).run =
-        pure (some (((show (!p[] : ProtocolSpec 0).FullTranscript from
-          fun i ↦ Fin.elim0 i), (f s, o), g ((s, o), witIn)), (f s, o))) := rfl
-    rw [hrun, support_pure, Set.mem_singleton_iff] at hx
-    exact ⟨_, hx, h s o witIn hIn, rfl⟩
+  complete := fun _ _ ↦ Reduction.perfectCompleteness_of_guarded_prover_support _
+    (passThroughPure OStmt f).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ by
+      obtain rfl := (mem_support_pure_iff _ _).mp hq
+      exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-! ## Security -/
 

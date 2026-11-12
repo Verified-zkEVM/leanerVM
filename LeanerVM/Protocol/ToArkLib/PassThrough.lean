@@ -57,7 +57,8 @@ def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W !p
   red := ⟨passThroughProver OStmt f, passThroughVerifier OStmt f⟩
 
 /-- The output oracles are the input oracles. -/
-theorem passThrough_materializeOutput (f : StmtIn → StmtOut) (challenges : (!p[]).Challenges)
+private theorem passThrough_materializeOutput (f : StmtIn → StmtOut) (challenges :
+    (!p[]).Challenges)
     (o : ∀ i, OStmt i) (messages : (!p[]).Messages) :
     (passThroughVerifier OStmt f).materializeOutput challenges o messages = o :=
   OracleVerifier.materializeOutput_of_keepOracles _ rfl challenges o messages
@@ -87,15 +88,10 @@ def passThroughComplete (f : StmtIn → StmtOut)
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
     Complete (passThrough OStmt f) relIn relOut where
   guarded := (passThroughPure OStmt f).toGuardedForm
-  complete := fun init impl ↦ by
-    apply Reduction.perfectCompleteness_of_run_support
-    intro stmtIn witIn hIn x hx
-    obtain ⟨s, o⟩ := stmtIn
-    have hrun : ((passThrough OStmt f).red.toReduction.run (s, o) witIn).run =
-        pure (some (((show (!p[] : ProtocolSpec 0).FullTranscript from
-          fun i ↦ Fin.elim0 i), (f s, o), witIn), (f s, o))) := rfl
-    rw [hrun, support_pure, Set.mem_singleton_iff] at hx
-    exact ⟨_, hx, h s o witIn hIn, rfl⟩
+  complete := fun _ _ ↦ Reduction.perfectCompleteness_of_guarded_prover_support _
+    (passThroughPure OStmt f).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ by
+      obtain rfl := (mem_support_pure_iff _ _).mp hq
+      exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-! ## Knowledge soundness -/
 
@@ -123,15 +119,21 @@ theorem passThrough_rbr :
       (fun i ↦ Fin.elim0 i.1) :=
   fun _ i ↦ Fin.elim0 i.1
 
-/-- The security half, at error zero, with the extractor that keeps the witness, whenever `f`
-carries the input relation into the output relation and back. -/
-def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
+/-- The security half, at error zero, with the extractor that keeps the witness, whenever the
+output relation at the mapped statement implies the input relation. -/
+def passThroughSecurityOfImp :
     Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
-  guarded := (passThroughComplete OStmt f hc).guarded
+  guarded := (passThroughPure OStmt f).toGuardedForm
   witMid := fun _ ↦ W
   extractor := keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]
   kSF := passThroughStateFunction OStmt f h
   rbr := passThrough_rbr OStmt f h
+
+/-- The security half, at error zero, with the extractor that keeps the witness, whenever `f`
+carries the input relation into the output relation and back (only the way back is needed). -/
+def passThroughSecurity (_hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
+    Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) :=
+  passThroughSecurityOfImp OStmt f h
 
 /-- The security half with the trivial witness, whenever `f` carries a statement into the
 output relation exactly when the statement is in the input relation. -/
@@ -139,8 +141,7 @@ def passThroughSecurityOfIff {rIn : Set ((StmtIn × ∀ i, OStmt i) × Unit)}
     {rOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)}
     (hf : ∀ s o, ((f s, o), ()) ∈ rOut ↔ ((s, o), ()) ∈ rIn) :
     Security (passThrough OStmt f) rIn rOut (fun i ↦ Fin.elim0 i.1) :=
-  passThroughSecurity OStmt f (fun s o w h ↦ by cases w; exact (hf s o).mp h)
-    fun s o w h ↦ by cases w; exact (hf s o).mpr h
+  passThroughSecurityOfImp OStmt f fun s o w h ↦ by cases w; exact (hf s o).mp h
 
 end Component
 

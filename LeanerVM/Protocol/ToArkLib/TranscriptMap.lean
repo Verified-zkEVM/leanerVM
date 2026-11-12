@@ -71,12 +71,6 @@ variable {S : Type} {n : ℕ} {pSpec' pSpec : ProtocolSpec n}
 abbrev idx (T : TranscriptMap S pSpec' pSpec) (i : pSpec'.ChallengeIdx) : pSpec.ChallengeIdx :=
   ⟨i.1, (T.dir_eq i.1).symm.trans i.2⟩
 
-/-- A direction that is not the prover's is the verifier's. -/
-theorem dir_of_ne {d : Direction} (h : ¬ d = .P_to_V) : d = .V_to_P := by
-  cases d
-  · exact absurd rfl h
-  · rfl
-
 /-- The map that decodes each message by itself, given the statement, and carries each challenge
 across. -/
 def ofMessage (dir_eq : ∀ i, pSpec'.dir i = pSpec.dir i)
@@ -92,7 +86,7 @@ def ofMessage (dir_eq : ∀ i, pSpec'.dir i = pSpec.dir i)
   map := fun _ s tr i ↦
     if h : pSpec'.dir (Fin.castLE (by omega) i) = .P_to_V then
       f s ⟨Fin.castLE (by omega) i, h⟩ (tr i)
-    else chal ⟨Fin.castLE (by omega) i, dir_of_ne h⟩ (tr i)
+    else chal ⟨Fin.castLE (by omega) i, Direction.not_V_to_P_eq_P_to_V h⟩ (tr i)
   map_msg := fun k hk s tr x ↦ ⟨f s ⟨k, hk⟩ x, by
     funext i
     refine Fin.lastCases ?_ (fun j ↦ ?_) i

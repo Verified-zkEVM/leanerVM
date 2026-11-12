@@ -57,7 +57,7 @@ def ringStages {p : ℕ} (fs : Vector F p) : List (ℕ × F) :=
   List.ofFn fun i : Fin p ↦ (2 ^ (s' - i.val), fs[i])
 
 omit [Field F] [DecidableEq F] [SampleableType F] in
-theorem ringStages_push {p : ℕ} (fs : Vector F p) (x : F) :
+private theorem ringStages_push {p : ℕ} (fs : Vector F p) (x : F) :
     ringStages s' (fs.push x) = ringStages s' fs ++ [(2 ^ (s' - p), x)] := by
   rw [ringStages, List.ofFn_succ_last]
   simp [ringStages]

@@ -79,11 +79,14 @@ theorem natCard_subtype_eq_card_filter {α : Type} [Fintype α] (p : α → Prop
 /-- A smaller predicate has fewer elements. -/
 theorem natCard_subtype_mono {α : Type*} [Finite α] {p q : α → Prop} (h : ∀ x, p x → q x) :
     Nat.card {x // p x} ≤ Nat.card {x // q x} :=
-  Nat.card_le_card_of_injective (Subtype.map id h) (by
-    intro a b hab
-    apply Subtype.ext
-    have h2 := congrArg Subtype.val hab
-    exact h2)
+  Nat.card_le_card_of_injective (fun a ↦ ⟨a.1, h a.1 a.2⟩) fun _ _ hab ↦
+    Subtype.ext (congrArg Subtype.val hab :)
+
+/-- A predicate that holds of nothing holds of no element. -/
+theorem natCard_subtype_eq_zero {α : Type*} {p : α → Prop} (h : ∀ a, ¬ p a) :
+    Nat.card {a // p a} = 0 := by
+  have : IsEmpty {a // p a} := ⟨fun a ↦ h a.1 a.2⟩
+  exact Nat.card_of_isEmpty
 
 namespace Component
 

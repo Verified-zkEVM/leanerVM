@@ -17,10 +17,10 @@ A run of a protocol may be recorded as a flat list of readings (the blocks a Fia
 absorbed and squeezed, say) rather than as a transcript. A `Slot α β` reads a value of type `β` off
 the front of a `List α` and returns the readings left. It consumes a prefix of the readings and
 what it reads depends on that prefix alone (`Slot.read_iff`): readings after it pass through
-(`Slot.read_append`) and can be taken away again (`Slot.read_of_read_append`). `Slot.pure`,
-`Slot.next`, `Slot.take`, `Slot.map` and `Slot.bind` build slots. A `SlotDecoder α pSpec` gives, at
-each round of `pSpec`, the slot that reads the round's value, from the transcript of the rounds
-before it: a message may be decoded with a claim the earlier rounds leave. Then
+(`Slot.read_append`). `Slot.pure`, `Slot.next`, `Slot.take`, `Slot.map` and `Slot.bind` build
+slots. A `SlotDecoder α pSpec` gives, at each round of `pSpec`, the slot that reads the round's
+value, from the transcript of the rounds before it: a message may be decoded with a claim the
+earlier rounds leave. Then
 
 * `run D i hi l`: the first `i` rounds read off `l`, with the readings left; `runFull D l`: all of
   them. A run consumes a prefix as a slot does (`run_eq_some_iff`, `run_append`,
@@ -34,16 +34,15 @@ before it: a message may be decoded with a claim the earlier rounds leave. Then
 
 `decodePrefix_mono`: readings appended to `l` only extend the prefix decoded from it.
 `decode_eq_of_decodePrefix`: the full transcript decoded from `l ++ l'` begins with the prefix
-decoded from `l`. `decodePrefix_of_run_append`: if `l ++ l'` decodes and its first `i` rounds read
-exactly `l`, then `l` decodes to the full transcript's prefix of at least `i` rounds.
+decoded from `l`.
 
 Decoders compose. `empty` decodes a schedule of no round, `single s` one of one round by the slot
-`s` (`runFull_empty`, `runFull_single`). `append D₁ D₂` decodes `pSpec₁ ++ₚ pSpec₂`: the rounds
-of `pSpec₁` by `D₁`, then those of `pSpec₂` by `D₂ t₁`, where `t₁` is the transcript of `pSpec₁`
-read first. `runFull_append` and `decode_append` give its full decoding as the two in sequence;
-`run_append_left` and `run_append_right` its partial runs, read through ArkLib's projections
-`Transcript.fstUpTo` and `Transcript.sndUpTo` (`SlotDecoder.fstFull` at the seam). Decoders of
-the repository's schedules of steps are in `LeanerVM.Protocol.ToArkLib.DecodeSteps`.
+`s`. `append D₁ D₂` decodes `pSpec₁ ++ₚ pSpec₂`: the rounds of `pSpec₁` by `D₁`, then those of
+`pSpec₂` by `D₂ t₁`, where `t₁` is the transcript of `pSpec₁` read first. `runFull_append` and
+`decode_append` give its full decoding as the two in sequence; `run_append_left` and
+`run_append_right` its partial runs, read through ArkLib's projections `Transcript.fstUpTo` and
+`Transcript.sndUpTo` (`SlotDecoder.fstFull` at the seam). Decoders of the repository's schedules
+of steps are in `LeanerVM.Protocol.ToArkLib.DecodeSteps`.
 -/
 
 namespace LeanerVM.Protocol
@@ -72,13 +71,6 @@ theorem read_append (s : Slot α β) {l : List α} {x : β} {r : List α}
     (h : s.read l = some (x, r)) (l' : List α) : s.read (l ++ l') = some (x, r ++ l') := by
   obtain ⟨c, rfl, hc⟩ := s.read_iff.mp h
   exact s.read_iff.mpr ⟨c, List.append_assoc c r l', hc⟩
-
-/-- Readings appended to the input and left after the value may be taken away. -/
-theorem read_of_read_append (s : Slot α β) {l l' : List α} {x : β} {r : List α}
-    (h : s.read (l ++ l') = some (x, r ++ l')) : s.read l = some (x, r) := by
-  obtain ⟨c, hc, hr⟩ := s.read_iff.mp h
-  refine s.read_iff.mpr ⟨c, List.append_cancel_right (bs := l') ?_, hr⟩
-  rw [hc, List.append_assoc]
 
 /-- The value `x`, read off no reading. -/
 def pure (x : β) : Slot α β where
@@ -243,7 +235,7 @@ theorem run_append {i : ℕ} {hi : i ≤ n} {l : List α} {tr : pSpec.Transcript
   exact D.run_eq_some_iff.mpr ⟨c, List.append_assoc c r l', hc⟩
 
 /-- Readings appended to the input of a run and left after it may be taken away. -/
-theorem run_of_run_append {i : ℕ} {hi : i ≤ n} {l l' : List α}
+private theorem run_of_run_append {i : ℕ} {hi : i ≤ n} {l l' : List α}
     {tr : pSpec.Transcript ⟨i, by omega⟩} {r : List α}
     (h : D.run i hi (l ++ l') = some (tr, r ++ l')) : D.run i hi l = some (tr, r) := by
   obtain ⟨c, hc, hr⟩ := D.run_eq_some_iff.mp h
@@ -355,11 +347,6 @@ theorem decodePrefix_eq_none_iff {l : List α} :
   rw [decodePrefix, scan_snd_eq_none_iff]
   exact ⟨fun h i ↦ h i (by omega), fun h i _ ↦ h i⟩
 
-/-- Readings the full transcript reads exactly have it as their longest prefix. -/
-theorem decodePrefix_of_decode {l : List α} {t : pSpec.FullTranscript} (h : D.decode l = some t) :
-    D.decodePrefix l = some ⟨Fin.last n, t⟩ :=
-  D.decodePrefix_eq_some_iff.mpr ⟨h, fun j hj ↦ absurd hj (not_lt.mpr (Fin.le_last j))⟩
-
 /-- **Monotone in the input**: readings appended to `l` only extend the prefix decoded from it. -/
 theorem decodePrefix_mono {l l' : List α} {i j : Fin (n + 1)} {tr : pSpec.Transcript i}
     {tr' : pSpec.Transcript j} (h : D.decodePrefix l = some ⟨i, tr⟩)
@@ -389,21 +376,6 @@ theorem decode_eq_of_decodePrefix {l l' : List α} {t : pSpec.FullTranscript} {i
   rw [ha] at hr'
   exact (Prod.mk.inj (Option.some.inj hr')).1.symm
 
-/-- **A cut where a round begins**: if `l ++ l'` decodes to `t` and its first `i` rounds read
-exactly `l`, then `l` decodes to the prefix of `t` of some `j ≥ i` rounds. -/
-theorem decodePrefix_of_run_append {l l' : List α} {t : pSpec.FullTranscript} {i : ℕ}
-    {hi : i ≤ n} {tr : pSpec.Transcript ⟨i, by omega⟩} (ht : D.decode (l ++ l') = some t)
-    (hr : D.run i hi (l ++ l') = some (tr, l')) :
-    ∃ j : Fin (n + 1), i ≤ j.val ∧
-      D.decodePrefix l = some ⟨j, FullTranscript.take j.val j.is_le t⟩ := by
-  have hl : D.decodeAt ⟨i, by omega⟩ l = some tr :=
-    D.decodeAt_eq_some.mpr (D.run_of_run_append (r := []) (by simpa using hr))
-  obtain ⟨⟨j, tr'⟩, hp⟩ := (Option.ne_none_iff_exists' (o := D.decodePrefix l)).mp
-    fun hp ↦ by simp [(D.decodePrefix_eq_none_iff.mp hp) ⟨i, by omega⟩] at hl
-  obtain rfl := D.decode_eq_of_decodePrefix ht hp
-  refine ⟨j, not_lt.mp fun hji ↦ ?_, hp⟩
-  simp [(D.decodePrefix_eq_some_iff.mp hp).2 ⟨i, by omega⟩ (Fin.lt_def.mpr hji)] at hl
-
 end Run
 
 /-! ## Schedules of no round and of one round -/
@@ -416,16 +388,6 @@ def empty {pSpec : ProtocolSpec 0} : SlotDecoder α pSpec where
 def single {pSpec : ProtocolSpec 1} (s : Slot α (pSpec.«Type» 0)) : SlotDecoder α pSpec where
   slot
     | ⟨0, _⟩, _ => s
-
-/-- A schedule of no round reads nothing. -/
-theorem runFull_empty {pSpec : ProtocolSpec 0} (l : List α) :
-    (empty : SlotDecoder α pSpec).runFull l = some (fun i ↦ i.elim0, l) := rfl
-
-/-- A schedule of one round reads its value by its slot. -/
-theorem runFull_single {pSpec : ProtocolSpec 1} (s : Slot α (pSpec.«Type» 0)) (l : List α) :
-    ((single s).runFull l).map (fun p ↦ (p.1 0, p.2)) = s.read l := by
-  change Option.map _ (Option.map _ (s.read l)) = s.read l
-  cases s.read l <;> rfl
 
 end SlotDecoder
 
@@ -887,10 +849,6 @@ theorem toSlot_single {pSpec : ProtocolSpec 1} (s : Slot α (pSpec.«Type» 0)) 
   obtain ⟨k, hk⟩ := i
   obtain rfl : k = 0 := by omega
   rfl
-
-/-- A decoder of no round reads nothing. -/
-theorem toSlot_empty {pSpec : ProtocolSpec 0} :
-    (empty : SlotDecoder α pSpec).toSlot = pure fun i ↦ i.elim0 := rfl
 
 variable {m : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 

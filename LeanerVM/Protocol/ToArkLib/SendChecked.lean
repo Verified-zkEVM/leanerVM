@@ -134,20 +134,12 @@ theorem sendChecked_complete
       check s (honest ((s, o), w)) = true ∧ ((out s (honest ((s, o), w)), o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendChecked OStmt M honest check out).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sendCheckedGuarded OStmt M check out) (s, o) witIn hx
-  replace hpr : pr ∈ support ((sendCheckedProver OStmt M honest out).run (s, o) witIn) := hpr
-  rw [sendCheckedProver_run, support_pure, Set.mem_singleton_iff] at hpr
-  subst hpr
-  have hc : (sendCheckedGuarded OStmt M check out).check (s, o)
-      (ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-        (default : (say M).Transcript 0)) = true :=
-    (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendCheckedGuarded OStmt M check out) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  replace hq : q ∈ support ((sendCheckedProver OStmt M honest out).run (s, o) w) := hq
+  rw [sendCheckedProver_run, support_pure, Set.mem_singleton_iff] at hq
+  subst hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def sendCheckedComplete

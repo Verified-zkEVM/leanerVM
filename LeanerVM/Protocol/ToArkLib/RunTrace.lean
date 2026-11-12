@@ -82,17 +82,6 @@ def RunsAs {n : ℕ} {pSpec : ProtocolSpec n} (c : RoundCodec w pSpec) (tr : pSp
 
 /-! ## The seam -/
 
-/-- A function of a round's direction and type, carried along equalities of both, applies as
-before. -/
-private theorem apply_heq_send {R : Type} {A A' : Direction} {B B' : Type}
-    {f : A = .P_to_V → B → R} {f' : A' = .P_to_V → B' → R} (hA : A = A') (hB : B = B')
-    (hf : HEq f f') (h : A = .P_to_V) (h' : A' = .P_to_V) {x : B} {x' : B'} (hx : HEq x x') :
-    f h x = f' h' x' := by
-  subst hA hB
-  obtain rfl := eq_of_heq hf
-  obtain rfl := eq_of_heq hx
-  rfl
-
 /-- A source of a round's challenge, carried along equalities of its direction and type, runs
 as before. -/
 private theorem runs_heq_draw {A A' : Direction} {B B' : Type} {f : A = .V_to_P → w B}
@@ -106,42 +95,6 @@ private theorem runs_heq_draw {A A' : Direction} {B B' : Type} {f : A = .V_to_P 
 
 variable {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (c₁ : RoundCodec w p₁)
   (c₂ : RoundCodec w p₂)
-
-omit [Monad w] in
-/-- Below the seam, the appended wire writes as the first. -/
-private theorem send_append_left (i : Fin m) :
-    HEq ((c₁.append c₂).send (Fin.castAdd n i)) (c₁.send i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.castAdd n i)) _
-  rw [Fin.fappend₂_left]
-  exact cast_heq _ _
-
-omit [Monad w] in
-/-- Past the seam, the appended wire writes as the second. -/
-private theorem send_append_right (i : Fin n) :
-    HEq ((c₁.append c₂).send (Fin.natAdd m i)) (c₂.send i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.natAdd m i)) _
-  rw [Fin.fappend₂_right]
-  exact cast_heq _ _
-
-omit [Monad w] in
-/-- Below the seam, the appended wire reads as the first. -/
-private theorem draw_append_left (i : Fin m) :
-    HEq ((c₁.append c₂).draw (Fin.castAdd n i)) (c₁.draw i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.castAdd n i)) _
-  rw [Fin.fappend₂_left]
-  exact cast_heq _ _
-
-omit [Monad w] in
-/-- Past the seam, the appended wire reads as the second. -/
-private theorem draw_append_right (i : Fin n) :
-    HEq ((c₁.append c₂).draw (Fin.natAdd m i)) (c₂.draw i) := by
-  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
-    (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.natAdd m i)) _
-  rw [Fin.fappend₂_right]
-  exact cast_heq _ _
 
 /-- A round below the seam steps as the first wire's. -/
 private theorem stepAs_append_left (i : Fin m) {x : (p₁ ++ₚ p₂).Type (Fin.castAdd n i)}
@@ -229,24 +182,6 @@ def Every (P : ∀ α : Type, w α → Prop) {n : ℕ} {pSpec : ProtocolSpec n}
 variable {P : ∀ α : Type, w α → Prop}
 
 omit [Monad w] in
-/-- A property carried along an equality of value types. -/
-private theorem prop_heq {α β : Type} (hab : α = β) {x : w α} {y : w β} (hxy : HEq x y)
-    (hx : P α x) : P β y := by
-  subst hab
-  obtain rfl := eq_of_heq hxy
-  exact hx
-
-omit [Monad w] in
-/-- A source of a round's challenge, carried along equalities of its direction and type, reads
-as before. -/
-private theorem apply_heq_draw {A A' : Direction} {B B' : Type} {f : A = .V_to_P → w B}
-    {f' : A' = .V_to_P → w B'} (hA : A = A') (hB : B = B') (hf : HEq f f') (h : A = .V_to_P)
-    (h' : A' = .V_to_P) : HEq (f h) (f' h') := by
-  subst hA hB
-  obtain rfl := eq_of_heq hf
-  rfl
-
-omit [Monad w] in
 /-- Two wires in sequence have a property of every round when both do. -/
 theorem Every.append {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
     {c₁ : RoundCodec w p₁} {c₂ : RoundCodec w p₂} (h₁ : Every P c₁) (h₂ : Every P c₂) :
@@ -312,7 +247,7 @@ theorem every_rounds {C : Type} {d : ℕ} {enc : Vector C (d + 1) → w Unit} {s
 
 omit [Monad w] in
 /-- A grand-product layer. -/
-theorem every_step {C : Type} {nside : ℕ} (ρ m : ℕ) {enc : Vector C (2 ^ ρ + 1) → w Unit}
+private theorem every_step {C : Type} {nside : ℕ} (ρ m : ℕ) {enc : Vector C (2 ^ ρ + 1) → w Unit}
     {children : (Fin nside → Vector C (2 ^ ρ)) → w Unit} {smp : w C} (he : ∀ x, P _ (enc x))
     (hc : ∀ x, P _ (children x)) (hs : P C smp) : Every P (step ρ m enc children smp) :=
   (((every_chal hs).append (every_rounds he hs m)).append (every_msg hc)).append
@@ -346,7 +281,7 @@ variable {w : Type → Type} [Monad w] [LawfulMonad w] {σ : Type} (sem : RunSem
   (P : Prover []ₒ St Wt St' Wt' pSpec)
 
 /-- The rounds up to `i` step through the wire on the partial transcript they return. -/
-theorem runToRoundWith_runsAs (stmt : St) (wit : Wt) :
+private theorem runToRoundWith_runsAs (stmt : St) (wit : Wt) :
     ∀ (i : Fin (n + 1)) {s s' : σ} {r : pSpec.Transcript i × P.PrvState i},
       sem.Runs (runToRoundWith c P i stmt wit) s r s' →
       ∃ st : Fin (n + 1) → σ, st 0 = s ∧ st i = s' ∧
@@ -466,7 +401,8 @@ def challengesLeft (ch : (pSpec₁ ++ₚ pSpec₂).Challenges) : pSpec₁.Challe
 /-- A computation of the first schedule, lifted into the sequence, with the challenge oracle
 answered off a vector: the computation with its own challenges answered off the vector's first
 part. -/
-theorem simulateQ_liftAppendLeft_challenges {r : Type → Type} [Monad r] [LawfulMonad r] {α : Type}
+private theorem simulateQ_liftAppendLeft_challenges {r : Type → Type} [Monad r] [LawfulMonad r]
+    {α : Type}
     (ch : (pSpec₁ ++ₚ pSpec₂).Challenges) (oa : OracleComp ([]ₒ + [pSpec₁.Challenge]ₒ) α) :
     simulateQ ((fun t ↦ isEmptyElim t : QueryImpl []ₒ r) + Prover.challengesImpl (r := r) ch)
         (liftAppendLeft pSpec₂ oa) =

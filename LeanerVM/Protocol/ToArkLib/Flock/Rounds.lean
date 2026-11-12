@@ -47,7 +47,7 @@ open CompPoly CMlPolynomialEval SumcheckRound
 variable {F : Type} [Field F]
 
 /-- `Σ_{i < 3} q_i X^i` for the message `#v[q₀, q₁, q₂]`. -/
-theorem evaluate_three (q₀ q₁ q₂ X : F) :
+private theorem evaluate_three (q₀ q₁ q₂ X : F) :
     evaluate 2 (#v[q₀, q₁, q₂] : Message F 2) X = q₀ + q₁ * X + q₂ * X ^ 2 := by
   simp [evaluate, Fin.sum_univ_three]
 

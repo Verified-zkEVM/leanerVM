@@ -195,7 +195,7 @@ def dotSparse {n : ℕ} (a : Vector F n) (v : Fin n → F) : F :=
     if x = 0 then acc else if x = 1 then acc + a[i] else acc + a[i] * x) 0
 
 /-- `dotSparse` is the dot product. -/
-theorem dotSparse_eq {n : ℕ} (a : Vector F n) (v : Fin n → F) :
+private theorem dotSparse_eq {n : ℕ} (a : Vector F n) (v : Fin n → F) :
     dotSparse a v = ∑ i, a[i] * v i := by
   have h : (fun acc (i : Fin n) ↦
       let x := v i
@@ -222,7 +222,7 @@ def walkedTables (C : BlockR1CS F (s + m)) (zt : Vector (CMlPolynomialEval F (m 
 
 omit [DecidableEq F] in
 /-- The walked tables are the left and the right products. -/
-theorem walkedTables_eq (C : BlockR1CS F (s + m))
+private theorem walkedTables_eq (C : BlockR1CS F (s + m))
     (zt : Vector (CMlPolynomialEval F (m + κ)) (2 ^ s)) :
     walkedTables C zt =
       (Vector.ofFn (leftTable C fun i ↦ zt[i]), Vector.ofFn (rightTable C fun i ↦ zt[i])) := by

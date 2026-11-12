@@ -189,7 +189,7 @@ def rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m) (gates : Array (Pos m
     Vector (GateOf α) (2 ^ m) :=
   gates.foldr (fun kg t ↦ t.set kg.1 kg.2 kg.1.isLt) (Vector.ofFn (restRow L cpos inputs))
 
-theorem getElem_rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m)
+private theorem getElem_rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m)
     (gates : Array (Pos m × GateOf α)) (k : Pos m) :
     (rowsAt L cpos inputs gates)[k] =
       match gates.toList.lookup k with
@@ -209,7 +209,7 @@ theorem getElem_rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m)
       exact ih
 
 /-- The rows of a circuit are its rows at the forms. -/
-theorem rowOf_eq_rowsAt (c : ProductCircuit m) (k : Pos m) :
+private theorem rowOf_eq_rowsAt (c : ProductCircuit m) (k : Pos m) :
     c.rowOf k = (rowsAt (formLin m) c.cpos c.inputs c.gates)[k] := by
   rw [getElem_rowsAt]
   cases h : c.gates.toList.lookup k <;> simp only [rowOf, h, restRow]
@@ -223,7 +223,7 @@ private theorem lookup_map_mapGate (φ : α → β) (l : List (Pos m × GateOf �
     split <;> simp_all
 
 /-- The rows at `M` of the gates carried by `φ` are the rows at `L` carried by `φ`. -/
-theorem rowsAt_map {L : Lin m α} {M : Lin m β} {φ : α → β} (h : L.Hom M φ) (cpos : Pos m)
+private theorem rowsAt_map {L : Lin m α} {M : Lin m β} {φ : α → β} (h : L.Hom M φ) (cpos : Pos m)
     (inputs : Form m) (gates : Array (Pos m × GateOf α)) (k : Pos m) :
     (rowsAt M cpos inputs (gates.map (mapGate φ)))[k] = (rowsAt L cpos inputs gates)[k].map φ := by
   rw [getElem_rowsAt, getElem_rowsAt, Array.toList_map, lookup_map_mapGate]
@@ -309,7 +309,7 @@ theorem toZ_injective : Function.Injective toZ := by
   intro a b h
   cases a <;> cases b <;> simp_all [toZ]
 
-theorem toZ_and (a b : Bool) : toZ (a && b) = toZ a * toZ b := by
+private theorem toZ_and (a b : Bool) : toZ (a && b) = toZ a * toZ b := by
   cases a <;> cases b <;> simp [toZ]
 
 theorem toZ_xor (a b : Bool) : toZ (a ^^ b) = toZ a + toZ b := by
@@ -321,7 +321,7 @@ theorem toZ_eval (L : Form m) (z : Pos m → Bool) : toZ (L.eval z) = L.evalZ z 
   fin_cases x <;> rfl
 
 /-- A form reads only the positions it selects. -/
-theorem eval_congr {L : Form m} {z z' : Pos m → Bool}
+private theorem eval_congr {L : Form m} {z z' : Pos m → Bool}
     (h : ∀ j : Pos m, L.getLsbD j → z j = z' j) : L.eval z = L.eval z' := by
   have : L.evalZ z = L.evalZ z' := Finset.sum_congr rfl fun j _ ↦ by
     split_ifs with hj
@@ -357,7 +357,7 @@ theorem getLsbD_var (k : Pos m) (j : ℕ) : (Form.var k).getLsbD j = decide ((k 
 
 theorem pos_val {n : ℕ} (h : n < 2 ^ m) : ((pos n : Pos m) : ℕ) = n := Nat.mod_eq_of_lt h
 
-theorem sub_getLsbD {L avail : Form m} (h : Sub L avail) {j : Pos m} (hj : L.getLsbD j) :
+private theorem sub_getLsbD {L avail : Form m} (h : Sub L avail) {j : Pos m} (hj : L.getLsbD j) :
     avail.getLsbD j := by
   have := congrArg (·.getLsbD j) h
   simp only [BitVec.getLsbD_and, BitVec.getLsbD_not, j.isLt, decide_true, Bool.true_and,
@@ -411,7 +411,7 @@ section Ring
 
 variable {R : Type*} [CommRing R]
 
-theorem ofBool_and (a b : Bool) : ofBool R (a && b) = ofBool R a * ofBool R b := by
+private theorem ofBool_and (a b : Bool) : ofBool R (a && b) = ofBool R a * ofBool R b := by
   cases a <;> cases b <;> simp [ofBool]
 
 theorem ofBool_injective [Nontrivial R] : Function.Injective (ofBool R) := by
@@ -433,12 +433,12 @@ theorem sum_liftBlock (L : Form m) (z : Pos m → Bool) :
     simp [liftBlock]
   · simp
 
-theorem rows_fst_liftBlock (c : ProductCircuit m) (z : Pos m → Bool) (k : Pos m) :
+private theorem rows_fst_liftBlock (c : ProductCircuit m) (z : Pos m → Bool) (k : Pos m) :
     ((c.toBlockR1CS R).rows (liftBlock R z)).1[k] = ofBool R ((c.rowOf k).a.eval z) := by
   rw [BlockR1CS.rows_fst]
   exact sum_liftBlock _ z
 
-theorem rows_snd_liftBlock (c : ProductCircuit m) (z : Pos m → Bool) (k : Pos m) :
+private theorem rows_snd_liftBlock (c : ProductCircuit m) (z : Pos m → Bool) (k : Pos m) :
     ((c.toBlockR1CS R).rows (liftBlock R z)).2[k] = ofBool R ((c.rowOf k).b.eval z) := by
   rw [BlockR1CS.rows_snd]
   exact sum_liftBlock _ z
@@ -666,7 +666,8 @@ theorem traceF_input {c : ProductCircuit m} (hc : c.Bounded) (inp : Pos m → Bo
   simp [hjc, hj]
 
 /-- The trace of a bounded circuit satisfies every row. -/
-theorem trace_holds {c : ProductCircuit m} (hc : c.Bounded) (inp : Pos m → Bool) (k : Pos m) :
+private theorem trace_holds {c : ProductCircuit m} (hc : c.Bounded) (inp : Pos m → Bool)
+    (k : Pos m) :
     c.traceF inp k = ((c.rowOf k).a.eval (c.traceF inp) && (c.rowOf k).b.eval (c.traceF inp)) := by
   unfold rowOf
   split
@@ -712,19 +713,15 @@ theorem holds_eq_trace {c : ProductCircuit m} (hc : c.Bounded) (z : Pos m → Bo
     · simp [hjc, hin]
     · rw [eval_zero, Bool.and_false] at this
       simp [hjc, this]
-  · have := hz k
-    simp only [rowOf, hk] at this
-    exact this
+  · simpa only [rowOf, hk] using hz k
 
 /-- In a bounded circuit, a block satisfying every row satisfies every recorded gate. -/
-theorem gates_of_rows {c : ProductCircuit m} (hc : c.Bounded) (z : Pos m → Bool)
+private theorem gates_of_rows {c : ProductCircuit m} (hc : c.Bounded) (z : Pos m → Bool)
     (hz : ∀ k, z k = ((c.rowOf k).a.eval z && (c.rowOf k).b.eval z)) :
     ∀ kg ∈ c.gates, z kg.1 = (kg.2.a.eval z && kg.2.b.eval z) := by
   intro kg hkg
   have hl := lookup_of_mem hc (Array.mem_toList_iff.mpr hkg)
-  have := hz kg.1
-  simp only [rowOf, hl] at this
-  exact this
+  simpa only [rowOf, hl] using hz kg.1
 
 /-- Soundness of the lowering: over a nontrivial ring of characteristic two, a Boolean block
 satisfying the R1CS of a bounded circuit satisfies every recorded gate. -/
@@ -733,24 +730,6 @@ theorem gates_of_holds {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
     (hz : (c.toBlockR1CS R).Holds (liftBlock R z)) :
     ∀ kg ∈ c.gates, z kg.1 = (kg.2.a.eval z && kg.2.b.eval z) :=
   gates_of_rows hc z ((holds_iff_gates c z).mp hz)
-
-/-- Soundness of the lowering for a block of `0`/`1` entries: if it satisfies the R1CS of a
-bounded circuit, its Boolean block satisfies every recorded gate. -/
-theorem gates_of_holds_isBool {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R] [DecidableEq R]
-    {c : ProductCircuit m} (hc : c.Bounded) {z : CMlPolynomialEval R m}
-    (hb : ∀ k : Pos m, BlockR1CS.IsBool z[k]) (hz : (c.toBlockR1CS R).Holds z) :
-    ∀ kg ∈ c.gates, toBools z kg.1 = (kg.2.a.eval (toBools z) && kg.2.b.eval (toBools z)) :=
-  gates_of_holds hc _ (eq_liftBlock_toBools hb ▸ hz)
-
-/-- Determinism for a block of `0`/`1` entries: if it satisfies the R1CS of a bounded circuit and
-holds `1` at the constant, it is the lift of the trace of its own inputs. -/
-theorem eq_trace_of_holds_isBool {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
-    [DecidableEq R] {c : ProductCircuit m} (hc : c.Bounded) {z : CMlPolynomialEval R m}
-    (hb : ∀ k : Pos m, BlockR1CS.IsBool z[k]) (hz : (c.toBlockR1CS R).Holds z)
-    (h1 : z[c.cpos] = 1) : z = liftBlock R (c.traceF (toBools z)) := by
-  have hz' := eq_liftBlock_toBools hb ▸ hz
-  conv_lhs => rw [eq_liftBlock_toBools hb]
-  rw [← holds_eq_trace hc _ ((holds_iff_gates c _).mp hz') (by simp [toBools, h1])]
 
 /-- The executable trace computes the mathematical one. -/
 theorem trace_getLsbD (c : ProductCircuit m) (inp : Form m) :

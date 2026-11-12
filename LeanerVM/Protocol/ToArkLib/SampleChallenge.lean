@@ -128,18 +128,13 @@ theorem sampleChallenge_complete
     (h : ∀ s o w, ((s, o), w) ∈ relIn → check s = true ∧ ∀ c, ((f s c, o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sampleChallenge OStmt C check f).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sampleGuarded OStmt C check f) (s, o) witIn hx
-  have hout := sampleProver_run_support OStmt C f s o witIn pr hpr
-  have hc : (sampleGuarded OStmt C check f).check (s, o) pr.1 = true := (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  refine ⟨_, rfl, ?_, congrArg Prod.fst hout⟩
-  show ((f s (pr.1 0), o), pr.2.2) ∈ relOut
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sampleGuarded OStmt C check f) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  have hout := sampleProver_run_support OStmt C f s o w q hq
+  refine ⟨(h s o w hIn).1, ?_, congrArg Prod.fst hout⟩
+  show ((f s (q.1 0), o), q.2.2) ∈ relOut
   rw [congrArg Prod.snd hout]
-  exact (h s o witIn hIn).2 (pr.1 0)
+  exact (h s o w hIn).2 (q.1 0)
 
 /-- The completeness half. -/
 def sampleChallengeComplete
@@ -177,19 +172,10 @@ theorem card_badChallenge_le_of_unit {relIn : Set ((StmtIn × ∀ i, OStmt i) ×
     {relOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)} (N : ℕ) (s : StmtIn) (o : ∀ i, OStmt i)
     (h : ((s, o), ()) ∉ relIn → Nat.card {c // ((f s c, o), ()) ∈ relOut} ≤ N) :
     Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N := by
-  have := Fintype.ofFinite C
-  classical
-  rw [natCard_subtype_eq_card_filter]
   by_cases hin : ((s, o), ()) ∈ relIn
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le N)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    rintro c - ⟨w, hw, -⟩
-    exact hw hin
-  · refine (Finset.card_le_card fun c hc ↦ ?_).trans
-      ((natCard_subtype_eq_card_filter _).symm.trans_le (h hin))
-    rw [Finset.mem_filter] at hc ⊢
-    obtain ⟨-, w, -, hw⟩ := hc
-    exact ⟨Finset.mem_univ _, hw⟩
+  · rw [natCard_subtype_eq_zero fun _ ⟨_, hw, _⟩ ↦ hw hin]
+    exact Nat.zero_le N
+  · exact (natCard_subtype_mono fun _ ⟨_, _, hw⟩ ↦ hw).trans (h hin)
 
 /-- Round-by-round knowledge soundness of a checked challenge at `N / |C|`, when a statement
 passing the check has at most `N` bad challenges. -/

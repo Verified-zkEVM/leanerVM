@@ -7,7 +7,7 @@
 
 module
 
-public import ArkLib.OracleReduction.Composition.Sequential.GuardedCompleteness
+public import ArkLib.OracleReduction.LogicStep
 public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 
 /-!
@@ -24,7 +24,8 @@ schedule, and they are what a component's two proofs start from.
 * `Reduction.mem_support_run_of_guarded`: every outcome of a run is a transcript and output of
   the prover, together with the verdict when the check passes on that transcript, and a
   rejection otherwise (ArkLib's `Reduction.run_eq_of_guarded_verifier`, read on the support).
-  Perfect completeness is then a statement about the prover's runs.
+  ArkLib's `Reduction.perfectCompleteness_of_guarded_prover_support` makes perfect completeness
+  a statement about the prover's runs.
 -/
 
 namespace LeanerVM.Protocol

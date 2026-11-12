@@ -155,19 +155,20 @@ theorem map_litW (h : L.Hom M φ) (cpos : Pos m) (c : UInt32) :
 theorem map_inW (h : L.Hom M φ) (b : ℕ) : (inW L b).map φ = inW M b := by
   ext i hi; simp [inW, h.var]
 
-theorem map_sumW (h : L.Hom M φ) (p q : WordOf α) (cs : List α) :
+private theorem map_sumW (h : L.Hom M φ) (p q : WordOf α) (cs : List α) :
     (sumW L p q cs).map φ = sumW M (p.map φ) (q.map φ) (cs.map φ) := by
   ext i hi; simp [sumW, h.add, ← h.zero]
 
-theorem map_xor3W (h : L.Hom M φ) (x y z : WordOf α) :
+private theorem map_xor3W (h : L.Hom M φ) (x y z : WordOf α) :
     (xor3W L x y z).map φ = xor3W M (x.map φ) (y.map φ) (z.map φ) := by
   ext i hi; simp [xor3W, h.add]
 
-theorem map_shiftW (h : L.Hom M φ) (ms : List α) : (shiftW L ms).map φ = shiftW M (ms.map φ) := by
+private theorem map_shiftW (h : L.Hom M φ) (ms : List α) : (shiftW L ms).map φ = shiftW M
+    (ms.map φ) := by
   ext i hi; simp only [shiftW, Vector.getElem_map, Vector.getElem_ofFn]
   split <;> simp [← h.zero]
 
-theorem natural_addCarries (h : L.Hom M φ) (x y : WordOf α) (n : ℕ) (c : α) :
+private theorem natural_addCarries (h : L.Hom M φ) (x y : WordOf α) (n : ℕ) (c : α) :
     Natural φ (List.map φ) (addCarries L x y n c)
       (addCarries M (x.map φ) (y.map φ) n (φ c)) := by
   induction n generalizing c with
@@ -184,7 +185,7 @@ theorem natural_addW (h : L.Hom M φ) {x y : WordOf α} {x' y' : WordOf β} (hx 
   rw [addW, addW, ← h.zero]
   exact natural_map (natural_addCarries h x y 31 L.zero) fun _ ↦ map_sumW h ..
 
-theorem natural_majorities (h : L.Hom M φ) (x y z : WordOf α) (n : ℕ) :
+private theorem natural_majorities (h : L.Hom M φ) (x y z : WordOf α) (n : ℕ) :
     Natural φ (List.map φ) (majorities L x y z n)
       (majorities M (x.map φ) (y.map φ) (z.map φ) n) := by
   induction n with
@@ -194,7 +195,7 @@ theorem natural_majorities (h : L.Hom M φ) (x y z : WordOf α) (n : ℕ) :
     refine natural_bind (natural_mul h (by simp [h.add]) (by simp [h.add])) fun g ↦ ?_
     exact natural_bind ih fun _ ↦ natural_pure (by simp [h.add])
 
-theorem natural_rippleCarries (h : L.Hom M φ) (p q : WordOf α) (n : ℕ) (c : α) :
+private theorem natural_rippleCarries (h : L.Hom M φ) (p q : WordOf α) (n : ℕ) (c : α) :
     Natural φ (List.map φ) (rippleCarries L p q n c)
       (rippleCarries M (p.map φ) (q.map φ) n (φ c)) := by
   induction n generalizing c with
@@ -377,7 +378,7 @@ private theorem nat_carry_save (k : ℕ) (a b c : ℕ) (ha : a < 2 ^ k) (hb : b 
     cases a0 <;> cases b0 <;> cases c0 <;> simp <;> omega
 
 /-- Carry-save on words: `x + y + z = (x ⊕ y ⊕ z) + (maj(x, y, z) ≪ 1)`. -/
-theorem carry_save (x y z : BitVec 32) :
+private theorem carry_save (x y z : BitVec 32) :
     x + y + z = (x ^^^ y ^^^ z) + ((x &&& y ||| x &&& z ||| y &&& z) <<< 1) := by
   apply BitVec.eq_of_toNat_eq
   simp only [BitVec.toNat_add, BitVec.toNat_xor, BitVec.toNat_or, BitVec.toNat_and,
@@ -608,7 +609,7 @@ theorem subW_inW {b : ℕ} (hb : b + 32 ≤ 2 ^ m) (h : ∀ i < 32, S.avail.getL
 /-- The forms of a list read only positions available at `n`. -/
 def SubL (S : Start m) (l : List (Form m)) (n : ℕ) : Prop := ∀ f ∈ l, S.SubN f n
 
-theorem subN_getD {l : List (Form m)} {n : ℕ} (h : S.SubL l n) (i : ℕ) :
+private theorem subN_getD {l : List (Form m)} {n : ℕ} (h : S.SubL l n) (i : ℕ) :
     S.SubN (l.getD i 0) n := by
   induction l generalizing i with
   | nil => exact subN_zero n
@@ -619,7 +620,7 @@ theorem subN_getD {l : List (Form m)} {n : ℕ} (h : S.SubL l n) (i : ℕ) :
       rw [List.getD_cons_succ]
       exact ih (fun g hg ↦ h g (List.mem_cons_of_mem _ hg)) i
 
-theorem subW_sumW {p q : Word m} {cs : List (Form m)} {n : ℕ} (hp : S.SubW p n)
+private theorem subW_sumW {p q : Word m} {cs : List (Form m)} {n : ℕ} (hp : S.SubW p n)
     (hq : S.SubW q n) (hc : S.SubL cs n) : S.SubW (sumW (formLin m) p q cs) n := by
   intro i
   rw [sumW, Fin.getElem_fin, Vector.getElem_ofFn]
@@ -696,13 +697,13 @@ private theorem ok_rippleCarries (p q : Word m) (n : ℕ) :
       · exact hc.mono (by omega)
       · exact (hrest f hf).mono hn₃
 
-theorem subW_xor3W {x y z : Word m} {n : ℕ} (hx : S.SubW x n) (hy : S.SubW y n)
+private theorem subW_xor3W {x y z : Word m} {n : ℕ} (hx : S.SubW x n) (hy : S.SubW y n)
     (hz : S.SubW z n) : S.SubW (xor3W (formLin m) x y z) n := by
   intro i
   rw [xor3W, Fin.getElem_fin, Vector.getElem_ofFn]
   exact ((hx i).xor (hy i)).xor (hz i)
 
-theorem subW_shiftW {ms : List (Form m)} {n : ℕ} (h : S.SubL ms n) :
+private theorem subW_shiftW {ms : List (Form m)} {n : ℕ} (h : S.SubL ms n) :
     S.SubW (shiftW (formLin m) ms) n := by
   intro i
   rw [shiftW, Fin.getElem_fin, Vector.getElem_ofFn]

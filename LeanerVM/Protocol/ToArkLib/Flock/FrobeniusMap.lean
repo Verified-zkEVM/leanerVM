@@ -127,7 +127,7 @@ theorem frobPair_stage {ι : Type*} (s : Finset ι) (w b : ι → R) (M : ℕ) (
 
 /-- `a + f ^ 2 ^ k · b = 0` with `(a, b) ≠ (0, 0)` has one root `f` at most, in a field of
 characteristic two. -/
-theorem card_frob_root_le_one {F : Type*} [Field F] [CharP F 2] [Fintype F] [DecidableEq F]
+private theorem card_frob_root_le_one {F : Type*} [Field F] [CharP F 2] [Fintype F] [DecidableEq F]
     (k : ℕ) {a b : F} (hab : a ≠ 0 ∨ b ≠ 0) :
     (Finset.univ.filter fun f : F ↦ a + f ^ 2 ^ k * b = 0).card ≤ 1 := by
   refine Finset.card_le_one.mpr fun f₁ h₁ f₂ h₂ ↦ ?_
@@ -153,11 +153,10 @@ theorem card_stage_zero_le_one {F : Type*} [Field F] [CharP F 2] [Fintype F] [De
     · exact ⟨k₀, hlt, Or.inl hne⟩
     · refine ⟨k₀ - M, by omega, Or.inr ?_⟩
       rwa [show M + (k₀ - M) = k₀ by omega]
-  refine (Finset.card_le_card fun f hf ↦ ?_).trans (card_frob_root_le_one k hab)
-  rw [Finset.mem_filter] at hf ⊢
-  refine ⟨Finset.mem_univ _, ?_⟩
+  refine (Finset.card_le_card (Finset.monotone_filter_right _ fun f _ hf ↦ ?_)).trans
+    (card_frob_root_le_one k hab)
   rw [← frobPair_stage]
-  exact hf.2 k hk
+  exact hf k hk
 
 end
 end LeanerVM.Protocol
