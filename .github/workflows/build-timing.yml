@@ -29,7 +29,7 @@ jobs:
           enable-cache: false
 
       - name: Set up Lean
-        uses: leanprover/lean-action@v1.7.0
+        uses: leanprover/lean-action@v1.7.1
         with:
           auto-config: false
           build: false
