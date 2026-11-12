@@ -351,7 +351,7 @@ theorem misbehaves_rom_coins (R : SlotReader) {seedRoots : List Digest}
     (coins : ProbComp Adversary) {Q : ℕ} (hQ : ∀ A ∈ support coins, IsTotalQueryBound A Q) :
     Pr{let A ← coins; let z ← runRandom (loggedGame V prog input A)}[
       HashMisbehavesFrom seedRoots rootsOf R.Flip z.1] ≤ niError ε Vq Q := by
-  rw [← bind_assoc]
+  rw [← map_bind]
   exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦
     misbehaves_rom R hlen hsafe hbad prog input V hV rootsOf hroots A (hQ A hA)
 
