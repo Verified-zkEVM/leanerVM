@@ -277,8 +277,8 @@ def Cached.passThrough (hupd : ∀ p, upd p (cin p) = cout ((f p.1.1, p.1.2), p.
   run_eq s w := by
     change (pure _ : OracleComp _ _) = _ <$> (pure _ : OracleComp _ _)
     rw [map_pure]
-    simp only [cachedPassProver, Component.passThrough, Component.passThroughProver, _root_.id,
-      hupd]
+    simp only [cachedPassProver, _root_.id, hupd]
+    rfl
 
 end PassThrough
 
