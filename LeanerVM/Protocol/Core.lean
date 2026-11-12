@@ -347,7 +347,7 @@ theorem verify_knowledgeSound_rom (prog : Program) (input : PublicInput) (A : Ad
     Pr{let z ← runRandom (loggedGame verifyWith prog input A)}[
       z.1.ok = true ∧ ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input z.1.proof z.1.logA] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
+  (prEvent_mono_of_support _ _ _ fun _ hz h ↦
     (core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).mono
       fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)

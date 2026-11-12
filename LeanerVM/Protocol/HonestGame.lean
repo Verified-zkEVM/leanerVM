@@ -92,9 +92,12 @@ theorem honestGame_rom_rejects_le (fuel : ℕ) {prog : Program} {input : PublicI
   refine (OracleComp.prEvent_eq_zero_iff _ _).mpr fun z hz hrej ↦ ?_
   set H : List UInt8 → Digest := fun t ↦ (z.2 t).getD Prove.zeroDigest
   have hagree : ∀ t u, z.2 t = some u → H t = u := fun t u h ↦ by simp [H, h]
-  obtain ⟨hle, hver⟩ := evalWithAnswerFn_eq_of_mem_support_randomOracle _ c hz H hagree
-  have hpro := (evalWithAnswerFn_eq_of_mem_support_randomOracle _ ∅ hz₁ H
-    fun t u h ↦ hagree t u (hle h)).2
+  have hle := QueryImpl.le_snd_of_mem_support_run_simulateQ_withCaching _ _ hz
+  have hver := QueryCache.evalWithAnswerFn_eq_of_agreesWithFn (f := H) hagree _
+    (QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching _ _ hz)
+  have hpro := QueryCache.evalWithAnswerFn_eq_of_agreesWithFn (f := H)
+    (fun t u h ↦ hagree t u (hle h)) _
+    (QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching _ _ hz₁)
   have hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =
       some proof :=
     (proveWith_simulateQ (r := Id) (fun t ↦ pure (H t)) fuel _ prog input w ρ).symm.trans hpro

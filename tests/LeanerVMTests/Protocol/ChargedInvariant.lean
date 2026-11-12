@@ -14,28 +14,18 @@ public import LeanerVM.Protocol.ToVCVio.ChargedInvariant
 
 The invariant is "no cached answer is `0`". A fresh query breaks it with probability `1/4`, so
 two queries break it with probability at most `2/4`, and a single query breaks it with
-probability exactly `1/4`: the bound is attained, and it fails without the query budget. The
-expected number of cached answers equal to `0` after two queries is at most `2/4`, and in a
-two-element set at most `2 · 2/4`.
+probability exactly `1/4`: the bound is attained, and it fails without the query budget.
 
 The potential form charges a bad event that two queries complete together, both oracles
 answering `0`, once: the potential is the chance of completing it, every fresh query is charged
 `1/16`, and the bound is `2/16`, where the invariant form charges each query `1/4`.
 
-A repeated query is charged once. A charge growing with the cache, as a collision's does, over
-infinitely many oracles, is bounded within the budget. On the log of fresh queries, the event
-"the first answer is `0`", which no predicate on the cache states, has probability at most
-`1/4` with no charge at all.
+The step bound need only hold within the budget: from the empty cache, two queries never cache
+three answers, a bound of `0` although a fresh query at a cache of two entries caches a third
+with certainty. On the log of fresh queries, the event "the first answer is `0`", which no
+predicate on the cache states, has probability at most `1/4` with no charge at all.
 
-Two charge components, each paid by its own budget: `1/4` at a query to oracle `0`, of which
-`twoQueries` makes one, and a quarter of the cache's size at every query, of which it makes two;
-the expected total is at most `1 · 1/4 + 2 · 1/4`. The budget of a kind does the work: the
-computation exceeds a budget of no query to oracle `0`, and a charge of `1/4` at every query totals
-`2 · 1/4` on every run, above the `1 · 1/4` a component charged only at oracle `0` is allowed.
-
-Two runs in sequence: a cached `0` after a query to oracle `0` and then one to oracle `1` has
-probability at most `1/4` for the first run plus `1/4` for the second from any cache without a
-`0` the first can leave. Both oracles answering `0` has probability at most `1/16 + 1/16` when the
+Two runs in sequence: both oracles answering `0` has probability at most `1/16 + 1/16` when the
 second run starts from the potential the first leaves, in expectation; from its largest value,
 `1/4` after a first answer `0`, the bound would be `1/4 + 1/16`.
 
@@ -80,11 +70,30 @@ theorem noZero_step (c : TestSpec.QueryCache) (t : Fin 2) (hc : NoZero c) :
   · rw [QueryCache.cacheQuery_of_ne c u h]
     exact hc t'
 
+open Classical in
+/-- `1` once the invariant is broken, `0` before. -/
+noncomputable def broken (c : TestSpec.QueryCache) : ℝ≥0∞ := if NoZero c then 0 else 1
+
+/-- The indicator of a broken invariant grows by at most `1/4` in expectation at a fresh query. -/
+theorem broken_step (c : TestSpec.QueryCache) (t : Fin 2) :
+    ∫⁻ r, r ∂𝒟[(fun u ↦ broken (c.cacheQuery t u)) <$> ($ᵗ TestSpec.Range t)] ≤
+      broken c + 4⁻¹ := by
+  classical
+  by_cases hc : NoZero c
+  · have h := (prEvent_eq_lintegral_id_evalDist_map_ite ($ᵗ TestSpec.Range t)
+      (fun u ↦ ¬ NoZero (c.cacheQuery t u))).symm.trans_le (noZero_step c t hc)
+    simpa only [broken, hc, ↓reduceIte, zero_add, ite_not] using h
+  · refine (lintegral_id_evalDist_map_le_of_le _ (c := 1) fun u ↦ ?_).trans (by simp [broken, hc])
+    unfold broken
+    split_ifs <;> simp
+
 -- Two queries: the invariant fails with probability at most `2 · 1/4`.
 example :
-    Pr{let z ← (simulateQ TestSpec.randomOracle twoQueries).run ∅}[¬ NoZero z.2] ≤ 2 * 4⁻¹ :=
-  prEvent_not_good_le_mul NoZero twoQueries_bound (fun _ ↦ by simp)
-    (fun c t _ hc _ ↦ noZero_step c t hc)
+    Pr{let z ← (simulateQ TestSpec.randomOracle twoQueries).run ∅}[¬ NoZero z.2] ≤ 2 * 4⁻¹ := by
+  have h0 : NoZero ∅ := fun _ ↦ by simp
+  rw [← QueryHistory.randomOracle_cache]
+  simpa [broken, h0] using QueryHistory.cache.prEvent_le_of_potential (fun z ↦ ¬ NoZero z.2) broken
+    (fun z hz ↦ by simp [broken, hz]) twoQueries_bound ∅ fun c t _ _ ↦ broken_step c t
 
 -- One query fails the invariant with probability exactly `1/4`: the bound `1 · 1/4` is
 -- attained, and no bound `0 · 1/4` holds, so the query budget is needed.
@@ -96,19 +105,6 @@ example :
   rw [hrun, prEvent_map, prEvent_congr _ _ (fun u ↦ u = 0) fun u ↦ by
     simp [NoZero, Fin.forall_fin_two, QueryCache.cacheQuery_of_ne]]
   simpa using SampleableType.prEvent_uniformSample_eq_singleton (α := Fin 4) 0
-
--- Expected count: at most `2 · 1/4` cached answers are `0` after two queries.
-example :
-    ∫⁻ r, r ∂𝒟[(fun z ↦ answersIn (fun _ u ↦ u = 0) z.2) <$>
-      (simulateQ TestSpec.randomOracle twoQueries).run ∅] ≤ 2 * 4⁻¹ := by
-  simpa only [Finset.mem_singleton, Finset.card_singleton, Fintype.card_fin, Nat.cast_one,
-    Nat.cast_ofNat, one_div] using expected_fresh_in_le ({0} : Finset (Fin 4)) twoQueries_bound
-
--- A target set of two answers: at most `2 · 2/4` in expectation.
-example :
-    ∫⁻ r, r ∂𝒟[(fun z ↦ answersIn (fun _ (u : Fin 4) ↦ u ∈ ({0, 1} : Finset (Fin 4))) z.2) <$>
-      (simulateQ TestSpec.randomOracle twoQueries).run ∅] ≤ 2 * (2 / 4) := by
-  simpa using expected_fresh_in_le ({0, 1} : Finset (Fin 4)) twoQueries_bound
 
 /-! ### A bad event completed by two queries, charged once -/
 
@@ -147,34 +143,11 @@ theorem pending_step (c : TestSpec.QueryCache) (t : Fin 2) (ht : c t = none) :
 -- breaks the invariant with probability up to `1/4`.
 example :
     Pr{let z ← (simulateQ TestSpec.randomOracle twoQueries).run ∅}[BothZero z.2] ≤ 2 * 16⁻¹ := by
-  refine (prEvent_le_of_potential (fun z ↦ BothZero z.2) pending
-    (fun z hz ↦ by simp [pending, hz.1, hz.2]) (fun _ _ ↦ 16⁻¹) pending_step twoQueries ∅).trans ?_
-  simpa [pending] using
-    QueryHistory.cache.expected_charge_le_mul twoQueries_bound ∅ fun _ _ _ _ ↦ le_rfl
+  rw [← QueryHistory.randomOracle_cache]
+  simpa [pending] using QueryHistory.cache.prEvent_le_of_potential (fun z ↦ BothZero z.2) pending
+    (fun z hz ↦ by simp [pending, hz.1, hz.2]) twoQueries_bound ∅ fun c t ht _ ↦ pending_step c t ht
 
-/-! ### A cached query is not charged -/
-
-/-- The same query twice. -/
-def sameTwice : OracleComp TestSpec (Fin 4) := do
-  let _ ← (TestSpec.query 0 : OracleComp TestSpec (Fin 4))
-  (TestSpec.query 0 : OracleComp TestSpec (Fin 4))
-
--- Every run of the same query twice is charged once, at the empty cache.
-example (charge : TestSpec.QueryCache → Fin 2 → ℝ≥0∞) {z : Fin 4 × TestSpec.QueryCache × ℝ≥0∞}
-    (hz : z ∈ support ((simulateQ (chargedRandomOracle charge) sameTwice).run (∅, 0))) :
-    z.2.2 = charge ∅ 0 := by
-  rw [sameTwice, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-    QueryHistory.chargedOracle_run_of_none _ _ (by rfl), mem_support_bind_iff] at hz
-  obtain ⟨p, hp, hz⟩ := hz
-  rw [support_map] at hp
-  obtain ⟨u, -, rfl⟩ := hp
-  dsimp only at hz
-  rw [QueryHistory.chargedOracle_run_of_some _ _
-    (QueryCache.cacheQuery_self (∅ : TestSpec.QueryCache) 0 u), support_pure,
-    Set.mem_singleton_iff] at hz
-  simp [hz]
-
-/-! ### A charge growing with the cache, over infinitely many oracles -/
+/-! ### A step bound within the budget -/
 
 /-- Two queries to oracles indexed by `ℕ`. -/
 def twoQueriesNat : OracleComp (ℕ →ₒ Fin 4) (Fin 4 × Fin 4) := do
@@ -185,15 +158,52 @@ def twoQueriesNat : OracleComp (ℕ →ₒ Fin 4) (Fin 4 × Fin 4) := do
 theorem twoQueriesNat_bound : IsTotalQueryBound twoQueriesNat 2 :=
   ⟨by decide, fun _ ↦ ⟨by decide, fun _ ↦ trivial⟩⟩
 
--- A query charged a quarter of the size of the cache, as a collision is: no bound holds at
--- every cache, but within two queries from the empty cache the charge is at most `1/4`.
+open Classical in
+/-- `1` on a cache of at least three entries, `0` on a smaller one. -/
+noncomputable def three (c : (ℕ →ₒ Fin 4).QueryCache) : ℝ≥0∞ := if 3 ≤ c.enncard then 1 else 0
+
+-- Within two queries from the empty cache a fresh query leaves at most two entries, so the
+-- potential never moves: no run of two queries caches three answers.
 example :
-    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (chargedRandomOracle
-      (fun c _ ↦ c.enncard * 4⁻¹)) twoQueriesNat).run (∅, 0)] ≤ 2 * 4⁻¹ := by
-  refine QueryHistory.cache.expected_charge_le_mul twoQueriesNat_bound ∅ fun c _ _ hc ↦ ?_
-  rw [QueryHistory.cache_view, QueryHistory.cache_view, QueryCache.enncard_empty, zero_add,
-    Nat.cast_ofNat, ← one_add_one_eq_two, ENNReal.add_le_add_iff_right ENNReal.one_ne_top] at hc
-  exact (mul_le_mul' hc le_rfl).trans_eq (one_mul _)
+    Pr{let z ← (simulateQ (ℕ →ₒ Fin 4).randomOracle twoQueriesNat).run ∅}[3 ≤ z.2.enncard] ≤
+      0 := by
+  rw [← QueryHistory.randomOracle_cache]
+  refine (QueryHistory.cache.prEvent_le_of_potential (fun z ↦ 3 ≤ z.2.enncard) three
+    (fun z hz ↦ by simp [three, hz]) (κ := 0) twoQueriesNat_bound ∅ fun c t _ hc ↦
+      (lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_).trans zero_le).trans_eq ?_
+  · rw [QueryHistory.cache_view, QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc
+    have h2 : (c.cacheQuery t u).enncard ≤ 2 :=
+      (QueryCache.enncard_cacheQuery_le c t u).trans (hc.trans_eq (by norm_num))
+    have h3 : ¬ 3 ≤ (c.cacheQuery t u).enncard := not_le.mpr (h2.trans_lt (by norm_num))
+    simp [three, h3]
+  · simp [three]
+
+-- Outside the budget the step bound fails: at a cache of two entries a fresh query caches a
+-- third with certainty.
+example : ¬ ∀ (c : (ℕ →ₒ Fin 4).QueryCache) (t : ℕ), c t = none →
+    ∫⁻ r, r ∂𝒟[(fun u ↦ three (c.cacheQuery t u)) <$> ($ᵗ Fin 4)] ≤ three c + 0 := by
+  intro h
+  have h0 : ((∅ : (ℕ →ₒ Fin 4).QueryCache).cacheQuery 0 0) 1 = none := by
+    rw [QueryCache.cacheQuery_of_ne (t' := 1) (t := 0) _ _ (by decide)]
+    rfl
+  have h2 : (((∅ : (ℕ →ₒ Fin 4).QueryCache).cacheQuery 0 0).cacheQuery 1 0).enncard = 2 := by
+    rw [QueryCache.enncard_cacheQuery _ _ _ h0,
+      QueryCache.enncard_cacheQuery (∅ : (ℕ →ₒ Fin 4).QueryCache) 0 0 rfl,
+      QueryCache.enncard_empty]
+    norm_num
+  have hc2 : (((∅ : (ℕ →ₒ Fin 4).QueryCache).cacheQuery 0 0).cacheQuery 1 0) 2 = none := by
+    rw [QueryCache.cacheQuery_of_ne (t' := 2) (t := 1) _ _ (by decide),
+      QueryCache.cacheQuery_of_ne (t' := 2) (t := 0) _ _ (by decide)]
+    rfl
+  have hthree : ∀ u,
+      three ((((∅ : (ℕ →ₒ Fin 4).QueryCache).cacheQuery 0 0).cacheQuery 1 0).cacheQuery 2 u) =
+        1 := fun u ↦ by
+    rw [three, QueryCache.enncard_cacheQuery _ _ _ hc2, h2]
+    norm_num
+  have hone : ∫⁻ r, r ∂𝒟[(fun _ ↦ (1 : ℝ≥0∞)) <$> ($ᵗ Fin 4)] = 1 := by simp
+  have := h _ 2 hc2
+  rw [funext hthree, hone] at this
+  norm_num [three, h2] at this
 
 /-! ### An order-dependent event on the log of fresh queries -/
 
@@ -214,7 +224,8 @@ example :
     Pr{let z ← (simulateQ QueryHistory.freshLog.randomOracle twoQueries).run (∅, [])}[
       FirstZero z.2.2] ≤ 4⁻¹ := by
   refine (QueryHistory.freshLog.prEvent_le_of_potential (fun z ↦ FirstZero z.2.2)
-    firstPotential (fun z hz ↦ ?_) (fun _ _ ↦ 0) (fun s t _ ↦ ?_) twoQueries (∅, [])).trans ?_
+    firstPotential (fun z hz ↦ ?_) (κ := 0) twoQueries_bound (∅, [])
+    fun s t _ _ ↦ ?_).trans_eq ?_
   · obtain ⟨_, _, _ | ⟨e, l⟩⟩ := z
     · exact absurd hz id
     · simp [firstPotential, show (e.2 : Fin 4) = 0 from hz]
@@ -222,78 +233,7 @@ example :
     · rw [lintegral_ite_zero t 1 fun u ↦ by simp [firstPotential]]
       simp [firstPotential]
     · exact lintegral_id_evalDist_map_le_of_le _ fun u ↦ by simp [firstPotential]
-  · exact add_le_of_le_of_nonpos le_rfl <| (QueryHistory.freshLog.expected_charge_le_mul
-      twoQueries_bound (∅, []) (κ := 0) fun _ _ _ _ ↦ le_rfl).trans_eq (mul_zero _)
-
-/-! ### Two charge components, each paid by its own budget -/
-
-/-- The kinds of query: `true` a query to oracle `0`, `false` any query. -/
-def queryKind : Bool → Fin 2 → Prop
-  | true, t => t = 0
-  | false, _ => True
-
-instance (j : Bool) : DecidablePred (queryKind j) := fun t ↦ by
-  cases j <;> unfold queryKind <;> infer_instance
-
-/-- The two components: `1/4` at a query to oracle `0`, and a quarter of the cache's size, as a
-collision's charge, at every query. -/
-noncomputable def twoCharges : Bool → TestSpec.QueryCache → Fin 2 → ℝ≥0∞
-  | true, _, t => if t = 0 then 4⁻¹ else 0
-  | false, c, _ => c.enncard * 4⁻¹
-
-/-- The budgets: one query to oracle `0`, two queries in all. -/
-def kindBudget : Bool → ℕ
-  | true => 1
-  | false => 2
-
-theorem twoQueries_kindBound (j : Bool) : twoQueries.IsQueryBoundP (queryKind j) (kindBudget j) := by
-  cases j
-  · exact ⟨by decide, fun _ ↦ ⟨by decide, fun _ ↦ trivial⟩⟩
-  · exact ⟨by decide, fun _ ↦ ⟨by decide, fun _ ↦ trivial⟩⟩
-
--- The expected total of the two components is at most `1 · 1/4 + 2 · 1/4`.
-example :
-    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (chargedRandomOracle fun c t ↦
-      ∑ j, twoCharges j c t) twoQueries).run (∅, 0)] ≤ 1 * 4⁻¹ + 2 * 4⁻¹ := by
-  have h := QueryHistory.cache.expected_charge_le_sum Finset.univ queryKind (charge := twoCharges)
-    (κ := fun _ ↦ 4⁻¹) twoQueries_bound (fun j _ ↦ twoQueries_kindBound j) ∅ fun j _ c t _ hc ↦ ?_
-  · simpa [Fintype.sum_bool, kindBudget] using h
-  cases j
-  · rw [QueryHistory.cache_view, QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc
-    have h1 : c.enncard ≤ 1 :=
-      (ENNReal.add_le_add_iff_right ENNReal.one_ne_top).mp (hc.trans_eq (by norm_num))
-    rw [ite_eq_left (show queryKind false t from trivial)]
-    exact (mul_le_mul' h1 le_rfl).trans_eq (one_mul _)
-  · by_cases ht : t = 0
-    · rw [ite_eq_left (show queryKind true t from ht)]
-      simp [twoCharges, ht]
-    · rw [ite_eq_right (show ¬ queryKind true t from ht)]
-      simp [twoCharges, ht]
-
--- The computation exceeds a budget of no query to oracle `0`.
-example : ¬ twoQueries.IsQueryBoundP (queryKind true) 0 := fun h ↦
-  h.1.elim (fun h ↦ h rfl) (Nat.lt_irrefl 0)
-
--- A charge of `1/4` at every query totals `2 · 1/4` on every run, above the `1 · 1/4` the
--- budget of one query to oracle `0` allows a component charged only there.
-example {z : (Fin 4 × Fin 4) × TestSpec.QueryCache × ℝ≥0∞}
-    (hz : z ∈ support ((simulateQ (chargedRandomOracle fun _ _ ↦ 4⁻¹) twoQueries).run (∅, 0))) :
-    z.2.2 = 2 * 4⁻¹ := by
-  rw [twoQueries, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-    QueryHistory.chargedOracle_run_of_none _ _ (by rfl), mem_support_bind_iff] at hz
-  obtain ⟨p, hp, hz⟩ := hz
-  rw [support_map] at hp
-  obtain ⟨u, -, rfl⟩ := hp
-  dsimp only at hz
-  rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-    QueryHistory.chargedOracle_run_of_none _ _
-      (QueryCache.cacheQuery_of_ne (∅ : TestSpec.QueryCache) u (by decide)),
-    mem_support_bind_iff] at hz
-  obtain ⟨p, hp, hz⟩ := hz
-  rw [support_map] at hp
-  obtain ⟨v, -, rfl⟩ := hp
-  simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-  rw [hz, zero_add, two_mul]
+  · simp [firstPotential]
 
 /-! ### Two runs in sequence -/
 
@@ -305,21 +245,8 @@ theorem oneQuery_bound : IsTotalQueryBound oneQuery 1 := ⟨by decide, fun _ ↦
 
 theorem oneQueryOne_bound : IsTotalQueryBound oneQueryOne 1 := ⟨by decide, fun _ ↦ trivial⟩
 
--- A query to oracle `0`, then one to oracle `1`: a cached `0` has probability at most `1/4` for
--- the first run and `1/4` for the second, from any cache without a `0` the first leaves.
-example :
-    Pr{let z ← (simulateQ TestSpec.randomOracle (oneQuery >>= fun _ ↦ oneQueryOne)).run ∅}[
-      ¬ NoZero z.2] ≤ 4⁻¹ + 4⁻¹ := by
-  refine (prEvent_simulateQ_bind_le_add_iSup _ oneQuery (fun _ ↦ oneQueryOne) ∅ _
-    (fun z ↦ ¬ NoZero z.2) (fun _ z ↦ ¬ NoZero z.2) fun _ _ _ _ h ↦ .inr h).trans
-    (add_le_add ?_ (iSup₂_le fun z _ ↦ iSup_le fun hz ↦ ?_))
-  · simpa using prEvent_not_good_le_mul NoZero oneQuery_bound (c := ∅) (fun _ ↦ by simp)
-      fun c t _ hc _ ↦ noZero_step c t hc
-  · simpa using prEvent_not_good_le_mul NoZero oneQueryOne_bound (not_not.mp hz)
-      fun c t _ hc _ ↦ noZero_step c t hc
-
--- Both oracles answer `0` with probability at most `1/16 + 1/16`: the first run's expected
--- charge, then the second run's from the potential the first leaves.
+-- Both oracles answer `0` with probability at most `1/16 + 1/16`: the first run's charge, then
+-- the second run's from the potential the first leaves.
 example :
     Pr{let z ← (simulateQ TestSpec.randomOracle (oneQuery >>= fun _ ↦ oneQueryOne)).run ∅}[
       BothZero z.2] ≤ 16⁻¹ + 16⁻¹ := by
@@ -327,17 +254,11 @@ example :
     fun z hz ↦ by simp [pending, hz.1, hz.2]
   rw [← QueryHistory.randomOracle_cache]
   refine (QueryHistory.cache.prEvent_bind_le_of_potential oneQuery (fun _ ↦ oneQueryOne) ∅
-    (fun z ↦ BothZero z.2) (fun z ↦ BothZero z.2) (fun _ z ↦ BothZero z.2)
-    (fun _ _ _ _ h ↦ .inr h) pending (fun _ _ ↦ 16⁻¹) pending_step hpend (ε := 16⁻¹)
-    fun z₁ _ _ ↦ ?_).trans ?_
-  · refine (QueryHistory.cache.prEvent_le_of_potential (fun z ↦ BothZero z.2) pending hpend
-      (fun _ _ ↦ 16⁻¹) pending_step oneQueryOne z₁.2).trans (add_le_add le_rfl ?_)
-    simpa using QueryHistory.cache.expected_charge_le_mul oneQueryOne_bound z₁.2
-      (charge := fun _ _ ↦ 16⁻¹) fun _ _ _ _ ↦ le_rfl
-  · have h := QueryHistory.cache.expected_charge_le_mul oneQuery_bound (∅ : TestSpec.QueryCache)
-      (charge := fun _ _ ↦ 16⁻¹) fun _ _ _ _ ↦ le_rfl
-    simp only [Nat.cast_one, one_mul] at h
-    simpa [pending] using add_le_add_right h 16⁻¹
+    (fun z ↦ BothZero z.2) pending oneQuery_bound (fun c t ht _ ↦ pending_step c t ht)
+    (ε := 16⁻¹) fun z₁ _ ↦ ?_).trans_eq ?_
+  · simpa using QueryHistory.cache.prEvent_le_of_potential (fun z ↦ BothZero z.2) pending hpend
+      oneQueryOne_bound z₁.2 fun c t ht _ ↦ pending_step c t ht
+  · simp [pending]
 
 -- The same composition for a draw: the second of two uniform draws is `0` with probability at
 -- most `1/4`, whatever the first.

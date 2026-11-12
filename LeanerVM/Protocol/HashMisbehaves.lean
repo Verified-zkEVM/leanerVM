@@ -40,9 +40,9 @@ consistent, `mem_support_runRandom_twoRunGame`), and a misbehaving hash on the j
 the fresh log unclean (`badLog_of_hashMisbehavesFrom`): a collision, a hit and a flip survive
 deduplication, and the proof's roots are answers past the prover's part. The potential of
 `RandomOracleBound.lean` then bounds the two runs in sequence
-(`QueryHistory.prEvent_bind_le_of_potential`, the integral form): the verifier's run starts from
-the potential the prover's leaves, which `Φ_start` identifies with the prover's potential, and
-each run's charges total at most its queries times the per-query bound of `charge_le`.
+(`QueryHistory.prEvent_bind_le_of_potential`): the verifier's run starts from the potential the
+prover's leaves, which `Φ_start` identifies with the prover's potential, and each run is charged
+at most its queries times the per-query bound of `charge_le`.
 
 The reader is a parameter: the bound means what the extraction needs at the one reader of the
 deployed protocol, which must also supply the density bound and the verifier's query bound.
@@ -285,46 +285,42 @@ theorem misbehaves_rom_of (R : SlotReader) {seedRoots : List Digest}
     (verifierPart proofOf V) ((∅ : hashSpec.QueryCache), [])
     (fun z ↦ HashMisbehavesFrom seedRoots (rootsOf (Prod.map id QueryHistory.freshLog.view z).1.1)
       R.Flip (Prod.map id QueryHistory.freshLog.view z).1.2)
-    (fun _ ↦ False)
-    (fun z₁ z₂ ↦ ¬ (QueryHistory.IsFreshLog z₂.2 ∧
-      R.Clean seedRoots (rootsOf z₁.1.1 (proofOf z₁.1.1)) z₁.2.2.length z₂.2.2))
-    (fun z₁ hz₁ z₂ hz₂ hE ↦ .inr fun hgood ↦ ?_) (R.Φ seedRoots [] 0) (R.charge seedRoots [] 0)
-    (fun s t ht ↦ R.potential_step s t ht) (fun _ h ↦ h.elim)
+    (R.Φ seedRoots [] 0) (κ := ((4 * Q + 1 + 0 : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε) hA
+    (fun s t ht hs ↦ (R.potential_step s t ht).trans (add_le_add le_rfl
+      ((R.charge_le hsafe hbad (L := Q) (by simpa using hs) t).trans (add_le_add
+        (ENNReal.div_le_div_right (Nat.cast_le.mpr (by simp only [List.length_nil]; omega)) _)
+        le_rfl))))
     (ε := Vq * (((4 * (Q + Vq) + 1 + proofDigests : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε))
-    (fun z₁ hz₁ _ ↦ ?_)).trans ?_
-  · -- a misbehaving hash leaves the verifier's fresh log unclean
-    obtain ⟨hb, hp, -, hcons, h₁, h₂⟩ := twoRunGame_support hz₁ hz₂
-    refine badLog_of_hashMisbehavesFrom R hcons hE ?_
-    simp only [Prod.map_fst, id_eq]
-    rw [← h₂, hp, hb, ← h₁]
-    exact hgood.2
+    (fun z₁ hz₁ ↦ ?_)).trans ?_
   · -- the verifier's run, from the potential the prover's leaves
     have henn : z₁.2.1.enncard ≤ Q := by
       simpa using (QueryHistory.freshLog (spec := hashSpec)).enncard_le_of_mem_support hA _ hz₁
+    refine (prEvent_mono_of_support _ _ (fun z₂ ↦ ¬ (QueryHistory.IsFreshLog z₂.2 ∧
+        R.Clean seedRoots (rootsOf z₁.1.1 (proofOf z₁.1.1)) z₁.2.2.length z₂.2.2))
+      fun z₂ hz₂ hE hgood ↦ ?_).trans ?_
+    · -- a misbehaving hash leaves the verifier's fresh log unclean
+      obtain ⟨hb, hp, -, hcons, h₁, h₂⟩ := twoRunGame_support hz₁ hz₂
+      refine badLog_of_hashMisbehavesFrom R hcons hE ?_
+      simp only [Prod.map_fst, id_eq]
+      rw [← h₂, hp, hb, ← h₁]
+      exact hgood.2
     refine ((QueryHistory.freshLog (spec := hashSpec)).prEvent_le_of_potential
       (fun z₂ ↦ ¬ (QueryHistory.IsFreshLog z₂.2 ∧
         R.Clean seedRoots (rootsOf z₁.1.1 (proofOf z₁.1.1)) z₁.2.2.length z₂.2.2))
       (R.Φ seedRoots (rootsOf z₁.1.1 (proofOf z₁.1.1)) z₁.2.2.length) (fun z h ↦ R.one_le_Φ h)
-      (R.charge seedRoots (rootsOf z₁.1.1 (proofOf z₁.1.1)) z₁.2.2.length)
-      (fun s t ht ↦ R.potential_step s t ht) (verifierPart proofOf V z₁.1) z₁.2).trans ?_
-    rw [R.Φ_start]
-    refine add_le_add le_rfl ((QueryHistory.freshLog (spec := hashSpec)).expected_charge_le_mul
-      (hB z₁.1) z₁.2 fun s' t _ hs' ↦ ?_)
-    refine (R.charge_le hsafe hbad (L := Q + Vq) ?_ t).trans (add_le_add
-      (ENNReal.div_le_div_right (Nat.cast_le.mpr (by
-        have := hroots z₁.1.1 (proofOf z₁.1.1)
-        omega)) _) le_rfl)
-    calc s'.1.enncard + 1 ≤ z₁.2.1.enncard + Vq := hs'
-      _ ≤ Q + Vq := add_le_add henn le_rfl
-      _ = ((Q + Vq : ℕ) : ℝ≥0∞) := by push_cast; rfl
-  · -- the prover's run, from the empty state
+      (κ := ((4 * (Q + Vq) + 1 + proofDigests : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε) (hB z₁.1) z₁.2
+      fun s' t ht hs' ↦ (R.potential_step s' t ht).trans (add_le_add le_rfl
+        ((R.charge_le hsafe hbad (L := Q + Vq) ?_ t).trans (add_le_add
+          (ENNReal.div_le_div_right (Nat.cast_le.mpr (by
+            have := hroots z₁.1.1 (proofOf z₁.1.1)
+            omega)) _) le_rfl)))).trans_eq ?_
+    · calc s'.1.enncard + 1 ≤ z₁.2.1.enncard + Vq := hs'
+        _ ≤ Q + Vq := add_le_add henn le_rfl
+        _ = ((Q + Vq : ℕ) : ℝ≥0∞) := by push_cast; rfl
+    · rw [R.Φ_start]
+  · -- the two runs' budgets
     rw [R.Φ_empty, zero_add]
-    refine le_trans (add_le_add ((QueryHistory.freshLog (spec := hashSpec)).expected_charge_le_mul
-      hA _ fun s' t _ hs' ↦ (R.charge_le hsafe hbad (L := Q) ?_ t).trans (by
-        refine add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _) le_rfl
-        simp only [List.length_nil]
-        omega)) le_rfl) (budget_le ε Vq Q)
-    simpa using hs'
+    exact budget_le ε Vq Q
 
 /-- **The hash misbehaves with probability at most `niError ε V Q`** in the random-oracle game,
 for a statement `(prog, input)` fixed before the prover runs; at most one root `seedRoots` in play

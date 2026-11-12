@@ -363,7 +363,7 @@ theorem baseVerifier_extractsWitness_rom_adaptive {A : AdaptiveAdversary} {Q : �
       extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
         SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
+  (prEvent_mono_of_support _ _ _ fun _ hz h ↦
     (misbehaves_of_escape_run (mem_support_runRandom_adaptive hz).1
       (mem_support_runRandom_adaptive hz).2 h.1 h.2).mono
       fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
@@ -393,7 +393,7 @@ theorem baseVerifier_extractsExecution_rom_adaptive {A : AdaptiveAdversary} {Q :
       ¬ ∃ t, extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧
         ValidExecution z.1.prog z.1.input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
+  (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
     (baseVerifier_extractsWitness_rom_adaptive hQ)
 
 /-- **Adaptive knowledge soundness in the random-oracle model for well-formed programs**: the
@@ -407,7 +407,7 @@ theorem baseVerifier_extractsExecution_rom_adaptive_wellFormed {A : AdaptiveAdve
       extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧
         ValidExecution z.1.prog z.1.input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun z hz h ↦
+  (prEvent_mono_of_support _ _ _ fun z hz h ↦
     ⟨h.1, (hwf z hz).sentinelSafe, h.2⟩).trans (baseVerifier_extractsExecution_rom_adaptive hQ)
 
 /-- **Adaptive knowledge soundness in the random-oracle model for an execution, for an adversary
@@ -439,7 +439,7 @@ theorem blakeMisbehavesAdaptive_of_comparison {A : AdaptiveAdversary} {Q : ℕ} 
       HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input)
         (leanVmReader.VerifierFlipFor (z.1.prog, z.1.input)) z.1.toRun] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-    (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
+    (prEvent_mono_of_support _ _ _ fun _ _ h ↦
       h.mono fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
       ((misbehaves_rom_adaptive hQ).trans (niError_closed Q))
   exact h.trans (add_le_add_left hR δ)
@@ -471,7 +471,7 @@ theorem baseVerifier_extractsWitness_adaptive {A : AdaptiveAdversary} {δ : ℝ�
         extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
           SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)] ≤
       δ :=
-  (OracleComp.prEvent_mono_of_support _ fun _ hg h ↦
+  (prEvent_mono_of_support _ _ _ fun _ hg h ↦
     misbehaves_of_escape_adaptive hg h.1 h.2).trans hB
 
 /-- **Adaptive knowledge soundness for an adversary with coins, the constraint form**, a
@@ -503,7 +503,7 @@ theorem baseVerifier_extractsExecution_adaptive {A : AdaptiveAdversary} {δ : �
       verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
+  (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
     (baseVerifier_extractsWitness_adaptive hB)
 
 /-- **Adaptive knowledge soundness for well-formed programs**: the execution form for an adversary
@@ -516,7 +516,7 @@ theorem baseVerifier_extractsExecution_adaptive_wellFormed {A : AdaptiveAdversar
       verify g.prog g.input g.proof = true ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
-  (OracleComp.prEvent_mono_of_support _ fun g hg h ↦
+  (prEvent_mono_of_support _ _ _ fun g hg h ↦
     ⟨h.1, (hwf g hg).sentinelSafe, h.2⟩).trans (baseVerifier_extractsExecution_adaptive hB)
 
 /-- **The headline for an adversary with coins that chooses the statement**, a distribution
@@ -535,7 +535,7 @@ theorem baseVerifier_extractsExecution_adaptive_coins {coins : ProbComp Adaptive
           ValidExecution g.prog g.input t] ≤ δ := by
   have hw := baseVerifier_extractsWitness_adaptive_coins hB
   rw [← bind_assoc] at hw ⊢
-  exact (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans hw
+  exact (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans hw
 
 /-! ## At a statement fixed before the adversary runs -/
 
@@ -567,7 +567,7 @@ theorem baseVerifier_extractsExecution_rom {prog : Program} {input : PublicInput
       z.1.ok = true ∧ ¬ ∃ t, extractExecution prog input z.1.proof z.1.logA = some t ∧
         ValidExecution prog input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
+  (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
     (baseVerifier_extractsWitness_rom hQ)
 
 /-- **Knowledge soundness of the deployed verifier, the constraint form**, at a statement fixed
@@ -614,7 +614,7 @@ theorem baseVerifier_extractsExecution {prog : Program} {input : PublicInput} {A
     Pr{let g ← runBlake2s (loggedGame verifyWith prog input A)}[
       verify prog input g.proof = true ∧ ¬ ∃ t,
         extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t] ≤ δ :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
+  (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
     (baseVerifier_extractsWitness hB)
 
 /-- **The headline for an adversary with coins** at a statement fixed before the coins are drawn.
@@ -632,7 +632,7 @@ theorem baseVerifier_extractsExecution_coins {prog : Program} {input : PublicInp
         extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t] ≤ δ := by
   have hw := baseVerifier_extractsWitness_coins hB
   rw [← bind_assoc] at hw ⊢
-  exact (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans hw
+  exact (prEvent_mono_of_support _ _ _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans hw
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
 misbehaving on the run of an adversary of at most `Q` queries, its flips those the verifier asked
@@ -644,7 +644,7 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
     (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
       (HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))) δ) :
     BlakeMisbehaves prog input A (((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) + δ) :=
-  h.trans (add_le_add_left ((OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
+  h.trans (add_le_add_left ((prEvent_mono_of_support _ _ _ fun _ _ h ↦
     h.mono fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)) δ)
 

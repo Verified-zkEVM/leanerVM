@@ -32,8 +32,8 @@ deployed protocol.
   and a root of `proofRoots` past the first `k₀` queries), plus the probabilities of the groups
   `t` opens.
 * `potential_step`: at every fresh query, the expected potential after the uniform answer is at
-  most the potential before plus the charge, the step of
-  `QueryHistory.potential_le_expected_charge`.
+  most the potential before plus the charge, the step of `QueryHistory.lintegral_le_of_potential`
+  once `charge_le` bounds the charge within the budget.
   An answer to avoid makes the potential `1`; any other answer keeps the log clean but for a flip,
   which is a group open before or opened by the query reaching probability `1`, and moves only the
   groups the query touches, each a step of a martingale (`lintegral_π_le`): the probability of a

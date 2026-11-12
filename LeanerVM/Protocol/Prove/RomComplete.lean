@@ -11,7 +11,7 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.Prove.Complete
 public import LeanerVM.Protocol.ChainGroups
 public import LeanerVM.Protocol.ToVCVio.ProofOfWork
-public import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
+public import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
@@ -26,8 +26,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 The proof needs nothing about where the grinds sit in the run:
 
 1. a run of the lazy random oracle ending at the cache `c` is the run at the hash
-   `H_c t := (c t).getD d₀`, `d₀` the zero digest, which clears every grinding check
-   (`evalWithAnswerFn_eq_of_mem_support_randomOracle`, `proveWith_simulateQ`);
+   `H_c t := (c t).getD d₀`, `d₀` the zero digest, which clears every grinding check (VCVio's
+   `simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching`, `proveWith_simulateQ`);
 2. at any hash, the prover returns no proof only when a grind finds no nonce among its `fuel`
    candidates (`Prove.proveWith_eq_none`); at `H_c` each candidate that fails is cached with a
    failing answer, since an uncached one is answered by `d₀`, and the grind's base is `d₀` or a
@@ -181,8 +181,9 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
       z.1 = none → (grindSearch fuel queryGrindingBits).Exhausted z.2 := by
     intro z hz hnone
     set H : List UInt8 → Digest := fun t ↦ (z.2 t).getD zeroDigest
-    have hrun := (evalWithAnswerFn_eq_of_mem_support_randomOracle _ ∅ hz H
-      fun t u h ↦ by simp [H, h]).2
+    have hrun := QueryCache.evalWithAnswerFn_eq_of_agreesWithFn (f := H)
+      (fun t u h ↦ by simp [H, h]) _
+      (QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching _ _ hz)
     have hsim := proveWith_simulateQ (r := Id) (fun t ↦ pure (H t)) fuel F prog input w ρ
     have hnone' : proveWith (m := Id) H fuel F prog input w ρ = none :=
       hsim.symm.trans (hrun.trans hnone)
@@ -194,7 +195,7 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
       · exact absurd hs h
       · exact absurd hρ h
       · exact exhausted_of_grind_eq_none z.2 (by decide) hg
-  refine (OracleComp.prEvent_mono_of_support _ hev).trans ?_
+  refine (prEvent_mono_of_support _ _ _ hev).trans ?_
   refine ((grindSearch fuel queryGrindingBits).prEvent_exhausted_le
     (prEvent_not_lowBitsZero (by decide)) (by simp) hN).trans_eq ?_
   rw [card_digest, Nat.cast_pow, Nat.cast_ofNat]
