@@ -168,7 +168,8 @@ def NodeAlgebra.map (φ : m →ᵐ m') (A : NodeAlgebra m D T) : NodeAlgebra m' 
 variable (φ : m →ᵐ m')
 
 /-- A level of the walk, mapped, is the level over the mapped algebra. -/
-theorem levelStep_hom (A : NodeAlgebra m D T) {h : ℕ} (nodes : List (ℕ × T h)) (sibs : List D) :
+private theorem levelStep_hom (A : NodeAlgebra m D T) {h : ℕ} (nodes : List (ℕ × T h))
+    (sibs : List D) :
     φ (levelStep A nodes sibs) = levelStep (A.map φ) nodes sibs := by
   fun_induction levelStep A nodes sibs with
   | case1 sibs => simp [levelStep]
@@ -193,7 +194,7 @@ theorem levelStep_hom (A : NodeAlgebra m D T) {h : ℕ} (nodes : List (ℕ × T 
       rfl
 
 /-- The walk, mapped, is the walk over the mapped algebra. -/
-theorem fold_hom (A : NodeAlgebra m D T) :
+private theorem fold_hom (A : NodeAlgebra m D T) :
     ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × T h)) (sibs : List D),
       φ (fold A k h t e nodes sibs) = fold (A.map φ) k h t e nodes sibs
   | 0, _, _, rfl, nodes, sibs => by simp [fold]
@@ -225,41 +226,24 @@ abbrev consNode {U : Type} (i : ℕ) (p : U) (r : Option (List (ℕ × U) × Lis
     Option (List (ℕ × U) × List D) :=
   r.map fun x ↦ ((i, p) :: x.1, x.2)
 
-theorem run_levelStep_nil (sibs : List D) :
-    Id.run (levelStep A (h := h) [] sibs) = some ([], sibs) := rfl
-
-theorem run_levelStep_pair (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (sibs : List D)
+private theorem run_levelStep_pair (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (sibs : List D)
     (hp : i % 2 = 0 ∧ j = i + 1) :
     Id.run (levelStep A ((i, a) :: (j, b) :: rest) sibs) =
       consNode (i / 2) (Id.run (A.both a b)) (Id.run (levelStep A rest sibs)) :=
   congrArg Id.run (ite_eq_left hp)
 
-theorem run_levelStep_unpaired (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (s : D)
+private theorem run_levelStep_unpaired (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (s : D)
     (sibs : List D) (hp : ¬(i % 2 = 0 ∧ j = i + 1)) :
     Id.run (levelStep A ((i, a) :: (j, b) :: rest) (s :: sibs)) =
       consNode (i / 2) (Id.run (withSupplied A i a s))
         (Id.run (levelStep A ((j, b) :: rest) sibs)) :=
   congrArg Id.run (ite_eq_right hp)
 
-theorem run_levelStep_unpaired_nil (i j : ℕ) (a b : T h) (rest : List (ℕ × T h))
-    (hp : ¬(i % 2 = 0 ∧ j = i + 1)) :
-    Id.run (levelStep A ((i, a) :: (j, b) :: rest) []) = none :=
-  congrArg Id.run (ite_eq_right hp)
-
-theorem run_levelStep_single (i : ℕ) (a : T h) (s : D) (sibs : List D) :
+private theorem run_levelStep_single (i : ℕ) (a : T h) (s : D) (sibs : List D) :
     Id.run (levelStep A [(i, a)] (s :: sibs)) =
       some ([(i / 2, Id.run (withSupplied A i a s))], sibs) := rfl
 
-theorem run_levelStep_single_nil (i : ℕ) (a : T h) :
-    Id.run (levelStep A [(i, a)] []) = none := rfl
-
-theorem run_fold_zero (h : ℕ) (nodes : List (ℕ × T h)) (sibs : List D) :
-    Id.run (fold A 0 h (h + 0) rfl nodes sibs) =
-      match nodes, sibs with
-      | (_, a) :: _, [] => some a
-      | _, _ => none := rfl
-
-theorem run_fold_succ (k h t : ℕ) (e : h + (k + 1) = t) (nodes : List (ℕ × T h))
+private theorem run_fold_succ (k h t : ℕ) (e : h + (k + 1) = t) (nodes : List (ℕ × T h))
     (sibs : List D) :
     Id.run (fold A (k + 1) h t e nodes sibs) =
       match Id.run (levelStep A nodes sibs) with
@@ -287,7 +271,7 @@ private theorem consParent_map {U U' : Type} (f : U → U') (i : ℕ) (p : m U)
 
 /-- One level of the walk commutes with a map `φ` of node algebras: a map that carries each
 operation of `A` to that of `B`. -/
-theorem levelStep_map (A : NodeAlgebra m D T) (B : NodeAlgebra m D T')
+private theorem levelStep_map (A : NodeAlgebra m D T) (B : NodeAlgebra m D T')
     (φ : ∀ {h : ℕ}, T h → T' h)
     (hboth : ∀ {h : ℕ} (a b : T h), B.both (φ a) (φ b) = φ <$> A.both a b)
     (hright : ∀ {h : ℕ} (a : T h) (s : D), B.withRight (φ a) s = φ <$> A.withRight a s)
@@ -643,12 +627,11 @@ def buildLevelsM (hashPairM : D → D → m D) : (k : ℕ) → Vector D (2 ^ k) 
     return .cons level above
 
 /-- With a pure hash, the parents are `parents`. -/
-theorem parentsM_pure [LawfulMonad m] {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
+private theorem parentsM_pure [LawfulMonad m] {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
     parentsM (m := m) (fun a b ↦ pure (hashPair a b)) level = pure (parents hashPair level) := by
   rw [parentsM, Vector.mapM_pure]
   congr 1
-  apply Vector.ext
-  intro j hj
+  refine Vector.ext fun j hj ↦ ?_
   simp [parents]
 
 /-- With a pure hash, the levels are `buildLevels`. -/

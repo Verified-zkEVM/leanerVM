@@ -109,11 +109,11 @@ def randomOracle : QueryImpl spec (StateT σ ProbComp) := fun t ↦ StateT.mk fu
   | some u => pure (u, s)
   | none => (fun u ↦ (u, H.record s t u)) <$> ($ᵗ spec.Range t)
 
-theorem randomOracle_run_of_some {t : spec.Domain} {s : σ} {u : spec.Range t}
+private theorem randomOracle_run_of_some {t : spec.Domain} {s : σ} {u : spec.Range t}
     (h : H.view s t = some u) : (H.randomOracle t).run s = pure (u, s) := by
   simp [randomOracle, h]
 
-theorem randomOracle_run_of_none {t : spec.Domain} {s : σ} (h : H.view s t = none) :
+private theorem randomOracle_run_of_none {t : spec.Domain} {s : σ} (h : H.view s t = none) :
     (H.randomOracle t).run s = (fun u ↦ (u, H.record s t u)) <$> ($ᵗ spec.Range t) := by
   simp [randomOracle, h]
 

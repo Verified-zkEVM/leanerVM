@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Semantics.Blake2s
 public import LeanerVM.Semantics.Blake2sFast
+import LeanerVM.Semantics.Blake2sOutput
 
 /-!
 # The BLAKE2s byte hasher and the digest encoding
@@ -154,23 +155,6 @@ theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
   simp only [highWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
   exact BitVec.extractLsb'_append_eq_left
 
-/-- A four-word vector is the vector of its four words. -/
-private theorem vector4_eta {α : Type} (v : Vector α 4) : #v[v[0], v[1], v[2], v[3]] = v := by
-  ext i hi
-  rcases i with _ | _ | _ | _ | i <;> first | rfl | omega
-
-/-- Reading the words of the cell built from four words gives the words back. -/
-private theorem cellWords_wordsCell (w : Vector UInt32 4) : cellWords (wordsCell w) = w := by
-  simp only [cellWords, wordsCell, limb_ofLimbs, lowWord_ofWords, highWord_ofWords,
-    Matrix.cons_val_zero, Matrix.cons_val_one]
-  exact vector4_eta w
-
-/-- The cell built from four words is canonical. -/
-private theorem isCanonical128_wordsCell (w : Vector UInt32 4) :
-    IsCanonical128 (wordsCell w) := by
-  show (E.ofLimbs _ _ 0).limb 2 = 0
-  rw [limb_ofLimbs]; rfl
-
 /-- Decoding the encoding of a digest gives the digest back. -/
 theorem digestOfScalars_digestScalars (d : Digest) :
     digestOfScalars (digestScalars d) = some d := by
@@ -178,37 +162,6 @@ theorem digestOfScalars_digestScalars (d : Digest) :
     cellWords_wordsCell, Option.some.injEq]
   ext i hi
   rcases i with _ | _ | _ | _ | _ | _ | _ | _ | i <;> first | rfl | omega
-
-/-- The first four words of the concatenation of two four-word vectors. -/
-private theorem append_left4 {α : Type} (x y : Vector α 4) :
-    #v[(x ++ y)[0], (x ++ y)[1], (x ++ y)[2], (x ++ y)[3]] = x := by
-  rw [Vector.getElem_append_left (show 0 < 4 by decide),
-    Vector.getElem_append_left (show 1 < 4 by decide),
-    Vector.getElem_append_left (show 2 < 4 by decide),
-    Vector.getElem_append_left (show 3 < 4 by decide)]
-  exact vector4_eta x
-
-/-- The last four words of the concatenation of two four-word vectors. -/
-private theorem append_right4 {α : Type} (x y : Vector α 4) :
-    #v[(x ++ y)[4], (x ++ y)[5], (x ++ y)[6], (x ++ y)[7]] = y := by
-  rw [Vector.getElem_append_right (show 4 < 4 + 4 by decide) (show 4 ≤ 4 by decide),
-    Vector.getElem_append_right (show 5 < 4 + 4 by decide) (show 4 ≤ 5 by decide),
-    Vector.getElem_append_right (show 6 < 4 + 4 by decide) (show 4 ≤ 6 by decide),
-    Vector.getElem_append_right (show 7 < 4 + 4 by decide) (show 4 ≤ 7 by decide)]
-  exact vector4_eta y
-
-/-- Encoding a decoded pair gives the pair back: the encoding is a bijection between digests and
-pairs of canonical cells. -/
-theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
-    (h : digestOfScalars s = some d) : digestScalars d = s := by
-  obtain ⟨a, b⟩ := s
-  unfold digestOfScalars at h
-  split at h
-  · rename_i hc
-    cases h
-    show (wordsCell _, wordsCell _) = (a, b)
-    rw [append_left4, append_right4, wordsCell_cellWords hc.1, wordsCell_cellWords hc.2]
-  · cases h
 
 /-! ## The byte round trip -/
 

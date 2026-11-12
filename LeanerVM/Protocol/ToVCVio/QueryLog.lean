@@ -91,11 +91,6 @@ theorem HasCollision.mono {log log' : List ((_ : Q) × D)} (h : HasCollision log
   let ⟨e₁, h₁, e₂, h₂, h⟩ := h
   ⟨e₁, hsub e₁ h₁, e₂, hsub e₂ h₂, h⟩
 
-/-- A query fresh with respect to a log is fresh with respect to any part of it. -/
-theorem Fresh.anti {log log' : List ((_ : Q) × D)} {q : Q} (h : log ⊆ log') :
-    Fresh log' q → Fresh log q :=
-  fun hf e he ↦ hf e (h he)
-
 variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
 
 /-- The first occurrence of a logged input: a position before which the log never asks it, and
@@ -127,7 +122,7 @@ theorem answer_not_mem_inPlay_nil (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ 
 
 omit [DecidableEq Q] in
 /-- A query is fresh exactly when it is not among the log's inputs. -/
-theorem fresh_iff_not_mem_keys {log : List ((_ : Q) × D)} {q : Q} :
+private theorem fresh_iff_not_mem_keys {log : List ((_ : Q) × D)} {q : Q} :
     Fresh log q ↔ q ∉ log.map (·.1) := by
   simp only [Fresh, List.mem_map, not_exists, not_and]
 
@@ -178,7 +173,7 @@ theorem dedupKeys_concat (l : List ((q : Q) × β q)) (e : (q : Q) × β q) :
           rfl
 
 /-- The deduplicated log is a sublist of the log. -/
-theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Sublist l := by
+private theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Sublist l := by
   induction l using List.reverseRecOn with
   | nil => simp
   | append_singleton l e ih =>
@@ -186,20 +181,6 @@ theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Subl
     split
     · exact ih.trans (List.sublist_append_left l [e])
     · exact ih.append (List.Sublist.refl [e])
-
-/-- Each input appears once in the deduplicated log. -/
-theorem nodup_keys_dedupKeys (l : List ((q : Q) × β q)) : ((List.dedupKeys l).map (·.1)).Nodup := by
-  induction l using List.reverseRecOn with
-  | nil => simp
-  | append_singleton l e ih =>
-    rw [dedupKeys_concat]
-    split
-    · exact ih
-    · rename_i h
-      rw [List.map_append, List.nodup_append]
-      refine ⟨ih, by simp, fun a ha b hb hab ↦ ?_⟩
-      obtain rfl : b = e.1 := by simpa using hb
-      exact h ((mem_keys_dedupKeys l _).mp (hab ▸ ha))
 
 /-- **Deduplicating an appended log**: the deduplicated first part, then the second part's first
 occurrences of inputs the first part does not ask. -/
@@ -219,7 +200,7 @@ theorem dedupKeys_cons (e : (q : Q) × β q) (l : List ((q : Q) × β q)) :
   simpa using dedupKeys_append [e] l
 
 /-- The deduplicated part of a log up to a point is a prefix of the deduplicated log. -/
-theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
+private theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
     List.dedupKeys (l.take i) <+: List.dedupKeys l := by
   have h := dedupKeys_append (l.take i) (l.drop i)
   rw [List.take_append_drop] at h
@@ -227,7 +208,7 @@ theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
   exact List.prefix_append _ _
 
 /-- The deduplicated part of a log up to a point is the deduplicated log cut at its length. -/
-theorem take_dedupKeys (l : List ((q : Q) × β q)) (i : ℕ) :
+private theorem take_dedupKeys (l : List ((q : Q) × β q)) (i : ℕ) :
     (List.dedupKeys l).take (List.dedupKeys (l.take i)).length = List.dedupKeys (l.take i) :=
   (List.prefix_iff_eq_take.mp (dedupKeys_take_prefix l i)).symm
 
@@ -244,7 +225,7 @@ private theorem eq_of_consistent (hcons : Consistent log) {e x : (_ : Q) × D} (
   Sigma.ext h (heq_of_eq (hcons x hx e he h))
 
 /-- In a consistent log, every entry is kept by deduplication. -/
-theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
+private theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
     e ∈ List.dedupKeys log := by
   obtain ⟨x, hx, hxe⟩ := List.mem_map.mp
     ((mem_keys_dedupKeys log e.1).mpr (List.mem_map_of_mem (f := (·.1)) he))

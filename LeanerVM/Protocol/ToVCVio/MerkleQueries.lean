@@ -83,7 +83,7 @@ variable (hash : D → D → OracleComp spec D) (hh : ∀ a b, IsTotalQueryBound
 include hh
 
 /-- One level of the walk asks at most one query per node and returns at most as many parents. -/
-theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
+private theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
     IsTotalQueryBound (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs) nodes.length ∧
       ∀ r ∈ support (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs), ∀ p,
         r = some p → p.1.length ≤ nodes.length := by
@@ -101,7 +101,7 @@ theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
     exact levelBound_withNext fun s sibs ↦ levelBound_consParent _ (hs i a s) (levelBound_nil sibs)
 
 /-- **The walk over `k` levels** from `n` opened nodes asks at most `k * n` queries. -/
-theorem fold_queries : ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × D)) (sibs : List D),
+private theorem fold_queries : ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × D)) (sibs : List D),
     IsTotalQueryBound (fold (NodeAlgebra.ofHash hash) k h t e nodes sibs) (k * nodes.length)
   | 0, _, _, rfl, nodes, sibs => isQueryBound_pure _ _ _ _
   | k + 1, h, t, e, nodes, sibs => by

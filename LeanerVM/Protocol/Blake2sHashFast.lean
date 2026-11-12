@@ -18,9 +18,9 @@ import Mathlib.Data.List.GetD
 bytes only for `blockWords` to read them back. `blake2sBytesFast` turns the bytes into an array
 once and reads every block in place (`blockWordsAt`, `absorbAt`); `hashWordsFast` absorbs the
 leaf's words themselves (`absorbWords`) and `hashPairFast` compresses the sixteen digest words,
-since the bytes of a word, read back little-endian, are the word (`leWord_wordBytes`). The `@[csimp]` theorems substitute
-`blake2sBytesFast`, `hashWordsFast` and `hashPairFast` in code compiled after this module, such as
-`merkleRoot`. The specifications are unchanged.
+since the bytes of a word, read back little-endian, are the word (`leWord_wordBytes`). The
+`@[csimp]` theorems substitute `blake2sBytesFast`, `hashWordsFast` and `hashPairFast` in code
+compiled after this module, such as `merkleRoot`. The specifications are unchanged.
 -/
 
 namespace LeanerVM.Protocol.Blake2sHash
@@ -57,14 +57,6 @@ private theorem blockWords_take (l : List UInt8) : blockWords (l.take 64) = bloc
   rw [List.getElem?_take_of_lt (by omega), List.getElem?_take_of_lt (by omega),
     List.getElem?_take_of_lt (by omega), List.getElem?_take_of_lt (by omega)]
 
-/-- `blockWords` reading its bytes through an array. -/
-def blockWordsFast (block : List UInt8) : Vector UInt32 16 := blockWordsAt block.toArray 0
-
-/-- `blockWordsFast` is `blockWords`. -/
-theorem blockWordsFast_eq : blockWordsFast = blockWords := by
-  funext block
-  rw [blockWordsFast, blockWordsAt_eq, List.drop_zero]
-
 /-- `absorb` over the bytes of `a` from `off`, read in place. -/
 def absorbAt (a : Array UInt8) (h : Vector UInt32 8) (t : ℕ) : (blocks : ℕ) → (off : ℕ) → Digest
   | 0, off => compress h (blockWordsAt a off) (t + (a.size - off)).toUInt64 lastBlock 0
@@ -77,15 +69,6 @@ private theorem absorbAt_eq (l : List UInt8) (h : Vector UInt32 8) (t blocks off
   induction blocks generalizing h t off with
   | zero => simp [absorbAt, absorb, blockWordsAt_eq]
   | succ n ih => rw [absorbAt, absorb, ih, blockWords_take, blockWordsAt_eq, List.drop_drop]
-
-/-- `absorb` over `absorbAt`. -/
-def absorbFast (h : Vector UInt32 8) (t blocks : ℕ) (data : List UInt8) : Digest :=
-  absorbAt data.toArray h t blocks 0
-
-/-- `absorbFast` is `absorb`. -/
-theorem absorbFast_eq : absorbFast = absorb := by
-  funext h t blocks data
-  rw [absorbFast, absorbAt_eq, List.drop_zero]
 
 /-- `blake2sBytes` over `absorbAt`. -/
 def blake2sBytesFast (data : List UInt8) : Digest :=

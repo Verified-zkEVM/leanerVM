@@ -36,7 +36,7 @@ variable {α β γ : Type} [SampleableType α] [SampleableType β] [SampleableTy
 /-- **Conditioning on a coordinate.** If `g` combines a sample of `α` and one of `β` bijectively
 into one of `γ`, an event of a uniform sample of `γ` has as probability the expectation, over a
 uniform `x`, of its probability at `g x y` over a uniform `y`. -/
-theorem prEvent_uniformSample_eq_lintegral_of_bijective {g : α → β → γ}
+private theorem prEvent_uniformSample_eq_lintegral_of_bijective {g : α → β → γ}
     (hg : Function.Bijective (Function.uncurry g)) (p : γ → Prop) :
     Pr{let z ← $ᵗ γ}[p z] =
       ∫⁻ r, r ∂𝒟[(fun x ↦ Pr{let y ← $ᵗ β}[p (g x y)]) <$> ($ᵗ α)] := by

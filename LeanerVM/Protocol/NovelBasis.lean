@@ -186,7 +186,7 @@ private theorem subspaceVanish_eq_vanishing {k : ℕ} (hk : k ≤ 64) (x : K) :
   Finset.prod_congr rfl fun m hm ↦ by
     rw [domainPt_eq_point hk (Finset.mem_range.mp hm), CharTwo.sub_eq_add]
 
-theorem subspaceVanish_zero (x : K) : subspaceVanish 0 x = x := by
+private theorem subspaceVanish_zero (x : K) : subspaceVanish 0 x = x := by
   simp [subspaceVanish, domainPt_zero]
 
 /-- `lem:subspace` (ii): `V_k` is `F_2`-linear. -/
@@ -231,7 +231,8 @@ private theorem getD_rootsFrom : ∀ n k j : ℕ, j < n →
     exact getD_rootsFrom n (k + 1) j (by omega)
 
 /-- The root `V_k(e_k)` of the implementation is the Annex's. -/
-theorem subspaceRoot_eq {k : ℕ} (hk : k < 64) : subspaceRoot k = subspaceVanish k (basisElt k) :=
+private theorem subspaceRoot_eq {k : ℕ} (hk : k < 64) :
+    subspaceRoot k = subspaceVanish k (basisElt k) :=
   ((getD_rootsFrom 64 0 k hk).trans (by rw [Nat.zero_add])).trans
     (subspaceLayer_getD (by omega) hk)
 
@@ -264,11 +265,6 @@ theorem normW_domainPt_of_lt {k m : ℕ} (hk : k ≤ 64) (hm : m < 2 ^ k) :
 theorem normW_add {k : ℕ} (hk : k ≤ 64) (x y : K) :
     normW k (x + y) = normW k x + normW k y := by
   simp only [normW, vanish_eq hk, subspaceVanish_add hk, add_div]
-
-/-- `Ŵ_0 = X`, since `e_0 = 1`. -/
-theorem normW_zero (x : K) : normW 0 x = x := by
-  rw [normW, vanish, subspaceRoot_eq (by omega), subspaceVanish_zero, show basisElt 0 = 1 from
-    pow_zero g, div_one]
 
 /-! ## The basis `e_c` -/
 

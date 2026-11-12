@@ -143,7 +143,7 @@ private theorem queries_take (enc : D → B → Q) :
     simp only [List.take_succ_cons, queries, queries_take enc c steps j]
 
 /-- The answers of a chain's queries are the states it leads to. -/
-theorem map_snd_queries (enc : D → B → Q) :
+private theorem map_snd_queries (enc : D → B → Q) :
     ∀ (cv : D) (steps : List (B × D)),
       (queries enc cv steps).map (·.2) = steps.map (·.2)
   | _, [] => rfl

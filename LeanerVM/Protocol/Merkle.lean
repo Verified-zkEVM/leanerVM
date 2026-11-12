@@ -188,15 +188,6 @@ def merkleOpen {k : ℕ} (c : MerkleCommitment k) (queries : List ℕ) : PrunedM
   leafData := (sortedUnique queries).map fun q ↦ c.rows[q]?.getD []
   siblingHashes := c.levels.siblings (sortedUnique queries)
 
-/-- The committed root is the root of the tree over the rows' leaf images. -/
-theorem root_merkleCommitWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
-    (rows : Vector (List K) (2 ^ k)) :
-    (merkleCommitWith H leafWords rows).root =
-      merkleRootWith H (rows.map (leafImage leafWords)) := by
-  simp only [MerkleCommitment.root, merkleCommitWith, MerkleTree.root_buildLevels, merkleRootWith,
-    MerkleTree.root, Vector.map_map]
-  rfl
-
 /-! ## The query model -/
 
 /-- The node hash as a VCVio query model: a node queries its children's 64 bytes, left first,
@@ -204,9 +195,6 @@ with no address, on the byte-string oracle the leaves are hashed on. -/
 def nodeModel : MerkleTreeExtractability.NodeQueryModel (List UInt8) Unit Digest :=
   MerkleTree.nodeQueryModelOfEncoding digestBytes digestOfBytes 32 length_digestBytes
     digestOfBytes_digestBytes
-
-theorem nodeModel_mkQuery (left right : Digest) :
-    nodeModel.mkQuery () (left, right) = nodeBytes left right := rfl
 
 /-! ## The sorted distinct positions -/
 
@@ -228,7 +216,8 @@ theorem pairwise_sortedUnique (queries : List ℕ) : (sortedUnique queries).Pair
   exact (((pairwise_mergeSort_le queries).sublist (List.dedup_sublist _)).and
     (List.nodup_dedup _)).imp fun h ↦ Nat.lt_of_le_of_ne h.1 h.2
 
-theorem sortedUnique_eq_nil {queries : List ℕ} : sortedUnique queries = [] ↔ queries = [] := by
+private theorem sortedUnique_eq_nil {queries : List ℕ} :
+    sortedUnique queries = [] ↔ queries = [] := by
   rw [sortedUnique, List.destutter_eq_nil, ← List.length_eq_zero_iff, List.length_mergeSort,
     List.length_eq_zero_iff]
 

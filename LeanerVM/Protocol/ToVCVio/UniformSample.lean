@@ -138,7 +138,7 @@ theorem prEvent_uniformSample_digits {a k N : ℕ} [NeZero a] [NeZero N] (h : a 
   prEvent_uniformSample_fst_of_bijective (digits_bijective h) p
 
 /-- **The first entries of a uniform tuple are uniform.** -/
-theorem prEvent_uniformSample_castLE {t n : ℕ} (h : t ≤ n) (p : (Fin t → α) → Prop) :
+private theorem prEvent_uniformSample_castLE {t n : ℕ} (h : t ≤ n) (p : (Fin t → α) → Prop) :
     Pr{let y ← $ᵗ (Fin n → α)}[p fun q ↦ y (Fin.castLE h q)] =
       Pr{let z ← $ᵗ (Fin t → α)}[p z] := by
   refine prEvent_uniformSample_fst_of_bijective

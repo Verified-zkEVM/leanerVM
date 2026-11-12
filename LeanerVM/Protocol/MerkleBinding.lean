@@ -79,7 +79,7 @@ def nodeOfBytes? (q : List UInt8) : Option (Digest × Digest) :=
   else none
 
 /-- A node query is read back as its two children. -/
-theorem nodeOfBytes?_nodeBytes (left right : Digest) :
+private theorem nodeOfBytes?_nodeBytes (left right : Digest) :
     nodeOfBytes? (nodeBytes left right) = some (left, right) := by
   have hb : nodeBytes left right = (left.toList ++ right.toList).flatMap wordBytes := by
     rw [nodeBytes, digestBytes, digestBytes, List.flatMap_append]
@@ -104,26 +104,15 @@ private theorem leWord_eq_wordOfBytes (b0 b1 b2 b3 : UInt8) :
     apply UInt8.toNat_inj.mp
     simp only [UInt32.toNat_toUInt8, hw]
     omega
-  have e1 : (wordOfBytes b0 b1 b2 b3 >>> 8).toUInt8 = b1 := by
-    apply UInt8.toNat_inj.mp
-    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
-    simp
-    omega
-  have e2 : (wordOfBytes b0 b1 b2 b3 >>> 16).toUInt8 = b2 := by
-    apply UInt8.toNat_inj.mp
-    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
-    simp
-    omega
-  have e3 : (wordOfBytes b0 b1 b2 b3 >>> 24).toUInt8 = b3 := by
-    apply UInt8.toNat_inj.mp
-    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
-    simp
-    omega
-  calc leWord b0 b1 b2 b3
-      = leWord (wordOfBytes b0 b1 b2 b3).toUInt8 (wordOfBytes b0 b1 b2 b3 >>> 8).toUInt8
-          (wordOfBytes b0 b1 b2 b3 >>> 16).toUInt8 (wordOfBytes b0 b1 b2 b3 >>> 24).toUInt8 := by
-        rw [e0, e1, e2, e3]
-    _ = wordOfBytes b0 b1 b2 b3 := leWord_wordBytes _
+  have e : (wordOfBytes b0 b1 b2 b3 >>> 8).toUInt8 = b1 ∧
+      (wordOfBytes b0 b1 b2 b3 >>> 16).toUInt8 = b2 ∧
+      (wordOfBytes b0 b1 b2 b3 >>> 24).toUInt8 = b3 := by
+    refine ⟨?_, ?_, ?_⟩ <;>
+    · apply UInt8.toNat_inj.mp
+      simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
+      simp
+      omega
+  rw [← leWord_wordBytes (wordOfBytes b0 b1 b2 b3), e0, e.1, e.2.1, e.2.2]
 
 /-- `leWords` reads the words `digestOfBytes` reads. -/
 private theorem leWords_eq_wordsOfBytes :
@@ -198,7 +187,7 @@ private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord
   simpa [ofWords, lowWord, highWord] using this
 
 /-- The words of a leaf are read back from its bytes. -/
-theorem kWordsOfBytes_leafBytes : ∀ words : List K, kWordsOfBytes (leafBytes words) = words
+private theorem kWordsOfBytes_leafBytes : ∀ words : List K, kWordsOfBytes (leafBytes words) = words
   | [] => rfl
   | a :: words => by
     simp only [leafBytes, List.flatMap_cons, kBytes, wordBytes, List.cons_append, List.nil_append,
@@ -206,11 +195,12 @@ theorem kWordsOfBytes_leafBytes : ∀ words : List K, kWordsOfBytes (leafBytes w
     exact congrArg _ (kWordsOfBytes_leafBytes words)
 
 /-- A leaf of `n` words has `8n` bytes. -/
-theorem length_leafBytes (words : List K) : (leafBytes words).length = 8 * words.length := by
+private theorem length_leafBytes (words : List K) :
+    (leafBytes words).length = 8 * words.length := by
   simp [leafBytes, List.length_flatMap, kBytes, wordBytes, Nat.mul_comm]
 
 /-- A row of `rowWords` words is read back from its leaf's bytes. -/
-theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
+private theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
     (hrow : row.length = rowWords) :
     leafRow? rowWords leafWords (leafBytes (leafImage leafWords row)) = some row := by
   have hpad : (leafBytes (List.replicate (leafWords - rowWords) 0)).length =
