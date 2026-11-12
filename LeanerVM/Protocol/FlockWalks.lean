@@ -13,6 +13,7 @@ public import LeanerVM.Protocol.ToArkLib.Flock.CircuitFast
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Parameters.ToCompPoly.BF64Fast
 public import Batteries.Data.BitVec.Lemmas
+import Mathlib.Data.Nat.Log
 
 /-!
 # The walks of a circuit over `E`, on words
@@ -69,20 +70,12 @@ private theorem topBit_eq (w : UInt64) : topBit w = Nat.log2 w.toNat := by
   · rfl
   · rename_i h
     have hq : w.toNat / 2 ^ 32 ≠ 0 := fun h0 ↦ h (UInt64.toNat_inj.mp (by rw [hsh, h0]; rfl))
-    have hn : w.toNat ≠ 0 := fun h0 ↦ hq (by rw [h0]; rfl)
-    rw [hsh]
-    symm
-    rw [Nat.log2_eq_iff hn]
-    have h1 := Nat.log2_self_le hq
-    have h2 := Nat.lt_log2_self (n := w.toNat / 2 ^ 32)
-    constructor
-    · rw [pow_add, mul_comm]
-      exact (Nat.le_div_iff_mul_le (Nat.two_pow_pos _)).mp h1
-    · have e : 2 ^ (32 + (w.toNat / 2 ^ 32).log2 + 1) =
-          2 ^ ((w.toNat / 2 ^ 32).log2 + 1) * 2 ^ 32 := by
-        rw [← pow_add]; congr 1; omega
-      rw [e]
-      exact (Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)).mp h2
+    have h2 : 2 ^ 32 ≤ w.toNat := by
+      by_contra hc
+      exact hq (Nat.div_eq_of_lt (by omega))
+    have := Nat.le_log_of_pow_le one_lt_two h2
+    simp only [hsh, Nat.log2_eq_log_two, Nat.log_div_base_pow]
+    omega
 
 /-- The top bit of a nonzero word is below `64`. -/
 private theorem log2_lt_64 (w : UInt64) (hn : w.toNat ≠ 0) : w.toNat.log2 < 64 :=
@@ -109,8 +102,7 @@ private theorem testBit_clearTop {w : UInt64} (hn : w.toNat ≠ 0) (i : ℕ) :
     toNat_one_shiftLeft (log2_lt_64 w hn), Nat.testBit_two_pow]
   by_cases hi : i = w.toNat.log2
   · subst hi; simp [Nat.testBit_log2 hn]
-  · have : (w.toNat.log2 = i) = False := propext ⟨fun h ↦ hi h.symm, False.elim⟩
-    simp [hi, this]
+  · simp [hi, Ne.symm hi]
 
 /-- Clearing the top bit leaves a number below the top bit's power. -/
 private theorem toNat_clearTop_lt {w : UInt64} (hn : w.toNat ≠ 0) :
@@ -291,8 +283,7 @@ private theorem testBit_packWordAux (g : ℕ → Bool) :
       rw [UInt64.toNat_or, Nat.testBit_or, toNat_one_shiftLeft (by omega), Nat.testBit_two_pow]
       by_cases hi : i = n
       · subst hi; simp [hg]
-      · have : (n = i) = False := propext ⟨fun h ↦ hi h.symm, False.elim⟩
-        simp [this, hi]
+      · simp [hi, Ne.symm hi]
     · rename_i hg
       by_cases hi : i = n
       · subst hi; simp [hg]
@@ -506,9 +497,7 @@ private theorem getLsbD_joinWord (lo hi : UInt32) (i : ℕ) :
 
 /-- The halves of a word join to the word. -/
 private theorem joinWord_halves (w : UInt64) : joinWord w.toUInt32 (w >>> 32).toUInt32 = w := by
-  apply UInt64.toBitVec_inj.mp
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
+  refine UInt64.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
   rw [getLsbD_joinWord]
   simp only [UInt64.toBitVec_toUInt32, UInt64.toBitVec_shiftRight,
     BitVec.getLsbD_setWidth, BitVec.ushiftRight_eq', BitVec.getLsbD_ushiftRight]
@@ -519,9 +508,7 @@ private theorem joinWord_halves (w : UInt64) : joinWord w.toUInt32 (w >>> 32).to
 /-- Joining is additive: the join of two `xor`s is the `xor` of the joins. -/
 private theorem joinWord_xor (a b c d : UInt32) :
     joinWord (a ^^^ b) (c ^^^ d) = joinWord a c ^^^ joinWord b d := by
-  apply UInt64.toBitVec_inj.mp
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
+  refine UInt64.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
   rw [UInt64.toBitVec_xor, BitVec.getLsbD_xor, getLsbD_joinWord, getLsbD_joinWord,
     getLsbD_joinWord]
   by_cases h : i < 32

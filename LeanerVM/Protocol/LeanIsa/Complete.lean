@@ -204,8 +204,7 @@ private theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : Satisfie
   have hl : (blake2sLimbs prog _ w)[x] = fun k : Fin 18 ↦ cellOf (tableAt w 5) x (9 + k) :=
     Vector.getElem_ofFn _
   rw [hl]
-  simp only [cellOf_eq _ hx]
-  exact hv
+  simpa only [cellOf_eq _ hx] using hv
 
 /-- Within its width, an opcode table of a witness satisfying the constraint system is the
 stack's rows. -/
@@ -415,9 +414,7 @@ theorem m3Holds_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (countsNonzero_iff hA).mp h.counts_nonzero, ?_, ?_⟩
   · intro j' C hC x
     rcases j' with ⟨_ | _ | _ | j, hj⟩
-    · exact absurd hC List.not_mem_nil
-    · exact absurd hC List.not_mem_nil
-    · exact absurd hC List.not_mem_nil
+    iterate 3 exact absurd hC List.not_mem_nil
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
       have hmem : opTable w ⟨j, by omega⟩ ∈ w.tables := mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩
       exact (opcode_constraints_iff hA ⟨j, by omega⟩).mp (h.constraints _ hmem) x C hC

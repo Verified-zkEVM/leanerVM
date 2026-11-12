@@ -62,8 +62,7 @@ private theorem Layout.readWith_comap {μ : ℕ} {ι ι' : Type} {κ : ι → �
       ⟨Vector.cast (congrArg (2 ^ ·) (h c)) (Layout.readWith extend q (f c)).values⟩ := by
   unfold Layout.readWith
   congr 1
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   simp only [Vector.getElem_cast, Vector.getElem_ofFn, boolVec_cast]
   rfl
 
@@ -130,13 +129,9 @@ private theorem readWith_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) 
     Layout.readWith (B.extendPoint hμ) q b = B.readColumn hμ q b := by
   unfold Layout.readWith readColumn
   congr 1
-  apply Vector.ext
-  intro x hx
-  rw [B.unstack_getElem hμ q.values b hx]
-  simp only [Vector.getElem_ofFn, extendPoint, boolVec_append, boolIndex_cast, boolIndex_boolVec,
-    Vector.get_eq_getElem, Fin.val_cast, cubeIndex_val, selector_val]
-  congr 1
-  exact congrArg (x + ·) (Nat.mul_div_cancel' (B.pow_size_dvd_offset b))
+  refine Vector.ext fun x hx ↦ ?_
+  rw [B.unstack_getElem hμ q.values b hx, Vector.getElem_ofFn]
+  exact B.get_extendPoint hμ q b ⟨x, hx⟩
 
 /-- The aligned blocks as a reading law on the committed column. -/
 def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
@@ -166,8 +161,7 @@ theorem extendFast_selectorBits (hμ : B.total ≤ 2 ^ μ) :
   funext b z
   unfold extendFast extendPoint
   congr 2
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp [selectorBits, Array.getD_eq_getD_getElem?]
 
 /-- The aligned blocks' reading law with every block's selector bits computed once, where
@@ -200,8 +194,7 @@ private theorem readWith_strided (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : �
     intro y
     rw [← B.readWith_extendPoint hμ q b]
     simp [Layout.readWith]
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   simp only [Layout.readWith, Vector.getElem_ofFn, boolVec_append, boolVec_cast, key, sliceLow,
     Fin.getElem_fin, Vector.getElem_cast, Fin.val_cast]
 

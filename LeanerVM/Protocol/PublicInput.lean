@@ -195,7 +195,7 @@ def sentCount {n : ℕ} (ls : Vector (PublicLine I.toShape) n) : ℕ :=
   (ls.toList.filter (·.sent)).length
 
 /-- The expected values are one per sent line. -/
-theorem expectedValues_length (input : I.Stmt) (r : E) :
+private theorem expectedValues_length (input : I.Stmt) (r : E) :
     (expectedValues I input r).length = sentCount I (I.publicLines input) :=
   List.length_map ..
 
@@ -215,9 +215,7 @@ private theorem getElem?_filter_length_take {α : Type} (p : α → Bool) :
     simp [ha]
   | a :: l, i + 1, hi, h => by
     have ih := getElem?_filter_length_take p l i (Nat.lt_of_succ_lt_succ hi) (by simpa using h)
-    by_cases hpa : p a = true
-    · simp [hpa, ih]
-    · simp [hpa, ih]
+    by_cases hpa : p a = true <;> simp [hpa, ih]
 
 /-- A sent line's position is inside a message with one value per sent line. -/
 theorem sentBefore_lt {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (i : Fin n)
@@ -255,8 +253,7 @@ private theorem claimsFrom_expected (r : E) (input : I.Stmt)
     (h : (expectedValues I input r).length = sentCount I (I.publicLines input)) :
     claimsFrom I r (I.publicLines input) (expectedValues I input r) h =
       (I.publicLines input).map (lineClaim I r) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [claimsFrom, claimsWith, Vector.getElem_ofFn, Vector.getElem_map, lineClaim,
     Fin.getElem_fin]
   split_ifs with hsent
@@ -303,9 +300,7 @@ private theorem line_challenge_unique {a b c0 c1 : K} (hne : ¬ (a = c0 ∧ b = 
   by_cases hβ : ofK b - ofK a - ofK c0 - ofK c1 = 0
   · exfalso
     apply hne
-    have hα : ofK a = ofK c0 := by
-      rw [hβ, mul_zero, add_zero, sub_eq_zero] at e₁
-      exact e₁
+    have hα : ofK a = ofK c0 := by rwa [hβ, mul_zero, add_zero, sub_eq_zero] at e₁
     refine ⟨ofK_injective hα, ofK_injective ?_⟩
     have hb : ofK b = ofK c0 + ofK c0 + ofK c1 := by linear_combination hβ + hα
     rw [hb, CharTwo.add_self_eq_zero, zero_add]
@@ -516,7 +511,7 @@ theorem accepts_check_iff (s : I.Stmt × TableOut I) (r : E) (cs : List E) :
     ⟨by rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length], hc⟩⟩
 
 /-- When the check passes, the verdict is the pool of the lines' claims. -/
-theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+private theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
     (hc : check I s r cs = true) : verdict I (pooledFrom I) s r cs = pooled I s r := by
   have hl : cs.length = sentCount I (I.publicLines s.1) := by
     rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length]
@@ -731,10 +726,7 @@ private theorem bad_challenge_unique_words (s : I.Stmt × TableOut I) (o : ∀ i
   rw [verdict, dite_eq_left hl₂] at hp₂
   obtain ⟨hold, hline₁⟩ := pool_holds I hp₁
   obtain ⟨-, hline₂⟩ := pool_holds I hp₂
-  have haux : I.aux (theStack o) := by
-    have hp := hp₁
-    obtain ⟨-, haux⟩ := hp
-    exact haux
+  have haux : I.aux (theStack o) := (show _ ∧ _ from hp₁).2
   have hlines : ¬ I.PublicLinesHold s.1 (theStack o) := fun hl ↦ hin ⟨hold, hl, haux⟩
   simp only [M3Instance.PublicLinesHold, not_forall] at hlines
   obtain ⟨l, hl, hne⟩ := hlines
@@ -843,8 +835,7 @@ def stateFunction :
       · rfl
     subst hm1
     obtain ⟨hc, hp⟩ := h
-    rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
-    exact hp
+    rwa [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
   toFun_full := fun _ _ _ h ↦
     Verifier.GuardedForm.check_and_of_prEvent_pos (guarded I) h
 

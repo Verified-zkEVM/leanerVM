@@ -184,9 +184,7 @@ private theorem m3_countsNonzero_iff :
   · exact fun hc j k hk x ↦ hc (opIdx j) k hk x
   · intro hc j'
     rcases j' with ⟨_ | _ | _ | j, hj⟩
-    · exact fun i hi ↦ absurd hi List.not_mem_nil
-    · exact fun i hi ↦ absurd hi List.not_mem_nil
-    · exact fun i hi ↦ absurd hi List.not_mem_nil
+    iterate 3 exact fun i hi ↦ absurd hi List.not_mem_nil
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
       exact hc ⟨j, by omega⟩
 

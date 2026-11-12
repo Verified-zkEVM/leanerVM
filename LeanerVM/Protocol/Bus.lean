@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.Stack
 public import LeanerVM.Protocol.ToArkLib.GrandProduct
 import CompPoly.Multivariate.Operations
 import CompPoly.Multivariate.MvPolyEquiv.Eval
+import CompPoly.Multivariate.Eval
 
 /-!
 # The bus phase
@@ -184,7 +185,7 @@ def tableArrays (q : Column I.μ) : Vector (Thunk (Array (Array K))) I.ntab :=
 
 variable {I} in
 /-- Row `x` of table `j`, out of the arrays. -/
-theorem tableArrays_row (q : Column I.μ) (j : Fin I.ntab) {x : ℕ} (hx : x < 2 ^ I.τ j) :
+private theorem tableArrays_row (q : Column I.μ) (j : Fin I.ntab) {x : ℕ} (hx : x < 2 ^ I.τ j) :
     (fun i : Fin (I.width j) ↦ (((tableArrays I q)[j].get).getD i.val #[]).getD x 0) =
       I.row q j ⟨x, hx⟩ := by
   funext i
@@ -208,17 +209,17 @@ def readAt {n : ℕ} : K ⊕ Vector K n → Fin n → K
 
 variable {I} in
 /-- A coordinate's reader holds its cells. -/
-theorem readAt_coordReader (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ) (x : Fin (2 ^ κ)) :
+private theorem readAt_coordReader (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ)
+    (x : Fin (2 ^ κ)) :
     readAt (coordReader q co) x = I.coordCell q co x := by
   cases co <;> simp [coordReader, readAt, M3Instance.coordCell, Vector.get_eq_getElem]
 
 variable {I} in
 /-- A boundary block's readers hold its tuples. -/
-theorem map_readAt_coordReader (q : Column I.μ) (b : BoundaryBlock I.toShape) (x : Fin (2 ^ b.κ)) :
-    (b.coords.map (coordReader q)).map (readAt · x) = b.coords.map (I.coordCell q · x) := by
-  apply Vector.ext
-  intro i hi
-  simp only [Vector.getElem_map, readAt_coordReader]
+private theorem map_readAt_coordReader (q : Column I.μ) (b : BoundaryBlock I.toShape)
+    (x : Fin (2 ^ b.κ)) :
+    (b.coords.map (coordReader q)).map (readAt · x) = b.coords.map (I.coordCell q · x) :=
+  Vector.ext fun i _ ↦ by simp only [Vector.getElem_map, readAt_coordReader]
 
 variable {I} in
 /-- A block's leaves at the weights whose words are `W`, its columns read once. -/
@@ -238,11 +239,10 @@ def Source.leafTable (W : Vector (Vector UInt64 16) 3) (β : E) (q : Column I.μ
 
 variable {I} in
 /-- At the fingerprint's weights and the stack's arrays, a block's leaf table is its leaves. -/
-theorem Source.leafTable_eq (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I) :
+private theorem Source.leafTable_eq (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I) :
     src.leafTable (fingerprintWordsOf (fingerprintWeights α)) β q (tableArrays I q) =
       Vector.ofFn (src.leaf α β q) := by
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   cases src with
   | boundary b =>
     simp only [leafTable, Source.leaf, Source.tuple, Vector.getElem_ofFn, fingerprintWord_eq,
@@ -308,6 +308,12 @@ variable (I : M3Instance)
 
 /-! ## The layouts fit -/
 
+private theorem length_filter_finRange {α : Type} (l : List α) (p : α → Bool) :
+    ((List.finRange l.length).filter fun i ↦ p l[i]).length = (l.filter p).length := by
+  conv_rhs => rw [← List.map_getElem_finRange l]
+  rw [List.filter_map, List.length_map]
+  rfl
+
 /-- The log-heights of a side's blocks: its boundary blocks', then each table's, once per flush
 of that side. -/
 theorem sideSources_map_κ (s : Side) :
@@ -320,10 +326,8 @@ theorem sideSources_map_κ (s : Side) :
   refine List.flatMap_congr fun j _ ↦ ?_
   rw [List.map_map]
   simp only [Function.comp_def, Source.κ, List.map_const']
-  congr 1
-  conv_rhs => rw [← List.map_getElem_finRange (I.flushes j)]
-  rw [List.filter_map, List.length_map]
-  rfl
+  exact congrArg (List.replicate · _)
+    (length_filter_finRange (I.flushes j) fun f ↦ decide (f.1 = s))
 
 /-- The log-heights of the count side's blocks: each table's, once per count column. -/
 theorem countSources_map_κ :
@@ -340,28 +344,16 @@ theorem blocks_total (k : Fin 3) : (blocks I k).total = leafCount I k := by
   rw [Fin.sum_univ_fun_getElem (sorted I k) fun src ↦ 2 ^ src.κ, leafCount]
   exact ((List.mergeSort_perm _ _).map _).sum_eq
 
-private theorem length_filter_finRange {α : Type} (l : List α) (p : α → Bool) :
-    ((List.finRange l.length).filter fun i ↦ p l[i]).length = (l.filter p).length := by
-  conv_rhs => rw [← List.map_getElem_finRange l]
-  rw [List.filter_map, List.length_map]
-  rfl
-
-private theorem sum_flatMap {α : Type} (l : List α) (f : α → List ℕ) :
-    (l.flatMap f).sum = (l.map fun a ↦ (f a).sum).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => rw [List.flatMap_cons, List.sum_append, ih, List.map_cons, List.sum_cons]
-
 /-- The push side's leaves are the instance's count of push leaves. -/
 private theorem leafCount_push : leafCount I 0 = I.pushLeaves := by
   rw [leafCount, M3Instance.pushLeaves]
   change ((sideSources I .push).map _).sum = _
   rw [sideSources, List.map_append, List.sum_append, List.map_map]
   congr 1
-  rw [List.map_flatMap, sum_flatMap]
+  rw [List.map_flatMap, List.flatMap_def, List.sum_flatten, List.map_map]
   refine congrArg List.sum (List.map_congr_left fun j _ ↦ ?_)
-  rw [List.map_map]
-  simp only [Function.comp_def, Source.κ, List.map_const', List.sum_replicate, smul_eq_mul]
+  simp only [Function.comp_def, List.map_map, Source.κ, List.map_const', List.sum_replicate,
+    smul_eq_mul]
   rw [length_filter_finRange (I.flushes j) fun f ↦ decide (f.1 = Side.push)]
 
 /-- The push side fits in its own depth. -/
@@ -563,13 +555,6 @@ def sideTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 
 variable {I}
 
-private theorem prod_flatMap {M α β : Type} [CommMonoid M] (l : List α) (f : α → List β)
-    (g : β → M) : ((l.flatMap f).map g).prod = (l.map fun a ↦ ((f a).map g).prod).prod := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    rw [List.flatMap_cons, List.map_append, List.prod_append, ih, List.map_cons, List.prod_cons]
-
 /-- A side's tuples, block by block, are its boundary tuples followed by its flushes'. -/
 private theorem sideTuples_eq (q : Column I.μ) (s : Side) :
     sideTuples I q s = I.boundaryTuples q s ++ I.flushTuples q s := by
@@ -587,7 +572,7 @@ theorem sideTuples_perm (q : Column I.μ) (s : Side) : (sideTuples I q s).Perm (
 
 /-- The product of a side's leaf stack is the product, block by block, of its blocks' leaves:
 the pad is `1`. -/
-theorem prod_sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ)
+private theorem prod_sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ)
     (hfit : (blocks I k).total ≤ 2 ^ I.μBus) :
     ∏ x : Fin (2 ^ I.μBus), (sideLeaves I k α β q)[x] =
       ((sources I k).map fun src ↦ ∏ y, src.leaf α β q y).prod := by
@@ -607,14 +592,18 @@ private theorem leaf_of_mem_sideSources {s : Side} {src : Source I} (hs : src �
     simp [sideSources] at hs
 
 /-- The product of a push or pull side's leaves is the side's product at `(α, β)` (§5.2). -/
-theorem prod_sideLeaves_eq_sideProduct {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
+private theorem prod_sideLeaves_eq_sideProduct {k : Fin 3} {s : Side}
+    (hk : sources I k = sideSources I s)
     (α : Fin 4 → E) (β : E) (q : Column I.μ) (hfit : (blocks I k).total ≤ 2 ^ I.μBus) :
     ∏ x : Fin (2 ^ I.μBus), (sideLeaves I k α β q)[x] = sideProduct α β (I.tuples q s) := by
   rw [prod_sideLeaves k α β q hfit, hk, sideProduct,
     ← Multiset.coe_eq_coe.mpr (sideTuples_perm q s),
-    Multiset.map_coe, Multiset.prod_coe, sideTuples, prod_flatMap]
+    Multiset.map_coe, Multiset.prod_coe, sideTuples, List.map_flatMap, List.flatMap_def,
+    List.prod_flatten, List.map_map]
   refine congrArg List.prod (List.map_congr_left fun src hs ↦ ?_)
-  rw [leaf_of_mem_sideSources hs, List.map_map, Fin.prod_univ_def]
+  rw [leaf_of_mem_sideSources hs]
+  dsimp only [Function.comp_apply]
+  rw [List.map_map, Fin.prod_univ_def]
   rfl
 
 /-- The product of the push side's leaves is the push side's product. -/
@@ -750,9 +739,7 @@ theorem riders_vanish_iff (x : Data I) (o : ∀ i, TheOracle I i) (ζ : Vector E
     · obtain ⟨C, hC, rfl⟩ := List.mem_map.mp hr
       exact h j ‹_› C hC
     · cases hr
-  · by_cases hl : I.PublicLinesHold x.1 (theStack o) ∧ I.aux (theStack o)
-    · simp [hl]
-    · simp [hl]
+  · by_cases hl : I.PublicLinesHold x.1 (theStack o) ∧ I.aux (theStack o) <;> simp [hl]
 
 variable (I)
 
@@ -927,8 +914,7 @@ private theorem lowAt_eq (h : Conditions I) (k : Fin 3) (b : Fin (blocks I k).n)
     (ζ : Vector E I.μBus) :
     lowAt h k b ζ = Gkr.lowPoint ζ
       ⟨(src I k b).κ, Nat.lt_succ_of_le ((blocks I k).size_le (h.fits k) b)⟩ := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [lowAt, Blocks.lowPoint, lowVec, Gkr.lowPoint, Vector.getElem_cast,
     Vector.getElem_ofFn]
   erw [Vector.getElem_ofFn]
@@ -938,8 +924,7 @@ coordinates. -/
 theorem lowPoint_point (h : Conditions I) (ζ : Vector E I.μBus) (j : I.SumcheckTables) :
     I.lowPoint (point h ζ) j =
       Gkr.lowPoint ζ ⟨I.τ j.1, Nat.lt_succ_of_le ((I.τ_le_τmax j).trans h.τmax_le)⟩ := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [M3Instance.lowPoint, point, Gkr.lowPoint, Vector.getElem_cast, Vector.getElem_take,
     Vector.getElem_ofFn]
 
@@ -973,9 +958,7 @@ private theorem coordValue_eq (h : Conditions I) (q : Column I.μ) (ζ : Vector 
     have hci : I.boundaryColumns[i] = c := (List.finIdxOf?_eq_some_iff.mp hi).1
     simp only [coordValue, valueOf, hi, coordEval]
     rw [hvals i, columnPoint, eval_column_congr q hci]
-    congr 1
-    apply Vector.ext
-    intro n hn
+    refine congrArg _ (Vector.ext fun n hn ↦ ?_)
     simp only [Vector.getElem_cast, Gkr.lowPoint]
     erw [Vector.getElem_ofFn, Vector.getElem_ofFn]
 
@@ -1009,19 +992,13 @@ private theorem mem_counts_of_mem {k : Fin 3} {j : Fin I.ntab} {c : Fin (I.width
 
 /-! ## The forms -/
 
-private theorem sum_map_flatMap {M α β : Type} [AddCommMonoid M] (l : List α) (f : α → List β)
-    (g : β → M) : ((l.flatMap f).map g).sum = (l.map fun a ↦ ((f a).map g).sum).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    rw [List.flatMap_cons, List.map_append, List.sum_append, ih, List.map_cons, List.sum_cons]
-
 /-- A form built block by block has the sum of the blocks' values. -/
 private theorem eval_flatMap {j : Fin I.ntab} {n : ℕ} (g : Fin n → I.Form j) (q : Column I.μ)
     (z : Vector E (I.τ j)) :
     M3Instance.Form.eval I ((List.finRange n).flatMap g) q z =
       ∑ b, M3Instance.Form.eval I (g b) q z := by
-  rw [M3Instance.Form.eval, sum_map_flatMap, Fin.sum_univ_def]
+  rw [M3Instance.Form.eval, List.map_flatMap, List.flatMap_def, List.sum_flatten, List.map_map,
+    Fin.sum_univ_def]
   rfl
 
 /-- A flush block's terms evaluate to its weight times its leaf extension. -/
@@ -1029,13 +1006,8 @@ private theorem eval_flushForm (q : Column I.μ) (j : Fin I.ntab) (f : Fin (I.fl
     (w : E) (α : Fin 4 → E) (β : E) (z : Vector E (I.τ j)) :
     M3Instance.Form.eval I (flushForm j f w α β) q z = w * (Source.flush j f).leafEval α β q z := by
   have hone : evalMle (I.virtualTable q j 1) z = 1 := by
-    have h1 : I.virtualTable q j 1 = Vector.replicate _ 1 := Vector.ext fun x hx ↦ by
-      simp only [M3Instance.virtualTable, Vector.getElem_ofFn, Vector.getElem_replicate]
-      have h1 := (CMvPolynomial.eval₂Hom (RingHom.id K) (I.row q j ⟨x, hx⟩)).map_one
-      rw [CMvPolynomial.eval₂Hom_apply] at h1
-      rw [show (1 : CMvPolynomial (I.width j) K).eval (I.row q j ⟨x, hx⟩) = 1 from h1]
-      exact _root_.map_one (algebraMap K E)
-    rw [h1, evalMle_replicate]
+    rw [show I.virtualTable q j 1 = Vector.replicate _ 1 from Vector.ext fun x hx ↦ by
+      simp [M3Instance.virtualTable], evalMle_replicate]
   simp only [M3Instance.Form.eval, flushForm, List.map_cons, List.sum_cons, List.map_map,
     Function.comp_def, oneRow, hone, Source.leafEval]
   rw [← Fin.sum_univ_def, mul_one, mul_sub, Finset.mul_sum, sub_eq_add_neg,
@@ -1050,11 +1022,8 @@ private theorem eval_countForm (hd : 1 ≤ I.d) (q : Column I.μ) (j : Fin I.nta
     List.sum_nil, add_zero, Source.leafEval]
   congr 1
   refine congrArg (evalMle · z) (Vector.ext fun x hx ↦ ?_)
-  have hX : (CMvPolynomial.X c : CMvPolynomial (I.width j) K).eval (I.row q j ⟨x, hx⟩) =
-      I.row q j ⟨x, hx⟩ c := by
-    show CMvPolynomial.eval₂ (RingHom.id K) _ _ = _
-    rw [CMvPolynomial.eval₂_X]
-  rw [M3Instance.virtualTable, Vector.getElem_ofFn, hX, CMlPolynomialEval.map, Vector.getElem_map]
+  rw [M3Instance.virtualTable, Vector.getElem_ofFn, CMvPolynomial.eval_X, CMlPolynomialEval.map,
+    Vector.getElem_map]
   show ofK ((I.column q ⟨j, c⟩).values.get ⟨x, hx⟩) = ofK ((I.column q ⟨j, c⟩).values[x])
   rw [Vector.get_eq_getElem]
 

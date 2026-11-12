@@ -99,7 +99,7 @@ def deployedDecoder {μ r : ℕ} (h : Admissible μ r) :
 
 /-- The commitment's pick with a decoder carried along equal indices is the pick at the original
 indices, on the word carried along with it. -/
-theorem commitPick_cast (I : M3Instance) {sh sh' : Shape} {κ κ' a a' : ℕ} (hsh : sh = sh')
+private theorem commitPick_cast (I : M3Instance) {sh sh' : Shape} {κ κ' a a' : ℕ} (hsh : sh = sh')
     (hκ : κ = κ') (ha : a = a') (D : ListDecoder κ' sh'.R a' sh'.ℓ) (hμ : κ + sh.ℓ = I.μ)
     (hμ' : κ' + sh'.ℓ = I.μ) (s : I.Stmt) (w : KWord sh.ℓ (κ + sh.R) sh.t) :
     commitPick I (ListDecoder.cast hκ.symm (congrArg Shape.R hsh).symm ha.symm
@@ -192,18 +192,6 @@ theorem listBinding_deployed_perfectCompleteness {σ : Type} (init : ProbComp σ
   listBinding_perfectCompleteness _ _
     (leanVmComplete _ (leanIsa_conditions F prog s) le_rfl) _ init impl
 
-/-- The pick at the instance's chain is `deployedPick`, on the word read at the computed
-indices. -/
-theorem leanIsa_commitPick_eq (st : (leanIsaInstance F prog s).Stmt)
-    (x : KWord (leanIsaChain prog s hs ρ hρ).sh.ℓ
-      ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)
-      (leanIsaChain prog s hs ρ hρ).sh.t) :
-    commitPick (leanIsaInstance F prog s) (deployedDecoder (admissible_of_sizes hs hρ))
-        (leanIsaChain_height F prog s hs ρ hρ) st x =
-      deployedPick (leanIsaInstance F prog s) (admissible_of_sizes hs hρ) st
-        (headWord (admissible_of_sizes hs hρ) x) :=
-  deployedPick_eq_commitPick (leanIsaInstance F prog s) (admissible_of_sizes hs hρ) st x
-
 /-- **Past the commitment, the state function at leanVM holds exactly when the pick succeeds**: at
 round `1`, for every witness, it is "`deployedPick` finds a stack with `M3Holds`". -/
 theorem listBinding_deployed_kSF_one {σ : Type} (init : ProbComp σ)
@@ -217,7 +205,7 @@ theorem listBinding_deployed_kSF_one {σ : Type} (init : ProbComp σ)
         (headWord (admissible_of_sizes hs hρ) (committedWord tr (by omega)))).isSome :=
   (listBinding_kSF_one _ _ _ _ _ _ init impl st k hk tr w).trans <| iff_of_eq <|
     congrArg (fun o ↦ o.isSome = true)
-      (leanIsa_commitPick_eq F prog s hs ρ hρ st.1 (committedWord tr (by omega)))
+      (deployedPick_eq_commitPick _ (admissible_of_sizes hs hρ) st.1 (committedWord tr (by omega)))
 
 /-- **The stack extracted at leanVM is the pick**: whenever `deployedPick` finds a stack with
 `M3Holds` in the committed word's list, the extractor of `listBinding_deployed` returns it. -/
@@ -232,7 +220,7 @@ theorem listBinding_deployed_extractedStack_eq
     Extractor.RoundByRound.extractFull (listBinding_deployed F prog s hs ρ hρ).extractor st tr () =
       q :=
   listBinding_extractedStack_eq _ _ _ _ _ _ st tr q
-    ((leanIsa_commitPick_eq F prog s hs ρ hρ st.1
+    ((deployedPick_eq_commitPick _ (admissible_of_sizes hs hρ) st.1
       (committedWord (k := Fin.last _) tr (by simp))).trans hq)
 
 end Deployed

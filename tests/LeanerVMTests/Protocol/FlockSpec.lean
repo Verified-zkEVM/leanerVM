@@ -69,7 +69,7 @@ def badRow : Fin 18 → K := Function.update rustRow 10 (K.ofBits 0xf1b0679a15df
 #guard (List.finRange 18).map (fun j ↦ (slots j).val) ==
   [10, 11, 12, 13, 14, 15, 16, 17, 4, 5, 6, 7, 0, 1, 2, 3, 18, 19]
 
-example : Function.Injective slots := slots_injective
+example : Function.Injective slots := by decide
 
 #guard ((List.finRange 18).filter fun j ↦ decide (IsInputLimb j)).length == 14
 
