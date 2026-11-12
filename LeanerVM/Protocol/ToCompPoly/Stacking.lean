@@ -217,10 +217,8 @@ theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) (
 
 /-- A stack that the blocks fill does not depend on the pad. -/
 theorem stackAt_eq_of_total_eq (t : B.Tables R) {μ : ℕ} (h : B.total = 2 ^ μ) (pad pad' : R) :
-    B.stackAt t μ pad = B.stackAt t μ pad' := by
-  apply Vector.ext
-  intro i hi
-  simp [stackAt, h, Nat.not_le.mpr hi]
+    B.stackAt t μ pad = B.stackAt t μ pad' :=
+  Vector.ext fun i hi ↦ by simp [stackAt, h, Nat.not_le.mpr hi]
 
 /-! ## The stack, compiled -/
 

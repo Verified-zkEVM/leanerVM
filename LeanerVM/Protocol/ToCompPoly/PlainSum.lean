@@ -40,10 +40,8 @@ def plainSum {m : ℕ} (g : Vector R m → R) (j : ℕ) (c : Vector R j) : R :=
 
 omit [CommRing R] in
 private theorem fixLow_zero' {m : ℕ} (x : Vector R (m - 0)) :
-    fixLow (Nat.zero_le m) (#v[] : Vector R 0) x = x := by
-  apply Vector.ext
-  intro i hi
-  simp [fixLow]
+    fixLow (Nat.zero_le m) (#v[] : Vector R 0) x = x :=
+  Vector.ext fun i hi ↦ by simp [fixLow]
 
 /-- With nothing fixed, the partial sum is the sum over the cube. -/
 theorem plainSum_zero {m : ℕ} (g : Vector R m → R) :
@@ -54,10 +52,8 @@ theorem plainSum_zero {m : ℕ} (g : Vector R m → R) :
 
 omit [CommRing R] in
 private theorem fixLow_self' {m : ℕ} (c : Vector R m) (x : Vector R (m - m)) :
-    fixLow le_rfl c x = c := by
-  apply Vector.ext
-  intro i hi
-  simp [fixLow, hi]
+    fixLow le_rfl c x = c :=
+  Vector.ext fun i hi ↦ by simp [fixLow, hi]
 
 /-- With everything fixed, the partial sum is the value at the fixed point. -/
 theorem plainSum_self {m : ℕ} (g : Vector R m → R) (c : Vector R m) : plainSum g m c = g c := by
