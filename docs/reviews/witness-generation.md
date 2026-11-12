@@ -25,22 +25,25 @@ and three theorems are proved about it:
   trace's sizes, which implies that `t` fits the caps), and `ρ` is a valid rate, then the honest
   run (generate, prove with every hash a query to a random function, verify with the same
   function) is rejected with probability at most `(N+1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`,
-  `N = 264,246,250 + 6·fuel` (a proved bound on the prover's hash queries); at fuel `2^24`, below
-  `2^-154`.
+  `N = 264,246,250 + 6·fuel` (a proved bound on the prover's hash queries); at fuel `2^24`, at
+  most `2^-154`.
 - **`proveExecution_complete`** (deployed BLAKE2s). For well-formed bytecode and a valid execution
   that fits, every proof `proveExecution` returns is accepted by `verify`, and it returns none only
-  if the stack does not fit, the rate is invalid, or a proof-of-work grind runs out of fuel.
+  if the stack does not fit, the rate is invalid, or a proof-of-work grind runs out of fuel; on a
+  stack that does not fit it does return none (`proveExecution_eq_none_of_not_stackFits`).
 - **`verify_proveChecked`** (no hypothesis). `proveChecked` first runs the proved checks of the
   hypotheses of the random-oracle form, in milliseconds to a fraction of a second, and returns none
   if one fails; every proof it returns is accepted, and under the hypotheses it is
   `proveExecution` (`proveChecked_eq`).
 
 The hypotheses are decided by proved checks: `wellFormedB`, `checkTrace`, `stackFitsB` and
-`validRate`, together `checkExecution_eq_true_iff`; `fitsB` decides `Trace.Fits` on a valid
-execution. A test discharges every hypothesis of the random-oracle headline in the kernel on a
-small program, so the theorem is not vacuous. The stack condition is exact: it fails from
-`t.κ ≥ 25` (`not_stackFits_of_le`) and holds for `t.κ ≤ 24` with at most `2^16` steps and `2^25`
-bytecode slots (`StackFits.of_short`).
+`validRate`, together `checkExecution_eq_true_iff`, after constant-time bounds on the memory, the
+bytecode and the steps that a stack that fits implies (`StackFits.bounds`, `StackFits.steps_le`);
+`Trace.Fits` follows from `StackFits` (`StackFits.fits`), and `fitsBy` decides it on a valid
+execution for the bench. A test discharges every hypothesis of the random-oracle headline in the
+kernel on a small program, so the theorem is not vacuous. The stack condition is exact: it fails
+from `t.κ ≥ 25` (`not_stackFits_of_le`) and holds for `t.κ ≤ 24` with at most `2^16` steps and
+`2^25` bytecode slots (`StackFits.of_short`).
 
 ### What changed in the statement
 
@@ -118,9 +121,9 @@ only by the Rust's committed-size floor); generation takes 0.2–0.7 s (Fibonacc
 the guest 1.5–1.9 s). The `Executables` workflow runs `leanervm-witgen --gen` on the 19 files and
 `leanervm-prove execution`. `field_div` was proved end to end once (the Rust execution, the Lean
 generator, the Lean prover, and the Lean verifier accepting; the proof took 290 s). The Lean
-prover takes 84 s on the one-step trace of `leanervm-prove execution` (2026-11-12; six runs since
-2026-11-05 took 79 to 143 s). Every timing here is a single run on a shared machine
-(`bench/README.md`).
+prover takes 84 s on the one-step trace of `leanervm-prove execution` (2026-11-12; the four
+recorded runs since 2026-11-05 took 83 to 143 s). Every timing here is a single run on a shared
+machine (`bench/README.md`).
 
 ### Limits
 
@@ -187,3 +190,20 @@ code in leanVM files, and the documentation and evidence.
 | This file was an author's report with unposted issue drafts and scratch citations | Fixed (documentation commit): this archive; the drafts moved to the status page and the open questions above; the bound at fuel `2^24` is `2^-156.2` (the per-grind form `2^-182.1` at `L = 6`), not `2^-155.6`; the prover's times stated once |
 | `docs/development.md`, `docs/leanisa-checker.md`, `bench/README.md` out of date | Fixed (documentation commit) |
 | Lines over 100 columns | Fixed in every line the branch adds |
+
+### Second round
+
+A second review of the fixed branch found no theorem wrong or vacuous; its findings in the
+statements and the evidence:
+
+| Finding | Disposition |
+| --- | --- |
+| The guard did not bound `t.steps`: a trace announcing many steps of a run that never halts was stepped to the end before it was rejected | Fixed (`ab3b8f06a`): `StackFits.steps_le` (`t.steps ≤ 2^25` on a run whose stack fits); `checkExecution` and `stackFitsB` test it in their constant-time first check; a test rejects a trace announcing `2^40` steps at once |
+| The rate was checked last, after the run | Fixed (`ab3b8f06a`): `validRate` is in `checkExecution`'s constant-time first check |
+| `fitsB` and `fitsB_eq_true_iff` had no caller and the documents presented `fitsB` as the check | Fixed (`64bcd75a5`): deleted; the documents say that `StackFits` implies `Trace.Fits` and that `fitsBy` is the bench's check |
+| "`proveExecution` returns none from `t.κ ≥ 25`" was prose only | Fixed (`ab3b8f06a`): `proveExecution_eq_none_of_not_stackFits`, cited in both docstrings |
+| "Below `2^-154`" for a `≤` bound; "it is not" for a stack that does not fit | Fixed (`ab3b8f06a`) in `Headline.lean` |
+| The generator's row writers and table builders, and the run checker's table-of-powers helpers, public | Fixed (`64bcd75a5`): 25 private; `witnessGen`, `mkRowsH`, `opRowsBy`, `powTable` and `runToHalt` keep public signatures, bodies not exposed |
+| `docs/ci.md`'s workflow row stale; no step timeout on the two new `Executables` steps | Fixed (`788f46b96`): the row names `leanervm-witgen` and both steps; `timeout 900` and `timeout 300` |
+| `leanervm-witgen` with no file exited `0`; the dump script's `--offline` undocumented; two line ranges off at the pin | Fixed (`788f46b96`): exit `2` with a usage line; the prerequisite in the script and `scripts/README.md`; `hash_chain.rs:20-58`, `:75-82`, `py_source.rs:22-52` |
+| The prover's timings stated three ways | Fixed (documentation commit): four recorded runs, 83 to 143 s |

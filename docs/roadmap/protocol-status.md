@@ -1568,7 +1568,8 @@ soundness headline mentions.
   the constraint statement representing the padded trace, a valid execution with the same steps;
   every proof `proveExecution` returns is accepted; it returns none only when the stack does not
   fit (`StackFits`), the rate is not valid, or a grind runs out of fuel at a chain state the
-  prover's run reaches (`ProveReaches`), and returns a proof when none of these holds.
+  prover's run reaches (`ProveReaches`), and returns a proof when none of these holds. On a stack
+  that does not fit it returns none (`proveExecution_eq_none_of_not_stackFits`).
 - **The stack of an execution** (`Protocol/LeanIsa/ExecutionStack.lean`): the generated witness's
   sizes are a formula of the trace (`sizes_witnessGen`, `execSizes`), so `StackFits prog t`, the
   stack at those sizes within `2^maxMu`, is a predicate on the trace. It fails for every
@@ -1581,15 +1582,17 @@ soundness headline mentions.
   probability that the honest run from the execution (`honestExecutionGame`: `witnessGen`, the
   prover and the verifier at one lazy random oracle) rejects by
   `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, with `N = 264246250 + 6 · fuel` the prover's
-  query count (`Prove.isTotalQueryBound_proveWith_closed`); below `2^-154` at fuel `2^24`
+  query count (`Prove.isTotalQueryBound_proveWith_closed`); at most `2^-154` at fuel `2^24`
   (`proveExecution_rom_complete_default`). The constraint forms are `honestGame_rom_rejects_le`
   and `prove_rom_eq_none_le` (`Protocol/HonestGame.lean`), from the prover's bound
   `Prove.prEvent_proveWith_eq_none_le` (`Protocol/Prove/RomComplete.lean`) and the generic
   bound on a proof-of-work search, `PowSearch.prEvent_exhausted_le` (`ToVCVio/ProofOfWork.lean`).
-- **The hypotheses, decided**: `checkExecution` runs the constant-time bounds of a stack that fits
-  (`StackFits.bounds`), `wellFormedB`, `checkTrace`, `stackFitsB` and the rate's check, and
-  decides the hypotheses of the random-oracle form (`checkExecution_eq_true_iff`); `fitsB` decides
-  `Trace.Fits` on a valid execution. `proveChecked` runs `checkExecution`, then `proveExecution`:
+- **The hypotheses, decided**: `checkExecution` runs, in constant time, the rate's check and the
+  bounds a stack that fits puts on the memory, the bytecode (`StackFits.bounds`) and the steps
+  (`StackFits.steps_le`, `t.steps ≤ 2^25`), then `wellFormedB`, `checkTrace` and `stackFitsB`, and
+  decides the hypotheses of the random-oracle form (`checkExecution_eq_true_iff`); `Trace.Fits`
+  follows from `StackFits` (`StackFits.fits`), and `fitsBy` decides it on a valid execution for
+  the bench. `proveChecked` runs `checkExecution`, then `proveExecution`:
   every proof it returns is accepted with no hypothesis (`verify_proveChecked`), and under the
   hypotheses it is `proveExecution` (`proveChecked_eq`).
 - **Evidence**, in the `Executables` workflow: `leanervm-prove execution` runs `proveChecked` on

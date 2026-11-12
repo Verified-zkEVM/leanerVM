@@ -53,14 +53,16 @@ statements are.
   `hasFillBlocksB` (`hasFillBlocksB_eq_true_iff`), one pass collecting the closing jumps;
   `fitsRowsB` decides `Trace.Fits` from the run's row counts (`fitsRowsB_eq_true_iff`).
   [`Arithmetization/HypothesisChecks.lean`](../LeanerVM/Arithmetization/HypothesisChecks.lean):
-  `fitsBy` and `fitsB` count those rows with the witness generator's forward pass and decide
-  `Trace.Fits` on a valid execution (`fitsBy_eq_true_iff`, `fitsB_eq_true_iff`).
+  `fitsBy` counts those rows with the witness generator's forward pass and decides `Trace.Fits`
+  on a valid execution (`fitsBy_eq_true_iff`), for the bench; the prover's guard needs no such
+  check, since `StackFits` implies `Trace.Fits` (`StackFits.fits`).
   [`Protocol/LeanIsa/ExecutionStack.lean`](../LeanerVM/Protocol/LeanIsa/ExecutionStack.lean):
   `stackFitsRowsB` decides `StackFits` from the run's row counts (`stackFitsRowsB_eq_true_iff`),
   and `stackFitsB` from the forward pass on a valid execution (`stackFitsB_eq_true_iff`).
-  `checkExecution` (`Protocol/Headline.lean`) runs the size bounds, `wellFormedB`, `checkTrace`,
-  `stackFitsB` and the rate's check; `checkExecution_eq_true_iff` says it decides the hypotheses
-  of the random-oracle completeness.
+  `checkExecution` (`Protocol/Headline.lean`) runs the rate's check and the bounds on the memory,
+  the bytecode and the steps (`StackFits.bounds`, `StackFits.steps_le`), all in constant time,
+  then `wellFormedB`, `checkTrace` and `stackFitsB`; `checkExecution_eq_true_iff` says it decides
+  the hypotheses of the random-oracle completeness.
 
 Hints are a parameter of every carrier function, never of a definition of the machine. A
 suggested index is range checked and its generator power must match the requested address;
