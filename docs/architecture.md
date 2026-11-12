@@ -253,7 +253,10 @@ The public theorem ladder is:
    `Constraints.AssignmentRepresents assignment trace`. Together with an explicit success/resource
    hypothesis, every supported execution is accepted by witness generation. This strengthens
    T1-C from existence of some assignment to correctness of the implementation actually used by
-   the prover.
+   the prover. The generator is `witnessGen prog input t` (`Arithmetization/WitnessGen.lean`);
+   `witnessGen_correct` says that, for well-formed bytecode and a valid execution that fits, it
+   returns a witness that satisfies the constraint statement and represents the padded trace
+   `padTrace t (fillStarts prog)`, at fill-block starts it searches in the bytecode.
 
 3. **T3 — exact guest correctness (`aggregationProgram_correct`).** Establish both the source
    boundary and the application claim:
@@ -308,10 +311,19 @@ The public theorem ladder is:
    already in play, or a bad challenge on a Fiat–Shamir group the verifier itself queried). It is
    stated per adversary, since the form for all adversaries is false. The comparison with a random
    function is a corollary (`blakeMisbehavesAdaptive_of_comparison`), not the hypothesis (the
-   protocol blueprint's Layer 13). Its completeness dual (`prove_complete_of_execution`) composes T2
-   with the honest prover and records the failure and resource conditions: a valid execution may
-   need more memory than the verifier accepts (from `t.κ ≥ 26` the stack exceeds `2^maxMu`), and the
-   prover's proof-of-work search has no proved bound.
+   protocol blueprint's Layer 13). Its completeness dual (`proveExecution_complete`) composes T2
+   with the honest prover, as one computable prover from an execution (`proveExecution`:
+   `witnessGen`, then `prove`), and records the failure and resource conditions: a valid execution
+   may need more memory than the verifier accepts (from `t.κ ≥ 25` the stack exceeds `2^maxMu`,
+   `not_stackFits_of_le`), and the prover's proof-of-work search has no proved bound at BLAKE2s.
+   In the random-oracle model
+   (`proveExecution_rom_complete`) the honest run from an execution, the generator, the prover and
+   the verifier at one random function, is rejected with probability at most
+   `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel`, at most `2^-154` at
+   fuel `2^24`, when the stack of the execution fits (`StackFits`, a predicate on the trace through
+   the generated witness's sizes `execSizes`). The guarded prover `proveChecked` decides every
+   hypothesis first, and every proof it returns is accepted with no hypothesis
+   (`verify_proveChecked`).
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
    for the verifier-in-circuit is equivalent to the specified base-verifier decision for every

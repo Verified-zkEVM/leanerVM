@@ -2,9 +2,12 @@
 
 The checker validates a fixed final image against the existing Lean ISA. It does not generate
 memory, prove Rust correct, or check an executable proof verifier. The semantic reference
-remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The optional Rust
-regression lane separately tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does
-not change that pin or claim coverage of every change between those revisions.
+remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. Two Rust lanes read the
+Rust executor. The optional regression lane (`scripts/test-rust-contracts.py`, below) separately
+tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does not change that pin or claim coverage of
+every change between those revisions. `scripts/dump-execution-rust.sh` writes executions of
+compiled programs at the pin itself, `a386121f`, the files of `tests/vectors/executions/` that
+`leanervm-witgen` reads and checks (`bench/README.md`).
 
 ## Proved interfaces
 
@@ -20,7 +23,11 @@ statements are.
   tries an untrusted hint list first, accepting an index only after `g ^ i = a` has been
   checked, and otherwise scans the address space carrying `g ^ i` as a running product, one
   multiplication per candidate; `addressIndex_eq_gLog` says it equals the reference logarithm
-  for every hint list. `stepChecked` is `executeWith` at that reader and equals `step`.
+  for every hint list. `stepChecked` is `executeWith` at that reader and equals `step`. The run
+  of `runToHalt` reads through a table of powers (`PowTable`: an array of `g ^ i`, proved, and
+  an untrusted index of their words) seeded with the hints and grown along the run to the cells
+  it reaches (`stepTable`); `addressIndexBy_eq_gLog` holds for every table, so a run costs the
+  powers up to its highest cell once instead of a scan per read.
   `checkWithinFuel_eq_ok_iff` proves that success with count `n` within a budget is equivalent
   to a valid exact-length execution with `n ≤ fuel`; exhaustion makes no claim about larger
   budgets. `checkTrace` runs the bounded search with the announced count as its budget and
@@ -40,6 +47,22 @@ statements are.
   every reference successor succeeds and the starting/successor multisets agree
   (`FillerRowsValid`, the audited statement; `checkFillerRows`, its carrier). This standalone
   interface does not take a main run or check memory/bytecode access-count columns or budgets.
+- The hypotheses of completeness from an execution are decided by checks proved equal to them.
+  [`Semantics/HypothesisChecks.lean`](../LeanerVM/Semantics/HypothesisChecks.lean):
+  `wellFormedB` decides `WellFormedBytecode` (`wellFormedB_eq_true_iff`), through
+  `hasFillBlocksB` (`hasFillBlocksB_eq_true_iff`), one pass collecting the closing jumps;
+  `fitsRowsB` decides `Trace.Fits` from the run's row counts (`fitsRowsB_eq_true_iff`).
+  [`Arithmetization/HypothesisChecks.lean`](../LeanerVM/Arithmetization/HypothesisChecks.lean):
+  `fitsBy` counts those rows with the witness generator's forward pass and decides `Trace.Fits`
+  on a valid execution (`fitsBy_eq_true_iff`), for the bench; the prover's guard needs no such
+  check, since `StackFits` implies `Trace.Fits` (`StackFits.fits`).
+  [`Protocol/LeanIsa/ExecutionStack.lean`](../LeanerVM/Protocol/LeanIsa/ExecutionStack.lean):
+  `stackFitsRowsB` decides `StackFits` from the run's row counts (`stackFitsRowsB_eq_true_iff`),
+  and `stackFitsB` from the forward pass on a valid execution (`stackFitsB_eq_true_iff`).
+  `checkExecution` (`Protocol/Headline.lean`) runs the rate's check and the bounds on the memory,
+  the bytecode and the steps (`StackFits.bounds`, `StackFits.steps_le`), all in constant time,
+  then `wellFormedB`, `checkTrace` and `stackFitsB`; `checkExecution_eq_true_iff` says it decides
+  the hypotheses of the random-oracle completeness.
 
 Hints are a parameter of every carrier function, never of a definition of the machine. A
 suggested index is range checked and its generator power must match the requested address;

@@ -11,6 +11,7 @@ import LeanerVM.Arithmetization.Completeness.Satisfied
 import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
 import LeanerVM.Arithmetization.Equivalence
+import LeanerVM.Arithmetization.HypothesisChecks
 import LeanerVM.Arithmetization.Messages
 import LeanerVM.Arithmetization.Rows
 import LeanerVM.Arithmetization.Soundness
@@ -23,6 +24,7 @@ import LeanerVM.Arithmetization.Tables.Jump
 import LeanerVM.Arithmetization.Tables.MulNative
 import LeanerVM.Arithmetization.Tables.SetConstant
 import LeanerVM.Arithmetization.Tables.Xor
+import LeanerVM.Arithmetization.WitnessGen
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
 import LeanerVM.Parameters.CleanField
@@ -70,11 +72,13 @@ import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.FlockWalks
 import LeanerVM.Protocol.HashMisbehaves
 import LeanerVM.Protocol.Headline
+import LeanerVM.Protocol.HonestGame
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
 import LeanerVM.Protocol.LeanIsa.Complete
 import LeanerVM.Protocol.LeanIsa.Conditions
+import LeanerVM.Protocol.LeanIsa.ExecutionStack
 import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Refinement
 import LeanerVM.Protocol.LeanIsa.Relation
@@ -96,8 +100,11 @@ import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.Prove
 import LeanerVM.Protocol.Prove.Compiled
 import LeanerVM.Protocol.Prove.Complete
+import LeanerVM.Protocol.Prove.Hom
 import LeanerVM.Protocol.Prove.Openings
+import LeanerVM.Protocol.Prove.Queries
 import LeanerVM.Protocol.Prove.ReadBack
+import LeanerVM.Protocol.Prove.RomComplete
 import LeanerVM.Protocol.Prove.Wire
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
@@ -165,6 +172,8 @@ import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.Relist
 import LeanerVM.Protocol.ToArkLib.RunCodec
+import LeanerVM.Protocol.ToArkLib.RunCodecGrade
+import LeanerVM.Protocol.ToArkLib.RunCodecHom
 import LeanerVM.Protocol.ToArkLib.RunTrace
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
@@ -214,7 +223,10 @@ import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.MerkleQueries
 import LeanerVM.Protocol.ToVCVio.MonadRel
+import LeanerVM.Protocol.ToVCVio.ProofOfWork
+import LeanerVM.Protocol.ToVCVio.QueryBound
 import LeanerVM.Protocol.ToVCVio.QueryLog
+import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformCondition
 import LeanerVM.Protocol.ToVCVio.UniformSample
@@ -270,6 +282,8 @@ import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillRows
 import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows
+import LeanerVM.Semantics.Generator
+import LeanerVM.Semantics.HypothesisChecks
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.PaddedImage

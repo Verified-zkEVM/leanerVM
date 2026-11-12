@@ -79,22 +79,32 @@ executable compiles every transitive module, Mathlib's included, to C. A second 
 `leanervm-verify` (`bench/LeanerVMVerify.lean`), runs the executable verifier on the Rust proof
 fixture and its mutations, or on a proof file; a third, `leanervm-prove`
 (`bench/LeanerVMProve.lean`), runs the honest prover on the constraint statement tests' witness
-and writes and checks the test vectors. Neither is a default target. These are build targets of
-this package, not dependencies, so adding or changing them needs none of the review in
+and writes and checks the test vectors, and, with `execution`, the guarded prover from an
+execution (`proveChecked`); a fourth, `leanervm-witgen` (`bench/LeanerVMWitgen.lean`), reads the
+Rust executions of `tests/vectors/executions/`, decides the hypotheses of completeness on each,
+and runs the witness generator. No executable is a default target, and no default target
+imports `bench/LeanerVMWitgen.lean`, so only `lake build leanervm-witgen` (the `Executables`
+workflow, [ci.md](ci.md)) elaborates it. These are build targets of this package, not
+dependencies, so adding or changing them needs none of the review in
 [dependencies.md](dependencies.md).
 
 ```sh
 lake build leanervm-bench
 .lake/build/bin/leanervm-bench [percent] [arith|sumcheck|provers|all] [filter]
 .lake/build/bin/leanervm-bench 1 protocol [bus|table|pub|flock|whole] [lm] [spec]
+.lake/build/bin/leanervm-bench 1 witgen                      # witnessGen on a test trace
 lake build leanervm-verify
 .lake/build/bin/leanervm-verify [runs] [file]
 lake build leanervm-prove
 .lake/build/bin/leanervm-prove [file] [rate] [fuel] [pure]   # or: leanervm-prove probe [rate]
+.lake/build/bin/leanervm-prove execution [rate] [fuel] [steps]  # proveChecked, then verify
+lake build leanervm-witgen
+.lake/build/bin/leanervm-witgen [--gen] [--prove] [--stages] [--prod] [--hash] file…
 ```
 
 **Test vectors.** [`tests/vectors/`](../tests/vectors/README.md) holds proofs of the prover, each
-with its program and public input, in the text format of `scripts/dump-proof-rust.sh`, compressed.
+with its program and public input, in the text format of `scripts/dump-proof-rust.sh`, compressed,
+and in `executions/` the Rust executions of compiled programs that `leanervm-witgen` reads.
 To regenerate one, run `leanervm-prove tests/vectors/fill.proof 1` (the proof takes about a
 minute and 1.1 GB of memory, by `bench/README.md`): it proves, writes the file, reads it back,
 and checks that `verify` accepts it and rejects each mutation at the stage it names; then

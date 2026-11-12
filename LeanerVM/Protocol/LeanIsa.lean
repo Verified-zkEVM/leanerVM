@@ -392,6 +392,54 @@ def leanIsaμ : ℕ := max (Nat.clog 2 (blocks prog s).total) minMu
 theorem blocks_fits : (blocks prog s).total ≤ 2 ^ leanIsaμ prog s :=
   (Nat.le_pow_clog (by norm_num) _).trans (Nat.pow_le_pow_right (by norm_num) (le_max_left _ _))
 
+/-- The committed columns of each table: the four memory columns, `BFCNT`, `QFLOCK`, then the
+opcode tables' columns, all but the eighteen `BLAKE2S` limbs. -/
+private theorem committed_counts : ∀ j : Fin 9, (committedColumns.filter (·.1 = j)).length =
+    ![4, 1, 1, 15, 15, 8, 15, 14, 19] j := by
+  decide +kernel
+
+/-- A sum over a list of columns of a function of their table, table by table. -/
+private theorem sum_map_fst (l : List Col) (g : Fin 9 → ℕ) :
+    (l.map fun c ↦ g c.1).sum = ∑ j, (l.filter (·.1 = j)).length * g j := by
+  induction l with
+  | nil => simp
+  | cons c l ih =>
+    simp only [List.map_cons, List.sum_cons, ih, List.filter_cons, decide_eq_true_eq]
+    rw [← Finset.add_sum_erase _ _ (Finset.mem_univ c.1),
+      ← Finset.add_sum_erase _ _ (Finset.mem_univ c.1),
+      ite_eq_left_iff.mpr (fun h ↦ absurd rfl h), List.length_cons]
+    have h : ∀ j ∈ Finset.univ.erase c.1,
+        (if c.1 = j then c :: l.filter (·.1 = j) else l.filter (·.1 = j)).length * g j =
+          (l.filter (·.1 = j)).length * g j := fun j hj ↦ by
+      rw [ite_eq_right_iff.mpr fun h ↦ absurd h.symm (Finset.ne_of_mem_erase hj)]
+    rw [Finset.sum_congr rfl h]
+    ring
+
+/-- **The stack's height in closed form**: every committed column is a block of its table's
+height, so the four memory columns, `BFCNT`, `QFLOCK` and the opcode tables' committed columns
+(`15`, `15`, `8`, `15`, `14` and `19`) add up. -/
+theorem blocks_total_eq :
+    (blocks prog s).total = 4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (8 + s.τ 5) +
+      15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 + 8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 +
+      19 * 2 ^ s.τ 5 := by
+  rw [Blocks.total_eq_sum]
+  have h1 : ∑ b : Fin (blocks prog s).n, 2 ^ (blocks prog s).size b =
+      ((stackOrder prog s).map fun c ↦ 2 ^ kappa prog s c).sum := by
+    show ∑ b : Fin (stackOrder prog s).length, 2 ^ kappa prog s (stackOrder prog s)[b] = _
+    rw [← List.sum_ofFn]
+    exact congrArg List.sum (List.ofFn_getElem_eq_map (l := stackOrder prog s)
+      (f := fun c ↦ 2 ^ kappa prog s c))
+  have hp : (stackOrder prog s).Perm committedColumns := List.mergeSort_perm _ _
+  rw [h1, (hp.map _).sum_eq, sum_map_fst committedColumns (fun j ↦ 2 ^ height prog s j)]
+  simp only [committed_counts, Fin.sum_univ_succ, Fin.sum_univ_zero]
+  simp [height, Fin.succ]
+  ring
+
+/-- The stack fits `2^maxMu` exactly when the blocks' total does. -/
+theorem leanIsaμ_le_iff : leanIsaμ prog s ≤ maxMu ↔ (blocks prog s).total ≤ 2 ^ maxMu := by
+  rw [leanIsaμ, max_le_iff, Nat.clog_le_iff_le_pow (by norm_num)]
+  exact and_iff_left (by decide)
+
 variable {prog s} in
 /-- The block of a committed column. -/
 def blockOf (c : Col) (h : ¬ IsLimb c) : Fin (blocks prog s).n :=

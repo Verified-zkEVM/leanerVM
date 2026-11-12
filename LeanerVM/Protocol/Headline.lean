@@ -4,8 +4,8 @@
   leanVM's deployed prover and verifier against leanISA: an accepted proof, except with small
   probability, yields through the straight-line extractor a valid execution of the program on the
   public input, in the random-oracle model with no hypothesis and at BLAKE2s under one named
-  hypothesis on the adversary's run; and a valid execution that fits the caps has a witness on
-  which every proof the deployed prover returns is accepted.
+  hypothesis on the adversary's run; and every proof the deployed prover returns from a valid
+  execution that fits the caps is accepted.
 -/
 
 module
@@ -14,10 +14,13 @@ public import LeanerVM.Protocol.Core
 public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Protocol.LeanIsa.Complete
 public import LeanerVM.Arithmetization.Soundness
-public import LeanerVM.Arithmetization.Completeness.Theorem
+public import LeanerVM.Arithmetization.WitnessGen
+public import LeanerVM.Arithmetization.HypothesisChecks
 public import LeanerVM.Protocol.Compile.Agree
 public import LeanerVM.Protocol.AdaptiveGame
 public import LeanerVM.Semantics.FillBlocks
+public import LeanerVM.Protocol.LeanIsa.ExecutionStack
+public import LeanerVM.Protocol.HonestGame
 
 /-!
 # The headline theorems
@@ -60,16 +63,38 @@ of the constraint statement and no execution on any memory (the test
 
 ## Completeness: from an execution
 
-`prove_complete_of_execution`: for `WellFormedBytecode`, a valid execution that fits the caps
-(`Trace.Fits`) has a padding with the same steps (`Trace.PaddedFrom`) and a witness of the
-constraint statement representing the padding, with sizes `s`, on which, at every fuel and rate,
-`verify` accepts every proof the deployed `prove` returns, and `prove` returns a proof unless the
-stack exceeds `2^maxMu`, the rate is not valid, or a grind finds no nonce among its `fuel`
-candidates at a chain state the prover's run reaches (`ProveReaches`: the state after the
-announcement and some first rounds of the run, so every round boundary, a superset of the states
-the grinds start at). The witness exists; it is not computed, since leanISA's padded witness reads
-the memory image through `MemImage.read`, a classical discrete logarithm, and takes the fill blocks
-from the proposition `HasFillBlocks`.
+The prover from an execution is one computable term, `proveExecution fuel prog input t ρ`: the
+witness generator `witnessGen`, then the deployed `prove` on its witness.
+`proveExecution_complete`: for `WellFormedBytecode` and a valid execution `t` that fits the caps
+(`Trace.Fits`), `witnessGen` returns a witness `w` of the constraint statement representing the
+padded trace `padTrace t (fillStarts prog)`, a valid execution with the same steps
+(`Trace.PaddedFrom`); at every fuel and rate `verify` accepts every proof `proveExecution`
+returns, and `proveExecution` returns a proof unless the stack does not fit (`StackFits`), the
+rate is not valid, or a grind finds no nonce among its `fuel` candidates at a chain state the
+prover's run reaches (`ProveReaches`: the state after the announcement and some first rounds of
+the run, so every round boundary, a superset of the states the grinds start at).
+`proveChecked` runs the decided checks of the hypotheses of the random-oracle form first and
+`proveExecution` only when they pass: every proof it returns is accepted, with no hypothesis
+(`verify_proveChecked`), and under those hypotheses it is `proveExecution` (`proveChecked_eq`).
+
+**The stack of an execution** (`LeanerVM.Protocol.LeanIsa.ExecutionStack`). `StackFits prog t`
+says that leanVM's stack at the sizes of the generated witness has at most `2^maxMu` cells. It
+fails from `t.κ ≥ 25` on (`not_stackFits_of_le`), holds for short runs (`StackFits.of_short`),
+implies `Trace.Fits` (`StackFits.fits`) and at most `2^25` steps (`StackFits.steps_le`), and is
+decided on a valid execution by `stackFitsB`.
+
+## Completeness in the random-oracle model
+
+`proveExecution_rom_complete`: for `WellFormedBytecode`, a valid execution `t` whose stack fits
+(`StackFits`), and a valid rate, the honest run from the execution (`honestExecutionGame`: the
+witness generator, the deployed prover with every hash a query to one lazy random oracle, then the
+verifier on its proof at the same oracle) is rejected with probability at most
+`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, `N = 264246250 + 6 · fuel`; at most
+`2^-154` at the default fuel `2^24` (`proveExecution_rom_complete_default`). It is proved from the
+constraint form `honestGame_rom_rejects_le` (`LeanerVM.Protocol.HonestGame`): for a witness of
+the constraint statement whose sizes keep the stack within `2^maxMu`, at a valid rate, the
+deployed prover and then the verifier on its proof, both asking one lazy random oracle
+(`honestGame`), reject with the same probability.
 
 ## The lemmas they are proved from
 
@@ -116,7 +141,7 @@ admissible sizes `extract` returns; `TraceExtraction.valid` (leanISA's constrain
 turns that into a valid execution. The random-oracle bound is `misbehaves_rom_of` on the adaptive
 game in two runs (`adaptiveGame_eq_twoRunGame`), for flips on every statement's chain, which
 include those the verifier asked for on the chosen one (`SlotReader.flip_of_verifierFlipFor`).
-Completeness from an execution is leanISA's `constraintCompleteness` followed by
+Completeness from an execution is the generator's correctness (`witnessGen_correct`) followed by
 `prove_complete`, `prove_eq_none` and `prove_ne_none`.
 
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
@@ -129,13 +154,14 @@ of the statement that the adversary explored and abandoned, a bad challenge on i
 hypothesis, since the verifier never walks it, and `core` finds its flip on the verifier's own walk.
 The broader event, a flip on any chain of the statement (`leanVmReader.FlipFor`), contains it
 (`SlotReader.flipFor_of_verifierFlipFor`); the random-oracle bounds hold for both. Completeness says
-that every proof `prove` returns is accepted, and when it returns one, not that it does: nothing
-bounds how often a grind on the run runs out of fuel, and `Trace.Fits` does not keep the stack
-within `2^maxMu`. The padding the proof picks has memory log-size `t.κ + 1`, so its four memory
-columns alone hold `2^(t.κ+3)` cells, above `2^28` from `t.κ ≥ 26` on, where `prove` returns none at
-every fuel and rate; so it does whenever the filled tables exceed `2^28` cells. The completeness
-witness represents the padded trace, not the given one, and its proof is about that witness, not
-about a prover that takes the trace. -/
+that every proof `proveExecution` returns is accepted, and when it returns one, not that it does: at
+BLAKE2s nothing bounds how often a grind on the run runs out of fuel (the random-oracle bound above
+is about a random function), and `Trace.Fits` does not keep the stack within `2^maxMu`: from
+`t.κ ≥ 25` on it never fits (`not_stackFits_of_le`), and on a valid execution whose stack does
+not fit `proveExecution` returns none at every fuel and rate
+(`proveExecution_eq_none_of_not_stackFits`). The generated witness represents the padded trace,
+not the given one: the proof is of the same steps over a memory with the fill frames above the
+image. -/
 
 namespace LeanerVM.Protocol
 
@@ -624,8 +650,41 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
 
 /-! ## Completeness -/
 
+/-- **The honest prover from an execution at a hash `H`** in a monad `m`: the witness generator
+`witnessGen`, then `proveWith` on its witness; `none` when either returns none. -/
+def proveExecutionWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ)
+    (F : FlockSpec) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    m (Option (Proof PrunedMerklePaths)) :=
+  match witnessGen prog input t with
+  | some w => proveWith H fuel F prog input w ρ
+  | none => pure none
+
+/-- **leanVM's honest prover from an execution**: the witness generator `witnessGen`, then the
+deployed prover `prove` on its witness, at `fuel` candidate nonces per grind and the WHIR rate
+`ρ`; `none` when either returns none. It is `proveExecutionWith` at BLAKE2s-256 and the deployed
+Flock specification, as `prove` is `proveWith`. -/
+def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    Option (Proof PrunedMerklePaths) :=
+  proveExecutionWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input t ρ
+
+/-- The hypotheses of the random-oracle completeness from an execution, decided: first, in
+constant time, a valid rate and the bounds a stack that fits puts on the memory, the bytecode
+(`StackFits.bounds`) and the run (`StackFits.steps_le`), so that no check below reads a memory or
+bytecode too large to fit or steps a run longer than such a stack allows; then well-formed
+bytecode (`wellFormedB`), a valid execution (`checkTrace`) and a stack that fits
+(`stackFitsB`). -/
+def checkExecution (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) : Bool :=
+  decide (t.κ ≤ 24 ∧ prog.logSize ≤ 27 ∧ t.steps ≤ 2 ^ 25 ∧ validRate ρ) && wellFormedB prog &&
+    checkTrace prog input t && stackFitsB prog t
+
+/-- **leanVM's honest prover from an execution, guarded**: `proveExecution` when the hypotheses
+of completeness pass their checks (`checkExecution`), none otherwise. -/
+def proveChecked (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    Option (Proof PrunedMerklePaths) :=
+  if checkExecution prog input t ρ then proveExecution fuel prog input t ρ else none
+
 /-- **Completeness of the deployed pair, the constraint form**, from which
-`prove_complete_of_execution` is proved. For a witness that satisfies leanISA's constraint
+`proveExecution_complete` is proved. For a witness that satisfies leanISA's constraint
 statement, `verify` accepts every proof `prove` returns: `Prove.baseProver_complete` at
 BLAKE2s-256. When `prove` returns none is `prove_eq_none`. -/
 theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
@@ -664,35 +723,162 @@ theorem prove_ne_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : 
   Prove.proveWith_ne_none blake2sBytes fuel _ hs ((admissible_iff_of_satisfiedBy hsat hs).mpr hμ)
     hρ hg
 
-/-- **The headline: completeness of the deployed pair from an execution.** For well-formed
-bytecode, a valid execution `t` that fits the caps has a padding `t'` with the same steps, itself a
-valid execution, and a witness of the constraint statement representing `t'`, with sizes `s`, such
-that at every fuel and rate `verify` accepts every proof `prove` returns on the witness, and
-`prove` returns none only when the stack exceeds `2^maxMu`, the rate is not valid, or a grind
-runs out of fuel at a chain state the prover's run reaches; the last conjunct says the same as a
-sufficient condition for a proof. `Trace.Fits` does not keep the stack
-within `2^maxMu`: from `t.κ ≥ 26` on it is not. The witness exists and is not computed:
-leanISA's padded witness reads the image through the classical `MemImage.read` and takes the fill
-blocks from `HasFillBlocks`. -/
-theorem prove_complete_of_execution {prog : Program} {input : PublicInput} {t : Trace prog}
+/-- The honest run from an execution in the random-oracle model: the witness generator on `t`,
+then the deployed prover on its witness with every hash a query to the oracle, then the verifier
+on the proof, asking the same oracle; a generator or prover returning none is rejected. -/
+def honestExecutionGame (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog)
+    (ρ : ℕ) : OracleComp hashSpec Bool := do
+  match ← proveExecutionWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input t ρ with
+  | none => pure false
+  | some proof => verifyWith hashQuery prog input proof
+
+/-- On an execution whose stack fits, the honest run from the execution is the honest run of the
+generated witness, which satisfies the constraint statement at sizes that keep the stack within
+`2^maxMu`. -/
+private theorem honestExecutionGame_eq {prog : Program} {input : PublicInput} {t : Trace prog}
+    (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hstack : StackFits prog t) :
+    ∃ (w : EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) (s : Sizes),
+      SatisfiedBy prog input w ∧ Sizes.ofWitness w = some s ∧ leanIsaμ prog s ≤ maxMu ∧
+      ∀ fuel ρ, honestExecutionGame fuel prog input t ρ = honestGame fuel prog input w ρ := by
+  obtain ⟨w, hw, hsat, -⟩ := witnessGen_correct hwf ht hstack.fits
+  obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+  obtain ⟨τ', hτ', hμ⟩ := hstack
+  obtain rfl := Option.some.inj (hτ.symm.trans hτ')
+  refine ⟨w, _, hsat, hs, hμ, fun fuel ρ ↦ ?_⟩
+  unfold honestExecutionGame proveExecutionWith honestGame
+  rw [hw]
+  rfl
+
+/-- **The headline: completeness from an execution in the random-oracle model.**
+
+*The game* (`honestExecutionGame`): the hash is a lazily sampled random function from byte strings
+to 32-byte digests (`runRandom`). The witness generator runs on the execution `t`, the deployed
+prover runs on its witness at `fuel` candidate nonces per grind and WHIR rate `ρ` with every hash a
+query to that function, and the deployed verifier checks the proof, asking the same function.
+
+*The bound*: the verifier rejects with probability at most
+`(N + 1) · (1 - 2^-17)^min(fuel, 2^64) + N² / 2^256`, with `N = 264246250 + 6 · fuel` a bound on
+the prover's queries; the first term is a grind running out of fuel, the second a collision.
+
+*The assumptions*: `prog` is well-formed bytecode (its last slot no `JUMP`, the compiler's fill
+blocks present), `t` is a valid execution of `prog` on `input` whose stack fits (`StackFits`,
+which fails from `t.κ ≥ 25` on, and implies that `t` fits the caps, `StackFits.fits`), and `ρ` is
+a valid rate. Each is decided by a computation: `wellFormedB`, `checkTrace`, `stackFitsB` (on a
+valid execution), and the `Decidable` instance of `validRate`; `proveChecked` runs them. -/
+theorem proveExecution_rom_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hstack : StackFits prog t) (hρ : validRate ρ) :
+    Pr{let z ← runRandom (honestExecutionGame fuel prog input t ρ)}[z.1 = false] ≤
+      (((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) + 1) *
+          (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min fuel (2 ^ 64) +
+        ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) * ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
+  obtain ⟨w, s, hsat, hs, hμ, hg⟩ := honestExecutionGame_eq hwf ht hstack
+  rw [hg]
+  exact honestGame_rom_rejects_le fuel hsat hs hμ hρ
+
+/-- **Completeness from an execution in the random-oracle model at the default fuel `2^24`**: the
+honest run of `proveExecution_rom_complete` is rejected with probability at most `2^-154`. -/
+theorem proveExecution_rom_complete_default {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hstack : StackFits prog t) (hρ : validRate ρ) :
+    Pr{let z ← runRandom (honestExecutionGame (2 ^ 24) prog input t ρ)}[z.1 = false] ≤
+      (2 ^ 154 : ℝ≥0∞)⁻¹ := by
+  obtain ⟨w, s, hsat, hs, hμ, hg⟩ := honestExecutionGame_eq hwf ht hstack
+  rw [hg]
+  exact honestGame_rom_rejects_le_default hsat hs hμ hρ
+
+/-- **The headline: completeness of the deployed prover from an execution.** For well-formed
+bytecode and a valid execution `t` that fits the caps, with `t'` the padded trace
+`padTrace t (fillStarts prog)`, a valid execution with the same steps as `t`, its memory doubled
+with the fill frames above `t`'s image, the witness generator returns a witness `w`, which
+satisfies the constraint statement and represents `t'`. At every fuel and rate, `verify` accepts
+every proof `proveExecution` returns; it returns none only when the stack does not fit
+(`StackFits`), the rate is not valid, or a grind runs out of fuel at a chain state the prover's
+run reaches; the last conjunct says the same as a sufficient condition for a proof. `Trace.Fits`
+does not keep the stack within `2^maxMu`: the stack does not fit from `t.κ ≥ 25` on
+(`not_stackFits_of_le`), and then `proveExecution` returns none
+(`proveExecution_eq_none_of_not_stackFits`). At the witness's sizes the stack condition is
+`leanIsaμ prog s ≤ maxMu` (`stackFits_iff`). -/
+theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trace prog}
     (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t) (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w : EnsembleWitness (leanIsaEnsemble prog t'.κ), SatisfiedBy prog input w ∧
-        AssignmentRepresents w t' ∧ ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
-          (∀ proof, prove fuel prog input w ρ = some proof → verify prog input proof = true) ∧
-          (prove fuel prog input w ρ = none → maxMu < leanIsaμ prog s ∨ ¬ validRate ρ ∨
-            ∃ fs, ProveReaches fuel prog input w ρ fs ∧
-              Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
-          (leanIsaμ prog s ≤ maxMu → validRate ρ →
-            (∀ fs, ProveReaches fuel prog input w ρ fs →
-              Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
-            prove fuel prog input w ρ ≠ none) := by
-  obtain ⟨t', hp, hv, w, hsat, hrep⟩ := constraintCompleteness hwf ht hfit
-  obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hsat
-  refine ⟨t', hp, hv, w, hsat, hrep, s, hs, fun fuel _ ↦
-    ⟨fun _ ↦ prove_complete fuel hsat, fun h ↦ ?_, prove_ne_none fuel hsat hs⟩⟩
+    let t' := padTrace t (fillStarts prog)
+    t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
+    ∃ w, witnessGen prog input t = some w ∧ SatisfiedBy prog input w ∧
+      AssignmentRepresents w t' ∧ ∀ fuel ρ,
+        (∀ proof, proveExecution fuel prog input t ρ = some proof →
+          verify prog input proof = true) ∧
+        (proveExecution fuel prog input t ρ = none → ¬ StackFits prog t ∨ ¬ validRate ρ ∨
+          ∃ fs, ProveReaches fuel prog input w ρ fs ∧
+            Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
+        (StackFits prog t → validRate ρ →
+          (∀ fs, ProveReaches fuel prog input w ρ fs →
+            Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
+          proveExecution fuel prog input t ρ ≠ none) := by
+  obtain ⟨w, hw, hsat, hrep⟩ := witnessGen_correct hwf ht hfit
+  obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+  have hst : StackFits prog t ↔ leanIsaμ prog (execSizes t.κ t.runRows τ) ≤ maxMu :=
+    ⟨fun ⟨_, hτ', hμ⟩ ↦ Option.some.inj (hτ.symm.trans hτ') ▸ hμ, fun hμ ↦ ⟨τ, hτ, hμ⟩⟩
+  have hp : ∀ fuel ρ, proveExecution fuel prog input t ρ = prove fuel prog input w ρ :=
+    fun _ _ ↦ by simp only [proveExecution, proveExecutionWith, hw]; rfl
+  refine ⟨padTrace_from t _, (padTrace_from t _).valid hfit.room ht, w, hw, hsat, hrep,
+    fun fuel ρ ↦ ?_⟩
+  rw [hp, hst]
+  refine ⟨fun _ ↦ prove_complete fuel hsat, fun h ↦ ?_, prove_ne_none fuel hsat hs⟩
   obtain ⟨s', hs', hc⟩ := prove_eq_none fuel hsat h
-  exact Option.some.inj (hs.symm.trans hs') ▸ hc
+  obtain rfl := Option.some.inj (hs.symm.trans hs')
+  exact hc.imp_left not_le.mpr
+
+/-- **A stack that does not fit gets no proof**: on a valid execution whose stack does not fit,
+`proveExecution` returns none at every fuel and rate, since the generated witness's sizes put the
+stack above `2^maxMu` and `prove` checks them first. -/
+theorem proveExecution_eq_none_of_not_stackFits (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (ht : ValidExecution prog input t) (h : ¬ StackFits prog t) :
+    proveExecution fuel prog input t ρ = none := by
+  unfold proveExecution proveExecutionWith
+  split
+  · next w hw =>
+    obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+    simp only [proveWith, proveFrom, hs]
+    split_ifs with ha
+    · exact absurd ⟨τ, hτ, ha.1.2.2.2.2⟩ h
+    · rfl
+  · rfl
+
+/-- The checks of `checkExecution` decide the hypotheses of the random-oracle completeness from an
+execution. -/
+theorem checkExecution_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} : checkExecution prog input t ρ = true ↔ WellFormedBytecode prog ∧
+      ValidExecution prog input t ∧ StackFits prog t ∧ validRate ρ := by
+  simp only [checkExecution, Bool.and_eq_true, decide_eq_true_eq, wellFormedB_eq_true_iff,
+    checkTrace_eq_true_iff]
+  constructor
+  · rintro ⟨⟨⟨⟨-, -, -, hρ⟩, hwf⟩, ht⟩, hst⟩
+    exact ⟨hwf, ht, (stackFitsB_eq_true_iff ht).mp hst, hρ⟩
+  · rintro ⟨hwf, ht, hst, hρ⟩
+    exact ⟨⟨⟨⟨hst.bounds.1, hst.bounds.2, hst.steps_le ht.2, hρ⟩, hwf⟩, ht⟩,
+      (stackFitsB_eq_true_iff ht).mpr hst⟩
+
+/-- **Every proof the guarded prover returns is accepted**, with no hypothesis: it proves only
+after its checks pass, and then `proveExecution_complete` applies. -/
+theorem verify_proveChecked {fuel : ℕ} {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} {proof : Proof PrunedMerklePaths} (h : proveChecked fuel prog input t ρ = some proof) :
+    verify prog input proof = true := by
+  unfold proveChecked at h
+  split_ifs at h with hc
+  obtain ⟨hwf, ht, hst, -⟩ := checkExecution_eq_true_iff.mp hc
+  obtain ⟨-, -, w, -, -, -, hall⟩ := proveExecution_complete hwf ht hst.fits
+  exact (hall fuel ρ).1 proof h
+
+/-- **Under the hypotheses of the random-oracle completeness the guarded prover is
+`proveExecution`.** -/
+theorem proveChecked_eq (fuel : ℕ) {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hstack : StackFits prog t) (hρ : validRate ρ) :
+    proveChecked fuel prog input t ρ = proveExecution fuel prog input t ρ := by
+  have hc : checkExecution prog input t ρ = true :=
+    checkExecution_eq_true_iff.mpr ⟨hwf, ht, hstack, hρ⟩
+  simp only [proveChecked, hc, ↓reduceIte]
 
 end
 

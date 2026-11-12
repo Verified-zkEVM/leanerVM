@@ -32,7 +32,7 @@ jobs:
           use-github-cache: true
           use-mathlib-cache: auto
       - name: Build the executables
-        run: lake build leanervm-verify leanervm-prove
+        run: lake build leanervm-verify leanervm-prove leanervm-witgen
       - name: Verifier on the Rust proof and its mutations
         run: .lake/build/bin/leanervm-verify 1
       - name: Verifier on the committed vector and its mutations
@@ -52,3 +52,11 @@ jobs:
         run: .lake/build/bin/leanervm-prove m3
       - name: Proof of a statement with no execution
         run: .lake/build/bin/leanervm-prove sentinel
+      # The step takes about 90 s; the timeout fails the job on a tenfold slowdown of the prover.
+      - name: Guarded prover from an execution, its checks and the witness generator
+        run: timeout 900 .lake/build/bin/leanervm-prove execution
+      # Each checked-in Rust execution: the decided hypotheses, and the generator's table heights
+      # against the Rust's. The step takes about 10 s; the timeout fails the job on a large
+      # slowdown of the generator.
+      - name: Witness generator on the Rust executions
+        run: timeout 300 .lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz

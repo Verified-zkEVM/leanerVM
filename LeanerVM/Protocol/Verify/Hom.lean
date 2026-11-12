@@ -225,7 +225,7 @@ private theorem walkTail_hom (k : ℕ) : ψ (walkTail ops k) = walkTail (ops.map
   | zero => simp [walkTail]
   | succ k ih => by_cases hk : k = 0 <;> simp [walkTail, ih, hk, nextScalars_hom, ChainOps.map]
 
-private theorem positionsWith_hom (s : n E) (depth fuel need : ℕ) :
+theorem positionsWith_hom (s : n E) (depth fuel need : ℕ) :
     ψ (positionsWith s depth fuel need) = positionsWith (ψ s) depth fuel need := by
   induction fuel generalizing need with
   | zero => simp [positionsWith]

@@ -48,6 +48,15 @@ import LeanerVMTests.Protocol.LogScan
   `JUMP`, `verify` accepts every proof `prove` returns for its witness, and the program has no
   valid execution on the input over any memory. The `leanervm-prove sentinel` executable runs
   `prove` on that witness and checks that `verify` accepts its proof.
+* **Completeness from an execution.** Every hypothesis of `proveExecution_complete` and
+  `proveExecution_rom_complete` is proved at the one-step trace of the ladder program, its stack
+  by the sufficient condition `StackFits.of_short`, so neither is vacuous there. No trace of
+  memory log-size `25` has a stack that fits (`not_stackFits_of_le`), and the check `stackFitsRowsB`
+  fails there and on a `BLAKE2S` table of `2^20` rows, whose Flock region alone is `2^28` cells.
+  The guarded prover is `proveExecution` on the one-step trace, and returns none at an invalid
+  rate, at memory log-size `25` and on a trace announcing `2^40` steps of a run that never halts
+  (both by its first, constant-time check), on a trace that is no execution, and on ill-formed
+  bytecode.
 -/
 
 namespace LeanerVMTests.Protocol.Headline
@@ -59,7 +68,7 @@ open LeanerVMTests.Protocol.Proof (program input)
 open LeanerVMTests.Protocol.RandomOracleGame (d nodeA nodeV)
 open LeanerVMTests.Arithmetization.Statement (fillProg mulInput)
 open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe)
-open LeanerVMTests.Semantics.FillBlocks (ladderProg ladder_wellFormed)
+open LeanerVMTests.Semantics.FillBlocks (ladderProg ladder_wellFormed ladderNoXor)
 open LeanerVMTests.Semantics.PaddedImageRefutation (ladderJumpProg badInput ladderJump_wellFormed)
 open LeanerVMTests.Arithmetization.Completeness.Theorem (badTrace badTrace_valid badTrace_fits)
 open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW sent_not_safe sent_satisfiedBy
@@ -329,23 +338,82 @@ example (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
 
 /- **The completeness headline at an instance**: its hypotheses hold of the one-step trace of
 well-formed bytecode in the completeness tests, so its conclusion is not vacuous there, the
-conjunct on when `prove` returns a proof included. -/
-example : ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
-    ValidExecution ladderJumpProg badInput t' ∧
-      ∃ w : Air.Flat.EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
-        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
-          ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
-            (∀ proof, prove fuel ladderJumpProg badInput w ρ = some proof →
-              verify ladderJumpProg badInput proof = true) ∧
-            (prove fuel ladderJumpProg badInput w ρ = none →
-              maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
-                ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
-                  Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
-            (leanIsaμ ladderJumpProg s ≤ maxMu → validRate ρ →
-              (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
-                Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
-              prove fuel ladderJumpProg badInput w ρ ≠ none) :=
-  prove_complete_of_execution ladderJump_wellFormed badTrace_valid badTrace_fits
+conjunct on when `proveExecution` returns a proof included. The witness is the generator's. -/
+example : (padTrace badTrace (fillStarts ladderJumpProg)).PaddedFrom badTrace ∧
+    ValidExecution ladderJumpProg badInput (padTrace badTrace (fillStarts ladderJumpProg)) ∧
+    ∃ w, witnessGen ladderJumpProg badInput badTrace = some w ∧
+      SatisfiedBy ladderJumpProg badInput w ∧
+      AssignmentRepresents w (padTrace badTrace (fillStarts ladderJumpProg)) ∧ ∀ fuel ρ,
+        (∀ proof, proveExecution fuel ladderJumpProg badInput badTrace ρ = some proof →
+          verify ladderJumpProg badInput proof = true) ∧
+        (proveExecution fuel ladderJumpProg badInput badTrace ρ = none →
+          ¬ StackFits ladderJumpProg badTrace ∨ ¬ validRate ρ ∨
+            ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
+              Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
+        (StackFits ladderJumpProg badTrace → validRate ρ →
+          (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
+            Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
+          proveExecution fuel ladderJumpProg badInput badTrace ρ ≠ none) :=
+  proveExecution_complete ladderJump_wellFormed badTrace_valid badTrace_fits
+
+/-- The one-step trace's stack fits: memory `2^16`, a program of `2^11` slots, one step. -/
+theorem badTrace_stackFits : StackFits ladderJumpProg badTrace :=
+  StackFits.of_short badTrace_valid.2 (by decide) (by decide) (by decide)
+
+/- **The random-oracle completeness headline at the same instance**, at the default fuel and rate
+`1`, every hypothesis proved. -/
+example : Pr{let z ← runRandom (honestExecutionGame (2 ^ 24) ladderJumpProg badInput badTrace 1)}[
+      z.1 = false] ≤ (2 ^ 154 : ℝ≥0∞)⁻¹ :=
+  proveExecution_rom_complete_default ladderJump_wellFormed badTrace_valid badTrace_stackFits
+    (by decide)
+
+/-- No trace of memory log-size `25` has a stack that fits, whatever its run. -/
+example : ¬ StackFits ladderJumpProg ⟨25, fun _ ↦ 0, 1⟩ := not_stackFits_of_le le_rfl
+
+-- The check agrees: the one-step trace's rows fit at memory log-size `16`, and at `24` with no
+-- rows; at `25` nothing fits, and at `16` a `BLAKE2S` table of `2^20` rows does not.
+#guard stackFitsRowsB ladderJumpProg 16 fun op ↦ if op = .jump then 1 else 0
+#guard stackFitsRowsB ladderJumpProg 24 fun _ ↦ 0
+#guard !stackFitsRowsB ladderJumpProg 25 fun _ ↦ 0
+#guard !stackFitsRowsB ladderJumpProg 16 fun op ↦ if op = .blake2s then 2 ^ 20 else 0
+
+/-- The guarded prover is `proveExecution` on the one-step trace. -/
+example (fuel : ℕ) : proveChecked fuel ladderJumpProg badInput badTrace 1 =
+    proveExecution fuel ladderJumpProg badInput badTrace 1 :=
+  proveChecked_eq fuel ladderJump_wellFormed badTrace_valid badTrace_stackFits (by decide)
+
+/-- At an invalid rate the guarded prover returns none, at every fuel. -/
+example (fuel : ℕ) : proveChecked fuel ladderJumpProg badInput badTrace 5 = none := by
+  have h : checkExecution ladderJumpProg badInput badTrace 5 = false :=
+    Bool.eq_false_iff.mpr fun h ↦ absurd (checkExecution_eq_true_iff.mp h).2.2.2 (by decide)
+  simp [proveChecked, h]
+
+/-- The stack of the one-step trace fits, so it fits the caps. -/
+example : badTrace.Fits := badTrace_stackFits.fits
+
+/-- At memory log-size `25` the guarded prover returns none by its first, constant-time check,
+before it reads the trace. -/
+example (fuel : ℕ) : proveChecked fuel ladderJumpProg badInput ⟨25, fun _ ↦ 0, 1⟩ 1 = none := by
+  unfold proveChecked
+  split_ifs with hc
+  · exact absurd hc (by decide)
+  · rfl
+
+-- The stack check itself fails there before it builds its table of powers.
+#guard !stackFitsB ladderJumpProg ⟨25, fun _ ↦ 0, 1⟩
+
+-- On a trace that is no execution (no step, so the run does not reach the sentinel) the guarded
+-- prover returns none; so it does on ill-formed bytecode (no `XOR` block), with the same image.
+#guard (proveChecked 0 ladderJumpProg badInput ⟨badTrace.κ, badTrace.image, 0⟩ 1).isNone
+#guard (proveChecked 0 ladderNoXor badInput ⟨badTrace.κ, badTrace.image, 1⟩ 1).isNone
+
+/-- The one-step trace's image with the word that makes the ladder's `JUMP` jump back to itself
+in the same frame, so the run never halts, announced at `2^40` steps. -/
+def loopTrace : Trace ladderJumpProg :=
+  ⟨minLogMem, LeanerVMTests.Semantics.PaddedImageRefutation.badImage (gpow 0), 2 ^ 40⟩
+
+-- The guarded prover rejects it at once, by the bound on the steps, without stepping the run.
+#guard (proveChecked 0 ladderJumpProg badInput loopTrace 1).isNone
 
 /-! ## The adaptive theorems -/
 

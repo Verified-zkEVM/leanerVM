@@ -44,6 +44,11 @@ This directory contains stable project and operating knowledge.
   - [headline-over-executions.md](reviews/headline-over-executions.md): the review of the
     headline theorems over leanISA executions (2026-10-29), whose findings the branch now meets
     (the grind clause on the prover's run, the positive completeness conjunct; disposition table).
+  - [witness-generation.md](reviews/witness-generation.md): the verified witness generator and
+    completeness from an execution (#192) and its adversarial review (2026-11-12), whose findings
+    the branch meets (the redundant `Trace.Fits` hypothesis dropped, the guarded checks' bounds
+    first, the audit surface, the CI lane for the executions; disposition table), with the open
+    question of the memory layout.
   - [public-input-phase.md](reviews/public-input-phase.md): the review of the public-input
     phase (2026-09-29), whose findings the branch now meets (the two checks that are not
     equivalent, one output, the line's `sent` flag, the shared lemmas).

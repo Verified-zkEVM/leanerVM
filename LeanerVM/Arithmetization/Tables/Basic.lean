@@ -52,10 +52,10 @@ def instructionStep (pc fp rbc : Expression K) (next : Var Regs K) (op : Opcode)
 /-- The witness-generation metadata of an opcode table, which Clean's `Component` requires: a
 demand component on the state channel that pulls a pushed state into its first two cells
 (every table's `pc`, `fp`), the other cells placeholders. It is guardless metadata, not a
-witness generator: Clean's `DemandMode.guard` defaults to accepting every message, so Clean's
-generator run on the ensemble would put a row for every pushed state in all six tables, and
-the result does not satisfy the constraints. No theorem uses Clean's generator; the witness of
-constraint completeness is built from the trace. A guard telling the tables apart would read
+witness generator: Clean's `DemandMode.guard` defaults to accepting every message, so all six
+tables accept every pushed state, and Clean's generator stops at the first with
+`ambiguousDemand`. No theorem uses Clean's generator; the witness of constraint completeness is
+built from the trace. A guard telling the tables apart would read
 the opcode at the state's `pc`, so it would need the program in a hint, which the prover data
 does not carry. -/
 def opcodeGeneration (Row : TypeMap) [ProvableType Row] :

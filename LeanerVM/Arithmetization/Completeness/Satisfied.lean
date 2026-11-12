@@ -684,7 +684,7 @@ private theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K �
   rfl
 
 /-- An opcode's table of the padded rows has a row per skeleton of the opcode. -/
-private theorem opRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) (op : Opcode) :
+theorem opRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) (op : Opcode) :
     (opRows img (padRows img S) op).length = Skel.count op S := by
   rw [opRows, List.length_map, padRows, length_filter_mkRows]
 
