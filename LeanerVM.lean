@@ -284,7 +284,6 @@ import LeanerVM.Semantics.PaddedImage
 import LeanerVM.Semantics.PaddedRows
 import LeanerVM.Semantics.PaddedRun
 import LeanerVM.Semantics.PaddedTrace
-import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.Walk

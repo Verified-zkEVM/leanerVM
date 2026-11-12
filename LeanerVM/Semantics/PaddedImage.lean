@@ -143,7 +143,7 @@ theorem padTrace_from {prog : Program} (t : Trace prog) (pcs : Opcode → ℕ �
 
 /-- The frames fit above the image: the last cell of the last frame is below `2^(κ + 1)`, for a
 memory of at least `2^10` cells. -/
-theorem frameBase_add_lt {κ : ℕ} (hκ : 10 ≤ κ) {c o : ℕ} (hc : c < 48) (ho : o < 12) :
+private theorem frameBase_add_lt {κ : ℕ} (hκ : 10 ≤ κ) {c o : ℕ} (hc : c < 48) (ho : o < 12) :
     frameBase κ c + o < 2 ^ (κ + 1) := by
   have h : 2 ^ 10 ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ
   have h2 : 2 ^ (κ + 1) = 2 * 2 ^ κ := by ring
@@ -151,7 +151,7 @@ theorem frameBase_add_lt {κ : ℕ} (hκ : 10 ≤ κ) {c o : ℕ} (hc : c < 48) 
   omega
 
 /-- Offset `o` of frame `8 * tableIdx t + k` is the frame cell of the cycle `(t, k)`. -/
-theorem padCell_frame (w0 : E) (pcs : Opcode → ℕ → ℕ) (κ : ℕ) (t : Opcode) {k o : ℕ}
+private theorem padCell_frame (w0 : E) (pcs : Opcode → ℕ → ℕ) (κ : ℕ) (t : Opcode) {k o : ℕ}
     (hk : k < 8) (ho : o < 12) :
     padCell w0 pcs κ (12 * (8 * tableIdx t + k) + o) =
       frameCell w0 (pcs t (sizeAt k)) (frameBase κ (8 * tableIdx t + k)) t o := by

@@ -43,7 +43,8 @@ private def compressSpec (h : Vector UInt32 8) (m : Vector UInt32 16) (t : UInt6
 
 -- One round on the working words, under every schedule row.
 #guard (List.range 10).all fun r ↦
-  (Blake2s.roundFast (wordsOf 16 r) (wordsOf 16 (r + 5)) (sigma.toList.getD r sigma[0])).toList ==
+  (Blake2s.roundWords (.ofVector (wordsOf 16 r)) (wordsOf 16 (r + 5))
+      (sigma.toList.getD r sigma[0])).toVector.toList ==
     (Blake2s.round (wordsOf 16 r) (wordsOf 16 (r + 5)) (sigma.toList.getD r sigma[0])).toList
 
 -- Each rotation, against `BitVec.rotateRight`.

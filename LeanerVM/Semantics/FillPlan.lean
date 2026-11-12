@@ -34,7 +34,7 @@ steps contains a taken jump, since `g` has that order
 its own fill is delivered by its own blocks, whose traversals give it `s + 1` rows
 (`s` dummies that fall through, and the closing jump). The smallest traversal gives two rows, so a
 gap of exactly one row is the one amount that cannot be delivered, and every other gap is a sum of
-twos and threes (`jump_gap_decomp`). `JumpFeasible owed` says some power of two within the row cap
+twos and threes (`jumpMix_spec`). `JumpFeasible owed` says some power of two within the row cap
 is at least the rows owed and is not one more than them (`cpu/filler.rs:131-132`, `:169-176`).
 
 This is a plan, not the Rust's `solve`: Layer 10 needs the existence of one, and matching the
@@ -97,36 +97,11 @@ theorem le_fillTarget (n floor : ℕ) : n ≤ fillTarget n floor :=
 theorem floor_le_fillTarget (n floor : ℕ) : floor ≤ fillTarget n floor :=
   (le_max_right n floor).trans <| (le_max_left _ 1).trans (Nat.le_pow_clog (by norm_num) _)
 
-/-- The target is a power of two. -/
-theorem fillTarget_pow (n floor : ℕ) : ∃ τ, fillTarget n floor = 2 ^ τ := ⟨_, rfl⟩
-
-/-- The target is positive. -/
-theorem fillTarget_pos (n floor : ℕ) : 0 < fillTarget n floor := Nat.two_pow_pos _
-
 /-- A power of two that holds the rows and the floor holds the target. -/
 theorem fillTarget_le {n floor τ : ℕ} (hn : n ≤ 2 ^ τ) (hf : floor ≤ 2 ^ τ) :
     fillTarget n floor ≤ 2 ^ τ :=
   Nat.pow_le_pow_right (by norm_num)
     ((Nat.clog_le_iff_le_pow (by norm_num)).mpr (max_le (max_le hn hf) (Nat.one_le_two_pow)))
-
-/-- The target of a count that is already a power of two, above the floor, is that count. -/
-theorem fillTarget_eq {n floor τ : ℕ} (h : max (max n floor) 1 = 2 ^ τ) :
-    fillTarget n floor = 2 ^ τ := by
-  rw [fillTarget, h, Nat.clog_pow _ _ (by norm_num)]
-
-/-- The traversals deliver the fill exactly: the size-`s` blocks, traversed as `fillGreedy p`
-says, hold `p` rows in all. -/
-theorem fillGreedy_sum (p : ℕ) : (List.zipWith (· * ·) (fillGreedy p) fillSizes).sum = p := by
-  simp only [fillGreedy, fillSizes, List.zipWith_cons_cons, List.zipWith_nil_left, List.sum_cons,
-    List.sum_nil]
-  omega
-
-/-- A table with `n` rows reaches its target: its rows and the rows of the traversals add up. -/
-theorem fill_rows_sum (n floor : ℕ) :
-    n + (List.zipWith (· * ·) (fillGreedy (fillTarget n floor - n)) fillSizes).sum =
-      fillTarget n floor := by
-  rw [fillGreedy_sum]
-  exact Nat.add_sub_cancel' (le_fillTarget n floor)
 
 /-- The bulk of a fill rides the largest block: one closing jump per `128` rows, and at most seven
 more for the remainder (`cpu/filler.rs:262-275`, `fill_uses_bulk_blocks`). -/
@@ -156,11 +131,6 @@ theorem jumpMix_spec {gap : ℕ} (h : gap ≠ 1) :
     2 * (jumpMix gap).1 + 3 * (jumpMix gap).2 = gap := by
   unfold jumpMix
   split_ifs with he <;> simp only <;> omega
-
-/-- Every gap but one is a sum of twos and threes, the rows of a traversal of the size-one and the
-size-two `JUMP` block (`cpu/filler.rs:128-147`). -/
-theorem jump_gap_decomp (gap : ℕ) (h : gap ≠ 1) : ∃ a b : ℕ, gap = 2 * a + 3 * b :=
-  ⟨_, _, (jumpMix_spec h).symm⟩
 
 /-- A `JUMP` table owing at most `2^31` rows can be filled: the cap `2^32` is a power of two
 that is neither too small nor one more than the rows owed. -/

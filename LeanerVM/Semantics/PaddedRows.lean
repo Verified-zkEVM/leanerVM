@@ -78,20 +78,14 @@ theorem Skel.count_append (op : Opcode) (a b : List Skel) :
   simp [Skel.count, Skel.onTable, List.filter_append]
 
 /-- The rows of a table in a family concatenated over a list are the sum over the list. -/
-theorem Skel.count_flatMap {α : Type} (op : Opcode) (f : α → List Skel) (l : List α) :
+private theorem Skel.count_flatMap {α : Type} (op : Opcode) (f : α → List Skel) (l : List α) :
     Skel.count op (l.flatMap f) = (l.map fun a ↦ Skel.count op (f a)).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => rw [List.flatMap_cons, Skel.count_append, ih, List.map_cons, List.sum_cons]
+  simp [Skel.count, Skel.onTable, List.filter_flatMap, List.length_flatMap]
 
 /-- `n` copies of a list of skeletons have `n` times its rows of a table. -/
-theorem Skel.count_replicate_flatten (op : Opcode) (l : List Skel) (n : ℕ) :
+private theorem Skel.count_replicate_flatten (op : Opcode) (l : List Skel) (n : ℕ) :
     Skel.count op (List.replicate n l).flatten = n * Skel.count op l := by
-  induction n with
-  | zero => simp [Skel.count, Skel.onTable]
-  | succ n ih =>
-    rw [List.replicate_succ, List.flatten_cons, Skel.count_append, ih, Nat.succ_mul]
-    omega
+  simp [Skel.count, Skel.onTable, List.filter_flatten, List.length_flatten]
 
 /-- A traversal of the cycle `(t, k)` gives table `t` its `s` dummies and the `JUMP` table its
 closing jump; when `t` is `JUMP` the table has both. -/
@@ -145,7 +139,7 @@ def planTraversals (count : Opcode → ℕ → ℕ) (t : Opcode) : ℕ :=
   ((List.range 8).map fun k ↦ count t k).sum
 
 /-- A sum of counts times a size plus a constant splits into the two sums. -/
-theorem sum_map_mul_add (l : List ℕ) (c A : ℕ → ℕ) (B : ℕ) :
+private theorem sum_map_mul_add (l : List ℕ) (c A : ℕ → ℕ) (B : ℕ) :
     (l.map fun k ↦ c k * (A k + B)).sum = (l.map fun k ↦ c k * A k).sum + B * (l.map c).sum := by
   induction l with
   | nil => simp
@@ -155,7 +149,7 @@ theorem sum_map_mul_add (l : List ℕ) (c A : ℕ → ℕ) (B : ℕ) :
 
 /-- The rows of a table in a fill: its own dummies, and for the `JUMP` table the closing jump of
 every traversal. -/
-theorem Skel.count_padSkels (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (count : Opcode → ℕ → ℕ)
+private theorem Skel.count_padSkels (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (count : Opcode → ℕ → ℕ)
     (op : Opcode) :
     Skel.count op (padSkels κ pcs count) =
       (fillTables.map fun t ↦ (if t = op then planDummies count t else 0) +
@@ -197,7 +191,7 @@ theorem tableHeight_eq_pow (rows : Opcode → ℕ) (τ : ℕ) (op : Opcode) :
   split_ifs <;> rfl
 
 /-- A table other than `JUMP` fills itself: its own dummies are the fill. -/
-theorem planDummies_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht : t ≠ .jump) :
+private theorem planDummies_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht : t ≠ .jump) :
     planDummies (planCount rows τ) t = fillTarget (rows t) (minRows t) - rows t := by
   simp only [planDummies, planCount, ht, ↓reduceIte]
   simp [List.range_succ, sizeAt, fillSizes, fillGreedy]
@@ -209,13 +203,13 @@ def fillJumps (rows : Opcode → ℕ) (op : Opcode) : ℕ :=
   fillTraversals (fillTarget (rows op) (minRows op) - rows op)
 
 /-- The rows the `JUMP` table owes: its own, and the closing jumps of every other table's fill. -/
-theorem jumpOwed_eq (rows : Opcode → ℕ) :
+private theorem jumpOwed_eq (rows : Opcode → ℕ) :
     jumpOwed rows = rows .jump + (fillJumps rows .xor + (fillJumps rows .mulNative +
       (fillJumps rows .setConstant + (fillJumps rows .deref + (fillJumps rows .blake2s + 0))))) :=
   rfl
 
 /-- The traversals of a table other than `JUMP` are the plan's. -/
-theorem planTraversals_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht : t ≠ .jump) :
+private theorem planTraversals_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht : t ≠ .jump) :
     planTraversals (planCount rows τ) t = fillJumps rows t := by
   unfold fillJumps
   simp only [planTraversals, planCount, ht, ↓reduceIte]
@@ -223,14 +217,14 @@ theorem planTraversals_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht
 
 /-- The `JUMP` table's own dummies: one per traversal of the size-one block, two of the size-two
 block. -/
-theorem planDummies_jump (rows : Opcode → ℕ) (τ : ℕ) :
+private theorem planDummies_jump (rows : Opcode → ℕ) (τ : ℕ) :
     planDummies (planCount rows τ) .jump =
       (jumpMix (2 ^ τ - jumpOwed rows)).1 + 2 * (jumpMix (2 ^ τ - jumpOwed rows)).2 := by
   simp [planDummies, planCount, List.range_succ, sizeAt, fillSizes]
   omega
 
 /-- The traversals of the `JUMP` table's own blocks. -/
-theorem planTraversals_jump (rows : Opcode → ℕ) (τ : ℕ) :
+private theorem planTraversals_jump (rows : Opcode → ℕ) (τ : ℕ) :
     planTraversals (planCount rows τ) .jump =
       (jumpMix (2 ^ τ - jumpOwed rows)).1 + (jumpMix (2 ^ τ - jumpOwed rows)).2 := by
   simp [planTraversals, planCount, List.range_succ]
@@ -240,7 +234,8 @@ theorem planTraversals_jump (rows : Opcode → ℕ) (τ : ℕ) :
 /-! ## The count -/
 
 /-- A table other than `JUMP` has its target: its run rows and its fill add up. -/
-theorem plan_rows_of_ne (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (rows : Opcode → ℕ) (τ : ℕ) {op : Opcode}
+private theorem plan_rows_of_ne (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (rows : Opcode → ℕ) (τ : ℕ)
+    {op : Opcode}
     (hop : op ≠ .jump) :
     rows op + Skel.count op (padSkels κ pcs (planCount rows τ)) =
       fillTarget (rows op) (minRows op) := by
@@ -255,7 +250,7 @@ theorem plan_rows_of_ne (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (rows : Opcode
 
 /-- The `JUMP` table has `2^τ` rows: its run rows, the closing jump of every traversal of every
 other table, and the rows of its own blocks, which fill the gap exactly. -/
-theorem plan_rows_jump (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (rows : Opcode → ℕ) {τ : ℕ}
+private theorem plan_rows_jump (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (rows : Opcode → ℕ) {τ : ℕ}
     (h1 : jumpOwed rows ≤ 2 ^ τ) (h2 : 2 ^ τ ≠ jumpOwed rows + 1) :
     rows .jump + Skel.count .jump (padSkels κ pcs (planCount rows τ)) = 2 ^ τ := by
   have hspec := jumpMix_spec (gap := 2 ^ τ - jumpOwed rows) (by omega)

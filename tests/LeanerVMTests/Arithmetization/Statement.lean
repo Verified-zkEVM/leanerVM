@@ -222,12 +222,6 @@ theorem fromElements_rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) :
     (fromElements (Air.Flat.rowPrefix (size Row) (rawRow r)) : Row K) = r :=
   fromElements_rowPrefix r
 
-/-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
-theorem cons_append_ops (e : Vector K 8) :
-    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
-  ext j hj
-  interval_cases j <;> rfl
-
 /-- A table of the witness: a component and its rows. A demand component has no fixed column. -/
 def mkT (c : Component K) (rows : List (Array K)) (hw : ∀ r ∈ rows, r.size = c.width)
     (hl : rows.length ≤ UInt64.size := by

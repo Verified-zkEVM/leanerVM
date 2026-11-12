@@ -73,15 +73,6 @@ noncomputable def stateAt (t : Trace prog) (k : ℕ) : Regs K :=
 noncomputable def skAt (t : Trace prog) (k : ℕ) : Skel :=
   ⟨(stateAt t k).pc, (stateAt t k).fp, (prog.fetch (stateAt t k).pc).getD fillClose⟩
 
-/-- A list all of whose entries map to `some` is the `filterMap` of the entries' values. -/
-private theorem filterMap_eq_map_of {α β : Type} (p : α → Option β) (f : α → β) (l : List α)
-    (h : ∀ x ∈ l, p x = some (f x)) : l.filterMap p = l.map f := by
-  induction l with
-  | nil => rfl
-  | cons x l ih =>
-    rw [List.filterMap_cons, h x List.mem_cons_self, List.map_cons, ih fun y hy ↦
-      h y (List.mem_cons_of_mem _ hy)]
-
 variable {t : Trace prog}
 
 /-- The run to step `k ≤ steps` reaches `stateAt t k`. -/
@@ -117,7 +108,7 @@ variable {prog : Program} {t : Trace prog}
 theorem regs_eq_map (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
     t.regs = (List.range (t.steps + 1)).map (stateAt t) := by
   unfold Trace.regs
-  exact filterMap_eq_map_of _ _ _ fun k hk ↦ by
+  exact List.filterMap_eq_map_iff_forall_eq_some.mpr fun k hk ↦ by
     simp only [run_stateAt hv (Nat.lt_succ_iff.mp (List.mem_range.mp hk))]
 
 /-- Every state stepped from fetches an instruction that executes to the next state. -/
@@ -126,9 +117,7 @@ theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.fi
     ∃ ins, prog.fetch (stateAt t k).pc = some ins ∧
       execute t.image (stateAt t k) ins = some (stateAt t (k + 1)) := by
   obtain ⟨-, hs⟩ := stateAt_step hv hk
-  unfold step at hs
-  obtain ⟨ins, hf, hex⟩ := Option.bind_eq_some_iff.mp hs
-  exact ⟨ins, hf, hex⟩
+  exact Option.bind_eq_some_iff.mp hs
 
 /-- The instruction of a skeleton of the run is the one fetched. -/
 private theorem skAt_ins {k : ℕ} {ins : Instr} (hf : prog.fetch (stateAt t k).pc = some ins) :
@@ -141,7 +130,7 @@ theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
   unfold Trace.runSkels
   rw [regs_eq_map hv, List.range_succ, List.map_append, List.map_singleton, List.dropLast_concat,
     List.filterMap_map]
-  refine filterMap_eq_map_of _ _ _ fun k hk ↦ ?_
+  refine List.filterMap_eq_map_iff_forall_eq_some.mpr fun k hk ↦ ?_
   obtain ⟨ins, hf, -⟩ := stateAt_exec hv (List.mem_range.mp hk)
   simp only [Function.comp_apply, hf, Option.map_some, skAt, Option.getD_some]
 
@@ -149,13 +138,8 @@ theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
 private theorem skAt_ok (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) : SkelOk prog t.image (skAt t k) := by
   obtain ⟨ins, hf, hex⟩ := stateAt_exec hv hk
-  refine ⟨?_, stateAt t (k + 1), ?_⟩
-  · show prog.fetch (stateAt t k).pc = some (skAt t k).ins
-    rw [skAt_ins hf]
-    exact hf
-  · show execute t.image (stateAt t k) (skAt t k).ins = _
-    rw [skAt_ins hf]
-    exact hex
+  rw [SkelOk, skAt_ins hf]
+  exact ⟨hf, _, hex⟩
 
 /-- The successor of a skeleton of the run is the next state. -/
 private theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
@@ -167,7 +151,8 @@ private theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (
 
 /-- **The run's state pulls and pushes balance with the boundary**: the initial state is pushed,
 the final one pulled, and each state stepped to is stepped from. -/
-theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+private theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some
+    (Regs.final prog)) :
     (#[1, 1] :: t.runSkels.map fun sk ↦ #[(nextOf t.image sk).pc, (nextOf t.image sk).fp]).Perm
       (#[prog.finalPc, 1] :: t.runSkels.map fun sk ↦ #[sk.pc, sk.fp]) := by
   obtain ⟨f, hf⟩ : ∃ f : ℕ → Array K, f = fun k ↦ #[(stateAt t k).pc, (stateAt t k).fp] :=
@@ -224,7 +209,7 @@ private theorem cycleSkels_fetch {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {t : 
     simpa using hb.close
 
 /-- **The skeletons of a fill are sound**: fetched, and they execute over the padded image. -/
-theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
+private theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
     (pcs : Opcode → ℕ → ℕ)
     (hpcs : ∀ t, ∀ k < 8, IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k)))
     (count : Opcode → ℕ → ℕ) :
@@ -267,7 +252,8 @@ end Fill
 
 /-- **A skeleton's row steps.** Every skeleton of the list the witness is built from is a row
 whose one state pull is its state and one state push its successor. -/
-theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ}
+    (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) {sk : Skel}
     (hsk : sk ∈ S) : RowSteps (padWitness prog input img S hκ hS) sk.regs (nextOf img sk) := by
@@ -300,7 +286,7 @@ theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (i
 
 /-- **The witness of a padded execution represents the trace**: the image the data names is the
 trace's, and every step of the trace's register sequence is a row. -/
-theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
+private theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
     (hκ : T.κ ≤ maxLogMem)
     (hv : run prog T.image T.steps Regs.initial = some (Regs.final prog)) (S : List Skel)
     (hS : S.length ≤ UInt64.size)
@@ -336,7 +322,7 @@ noncomputable def padSkelsOf (t : Trace prog) (pcs : Opcode → ℕ → ℕ) (τ
   t.runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)
 
 /-- Every table of the padded skeletons has a power-of-two height within the cap. -/
-theorem padSkelsOf_heights (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
+private theorem padSkelsOf_heights (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
     (h2 : 2 ^ τ ≠ t.owed + 1) (hfit : t.Fits) :
     ∀ op, ∃ σ ≤ maxLogRows, Skel.count op (padSkelsOf t pcs τ) = 2 ^ σ := by
   intro op
