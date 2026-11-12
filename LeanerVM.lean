@@ -224,6 +224,7 @@ import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.MerkleQueries
 import LeanerVM.Protocol.ToVCVio.MonadRel
 import LeanerVM.Protocol.ToVCVio.ProofOfWork
+import LeanerVM.Protocol.ToVCVio.QueryBound
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation

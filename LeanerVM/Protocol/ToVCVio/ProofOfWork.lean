@@ -29,9 +29,6 @@ candidate query keeps the expectation (a martingale step); a fresh base-shaped q
 base, `q^F` in expectation, or up to `1` when the new base already has a cached candidate, which
 happens with probability at most `|c| / |Y|`. Nothing about the order of the queries, or about
 the bases being fresh, is used.
-
-`exists_isTotalQueryBound`: over finite answer types every computation has some query bound, so the
-bound's hypothesis is met by some `N`.
 -/
 
 namespace LeanerVM.Protocol
@@ -74,29 +71,30 @@ def Exhausted (c : (D →ₒ Y).QueryCache) : Prop :=
   ∃ b, S.Counted c b ∧ ∀ n < S.F, ∃ d, c (S.cand b n) = some d ∧ ¬ S.ok d
 
 /-- Some candidate of `b` below `F` is cached with a passing answer. -/
-def Found (c : (D →ₒ Y).QueryCache) (b : Y) : Prop :=
+private def Found (c : (D →ₒ Y).QueryCache) (b : Y) : Prop :=
   ∃ n < S.F, ∃ d, c (S.cand b n) = some d ∧ S.ok d
 
 open Classical in
 /-- The number of candidates of `b` below `F` the cache holds. -/
-noncomputable def asked (c : (D →ₒ Y).QueryCache) (b : Y) : ℕ :=
+private noncomputable def asked (c : (D →ₒ Y).QueryCache) (b : Y) : ℕ :=
   ((Finset.range S.F).filter fun n ↦ (c (S.cand b n)).isSome).card
 
 open Classical in
 /-- The probability that the search from `b` fails, given the cache: `0` once a candidate
 passed, `q` to the number of candidates not yet asked otherwise. -/
-noncomputable def failProb (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (b : Y) : ℝ≥0∞ :=
+private noncomputable def failProb (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (b : Y) : ℝ≥0∞ :=
   if S.Found c b then 0 else q ^ (S.F - S.asked c b)
 
 open Classical in
 /-- The potential: the failure probabilities of the counted bases, summed. -/
-noncomputable def potential [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) : ℝ≥0∞ :=
+private noncomputable def potential [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) : ℝ≥0∞ :=
   ∑ b, if S.Counted c b then S.failProb q c b else 0
 
 open Classical in
 /-- The charge of a fresh query: a base-shaped one adds `q^F`, and `|c| / |Y|` for a base whose
 candidates were asked before it. -/
-noncomputable def charge [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (t : D) : ℝ≥0∞ :=
+private noncomputable def charge [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (t : D) :
+    ℝ≥0∞ :=
   if S.isBase t then q ^ S.F + c.enncard / Fintype.card Y else 0
 
 /-! ## The cache after a fresh query -/
@@ -106,14 +104,14 @@ section Step
 variable [DecidableEq D] {c : (D →ₒ Y).QueryCache} {t : D}
 
 /-- A query that is not base-shaped counts no new base. -/
-theorem counted_cacheQuery_of_not_base (ht : ¬ S.isBase t) (u : Y) (b : Y) :
+private theorem counted_cacheQuery_of_not_base (ht : ¬ S.isBase t) (u : Y) (b : Y) :
     S.Counted (c.cacheQuery t u) b ↔ S.Counted c b := by
   refine or_congr Iff.rfl (exists_congr fun x ↦ and_congr_right fun hx ↦ ?_)
   have hxt : x ≠ t := fun h ↦ ht (h ▸ hx)
   rw [QueryCache.cacheQuery_of_ne _ _ hxt]
 
 /-- A fresh base-shaped query counts its answer as one more base. -/
-theorem counted_cacheQuery_of_base (hc : c t = none) (ht : S.isBase t) (u : Y) (b : Y) :
+private theorem counted_cacheQuery_of_base (hc : c t = none) (ht : S.isBase t) (u : Y) (b : Y) :
     S.Counted (c.cacheQuery t u) b ↔ S.Counted c b ∨ b = u := by
   constructor
   · rintro (h | ⟨x, hx, hxb⟩)
@@ -132,7 +130,8 @@ theorem counted_cacheQuery_of_base (hc : c t = none) (ht : S.isBase t) (u : Y) (
     · exact .inr ⟨t, ht, QueryCache.cacheQuery_self _ _ _⟩
 
 /-- A query no candidate of `b` below `F` leaves `b`'s failure probability as it was. -/
-theorem failProb_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b n ≠ t) (u : Y) :
+private theorem failProb_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b n ≠ t)
+    (u : Y) :
     S.failProb q (c.cacheQuery t u) b = S.failProb q c b := by
   have hc : ∀ n < S.F, (c.cacheQuery t u) (S.cand b n) = c (S.cand b n) := fun n hn ↦
     QueryCache.cacheQuery_of_ne _ _ (hb n hn)
@@ -150,7 +149,8 @@ theorem failProb_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.
 
 omit [DecidableEq D] in
 /-- A search with no candidate asked fails with probability `q^F`. -/
-theorem failProb_of_not_asked (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, c (S.cand b n) = none) :
+private theorem failProb_of_not_asked (q : ℝ≥0∞) (b : Y)
+    (hb : ∀ n < S.F, c (S.cand b n) = none) :
     S.failProb q c b = q ^ S.F := by
   have hF : ¬ S.Found c b := fun ⟨n, hn, d, hd, _⟩ ↦ by rw [hb n hn] at hd; cases hd
   have ha : S.asked c b = 0 := by
@@ -163,7 +163,7 @@ theorem failProb_of_not_asked (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, c (S.c
 
 omit [DecidableEq D] in
 /-- A failure probability is at most `1`. -/
-theorem failProb_le_one {q : ℝ≥0∞} (hq1 : q ≤ 1) (b : Y) : S.failProb q c b ≤ 1 := by
+private theorem failProb_le_one {q : ℝ≥0∞} (hq1 : q ≤ 1) (b : Y) : S.failProb q c b ≤ 1 := by
   unfold failProb
   split_ifs
   exacts [zero_le_one, pow_le_one₀ zero_le hq1]
@@ -171,7 +171,7 @@ theorem failProb_le_one {q : ℝ≥0∞} (hq1 : q ≤ 1) (b : Y) : S.failProb q 
 omit [DecidableEq D] in
 /-- A search whose `F` candidates are all cached with failing answers has failed: probability
 `1`. -/
-theorem failProb_eq_one (q : ℝ≥0∞) (b : Y)
+private theorem failProb_eq_one (q : ℝ≥0∞) (b : Y)
     (hb : ∀ n < S.F, ∃ d, c (S.cand b n) = some d ∧ ¬ S.ok d) :
     S.failProb q c b = 1 := by
   have hF : ¬ S.Found c b := fun ⟨n, hn, d, hd, hok⟩ ↦ by
@@ -199,7 +199,7 @@ private theorem lintegral_ite_const {α : Type} (mx : ProbComp α) (p : α → P
 
 /-- At a fresh query, the expected failure probability of any base's search is at most what it
 was: unchanged unless the query is one of its candidates, a martingale step if it is. -/
-theorem lintegral_failProb_le [SampleableType Y] {q : ℝ≥0∞}
+private theorem lintegral_failProb_le [SampleableType Y] {q : ℝ≥0∞}
     (hq : Pr{let u ← $ᵗ Y}[¬ S.ok u] ≤ q) (hc : c t = none) (b : Y) :
     ∫⁻ r, r ∂𝒟[(fun u ↦ S.failProb q (c.cacheQuery t u) b) <$> ($ᵗ Y)] ≤ S.failProb q c b := by
   classical
@@ -265,7 +265,7 @@ theorem lintegral_failProb_le [SampleableType Y] {q : ℝ≥0∞}
 
 omit [DecidableEq D] in
 /-- At most `|c|` bases have a candidate the cache holds. -/
-theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [DecidablePred fun b ↦
+private theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [DecidablePred fun b ↦
     ∃ n < S.F, (c (S.cand b n)).isSome] :
     ((Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome).card : ℝ≥0∞) ≤
       c.enncard := by
@@ -293,8 +293,8 @@ theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [DecidablePred f
 omit [DecidableEq D] in
 /-- The expected failure probability of the search from a uniform base: `q^F`, or up to `1` for
 the at most `|c|` bases the cache holds a candidate of. -/
-theorem lintegral_failProb_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞} (hq1 : q ≤ 1)
-    (c : (D →ₒ Y).QueryCache) :
+private theorem lintegral_failProb_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
+    (hq1 : q ≤ 1) (c : (D →ₒ Y).QueryCache) :
     ∫⁻ r, r ∂𝒟[(fun u ↦ S.failProb q c u) <$> ($ᵗ Y)] ≤ q ^ S.F + c.enncard / Fintype.card Y := by
   classical
   let T : Y → Prop := fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome
@@ -314,7 +314,7 @@ theorem lintegral_failProb_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥
 
 /-- **The step of the potential**: at a fresh query, the expected potential after the uniform
 answer is at most the potential before plus the charge. -/
-theorem potential_step [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
+private theorem potential_step [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     (hq : Pr{let u ← $ᵗ Y}[¬ S.ok u] ≤ q) (hq1 : q ≤ 1) (hc : c t = none) :
     ∫⁻ r, r ∂𝒟[(fun u ↦ S.potential q (c.cacheQuery t u)) <$> ($ᵗ Y)] ≤
       S.potential q c + S.charge q c t := by
@@ -356,7 +356,8 @@ variable [DecidableEq D]
 
 omit [DecidableEq D] in
 /-- An exhausted search makes the potential at least `1`. -/
-theorem one_le_potential [Fintype Y] {q : ℝ≥0∞} {c : (D →ₒ Y).QueryCache} (h : S.Exhausted c) :
+private theorem one_le_potential [Fintype Y] {q : ℝ≥0∞} {c : (D →ₒ Y).QueryCache}
+    (h : S.Exhausted c) :
     1 ≤ S.potential q c := by
   classical
   obtain ⟨b, hb, hfail⟩ := h
@@ -366,7 +367,7 @@ theorem one_le_potential [Fintype Y] {q : ℝ≥0∞} {c : (D →ₒ Y).QueryCac
 
 omit [DecidableEq D] in
 /-- From the empty cache only the start is counted, with nothing asked. -/
-theorem potential_empty [Fintype Y] (q : ℝ≥0∞) :
+private theorem potential_empty [Fintype Y] (q : ℝ≥0∞) :
     S.potential q (∅ : (D →ₒ Y).QueryCache) = q ^ S.F := by
   classical
   unfold potential
@@ -399,21 +400,6 @@ theorem prEvent_exhausted_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     ring
 
 end PowSearch
-
-/-- **Every computation has a query bound** when every oracle answers in a finite type: a
-computation is a finitely branching tree of finite depth. -/
-theorem exists_isTotalQueryBound {ι : Type} {spec : OracleSpec.{0, 0} ι}
-    [∀ t, Fintype (spec.Range t)] {α : Type} (oa : OracleComp spec α) :
-    ∃ n, IsTotalQueryBound oa n := by
-  classical
-  induction oa using OracleComp.inductionOn with
-  | pure x => exact ⟨0, trivial⟩
-  | query_bind t k ih =>
-    choose n hn using ih
-    refine ⟨Finset.univ.sup n + 1, isTotalQueryBound_query_bind_iff.mpr ⟨Nat.succ_pos _,
-      fun u ↦ (hn u).mono ?_⟩⟩
-    rw [Nat.add_sub_cancel]
-    exact Finset.le_sup (Finset.mem_univ u)
 
 end
 
