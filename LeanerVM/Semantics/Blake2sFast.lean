@@ -204,10 +204,10 @@ private theorem foldl_words (h : Vector UInt32 8) (m : Vector UInt32 16) (t : UI
   decidable_of_iff
     ((∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
       IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md ∧
-      (cellWords out0 ++ cellWords out1).toList =
-        (compressFast (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-          (unpackMetadata md).2.1 (unpackMetadata md).2.2).toList)
-    (by simp only [CompressCells, ← compress_eq_compressFast, Vector.toList_inj])
+      cellWords out0 ++ cellWords out1 =
+        compressFast (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
+          (unpackMetadata md).2.1 (unpackMetadata md).2.2)
+    (by simp only [CompressCells, ← compress_eq_compressFast])
 
 /-- Compiled code decides `CompressCells` through `compressFast`. -/
 @[csimp] theorem instDecidableCompressCells_eq :

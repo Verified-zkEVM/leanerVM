@@ -167,9 +167,7 @@ theorem weightedCubeSum_lowCoords {k n : ℕ} (h : k ≤ n) (w : Fin n → R × 
     congr 1
     funext z
     congr 1
-    apply Vector.ext
-    intro a ha
-    rw [getElem_lowCoords _ _ ha]
+    exact Vector.ext fun a ha ↦ by rw [getElem_lowCoords _ _ ha]
   | succ m ih =>
     rw [weightedCubeSum_succ (k := k + m), hw (Fin.last (k + m)) (by simp), zero_mul, zero_add,
       one_mul]

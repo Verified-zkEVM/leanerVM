@@ -27,23 +27,9 @@ namespace LeanerVM.Protocol
 def sumFin {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
   Fin.foldl n (fun acc i ↦ acc + f i) 0
 
-/-- The loop is the sum. -/
-theorem sumFin_eq_sum {M : Type*} [AddCommMonoid M] : {n : ℕ} → (f : Fin n → M) →
-    sumFin f = ∑ i, f i
-  | 0, f => by simp [sumFin]
-  | n + 1, f => by
-    rw [sumFin, Fin.foldl_succ_last, Fin.sum_univ_castSucc, ← sumFin_eq_sum, sumFin]
-
 /-- `∏_i f i` as a loop over the indices. -/
 def prodFin {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
   Fin.foldl n (fun acc i ↦ acc * f i) 1
-
-/-- The loop is the product. -/
-theorem prodFin_eq_prod {M : Type*} [CommMonoid M] : {n : ℕ} → (f : Fin n → M) →
-    prodFin f = ∏ i, f i
-  | 0, f => by simp [prodFin]
-  | n + 1, f => by
-    rw [prodFin, Fin.foldl_succ_last, Fin.prod_univ_castSucc, ← prodFin_eq_prod, prodFin]
 
 /-- A left fold adding `f i` is the sum of the `f i`. -/
 theorem foldl_add_eq_add_sum {M : Type*} [AddCommMonoid M] :
@@ -60,6 +46,16 @@ theorem foldl_mul_eq_mul_prod {M : Type*} [CommMonoid M] :
   | n + 1, f, a => by
     rw [Fin.foldl_succ_last, foldl_mul_eq_mul_prod (fun i : Fin n ↦ f i.castSucc),
       Fin.prod_univ_castSucc, mul_assoc]
+
+/-- The loop is the sum. -/
+theorem sumFin_eq_sum {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) :
+    sumFin f = ∑ i, f i :=
+  (foldl_add_eq_add_sum f 0).trans (zero_add _)
+
+/-- The loop is the product. -/
+theorem prodFin_eq_prod {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) :
+    prodFin f = ∏ i, f i :=
+  (foldl_mul_eq_mul_prod f 1).trans (one_mul _)
 
 /-- `Σ_i x ^ i · f i` by Horner's rule: `f 0 + x · (f 1 + x · (…))`. -/
 def hornerFin {R : Type*} [CommRing R] {n : ℕ} (f : Fin n → R) (x : R) : R :=

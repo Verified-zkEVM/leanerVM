@@ -37,10 +37,8 @@ def frobPoint {n : ℕ} (k : ℕ) (r : Vector R n) : Vector R n := r.map (· ^ 2
   simp [frobPoint]
 
 /-- Raising to `2 ^ 0 = 1` changes nothing. -/
-@[simp] theorem frobPoint_zero {n : ℕ} (r : Vector R n) : frobPoint 0 r = r := by
-  apply Vector.ext
-  intro i hi
-  simp
+@[simp] theorem frobPoint_zero {n : ℕ} (r : Vector R n) : frobPoint 0 r = r :=
+  Vector.ext fun i hi ↦ by simp
 
 variable [CharP R 2]
 

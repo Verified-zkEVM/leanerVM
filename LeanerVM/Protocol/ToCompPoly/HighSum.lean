@@ -56,9 +56,7 @@ theorem highSum_zero {m : ℕ} (g : Vector R m → R) :
     highSum g 0 #v[] = ∑ x : Fin (2 ^ m), g (boolVec x) := by
   rw [highSum, dite_eq_left (Nat.zero_le m)]
   refine Finset.sum_congr rfl fun x _ ↦ congrArg g ?_
-  apply Vector.ext
-  intro i hi
-  rw [highFix_getElem, dite_eq_left (by omega)]
+  exact Vector.ext fun i hi ↦ by rw [highFix_getElem, dite_eq_left (by omega)]
 
 /-- With everything fixed, the sum is `g` at the reversed challenges. -/
 theorem highSum_self {m : ℕ} (g : Vector R m → R) (c : Vector R m) :

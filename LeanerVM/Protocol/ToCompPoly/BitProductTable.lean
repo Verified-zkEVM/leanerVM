@@ -52,15 +52,11 @@ theorem bitProductTable_getElem {n : ℕ} (f : Fin n → Bool → R) {i : ℕ} (
 `n · 2^n` (`LeanerVM.Protocol.ToCompPoly.Doubling`). -/
 @[csimp] theorem bitProductTable_eq_doublingTable : @bitProductTable = @doublingTable := by
   funext R _ n f
-  apply Vector.ext
-  intro i hi
-  rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
+  exact Vector.ext fun i hi ↦ by rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
 
 theorem map_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R) :
-    CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) := by
-  apply Vector.ext
-  intro i hi
-  simp [CMlPolynomialEval.map, bitProductTable]
+    CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) :=
+  Vector.ext fun i hi ↦ by simp [CMlPolynomialEval.map, bitProductTable]
 
 /-- The extension of a table that factors over the index bits factors over the coordinates. -/
 theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector R n) :
@@ -99,10 +95,8 @@ theorem eval₂Mle_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Boo
 
 /-- The Lagrange basis factors over the index bits. -/
 theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
-    lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] := by
-  apply Vector.ext
-  intro i hi
-  rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
+    lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] :=
+  Vector.ext fun i hi ↦ by rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
 
 /-- A power is the product of the repeated squares its exponent's bits select. -/
 theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
@@ -143,10 +137,8 @@ theorem powersTable_eq_bitProductTable (a : R) (n : ℕ) :
   simp [powersTable]
 
 theorem map_powersTable (φ : R →+* S) (a : R) (n : ℕ) :
-    CMlPolynomialEval.map φ (powersTable a n) = powersTable (φ a) n := by
-  apply Vector.ext
-  intro i hi
-  simp [CMlPolynomialEval.map, powersTable]
+    CMlPolynomialEval.map φ (powersTable a n) = powersTable (φ a) n :=
+  Vector.ext fun i hi ↦ by simp [CMlPolynomialEval.map, powersTable]
 
 /-- The extension of the geometric table is the product of its one-bit interpolants. -/
 theorem evalMle_powersTable (a : R) (n : ℕ) (x : Vector R n) :

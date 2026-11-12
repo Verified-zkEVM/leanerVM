@@ -10,6 +10,7 @@ module
 public import LeanerVM.Parameters.Generator
 public import LeanerVM.Protocol.ToArkLib.InnerProduct
 public import LeanerVM.Protocol.ToCompPoly.BitProductTable
+import CompPoly.Fields.Binary.AdditiveNTT.Coset
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Algebra.CharP.Two
 import Mathlib.LinearAlgebra.StdBasis
@@ -67,11 +68,11 @@ agree on `2^κ` positions encode one message (`encode_eq_of_agree`, the distance
 CompPoly's `Fields/Binary/AdditiveNTT/NovelPolynomialBasis.lean` has the polynomial half generically
 over a basis `β` of a binary field: `W` is `subspaceVanish` as a polynomial, `normalizedW` is
 `normWPoly`, `Xⱼ` is `novelPoly` with `degree_Xⱼ`, `polynomialFromNovelCoeffs` is the polynomial
-of `encode_eq_eval`, and `inductive_linear_map_W`, `inductive_rec_form_W_comp` are
-`subspaceVanish_add`, `subspaceVanish_succ'`. They are restated here at `K` rather than
-instantiated: CompPoly's definitions are noncomputable, take `[Fintype L]` (noncomputable at `K`)
-and an index `Fin r` bounding the stage, while the verifier runs the recursion; the bridge is
-`vanish_eq`.
+of `encode_eq_eval`. They are restated here at `K` rather than instantiated: CompPoly's
+definitions are noncomputable, take `[Fintype L]` (noncomputable at `K`) and an index `Fin r`
+bounding the stage, while the verifier runs the recursion; the bridge is `vanish_eq`. The
+products `subspaceVanish` are CompPoly's `AdditiveNTT.Coset.vanishing` at the basis `e_c`, which
+gives `subspaceVanish_add` and `subspaceVanish_succ'`.
 
 ## Wrong readings excluded
 
@@ -144,11 +145,15 @@ private theorem domainPt_xor (a b : ℕ) : domainPt (a ^^^ b) = domainPt a + dom
   rw [BF64.add_def, BitVec.ofNat_xor]
   rfl
 
-/-- Adding the bit `2 ^ k` to a position below it adds `e_k`. -/
-private theorem domainPt_two_pow_add {k m : ℕ} (hm : m < 2 ^ k) :
-    domainPt (2 ^ k + m) = domainPt (2 ^ k) + domainPt m := by
-  rw [← domainPt_xor, Nat.sum_of_and_eq_zero_is_xor (by
-    simp [Nat.two_pow_and, Nat.testBit_eq_false_of_lt hm])]
+/-- A position below `2 ^ j` plus a multiple of `2 ^ j` adds the points. -/
+theorem domainPt_add_mul {w j : ℕ} (hw : w < 2 ^ j) (c : ℕ) :
+    domainPt (w + c * 2 ^ j) = domainPt w + domainPt (c * 2 ^ j) := by
+  rw [← domainPt_xor, Nat.sum_of_and_eq_zero_is_xor]
+  refine Nat.eq_of_testBit_eq fun i ↦ ?_
+  simp only [Nat.testBit_and, Nat.testBit_mul_two_pow, Nat.zero_testBit]
+  by_cases h : j ≤ i
+  · simp [h, Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hw (Nat.pow_le_pow_right (by norm_num) h))]
+  · simp [h]
 
 /-- Positions below `2 ^ 64` are distinct points of `K`. -/
 theorem domainPt_injOn {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
@@ -158,44 +163,47 @@ theorem domainPt_injOn {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
   simp only [BitVec.toNat_ofNat] at this
   rwa [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
 
-/-- `lem:subspace` (i), before (ii): `V_{k+1}(x) = V_k(x) · V_k(x + e_k)`, by splitting
-`U_{k+1} = U_k ⊔ (e_k + U_k)`. -/
-private theorem subspaceVanish_succ {k : ℕ} (x : K) :
-    subspaceVanish (k + 1) x = subspaceVanish k x * subspaceVanish k (x + domainPt (2 ^ k)) := by
-  unfold subspaceVanish
-  rw [pow_succ, mul_two, Finset.prod_range_add]
-  congr 1
-  refine Finset.prod_congr rfl fun m hm ↦ ?_
-  rw [domainPt_two_pow_add (Finset.mem_range.mp hm), add_assoc]
+/-- The basis element `e_k = g ^ k` is the point of position `2 ^ k`. -/
+theorem basisElt_eq_domainPt : ∀ k < 64, basisElt k = domainPt (2 ^ k) := by decide +kernel
+
+/-- The points below `2 ^ 64` are CompPoly's points of the basis `e_c`. -/
+private theorem domainPt_eq_point : ∀ {k : ℕ}, k ≤ 64 → ∀ {m : ℕ}, m < 2 ^ k →
+    domainPt m = AdditiveNTT.Coset.point basisElt m
+  | 0, _, m, hm => by
+    obtain rfl : m = 0 := by simpa using hm
+    simp [domainPt_zero]
+  | k + 1, hk, m, hm => by
+    by_cases h : m < 2 ^ k
+    · exact domainPt_eq_point (by omega) h
+    obtain ⟨m, rfl⟩ : ∃ m', m = m' + 2 ^ k := ⟨m - 2 ^ k, by omega⟩
+    have hm' : m < 2 ^ k := by rw [pow_succ] at hm; omega
+    rw [AdditiveNTT.Coset.point_add_two_pow _ hm', ← domainPt_eq_point (by omega) hm',
+      basisElt_eq_domainPt k (by omega), ← one_mul (2 ^ k), domainPt_add_mul hm']
+
+/-- `V_k` is CompPoly's subspace polynomial of the basis `e_c`. -/
+private theorem subspaceVanish_eq_vanishing {k : ℕ} (hk : k ≤ 64) (x : K) :
+    subspaceVanish k x = AdditiveNTT.Coset.vanishing basisElt k x :=
+  Finset.prod_congr rfl fun m hm ↦ by
+    rw [domainPt_eq_point hk (Finset.mem_range.mp hm), CharTwo.sub_eq_add]
 
 theorem subspaceVanish_zero (x : K) : subspaceVanish 0 x = x := by
   simp [subspaceVanish, domainPt_zero]
 
 /-- `lem:subspace` (ii): `V_k` is `F_2`-linear. -/
-theorem subspaceVanish_add : ∀ {k : ℕ}, k ≤ 64 → ∀ x y : K,
-    subspaceVanish k (x + y) = subspaceVanish k x + subspaceVanish k y
-  | 0, _, x, y => by simp [subspaceVanish_zero]
-  | k + 1, hk, x, y => by
-    have ih := subspaceVanish_add (k := k) (by omega)
-    have hrec : ∀ z, subspaceVanish (k + 1) z =
-        subspaceVanish k z ^ 2 + subspaceVanish k (domainPt (2 ^ k)) * subspaceVanish k z := by
-      intro z
-      rw [subspaceVanish_succ, ih z, sq]; ring
-    rw [hrec, hrec, hrec, ih, CharTwo.add_sq]
-    ring
+theorem subspaceVanish_add {k : ℕ} (hk : k ≤ 64) (x y : K) :
+    subspaceVanish k (x + y) = subspaceVanish k x + subspaceVanish k y := by
+  simp only [subspaceVanish_eq_vanishing hk, AdditiveNTT.Coset.vanishing_add]
 
 /-- `lem:subspace` (i): `V_{k+1}(x) = V_k(x) · (V_k(x) + V_k(e_k))`. -/
 theorem subspaceVanish_succ' {k : ℕ} (hk : k < 64) (x : K) :
     subspaceVanish (k + 1) x =
       subspaceVanish k x * (subspaceVanish k x + subspaceVanish k (domainPt (2 ^ k))) := by
-  rw [subspaceVanish_succ, subspaceVanish_add (by omega)]
+  simp only [← basisElt_eq_domainPt k hk, subspaceVanish_eq_vanishing hk.le,
+    subspaceVanish_eq_vanishing (show k + 1 ≤ 64 from hk), AdditiveNTT.Coset.vanishing_succ']
 
 private theorem length_subspaceLayer : ∀ k, (subspaceLayer k).length = 64
   | 0 => by simp [subspaceLayer]
   | k + 1 => by simp [subspaceLayer, length_subspaceLayer k]
-
-/-- The basis element `e_k = g ^ k` is the point of position `2 ^ k`. -/
-theorem basisElt_eq_domainPt : ∀ k < 64, basisElt k = domainPt (2 ^ k) := by decide +kernel
 
 /-- Layer `k` lists `V_k(e_c)`. -/
 private theorem subspaceLayer_getD : ∀ {k : ℕ}, k ≤ 64 → ∀ {c : ℕ}, c < 64 →
@@ -236,12 +244,11 @@ theorem vanish_eq : ∀ {k : ℕ}, k ≤ 64 → ∀ x : K, vanish x k = subspace
 
 /-- `V_k(e_k) ≠ 0`: `e_k ∉ U_k`, so the normalization divides by a unit. -/
 theorem subspaceRoot_ne_zero {k : ℕ} (hk : k < 64) : subspaceRoot k ≠ 0 := by
-  rw [subspaceRoot_eq hk, basisElt_eq_domainPt k hk, subspaceVanish, Finset.prod_ne_zero_iff]
-  intro m hm h
-  have hm := Finset.mem_range.mp hm
-  have hlt : 2 ^ k < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hk
-  have := domainPt_injOn hlt (hm.trans hlt) (CharTwo.add_eq_zero.mp h)
-  omega
+  rw [subspaceRoot_eq hk, subspaceVanish_eq_vanishing hk.le]
+  refine AdditiveNTT.Coset.vanishing_basis_ne_zero _ (fun i hi m hm h ↦ ?_) hk
+  have hlt : 2 ^ i < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hi
+  rw [← domainPt_eq_point hi.le hm, basisElt_eq_domainPt i hi] at h
+  exact absurd (domainPt_injOn (hm.trans hlt) hlt h) hm.ne
 
 /-- `Ŵ_k(e_k) = 1`. -/
 theorem normW_basisElt {k : ℕ} (hk : k < 64) : normW k (basisElt k) = 1 := by

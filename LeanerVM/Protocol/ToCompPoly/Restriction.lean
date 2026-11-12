@@ -149,10 +149,8 @@ instance [DecidableEq R] {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) 
 
 /-- The point of the empty partial point at a completion is the cube point itself. -/
 @[simp] theorem Partial.point_empty {n : ℕ} (b : Fin (2 ^ n)) :
-    (Partial.empty : Partial R).point b = boolVec b := by
-  apply Vector.ext
-  intro k hk
-  simp [Partial.point, Partial.empty]
+    (Partial.empty : Partial R).point b = boolVec b :=
+  Vector.ext fun k hk ↦ by simp [Partial.point, Partial.empty]
 
 /-- On the empty partial point, zero means the table is zero. -/
 theorem restrictedZero_empty_iff {n : ℕ} (t : CMlPolynomialEval R n) :
@@ -188,9 +186,7 @@ theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partia
     (hp : ∀ k (hk : k < n), σ k = some p[k]) :
     RestrictedZero t σ ↔ evalMle t p = 0 := by
   have hpoint : ∀ b : Fin (2 ^ n), σ.point b = p := fun b ↦ by
-    apply Vector.ext
-    intro k hk
-    simp [Partial.point, hp k hk]
+    exact Vector.ext fun k hk ↦ by simp [Partial.point, hp k hk]
   simp only [RestrictedZero, hpoint]
   exact ⟨fun h ↦ h ⟨0, Nat.two_pow_pos n⟩, fun h _ ↦ h⟩
 
@@ -208,10 +204,8 @@ private theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : 
 /-- Fixing a coordinate beyond the table's variables changes nothing. -/
 private theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) (hk : n ≤ k) (c : R)
     (b : Fin (2 ^ n)) :
-    Partial.point (Function.update σ k (some c)) b = σ.point b := by
-  apply Vector.ext
-  intro j hj
-  simp [Partial.point, Function.update_of_ne (show j ≠ k by omega)]
+    Partial.point (Function.update σ k (some c)) b = σ.point b :=
+  Vector.ext fun j hj ↦ by simp [Partial.point, Function.update_of_ne (show j ≠ k by omega)]
 
 /-- Setting a coordinate of a completion to its own value changes nothing. -/
 private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)

@@ -53,16 +53,12 @@ def partialSum {m : ℕ} (g : Vector R m → R) (r : Vector R m) (j : ℕ) (c : 
 
 omit [CommRing R] in
 private theorem fixLow_zero {m : ℕ} (x : Vector R (m - 0)) :
-    fixLow (Nat.zero_le m) (#v[] : Vector R 0) x = x := by
-  apply Vector.ext
-  intro i hi
-  simp [fixLow]
+    fixLow (Nat.zero_le m) (#v[] : Vector R 0) x = x :=
+  Vector.ext fun i hi ↦ by simp [fixLow]
 
 omit [CommRing R] in
-private theorem drop_zero {m : ℕ} (r : Vector R m) : r.drop 0 = r := by
-  apply Vector.ext
-  intro i hi
-  simp
+private theorem drop_zero {m : ℕ} (r : Vector R m) : r.drop 0 = r :=
+  Vector.ext fun i hi ↦ by simp
 
 /-- With nothing fixed, the partial sum is the extension of the table of `g` at `r`. -/
 theorem partialSum_zero {m : ℕ} (g : Vector R m → R) (r : Vector R m) :
@@ -78,10 +74,8 @@ theorem partialSum_zero {m : ℕ} (g : Vector R m → R) (r : Vector R m) :
 
 omit [CommRing R] in
 private theorem fixLow_self {m : ℕ} (c : Vector R m) (x : Vector R (m - m)) :
-    fixLow le_rfl c x = c := by
-  apply Vector.ext
-  intro i hi
-  simp [fixLow, hi]
+    fixLow le_rfl c x = c :=
+  Vector.ext fun i hi ↦ by simp [fixLow, hi]
 
 /-- With everything fixed, the partial sum is the value at the fixed point. -/
 theorem partialSum_self {m : ℕ} (g : Vector R m → R) (r : Vector R m) (c : Vector R m) :

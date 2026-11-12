@@ -10,6 +10,7 @@ module
 
 public import CompPoly.Multilinear.Basic
 public import LeanerVM.Protocol.ToCompPoly.Doubling
+import CompPoly.Multilinear.Unique
 import Mathlib.Algebra.BigOperators.Fin
 
 /-!
@@ -204,17 +205,13 @@ def highVec {k m : ℕ} (w : Vector R (k + m)) : Vector R m :=
 
 omit [CommRing R] in
 @[simp] theorem lowVec_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    lowVec (z ++ s) = z := by
-  apply Vector.ext
-  intro a _
-  simp [lowVec]
+    lowVec (z ++ s) = z :=
+  Vector.ext fun a _ ↦ by simp [lowVec]
 
 omit [CommRing R] in
 @[simp] theorem highVec_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    highVec (z ++ s) = s := by
-  apply Vector.ext
-  intro b hb
-  simp [highVec, Vector.getElem_append_right]
+    highVec (z ++ s) = s :=
+  Vector.ext fun b hb ↦ by simp [highVec, Vector.getElem_append_right]
 
 omit [CommRing R] in
 /-- A point is its low coordinates followed by its high coordinates. -/
@@ -295,17 +292,13 @@ def onesIndex (m : ℕ) : Fin (2 ^ m) :=
 
 /-- The point of index zero is the origin. -/
 theorem boolVec_zero {m : ℕ} :
-    (boolVec (⟨0, Nat.two_pow_pos m⟩ : Fin (2 ^ m)) : Vector R m) = Vector.replicate m 0 := by
-  apply Vector.ext
-  intro b hb
-  simp [boolVec]
+    (boolVec (⟨0, Nat.two_pow_pos m⟩ : Fin (2 ^ m)) : Vector R m) = Vector.replicate m 0 :=
+  Vector.ext fun b hb ↦ by simp [boolVec]
 
 /-- The point of the all-ones index has every coordinate one. -/
 theorem boolVec_onesIndex {m : ℕ} :
-    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 := by
-  apply Vector.ext
-  intro b hb
-  simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
+    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 :=
+  Vector.ext fun b hb ↦ by simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
 
 /-- The tail of a cube point is the cube point of the index halved. -/
 theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
@@ -356,33 +349,15 @@ theorem boolVec_append {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
   simp only [boolVec, Vector.getElem_append, Vector.getElem_ofFn, testBit_cubeIndex]
   split <;> rfl
 
-/-- Two indices below `2 ^ m` agree iff their `m` low bits agree. -/
-theorem fin_eq_iff_testBit {m : ℕ} (i j : Fin (2 ^ m)) :
-    i = j ↔ ∀ b : Fin m, i.val.testBit b = j.val.testBit b := by
-  refine ⟨fun h b ↦ by rw [h], fun h ↦ Fin.ext (Nat.eq_of_testBit_eq fun b ↦ ?_)⟩
-  by_cases hb : b < m
-  · exact h ⟨b, hb⟩
-  · have hi : i.val < 2 ^ b :=
-      lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    have hj : j.val < 2 ^ b :=
-      lt_of_lt_of_le j.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    rw [Nat.testBit_lt_two_pow hi, Nat.testBit_lt_two_pow hj]
+/-- A cube point is CompPoly's Boolean vertex. -/
+private theorem boolVec_eq_vertex {m : ℕ} (j : Fin (2 ^ m)) :
+    (boolVec j : Vector R m) = CMlPolynomialEval.vertex j := rfl
 
 /-- The Lagrange basis at a Boolean point is the indicator of that point. -/
 theorem lagrangeBasis_boolVec {m : ℕ} (j i : Fin (2 ^ m)) :
     (lagrangeBasis (boolVec j : Vector R m))[i.val] = if i = j then 1 else 0 := by
-  rw [lagrangeBasis_getElem_nat _ i.isLt]
-  have h : ∀ b : Fin m,
-      (if i.val.testBit b then (boolVec j : Vector R m)[b]
-        else 1 - (boolVec j : Vector R m)[b]) =
-      if i.val.testBit b = j.val.testBit b then 1 else 0 := by
-    intro b
-    simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn]
-    cases i.val.testBit b <;> cases j.val.testBit b <;> simp
-  simp only [h, Fintype.prod_boole]
-  by_cases hij : i = j
-  · simp [hij]
-  · simp [hij, (fin_eq_iff_testBit i j).not.mp hij]
+  rw [boolVec_eq_vertex, CMlPolynomialEval.lagrangeBasis_vertex]
+  exact if_congr eq_comm rfl rfl
 
 /-- The Lagrange basis at the all-ones index is the product of the coordinates. -/
 theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
@@ -400,9 +375,7 @@ theorem lagrangeBasis_zero_index {m : ℕ} (s : Vector R m) :
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :
     evalMle t (boolVec j) = t[j] := by
-  rw [evalMle_eq_sum]
-  simp only [Fin.getElem_fin, lagrangeBasis_boolVec, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+  rw [eval_mle_eq_eval, boolVec_eq_vertex, CMlPolynomialEval.eval_vertex]
 
 /-! ## Slices: reading and placing a subcube -/
 
@@ -458,10 +431,8 @@ theorem sliceLow_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin 
 /-- Mapping the entries commutes with taking a low slice. -/
 theorem sliceLow_map {S : Type*} [CommRing S] (φ : R →+* S) {k m : ℕ}
     (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
-    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i := by
-  apply Vector.ext
-  intro j hj
-  simp [sliceLow, CMlPolynomialEval.map]
+    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i :=
+  Vector.ext fun j hj ↦ by simp [sliceLow, CMlPolynomialEval.map]
 
 /-- The strided selection identity: Boolean low coordinates select the slice at that low
 index. The mirror of `evalMle_append_boolVec`. -/
@@ -585,10 +556,8 @@ omit [CommRing R] in
 omit [CommRing R] in
 /-- The low coordinates of a point split at `k` are its first part. -/
 @[simp] theorem lowCoords_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    lowCoords (Nat.le_add_right k m) (z ++ s) = z := by
-  apply Vector.ext
-  intro a ha
-  rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
+    lowCoords (Nat.le_add_right k m) (z ++ s) = z :=
+  Vector.ext fun a ha ↦ by rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
 
 /-- A table on `k` coordinates read on `n ≥ k`: the entry at `x` is the table's entry at the low
 `k` bits of `x`, whatever the high bits. -/

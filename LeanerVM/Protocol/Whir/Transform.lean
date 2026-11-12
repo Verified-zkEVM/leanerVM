@@ -189,22 +189,6 @@ theorem inv_fwd : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), inv φ j (fwd φ
 
 /-! ## The values -/
 
-/-- `x_v` is additive in the position: `x_{a ⊕ b} = x_a + x_b`. -/
-private theorem domainPt_xor' (a b : ℕ) : domainPt (a ^^^ b) = domainPt a + domainPt b := by
-  unfold domainPt K.ofBits
-  rw [BF64.add_def, BitVec.ofNat_xor]
-  rfl
-
-/-- A position below `2 ^ j` plus a multiple of `2 ^ j` adds the points. -/
-theorem domainPt_add_mul {w j : ℕ} (hw : w < 2 ^ j) (c : ℕ) :
-    domainPt (w + c * 2 ^ j) = domainPt w + domainPt (c * 2 ^ j) := by
-  rw [← domainPt_xor', Nat.sum_of_and_eq_zero_is_xor]
-  refine Nat.eq_of_testBit_eq fun i ↦ ?_
-  simp only [Nat.testBit_and, Nat.testBit_mul_two_pow, Nat.zero_testBit]
-  by_cases h : j ≤ i
-  · simp [h, Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hw (Nat.pow_le_pow_right (by norm_num) h))]
-  · simp [h]
-
 /-- A novel polynomial of `j + 1` variables: the one of `j`, times `Ŵ_j` when bit `j` is set. -/
 theorem novelAt_succ (j : ℕ) (x : K) (u : ℕ) :
     novelAt φ (j + 1) x u = novelAt φ j x u * if u.testBit j then φ (normW j x) else 1 := by
