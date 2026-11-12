@@ -45,7 +45,7 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly ProtocolSpec Sumche
 
 @[expose] public section
 
-open RoundPoly (ofList?_toList toList_of_ofList?)
+open RoundPoly (ofList?_toList)
 
 namespace Compile
 

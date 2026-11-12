@@ -18,7 +18,7 @@ squeeze a challenge, read a root, check a nonce; it opens no commitment. For a r
 `𝓡 : MonadRel n₁ n₂` and two records whose four chain primitives are pairwise related
 (`ChainOps.Related`), the two runs of every walk are related (`walkChain_rel`), by induction on the
 walk: every walk is built from the primitives by `pure` and `bind`. The openings are not part of
-the relation. `LeanerVM.Protocol.Verify.Hom` is the same argument for a monad morphism.
+the relation. `LeanerVM.Protocol.Verify.Hom` takes it at a monad morphism.
 -/
 
 namespace LeanerVM.Protocol

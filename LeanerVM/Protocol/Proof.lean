@@ -403,13 +403,6 @@ theorem ofList?_toList {n : ℕ} (c : Vector E n) : ofList? n c.toList = some c 
   rcases c with ⟨a, rfl⟩
   simp [ofList?]
 
-/-- A vector read off a list carries it. -/
-theorem toList_of_ofList? {n : ℕ} {l : List E} {c : Vector E n}
-    (h : ofList? n l = some c) : c.toList = l := by
-  unfold ofList? at h
-  split at h <;> cases h
-  simp
-
 /-- A decoding succeeds at a positive degree on `d` wire coefficients, to their completion. -/
 private theorem of_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E}
     {c : Vector E (d + 1)} (h : decode d claim eq? w = some c) :

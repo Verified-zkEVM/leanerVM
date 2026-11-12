@@ -259,34 +259,17 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
   have hκ : (leanIsaChain prog s hs ρ hρ).κ = leanIsaμ prog s - Parameters.Whir.initialFold :=
     (deployedChain_head (admissible_of_sizes hs hρ)).2.1.trans
       (deployedHeadKap_eq (admissible_of_sizes hs hρ))
-  have hleaf : rowWordsOf (nLanes prog s) true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-        (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-        (leanIsaChain prog s hs ρ hρ).sh.t, false⟩ ≤
-      leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ, (leanIsaChain prog s hs ρ hρ).κ,
-        (leanIsaChain prog s hs ρ hρ).sh.R, (leanIsaChain prog s hs ρ hρ).sh.t, false⟩ →
-      ∀ (p : Fin (2 ^ ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)))
-        row, extractRows g.log w.root
-          ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)
-          (rowWordsOf (nLanes prog s) true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-            (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-            (leanIsaChain prog s hs ρ hρ).sh.t, false⟩)
-          (leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ, (leanIsaChain prog s hs ρ hρ).κ,
-            (leanIsaChain prog s hs ρ hρ).sh.R, (leanIsaChain prog s hs ρ hρ).sh.t, false⟩) p =
-          some row →
-        ((Prove.level0Word tr).row p).toList.reverse =
-          leafImage (leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-            (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-            (leanIsaChain prog s hs ρ hρ).sh.t, false⟩) row := by
-    intro hle p row hrow
-    have hn : nLanes prog s = level0Lanes prog s (leanIsaChain prog s hs ρ hρ).κ := by
-      rw [hκ]
-      rfl
-    simp only [rowWordsOf, leafWordsOf, ↓reduceIte, hn] at hle hrow ⊢
-    rw [hfront, hW0]
-    exact logWord_row_reverse hle p hrow
   have hrows : rows = Prove.rowsOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr :=
-    rows_eq_ladderRows hc hcoll (nLanes prog s) _ true w.root _ _ w.whir rows hleaf hLR
-      (by rw [hshapes]; exact hok) hwire' (by rw [hshapes]; exact hcnt)
+    rows_eq_ladderRows hc hcoll (nLanes prog s) _ true w.root
+      (fun p ↦ ((Prove.level0Word tr).row p).toList.reverse) _ w.whir rows
+      (fun hle p row hrow ↦ by
+        have hn : nLanes prog s = level0Lanes prog s (leanIsaChain prog s hs ρ hρ).κ := by
+          rw [hκ]
+          rfl
+        simp only [rowWordsOf, leafWordsOf, ↓reduceIte, hn] at hle hrow ⊢
+        rw [hfront, hW0]
+        exact logWord_row_reverse hle p hrow)
+      hLR (by rw [hshapes]; exact hok) hwire' (by rw [hshapes]; exact hcnt)
   have halg' : algebra prog s input (leanIsaChain prog s hs ρ hρ).ladder.shapes
       (wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr)
       (Prove.rowsOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr) = true := by
