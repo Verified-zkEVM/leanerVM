@@ -2,9 +2,12 @@
 
 The checker validates a fixed final image against the existing Lean ISA. It does not generate
 memory, prove Rust correct, or check an executable proof verifier. The semantic reference
-remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The optional Rust
-regression lane separately tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does
-not change that pin or claim coverage of every change between those revisions.
+remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. Two Rust lanes read the
+Rust executor. The optional regression lane (`scripts/test-rust-contracts.py`, below) separately
+tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does not change that pin or claim coverage of
+every change between those revisions. `scripts/dump-execution-rust.sh` writes executions of
+compiled programs at the pin itself, `a386121f`, the files of `tests/vectors/executions/` that
+`leanervm-witgen` reads and checks (`bench/README.md`).
 
 ## Proved interfaces
 
@@ -44,6 +47,20 @@ statements are.
   every reference successor succeeds and the starting/successor multisets agree
   (`FillerRowsValid`, the audited statement; `checkFillerRows`, its carrier). This standalone
   interface does not take a main run or check memory/bytecode access-count columns or budgets.
+- The hypotheses of completeness from an execution are decided by checks proved equal to them.
+  [`Semantics/HypothesisChecks.lean`](../LeanerVM/Semantics/HypothesisChecks.lean):
+  `wellFormedB` decides `WellFormedBytecode` (`wellFormedB_eq_true_iff`), through
+  `hasFillBlocksB` (`hasFillBlocksB_eq_true_iff`), one pass collecting the closing jumps;
+  `fitsRowsB` decides `Trace.Fits` from the run's row counts (`fitsRowsB_eq_true_iff`).
+  [`Arithmetization/HypothesisChecks.lean`](../LeanerVM/Arithmetization/HypothesisChecks.lean):
+  `fitsBy` and `fitsB` count those rows with the witness generator's forward pass and decide
+  `Trace.Fits` on a valid execution (`fitsBy_eq_true_iff`, `fitsB_eq_true_iff`).
+  [`Protocol/LeanIsa/ExecutionStack.lean`](../LeanerVM/Protocol/LeanIsa/ExecutionStack.lean):
+  `stackFitsRowsB` decides `StackFits` from the run's row counts (`stackFitsRowsB_eq_true_iff`),
+  and `stackFitsB` from the forward pass on a valid execution (`stackFitsB_eq_true_iff`).
+  `checkExecution` (`Protocol/Headline.lean`) runs the size bounds, `wellFormedB`, `checkTrace`,
+  `stackFitsB` and the rate's check; `checkExecution_eq_true_iff` says it decides the hypotheses
+  of the random-oracle completeness.
 
 Hints are a parameter of every carrier function, never of a definition of the machine. A
 suggested index is range checked and its generator power must match the requested address;

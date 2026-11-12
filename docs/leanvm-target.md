@@ -271,23 +271,23 @@ one by one (`leaf.rs:453`) and hand the multilinear on unchecked for recursion
 (`leaf.rs:627-637`); the two are equal (`bytecodeShare_eq`), and a recursive verifier defers the
 one claim. This is implementation evidence about one proof, not a statement about the Rust.
 
-**The honest prover.** `prove` (`Protocol/Prove.lean`) writes a proof that `verify` accepts, of
-the constraint statement tests' witness at the smallest admissible sizes (`tests/vectors/`). Its
-stream is the Rust's order of messages and challenges (`cpu/mod.rs:520-640`): the sizes and the
-rate announced, the commitment, the bus phase, the table sumcheck, the public input, the Flock
-phase, the opening's batching, WHIR; round polynomials without the dropped coefficient, roots as
-two scalars. From an execution, `proveExecution` builds the witness with leanISA's generator
-`witnessGen` and proves it. It differs from the Rust prover in its witness, built by that generator
-rather than the Rust's, so the two agree on a proof only where the witnesses and the honest
-messages agree;
-in the grind, whose nonce is the smallest that clears the bits as the Rust's parallel search
-returns, but within a fuel of candidates; and in the openings, written after the stream in level
-order where the Rust hands each to the proof as it opens it (the list is the same). The dump of a
-proof differs from `scripts/dump-proof-rust.sh`'s only in its first line's tag. Agreement with the
-Rust prover on one witness is not checked. Not a discrepancy: the Rust comment that level 0
-grinds 0 bits in the production profile (`pcs/src/whir.rs:1364`) is stale at the pin, where
-`QUERY_GRINDING_BITS = 17` at every level (`whir_config.rs:60`, asserted at `whir.rs:2485`); the
-Rust fixture's acceptance at 17 bits confirms it.
+**The honest prover.** `prove` (`Protocol/Prove.lean`) writes a proof that `verify` accepts, of the
+constraint statement tests' witness at the smallest admissible sizes (`tests/vectors/`). Its stream
+is the Rust's order of messages and challenges (`cpu/mod.rs:520-640`): the sizes and the rate
+announced, the commitment, the bus phase, the table sumcheck, the public input, the Flock phase, the
+opening's batching, WHIR; round polynomials without the dropped coefficient, roots as two scalars.
+From an execution, `proveExecution` builds the witness with leanISA's generator `witnessGen` and
+proves it. It differs from the Rust prover in its witness, built by that generator rather than the
+Rust's (a doubled memory with the fill frames above the image), so the two agree on a proof only
+where the witnesses and the honest messages agree; in the grind, whose nonce is the smallest that
+clears the bits as the Rust's parallel search returns, but within a fuel of candidates; and in the
+openings, written after the stream in level order where the Rust hands each to the proof as it opens
+it (the list is the same). The dump of a proof differs from `scripts/dump-proof-rust.sh`'s only in
+its first line's tag. Agreement with the Rust prover on one witness is not checked. Not a
+discrepancy: the Rust comment that level 0 grinds 0 bits in the production profile
+(`pcs/src/whir.rs:1364`) is stale at the pin, where `QUERY_GRINDING_BITS = 17` at every level
+(`whir_config.rs:60`, asserted at `whir.rs:2485`); the Rust fixture's acceptance at 17 bits confirms
+it.
 
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
@@ -306,7 +306,7 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | ISA semantics | LaTeX specification and Rust interpreter; Lean `step`, `run`, and `ValidExecution` (`LeanerVM/Semantics/`) written from §2 and diffed arm by arm against `cpu/execute.rs` | T1 prerequisite: a formal correspondence boundary with the executor beyond the recorded diff |
 | Constraints imply ISA execution (CC-S) | Constraint/table implementation and design document; Lean `constraintSoundness` and `traceOf_valid` (`LeanerVM/Arithmetization/Soundness.lean`) from `SatisfiedBy`, for bytecode whose sentinel slot is not a `JUMP` (`SentinelSafe`, load-bearing) | T1-S: the `WellFormedBytecode` form, and the boundary of the hypotheses `SatisfiedBy` names (the three Clean cannot yet express, BLAKE2s validity) |
 | ISA execution yields constraints (CC-C) | Rust trace construction and honest-prover path | T1-C: satisfying-assignment existence for every in-scope execution |
-| Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests | T2: concrete generated assignment satisfies constraints and projects to its execution |
+| Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests; Lean `witnessGen` and `witnessGen_correct` (`LeanerVM/Arithmetization/WitnessGen.lean`): for well-formed bytecode and a valid execution `t` that fits, the generated witness satisfies `SatisfiedBy` and represents the padded trace `padTrace t (fillStarts prog)`, the same steps over a doubled memory with the fill frames above `t`'s image; table heights equal to the Rust's on the executions of `tests/vectors/executions/` (testing, not proof) | T2 is met for the padded trace. Missing: a witness of the Rust's memory layout (the fill frames in free memory, an open decision recorded in [reviews/witness-generation.md](reviews/witness-generation.md)), and a column-by-column comparison with the Rust's witness |
 | Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness; Lean `mem_channel_sound` and `bytecode_channel_sound` from `SatisfiedBy` alone, with Lemma 6.3 and the read bound derived from `Caps` (`LeanerVM/Arithmetization/Bus.lean`) | T1: state-channel composition (the run of Proposition 6.1) and its correspondence boundary |
 | Hint handling | Write-once design, guest checks, and hint-tampering tests | T1/T3: every claim-relevant hinted value is constrained or checked |
 | BLAKE2s opcode | Rust implementations and Flock R1CS relation; Lean `compress` and `CompressCells` (`LeanerVM/Semantics/Blake2s.lean`) pinned by RFC 7693, `hashlib`, and executor vectors | T1 prerequisite: both constraint directions and implementation correspondence |

@@ -26,7 +26,7 @@ lake build leanervm-bench                   # compiles every transitive module t
 .lake/build/bin/leanervm-bench 1 protocol pub 15 # leanVM's phases up to the public input
 .lake/build/bin/leanervm-bench 1 flockpieces 15  # the cached Flock prover's pieces
 .lake/build/bin/leanervm-bench 1 whir 16 1 spec  # WHIR's opening at mu = 16, rate 1/2
-.lake/build/bin/leanervm-bench 1 witgen          # witnessGen on a one-JUMP test trace
+.lake/build/bin/leanervm-bench 1 witgen          # witnessGen on a test trace (below)
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -45,15 +45,15 @@ leaves) is outside the timed interval.
 | `evalMle 2^16 E-table` | `CMlPolynomialEval.evalMle` of a 2^16-entry `E` table at an `E` point |
 | `column weight mle 22` | `(columnWeight _ 22 1 v).mle` at an `E` point, as a verifier reads it |
 | `column weight product 22` | the product `columnWeightMle` at the same points |
-| `witnessGen, one-JUMP ladder run` (group `witgen`) | `Arithmetization.witnessGen` on the trace of `tests/LeanerVMTests/Semantics/PaddedImageRefutation.lean`, memory padded to `2^17` cells; checksum: the eight table heights |
 
 The fast paths are the `@[csimp]` theorems of `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
 `LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
 `LeanerVM.Protocol.Blake2sHashFast` (see `docs/architecture.md`, "Performance backend
 contract"). Recorded on 2026-10-22 on a QEMU virtual CPU without `pclmulqdq`, 32 cores, one
-thread; "before" is `a37b2b0`, the same bench source (less the two workloads added later)
-compiled against the library without the fast paths, run at 1% of the iteration counts; the
-checksums of both runs agree at 1%.
+thread; "before" is `a37b2b0`, the same bench source (less `K mul on words` and
+`E inv (Field dictionary)`, added later) compiled against the library without the fast paths, run
+at 1% of the iteration counts; the checksums of both runs agree at 1%. The column-weight rows came
+later still and are recorded with the verifier's costs below.
 
 | Workload | Before (ns/op) | After (ns/op) | Speedup |
 | --- | ---: | ---: | ---: |
@@ -445,19 +445,22 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove probe 1                      # the commitment's steps, one by one
 .lake/build/bin/leanervm-prove tamper tests/vectors/fill.proof  # four provers, one message changed
 .lake/build/bin/leanervm-prove log tests/vectors/fill.proof     # the honest run, every hash logged
-.lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on the witness's stack
+.lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on its stack
 .lake/build/bin/leanervm-prove m3 9                         # the same at memory 2^10
-.lake/build/bin/leanervm-prove sentinel                     # a proof of a statement with no execution
-.lake/build/bin/leanervm-prove execution                    # witnessGen, prove, verify on a trace
+.lake/build/bin/leanervm-prove sentinel                     # a statement with no execution
+.lake/build/bin/leanervm-prove execution                    # proveChecked, verify on a trace
 ```
 
-`execution [rate] [fuel] [steps]` proves the trace of `steps` steps (default `1`, the valid run) of
-the ladder program on `badImage` (memory `2^16`, padded to `2^17`). Recorded on 2026-11-05, one
-thread, two runs: `witnessGen` in 0.6–0.8 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`),
-sizes memory `2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution`
-returns 767 scalars in 103–143 s; `verify` accepts in 1.5–2.3 s; 1.4 GB peak. A third run on the
-same day, after the generator's performance work: `witnessGen` 0.15 s, `proveExecution` 83 s,
-`verify` 0.9 s, 1.38 GB peak. The executable
+`execution [rate] [fuel] [steps]` runs `proveChecked` on the trace of `steps` steps of the ladder
+program on `badImage` (memory `2^16`, padded to `2^17`). Only the default, one step, is a valid
+execution: at any other count `checkTrace` fails, and the executable still runs the generator but
+does not prove, and exits with `1`; `steps` is there to exercise that rejection. Recorded on
+2026-11-12, one thread, one run, the machine shared: the checks take 32 ms in all (`stackFitsB`
+32 ms, the others under 2 ms), `witnessGen` 0.15 s (table heights
+`[1, 1, 1, 1, 8, 8, 131072, 2048]`), sizes memory `2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack
+`2^20`, rate `1`; `proveChecked` returns 767 scalars in 83.7 s; `verify` accepts in 0.87 s;
+1.38 GB peak. The prover's time is `prove`'s: on 2026-11-05 two earlier runs through
+`proveExecution` took 103 and 143 s on the same machine, and a third 83 s. The executable
 imports `LeanerVM.Protocol.Headline`; a compiled program that imports it starts only since
 `VerifierQueries.sizesBox` is noncomputable (before, the start-up built its `33^7 · 5` points and
 ran out of memory).
@@ -516,8 +519,9 @@ Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` r
 the honest wire with one message changed in each front phase (a grand-product round coefficient
 and a child value, a table round coefficient and column value, a public value and the number of
 public values, a zerocheck and a lincheck round coefficient, a Flock slice; `frontChecksOf`) and
-in WHIR (`whirChecksOf`), each rejected by its own phase. A mutation of the proof's stream cannot reach the front phases'
-algebra, since the next grinding check rejects it first; `tamper` reaches it through the stream:
+in WHIR (`whirChecksOf`), each rejected by its own phase. A mutation of the proof's stream cannot
+reach the front phases' algebra, since the next grinding check rejects it first; `tamper` reaches
+it through the stream:
 it runs the prover with one front phase's message changed as it is sent (`tamperOps`), so that
 the chain moves, every later nonce is ground and every word opened at the moved positions, and
 checks that the proof is read to its end and rejected by that phase's algebra. Recorded on
@@ -576,15 +580,18 @@ by a leanerVM benchmark.
 executor at the pin) into `Program`, `PublicInput` and `Trace prog` (through `TraceInput.adapt`)
 and checks each, timed: `SentinelSafe`, the listed fill blocks, `WellFormedBytecode` through
 `wellFormedB`, with `--hash` the program hash against the Rust digest, `ValidExecution` through
-`checkTrace`, `Trace.Fits` through `fitsBy` (the two hypotheses of completeness besides
-`ValidExecution`, `Semantics.HypothesisChecks`), the main rows against the
+`checkTrace`, `Trace.Fits` through `fitsBy` and `StackFits` through `stackFitsRowsB` (the
+hypotheses of completeness from an execution, `Semantics.HypothesisChecks`,
+`Arithmetization.HypothesisChecks`, `Protocol.LeanIsa.ExecutionStack`), the main rows against the
 replayed run table by table, and the fill rows as a permutation of their successors; with
-`--prod` `checkTrace` again with the Rust hint list. `runGenerator` generates a witness with a
-supplied generator, proves and verifies it; `--stages` forces and times the generator's stages.
+`--prod` `checkTrace` again with the Rust hint list. With `--gen`, `runGenerator` runs
+`witnessGen` and compares its table heights with the Rust's, with `--prove` it also proves the
+witness and verifies the proof; `--stages` forces and times the generator's stages. The
+`Executables` workflow runs it with `--gen` on every checked-in execution (about 10 s).
 
 ```sh
 lake build leanervm-witgen
-.lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
+.lake/build/bin/leanervm-witgen --gen tests/vectors/executions/*.exec.gz
 .lake/build/bin/leanervm-witgen --prod --hash tests/vectors/executions/fibonacci_1000.exec.gz
 .lake/build/bin/leanervm-witgen --stages --gen tests/vectors/executions/fibonacci_20000.exec.gz
 ```
@@ -618,10 +625,16 @@ With `--gen`, `witnessGen` gives each checked-in execution the Rust's table heig
 1.0 s, and 23 to 32 s on `fibonacci_20000`, whose read counters were copied at every read). The
 floor is the memory block's `2^18` rows (0.2 to 0.4 s) and the table of `2^18` powers (0.1 to
 0.15 s). With `--prove`, `field_div` end to end: generation 1.3 s, `prove` 290 s (818 scalars,
-1.9 GB resident), `verify` accepts in 1.9 s.
-The guest's witness takes 1.5 to 1.9 s (6.1 s before), at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to
-`2^17` (and JUMP with it) to reach its `2^22` committed floor, a prover choice `--gen` does not
-compare.
+1.9 GB resident), `verify` accepts in 1.9 s. The guest's witness takes 1.5 to 1.9 s (6.1 s
+before), at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to `2^17` (and JUMP with it)
+to reach its `2^22` committed floor, a prover choice `--gen` does not compare. Rerun on
+2026-11-12 (one run, the machine shared): every checked-in execution passes, `witnessGen` takes
+0.25 to 0.32 s and 0.55 s on `fibonacci_20000`, and the 19 files 8.9 s in all.
+
+`leanervm-bench 1 witgen` times `witnessGen` alone on the one-step run of the ladder program
+(`tests/LeanerVMTests/Semantics/PaddedImageRefutation.lean`, memory `2^16` padded to `2^17`),
+the checksum its eight table heights: 0.14 s on 2026-11-12, one run, checksum
+`[1, 1, 1, 1, 8, 8, 131072, 2048]`.
 
 Once the corresponding semantics exist, versioned target workloads should include opcode mixes,
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive

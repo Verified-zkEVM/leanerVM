@@ -1,9 +1,9 @@
 # Status: the leanVM proof system on ArkLib
 
 Where the [protocol blueprint](protocol-blueprint.md) stands on `main`. The table below lists the
-built work merged up to `90846cd` (2026-11-11). A paragraph marked *on merge* was written with its
-pull request and says what that pull request adds; every one of them is now on `main`. This file
-says what is built and what the built work still owes the blueprint. What is wanted is the
+built work merged up to `90846cd` (2026-11-11). A row or paragraph marked *on merge* was written
+with its pull request and says what that pull request adds; every one of them is now on `main`.
+This file says what is built and what the built work still owes the blueprint. What is wanted is the
 blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -64,6 +64,7 @@ and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review
 | the core and the headline theorems | #174 | `3fd40e49` | 2026-11-06 |
 | adaptive knowledge soundness, where the adversary chooses the statement | #175 | `ce67112b` | 2026-11-06 |
 | the headline theorems over leanISA executions | #185 | `25da57d3` | 2026-11-06 |
+| the witness generator, and completeness from an execution in the random-oracle model | #192 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
@@ -735,11 +736,13 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The WHIR opening and the Merkle trees are on `main`; their binding by log replay lands with #169,
-the charged invariant with #170, the headline with #174 and its execution form with #185, the
+the charged invariant with #170, the headline with #174, its execution form with #185, and the
+witness generator with completeness from an execution in the random-oracle model with #192, the
 stack's top. On that top, what can start is what *Also owed* below names: the hypothesis met by an
-accepted adversary (state-function completeness on the honest transcript), completeness's remainder
-(the honest query bound and the random-oracle bound on the grind), and deployed values of `fuel` and
-`ρ`. leanISA owes the decidable `checkSatisfiedBy` that generated test vectors need.
+accepted adversary (state-function completeness on the honest transcript), the grind bound counted
+per grind rather than per query, and a deployed value of `ρ`. The test vectors do not need
+leanISA's decidable `checkSatisfiedBy`: a generated witness's `SatisfiedBy` is
+`witnessGen_correct`.
 
 With #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -1197,15 +1200,13 @@ below proves.
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
   constraint statement tests' witness at the smallest admissible sizes in 52.7 s (1.06 GB at the
   peak), writes the proof in the dump format, and checks that `verify` accepts it (0.6 s) and
-  rejects every mutation of `mutationsOf` at its stage; `prove` in `Id` returns the same proof;
-  `leanervm-prove execution` proves a trace through `proveExecution` and checks that `verify`
-  accepts. The vectors' witness is the hand-built one, its `SatisfiedBy` a proved theorem
-  (`fill_satisfiedBy`); a generated witness's is `witnessGen_correct`, so leanISA's decidable
-  `checkSatisfiedBy`, still owed, is not needed for either. Beside the
-  proof's mutations, both executables run the algebra on the honest wire with one message changed
-  in each front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper`
-  changes one front phase's message as the prover sends it and checks that each phase rejects its
-  own.
+  rejects every mutation of `mutationsOf` at its stage; `prove` in `Id` returns the same proof.
+  The witness is the hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`), so
+  leanISA's decidable `checkSatisfiedBy` is not needed; for a generated witness it is
+  `witnessGen_correct` (#192, below). Beside the proof's mutations, both executables run the
+  algebra on the honest wire with one message changed in each front phase and in WHIR
+  (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes one front phase's message
+  as the prover sends it and checks that each phase rejects its own.
   The prover is about 15 times slower than the Rust's on another program at the same sizes,
   within the blueprint's two orders of magnitude, since the transform builds each half once a
   step (`fwd_eq_fwdFast`) and the Flock and WHIR provers run on words; the Flock phase and WHIR
@@ -1265,8 +1266,8 @@ below proves.
     reaches (`Prove.RunReaches`: the writer's state after the announcement and some first rounds
     of the compiled protocol's honest prover, at every round boundary, so a superset of the
     states the grinds start at).
-  - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
-    fuel; the headline's branch below states both.
+  - The honest prover's query bound and the random-oracle bound on a grind running out of fuel,
+    owed here, are on `main` with #192 (below).
 
 *On merge* of the compiled verifier's branch (`feat/protocol-verify-compiled`, on the prover's and
 the chain-history decoder's), the executable verifier's algebra and the compiled oracle verifier
@@ -1476,11 +1477,14 @@ Also owed:
   the round before it, at the extractor's witness; if some phase's state function failed on honest
   transcripts, every accepted run would flip, and `baseVerifier_extractsWitness` would hold only of
   rejected adversaries. Acceptance test 37 is met on the collision and hit clauses only, natively.
-  In the random-oracle model that scenario is excluded once the honest query bound and the grind
-  bound below land, with the identity of the honest run under a consistent log and
-  `proveWith (m := Id)` at that log's answers: the honest adversary is then accepted except when a
-  grind fails, so `misbehaves_rom` forbids every accepted run flipping. `δ = 0` at BLAKE2s on the
-  test vector stays open; only the first route below gives it. Two routes:
+  In the random-oracle model the pieces that exclude that scenario are on `main` with #192: the
+  prover's query bound (`Prove.isTotalQueryBound_proveWith_closed`), and the honest run, the
+  prover and then the verifier at one lazy random oracle, accepted except with the small
+  probability of the grind bound below (`honestGame_rom_rejects_le`, through the run at the final
+  cache's answers, `evalWithAnswerFn_eq_of_mem_support_randomOracle`). What remains is to state them
+  for `honestAdversary` in `loggedGame` and combine them with `misbehaves_rom`, which then forbids
+  every accepted run flipping. `δ = 0` at BLAKE2s on the test vector stays open; only the first
+  route below gives it. Two routes:
   - *State-function completeness on the honest transcript* (the cheaper and the one to build): one
     lemma per phase family (`BusSolved`, `TableSolved`, `FlockSolved` and `WhirSolved` carry the
     per-round claims) giving `∀ i, kSF i (tr.take i) w_i` on the honest prover's transcript `tr`,
@@ -1492,28 +1496,26 @@ Also owed:
   - *`blakeMisbehaves_of_comparison` at the honest adversary*: under `Blake2sActsAsRandomOracle`
     for its game, `BlakeMisbehaves prog input (honestAdversary fuel prog input w ρ)
     ((Q + 13700)/2^128 + hashTerm 13700 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
-    prog input w ρ) Q` (below), and stays conditional on the comparison.
-- **Completeness's remainder.** `prove_complete` says nothing of how often `prove` returns no
-  proof.
-  - *The honest query bound*: `IsTotalQueryBound (honestAdversary fuel prog input w ρ) Q` for an
-    explicit `Q` in `fuel` and the sizes (the test vector's honest run makes 487253 queries).
-    Without it neither the random-oracle bound nor the comparison route above applies to the
-    honest adversary.
-  - *The random-oracle bound on the grind*: for `w` with `SatisfiedBy`, admissible sizes and a valid
-    rate, `Pr{let z ← runRandom (loggedGame verifyWith prog input (honestAdversary fuel prog input
-    w ρ))}[z.1.ok = false] ≤ L · (1 − 2^-17)^fuel`, with `L` the number of grinds (one a WHIR
-    level, three to six). Route: `findNonce`'s candidates are distinct fresh inputs answered
-    uniformly (`prEvent_lowBitsZero` gives `2^-17` each), a geometric bound per grind, a union over
-    the levels, then `verifyWith_simulateQ` and `baseProver_complete` on the runs where every grind
-    succeeds. Moderate cost: the first probabilistic argument about the prover's run. At
-    `fuel = 2^24` the bound is `L · 2^-184.7`. At BLAKE2s no bound can be proved.
-- **`fuel` and `ρ` are parameters everywhere.** No module of `LeanerVM/` fixes either to a deployed
-  value: `prove` and `proveWith` take both, and the values appear only as defaults of
-  `bench/LeanerVMProve.lean` (fuel `2^24`, rate `1`). The rate `1` is the Rust test suite's
-  `LOG_INV_RATE_0`, not a deployed constant (`Parameters/Whir.lean`; the rate is announced with the
-  sizes), and the Rust's nonce search is unbounded over `u64`. Route: a `Parameters/` constant for
-  the deployed rate, taken from the pinned Rust's configuration, and a fuel at which the grind's
-  random-oracle bound is negligible, with `prove_complete` and that bound stated at them.
+    prog input w ρ) Q`, which follows, under its hypotheses, from the prover's bound at
+    `Q = 264246250 + 6 · fuel` (the adversary's run is the prover's, then a `pure`) and is not
+    stated; it stays conditional on the comparison.
+- **The grind bound per grind.** The honest query bound and the random-oracle bound on the grind
+  are on `main` with #192: `Prove.isTotalQueryBound_proveWith_closed` bounds the prover's queries
+  by `N = 264246250 + 6 · fuel`, and the honest run is rejected with probability at most
+  `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256` (`honestGame_rom_rejects_le`; from an execution
+  `proveExecution_rom_complete`). Owed: the sharper `L · (1 − 2^-17)^fuel`, with `L` the number of
+  grinds (one a WHIR level, three to six), which needs the grinds the run makes counted rather
+  than every query that could be a grind's base. At `fuel = 2^24` the built bound is `2^-156.2`
+  and the sharper one `2^-182.1` at `L = 6`; both are below the headline's `2^-154`. At BLAKE2s no
+  bound can be proved.
+- **`ρ` is a parameter everywhere.** The fuel is fixed at `2^24`, `bench/LeanerVMProve.lean`'s
+  default, by the `_default` forms (`prove_rom_eq_none_le_default`,
+  `honestGame_rom_rejects_le_default`, `proveExecution_rom_complete_default`); the Rust's nonce
+  search is unbounded over `u64`. No module of `LeanerVM/` fixes the rate: the value `1`, the
+  executables' default, is the Rust test suite's `LOG_INV_RATE_0`, not a deployed constant
+  (`Parameters/Whir.lean`; the rate is announced with the sizes). Route: a `Parameters/` constant
+  for the deployed rate, taken from the pinned Rust's configuration, with the completeness
+  theorems stated at it.
 
 *On merge* of the headline over executions (`feat/headline-execution`, PR A's leanISA on Clean main
 merged into the adaptive stack's tip): the headline theorems speak about leanISA executions.
@@ -1523,40 +1525,100 @@ adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_
 `baseVerifier_extractsExecution_rom_adaptive_coins`, and
 `baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
 `baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
-Completeness is about one computable prover, `proveExecution` (`Protocol/Headline.lean`):
-leanISA's witness generator `witnessGen`, then `prove`. `proveExecution_complete`, for
-`WellFormedBytecode` (now with the fill blocks) and a valid execution `t` that `Fits`: the
-generator returns a witness of the constraint statement representing the padded trace
-`padTrace t (fillStarts prog)` (same steps, valid), with sizes `s`; every proof `proveExecution`
-returns is accepted; it returns none only when the stack is above `2^maxMu`, the rate is invalid,
-or a grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and
-returns a proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
-`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility).
-`leanervm-prove execution` runs it on the one-step ladder trace of the completeness tests (memory
-`2^16` padded to `2^17`, stack `2^20`): the generator in under 1 s, the whole prover in 103–143 s, and
-`verify` accepts the proof. The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
-stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
-check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
-proof":
+Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
+and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
+constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
+accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
+grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
+proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
+witness exists and is not computed (leanISA's padded witness reads the image through the classical
+`MemImage.read`); #192, below, replaces `prove_complete_of_execution` by `proveExecution_complete`,
+whose witness is computed, meets the first item owed here with `StackFits`, and the second in the
+random-oracle model with `N + 1` in place of the number of grinds. The stack's statements took the
+κ of `leanIsaEnsemble prog κ`; the DEREF reads stay in the Rust's flush order, to which leanISA's
+completeness rows were brought; the separator check of the bytecode blocks reads one channel. Owed,
+for an unconditional "`prove` returns a proof":
   - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
-    The generated witness's sizes are a formula of the trace (`sizes_witnessGen`, `execSizes`,
-    `LeanIsa.blocks_total_eq`), and `StackFits prog t`, the stack at those sizes within
-    `2^maxMu`, is the hypothesis, decided by `stackFitsB`. It fails for every `t.κ ≥ 25`
-    (`not_stackFits_of_le`: the four memory columns at height `2^(t.κ+1)` hold
-    `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is more), where `prove` returns none at
-    every fuel and rate, and holds for `t.κ ≤ 24`, at most `2^25` program slots and `2^16` steps
-    (`StackFits.of_short`). An unpadded memory, as Rust commits, would fail from `κ ≥ 26`;
-  - the honest grind bound, at BLAKE2s: no deterministic form can drop the grind clause, since a
-    fixed function can fail a grind at any given fuel. In the random-oracle model it is built:
-    `proveExecution_rom_complete` bounds the probability that the honest run from an execution
-    (`honestExecutionGame`: `witnessGen`, the prover and the verifier at one lazy random oracle)
-    rejects by `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel` the
-    prover's query count (`Prove.isTotalQueryBound_proveWith_closed`), below `2^-154` at fuel
-    `2^24` (`proveExecution_rom_complete_default`); its stack hypothesis `StackFits` is a
-    predicate on the trace, decided by one forward pass (`stackFitsB`). The constraint forms are
-    `honestGame_rom_rejects_le` and `prove_rom_eq_none_le`. `proveChecked` runs the decided
-    checks before proving: every proof it returns is accepted (`verify_proveChecked`), and under
-    the hypotheses it is `proveExecution` (`proveChecked_eq`).
+    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
+    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
+    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
+    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
+  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
+    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
+    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
+
+*On merge* of the witness generator (`feat/witness-generator`, #192): leanISA's witness is
+computed, and completeness from an execution holds in the random-oracle model. It meets T2 for the
+padded trace and the completeness half of T4. No soundness statement changes, and no definition a
+soundness headline mentions.
+
+- **The witness generator** (`Arithmetization/WitnessGen.lean`): `witnessGen prog input t` steps
+  the run once (`runSkelsBy`), reads memory through a table of powers whose index guesses are
+  checked (`addressIndexBy_eq_gLog`, `Semantics/Executable.lean`), searches the fill-block starts
+  in the bytecode (`fillStarts`, `Semantics/Generator.lean`) and the `JUMP` table's exponent
+  (`jumpHeight`), and builds the padded witness through constraint completeness's own definitions
+  at a reader argument. `witnessGen_correct`: for `WellFormedBytecode` and a valid execution `t`
+  that `Fits`, it returns a witness of `SatisfiedBy` representing the padded trace
+  `padTrace t (fillStarts prog)`, the same steps over a doubled memory with the fill frames above
+  `t`'s image.
+- **The prover from an execution** (`Protocol/Headline.lean`): `proveExecution` is `witnessGen`,
+  then `prove`. `proveExecution_complete` replaces `prove_complete_of_execution`: for
+  `WellFormedBytecode` and a valid execution `t` that `Fits`, the generator returns a witness of
+  the constraint statement representing the padded trace, a valid execution with the same steps;
+  every proof `proveExecution` returns is accepted; it returns none only when the stack does not
+  fit (`StackFits`), the rate is not valid, or a grind runs out of fuel at a chain state the
+  prover's run reaches (`ProveReaches`), and returns a proof when none of these holds.
+- **The stack of an execution** (`Protocol/LeanIsa/ExecutionStack.lean`): the generated witness's
+  sizes are a formula of the trace (`sizes_witnessGen`, `execSizes`), so `StackFits prog t`, the
+  stack at those sizes within `2^maxMu`, is a predicate on the trace. It fails for every
+  `t.κ ≥ 25` (`not_stackFits_of_le`: the four memory columns at height `2^(t.κ+1)` hold
+  `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is more), holds for `t.κ ≤ 24`, at most `2^25`
+  program slots and `2^16` steps (`StackFits.of_short`), and implies `Trace.Fits`
+  (`StackFits.fits`). A memory of the Rust's layout would fail only from `t.κ ≥ 26`.
+- **Completeness in the random-oracle model**: `proveExecution_rom_complete`, for
+  `WellFormedBytecode`, a valid execution whose stack fits and a valid rate, bounds the
+  probability that the honest run from the execution (`honestExecutionGame`: `witnessGen`, the
+  prover and the verifier at one lazy random oracle) rejects by
+  `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, with `N = 264246250 + 6 · fuel` the prover's
+  query count (`Prove.isTotalQueryBound_proveWith_closed`); below `2^-154` at fuel `2^24`
+  (`proveExecution_rom_complete_default`). The constraint forms are `honestGame_rom_rejects_le`
+  and `prove_rom_eq_none_le` (`Protocol/HonestGame.lean`), from the prover's bound
+  `Prove.prEvent_proveWith_eq_none_le` (`Protocol/Prove/RomComplete.lean`) and the generic
+  bound on a proof-of-work search, `PowSearch.prEvent_exhausted_le` (`ToVCVio/ProofOfWork.lean`).
+- **The hypotheses, decided**: `checkExecution` runs the constant-time bounds of a stack that fits
+  (`StackFits.bounds`), `wellFormedB`, `checkTrace`, `stackFitsB` and the rate's check, and
+  decides the hypotheses of the random-oracle form (`checkExecution_eq_true_iff`); `fitsB` decides
+  `Trace.Fits` on a valid execution. `proveChecked` runs `checkExecution`, then `proveExecution`:
+  every proof it returns is accepted with no hypothesis (`verify_proveChecked`), and under the
+  hypotheses it is `proveExecution` (`proveChecked_eq`).
+- **Evidence**, in the `Executables` workflow: `leanervm-prove execution` runs `proveChecked` on
+  the one-step ladder trace of the completeness tests (memory `2^16` padded to `2^17`, stack
+  `2^20`): the generator in 0.15 s, the proof in 84 s, and `verify` accepts. `leanervm-witgen
+  --gen` reads the 19 Rust executions of `tests/vectors/executions/`
+  (`scripts/dump-execution-rust.sh` at the pin), decides every hypothesis true, and generates
+  witnesses whose table heights are the Rust's, at memory `2^18` (`bench/README.md`).
+
+Owed, besides the grind bound per grind and a deployed rate above:
+  - *the memory layout*: the generated witness represents a padding of the execution, the fill
+    frames above the image in a doubled memory, where the Rust places them in free memory at the
+    same size. A witness of the Rust's layout would represent the execution itself, and its stack
+    would fail to fit only from `t.κ ≥ 26`; it changes `padTrace` and the completeness statements,
+    an open decision ([witness-generation.md](../reviews/witness-generation.md));
+  - *a committed-size floor*: the Rust recursion prover raises the tables to `2^22` committed
+    cells, which `witnessGen` does not; a floor parameter, with `witnessGen_correct` over it, is
+    needed before generated witnesses can reproduce recursion proofs;
+  - *the program hash on large bytecode*: `programHash` of the `2^19`-slot recursion guest takes
+    36 s and 3 GB through a list of bytes, and both `prove` and `verify` hash the program; a hash
+    from a byte array, proved equal, would remove it;
+  - *the fill-block search on large bytecode*: `fillStarts` scans the code 48 times, 0.7 s of the
+    guest's 1.5–1.9 s; `hasFillBlocksB`'s one pass over the closing jumps would do, with a proof
+    that its starts meet `fillStarts`'s specification;
+  - *a column-by-column comparison with the Rust's witness*: the generated tables are compared
+    with the Rust's by heights and by the main run's rows only, since the Rust's export lacks the
+    access-count, operand and `q_flock` columns; it waits for the memory layout;
+  - *the prover's speed*: `proveExecution` takes 84 s on the one-step trace and 290 s on
+    `field_div`, where the generator takes under 2 s.
 
 ## Upstream watch
 
@@ -1581,9 +1643,9 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
 | VCVio #823, #824, #826 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
-| ArkLib (none opened yet): generic upstream candidates written for this protocol | the phases' provers and verifiers, the Flock phase, the compiled verifier | `ToArkLib/`: cached honest provers and rounds (`CachedProver`, `CachedRounds`, `CachedSteps`, `SumcheckCached`, `ProductSumCached`, `GrandProductCached`, `ProductSumcheck`, `GrandProductRun`, `WeightCombination`); transcripts read back from a flat list of readings (`DecodeSteps`, `DecodeTranscript`, `StepSchedule`, `QueryRecord`, `ExtractIn`); oracle plumbing (`Oracles`, `KeepOracles`, `SendOracle`, `SendOracleBeside`, `MapWitness`, `PassCheck`, `PushSecurity`, `FrontRun`, `FrontVerifier`); the Flock argument (`Flock/BlockR1CS`, `Cached`, `CircuitFast`, `FrobeniusMap`, `Lincheck`, `Reduction`, `RingSwitch`, `Rounds`, `Run`, `Tables`, `Zerocheck`) | proposed upstream one module family at a time; each module deleted at the bump whose pin contains it |
+| ArkLib (none opened yet): generic upstream candidates written for this protocol | the phases' provers and verifiers, the Flock phase, the compiled verifier | `ToArkLib/`: cached honest provers and rounds (`CachedProver`, `CachedRounds`, `CachedSteps`, `SumcheckCached`, `ProductSumCached`, `GrandProductCached`, `ProductSumcheck`, `GrandProductRun`, `WeightCombination`); transcripts read back from a flat list of readings (`DecodeSteps`, `DecodeTranscript`, `StepSchedule`, `QueryRecord`, `ExtractIn`); oracle plumbing (`Oracles`, `KeepOracles`, `SendOracle`, `SendOracleBeside`, `MapWitness`, `PassCheck`, `PushSecurity`, `FrontRun`, `FrontVerifier`); a prover's run against a wire, carried along a monad morphism and counted (`RunCodecHom`, `RunCodecGrade`); the Flock argument (`Flock/BlockR1CS`, `Cached`, `CircuitFast`, `FrobeniusMap`, `Lincheck`, `Reduction`, `RingSwitch`, `Rounds`, `Run`, `Tables`, `Zerocheck`) | proposed upstream one module family at a time; each module deleted at the bump whose pin contains it |
 | CompPoly (none opened yet): generic polynomial algorithms | the honest provers' speed | `ToCompPoly/`: `AmbientStacking`, `BindStep`, `Doubling` (with its `lagrangeBasis`, `evalMle` and `eval₂Mle` substitutions), `EqBatch`, `FinLoop`, `Frobenius`, `HighSum`, `Interpolation`, `MvEval` (with its `CMvPolynomial.eval` and `eval₂` substitutions), `PlainSum`, `ProductLevels`, `TableFold` | as for ArkLib's |
-| VCVio (none opened yet): oracle-computation tools | the random-oracle theorems | `ToVCVio/`: `LogReplay` (replaying a logged run), `MerkleQueries`, `MonadRel` (relations preserved by `pure` and `bind`), `UniformCondition` | as for ArkLib's |
+| VCVio (none opened yet): oracle-computation tools | the random-oracle theorems | `ToVCVio/`: `LogReplay` (replaying a logged run), `RandomOracleReplay` (a lazy random oracle's run is the computation at its final cache's answers), `ProofOfWork` (a proof-of-work search against a lazy random oracle runs out of candidates with small probability), `MerkleQueries`, `MonadRel` (relations preserved by `pure` and `bind`), `UniformCondition` | as for ArkLib's |
 
 Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
 budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
