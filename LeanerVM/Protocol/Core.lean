@@ -286,10 +286,9 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
   have hfull := ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2
     a.2.2).kSF (pure ()) noSharedOracle).toFun_full (input, fun i ↦ i.elim0) tr ()
       (Verifier.probEvent_pos_of_runNoOracle _ (pure ()) noSharedOracle _ tr hso _ trivial)
-  have hall := Verifier.KnowledgeStateFunction.exists_toFun_take_of_good
+  have hall := fun m ↦ Verifier.KnowledgeStateFunction.exists_toFun_take_of_good
     ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).kSF
-      (pure ()) noSharedOracle) _ tr hfull
-    fun i w' h ↦ Classical.byContradiction fun hneg ↦
+      (pure ()) noSharedOracle) _ tr hfull m fun i _ w' h ↦ Classical.byContradiction fun hneg ↦
       hflip (flipAt_of_bad (a := a) hc hcoll hσ hstates hchain hchainV hobs hann hpow hW hdec i (by
         unfold Bad
         dsimp only [deployedSpec] at hneg h ⊢

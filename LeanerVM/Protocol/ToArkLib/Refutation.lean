@@ -10,6 +10,7 @@ module
 
 public import ArkLib.OracleReduction.LogicStep
 public import ArkLib.OracleReduction.Security.GuardedRoundByRound
+public import LeanerVM.Protocol.ToArkLib.StateWalk
 
 /-!
 # Refuting a verifier
@@ -56,23 +57,6 @@ variable {V : Verifier oSpec StmtIn StmtOut pSpec} {σ : Type} {init : ProbComp 
   {relOut : Set (StmtOut × WitOut)} {WitMid : Fin (n + 1) → Type}
   {E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid}
   (kSF : V.KnowledgeStateFunction init impl relIn relOut E)
-
-/-- A knowledge state function true at the end of a full transcript is true, for some witness,
-at every earlier round after which only the prover speaks. -/
-theorem Verifier.KnowledgeStateFunction.exists_toFun_take (s : StmtIn)
-    (full : pSpec.FullTranscript) (m : Fin (n + 1))
-    (hlater : ∀ j : Fin n, m.val ≤ j.val → pSpec.dir j = .P_to_V) {w : WitMid (Fin.last n)}
-    (hw : kSF.toFun (Fin.last n) s full w) :
-    ∃ w', kSF.toFun m s (full.take m.val m.is_le) w' := by
-  induction m using Fin.reverseInduction with
-  | last => exact ⟨w, hw⟩
-  | cast j ih =>
-    obtain ⟨w', hw'⟩ := ih fun j' hj' ↦
-      hlater j' (le_trans (Fin.val_castSucc j).le (le_trans (Nat.le_succ _) hj'))
-    rw [show full.take j.succ.val j.succ.is_le =
-      Transcript.concat (m := j) (full j) (full.take j.val j.castSucc.is_le) from
-        Fin.take_succ_eq_snoc j.val j.isLt full] at hw'
-    exact ⟨_, kSF.toFun_next j (hlater j (Fin.val_castSucc j).le) s _ _ w' hw'⟩
 
 /-- Where the statement has no witness, a knowledge state function is false at round zero for
 every witness, at any index of value zero. -/
@@ -128,9 +112,9 @@ theorem Verifier.not_rbr
     1 ≤ ε i :=
   Verifier.not_rbr_of_escape h i s tr hbad fun c ↦ by
     obtain ⟨full, hprefix, witOut, hpos⟩ := hacc c
-    obtain ⟨w', hw'⟩ := Verifier.KnowledgeStateFunction.exists_toFun_take kSF s full i.1.succ
-      (fun j hj ↦ hlater j (Fin.lt_def.mpr (lt_of_lt_of_le (Nat.lt_succ_self _) hj)))
+    obtain ⟨w', hw'⟩ := Verifier.KnowledgeStateFunction.exists_toFun_take_of_good kSF s full
       (kSF.toFun_full s full witOut hpos)
+      i.1.succ fun j hj ↦ absurd (hlater j.1 (Fin.lt_def.mpr (by simpa using hj))) (by simp [j.2])
     have hpre : full.take i.1.succ.val i.1.succ.is_le = tr.concat c := hprefix
     rw [hpre] at hw'
     exact ⟨w', hw'⟩

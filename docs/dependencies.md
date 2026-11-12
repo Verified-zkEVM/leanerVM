@@ -183,6 +183,11 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   is the same number. The cache form of `enncard_le_of_mem_support` is deleted; its consumer
   (`HashMisbehaves`) uses `QueryHistory.enncard_le_of_mem_support`, the same bound for every query
   history.
+* **A weaker hypothesis, a stronger walk.** `exists_toFun_take_of_good` (`ToArkLib/StateWalk.lean`)
+  takes the round `m` before its hypothesis and asks only the challenges from round `m` on to keep
+  the state function true, not every challenge; for `m = 0` it is the old statement. The copy in
+  `ToArkLib/Refutation.lean`, which walked back over prover rounds only, is deleted: there the
+  hypothesis holds vacuously.
 * **Lean 4.35's `Vector` and `Array` equality (finding L1).** Core derives `Vector`'s
   `DecidableEq` with `@[expose]` and exposes `Array`'s, so `decide` and the kernel reduce
   equalities of vectors across module boundaries. The `CompressCells` instance unfolds to the
