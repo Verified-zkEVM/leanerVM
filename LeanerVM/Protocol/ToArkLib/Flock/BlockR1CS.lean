@@ -23,6 +23,8 @@ two walks over a commutative ring `R`, with the proofs that the walks compute th
 (`rows_fst`, `rows_snd`, `cols_fst`, `cols_snd`).
 
 * `BlockR1CS.Holds C z`: the block `z` satisfies `(A z)_k · (B z)_k = z_k` at every position.
+  Compiled code decides it with the walk computed once (`instDecidableHolds_eq`, a `@[csimp]`
+  theorem).
 * `rows_add`, `rows_smul_*`, `rows_sum`: the walks are linear, so a combination of blocks walks
   to the combination of their walks.
 * `sum_mul_rows_fst`, `sum_mul_rows_snd`: the adjoint identity `Σ_k e_k (A W)_k = Σ_j (Aᵀ e)_j W_j`.
@@ -91,9 +93,21 @@ def Holds (z : CMlPolynomialEval R m) : Prop :=
   ∀ k : Fin (2 ^ m), (C.rows z).1[k] * (C.rows z).2[k] = z[k]
 
 /-- Decided with one walk of the block, shared by every position. -/
-instance [DecidableEq R] (z : CMlPolynomialEval R m) : Decidable (C.Holds z) :=
+instance instDecidableHolds [DecidableEq R] (z : CMlPolynomialEval R m) : Decidable (C.Holds z) :=
   match h : C.rows z with
   | w => decidable_of_iff (∀ k : Fin (2 ^ m), w.1[k] * w.2[k] = z[k]) (by rw [Holds, h])
+
+/-- `Holds` decided by comparing the product of the walk's two halves with the block. -/
+def decHoldsFast [DecidableEq R] (z : CMlPolynomialEval R m) : Decidable (C.Holds z) :=
+  let w := C.rows z
+  decidable_of_iff (w.1.zipWith (· * ·) w.2 = z) <| by
+    simp only [w, Holds, Vector.ext_iff, Vector.getElem_zipWith, Fin.getElem_fin, Fin.forall_iff]
+
+/-- Compiled code computes the walk once. With the instance, a block known at compile time lets
+the compiler copy the walk into the loop over the positions, recomputing it at each one. -/
+@[csimp] theorem instDecidableHolds_eq : @instDecidableHolds = @decHoldsFast := by
+  funext R _ m C _ z
+  exact Subsingleton.elim _ _
 
 /-- A block with the naive walks, summing the products entry by entry: for small circuits. -/
 def ofMatrices (A B : Fin (2 ^ m) → Fin (2 ^ m) → Bool) : BlockR1CS R m where
