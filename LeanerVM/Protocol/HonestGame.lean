@@ -20,7 +20,7 @@ with probability at most `(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`,
 `N = 264246250 + 6 · fuel` a bound on its queries (`prove_rom_eq_none_le`); the honest run, the
 prover and then the verifier on its proof asking the same oracle (`honestGame`), is rejected with
 the same probability (`honestGame_rom_rejects_le`). At the executable's default fuel `2^24` both
-are below `2^-154` (`prove_rom_eq_none_le_default`, `honestGame_rom_rejects_le_default`).
+are at most `2^-154` (`prove_rom_eq_none_le_default`, `honestGame_rom_rejects_le_default`).
 
 The run is the deterministic run at the hash its final cache defines, where a failing grind leaves
 an exhausted proof-of-work search in the cache (`Prove.exhausted_of_grind_eq_none`), which
@@ -104,7 +104,7 @@ theorem honestGame_rom_rejects_le (fuel : ℕ) {prog : Program} {input : PublicI
   rw [← hv] at hrej
   cases hrej
 
-/-- The bound at the default fuel `2^24`, with `N = 364909546` queries, is below `2^-154`. -/
+/-- The bound at the default fuel `2^24`, with `N = 364909546` queries, is at most `2^-154`. -/
 private theorem rom_bound_default (q : ℝ≥0∞) (hq : q ≤ (2 ^ 184 : ℝ≥0∞)⁻¹) :
     (((264246250 + 6 * 2 ^ 24 : ℕ) : ℝ≥0∞) + 1) * q +
       ((264246250 + 6 * 2 ^ 24 : ℕ) : ℝ≥0∞) * ((264246250 + 6 * 2 ^ 24 : ℕ) : ℝ≥0∞) / 2 ^ 256 ≤
@@ -126,7 +126,7 @@ private theorem rom_bound_default (q : ℝ≥0∞) (hq : q ≤ (2 ^ 184 : ℝ≥
   exact ENNReal.ofReal_le_ofReal (by norm_num)
 
 /-- **The deployed prover at the default fuel `2^24` in the random-oracle model** returns no proof
-with probability below `2^-154`. -/
+with probability at most `2^-154`. -/
 theorem prove_rom_eq_none_le_default {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
     (hsat : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
@@ -137,7 +137,7 @@ theorem prove_rom_eq_none_le_default {prog : Program} {input : PublicInput} {κ 
     (rom_bound_default _ Prove.one_sub_pow_fuel_le)
 
 /-- **Completeness of the deployed pair at the default fuel `2^24` in the random-oracle model**:
-the honest run is rejected with probability below `2^-154`. -/
+the honest run is rejected with probability at most `2^-154`. -/
 theorem honestGame_rom_rejects_le_default {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
     (hsat : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
