@@ -10,7 +10,6 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
-public import LeanerVM.Protocol.ToArkLib.AppendLazy
 
 /-!
 # Runs of front components

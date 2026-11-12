@@ -8,7 +8,7 @@
 
 module
 
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # Uniform samples: the subsingleton bound and pushforwards

@@ -135,7 +135,7 @@ theorem frameCell_message (w0 : E) (pc base : ℕ) (t : Opcode) {j : ℕ} (hj : 
   unfold frameCell
   simp only [FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch,
     FillFrame.digest]
-  split_ifs <;> first | rfl | omega
+  split_ifs <;> first | omega | rfl
 
 /-- The `BLAKE2S` frame's digest pair. -/
 theorem frameCell_digest (w0 : E) (pc base : ℕ) :

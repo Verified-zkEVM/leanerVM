@@ -48,7 +48,7 @@ example (n D : ℕ) (η : ℝ) : mcaConstant n D η = annexConstant n D η := by
   unfold mcaConstant johnsonComparisonEstimate johnsonComparisonShift
     johnsonComparisonMultiplicity johnsonGamma johnsonAgreement annexConstant
   dsimp only
-  rw [johnson_sqrt_cube_eq_rpow_three_halves]
+  rw [sqrt_cube_eq_rpow_three_halves]
   simp only [johnsonRhoMinus, Real.rpow_eq_pow]
   ring
 

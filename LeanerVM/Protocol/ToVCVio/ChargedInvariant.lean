@@ -10,7 +10,7 @@ module
 
 public import LeanerVM.Protocol.ToVCVio.EventExpectation
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import LeanerVM.Protocol.ToVCVio.QueryLog
 
@@ -183,7 +183,7 @@ theorem prEvent_simulateQ_bind_le_lintegral [DecidablePred E₁]
   rw [simulateQ_bind, StateT.run_bind, prEvent_bind_eq_lintegral_id_evalDist_map]
   refine lintegral_id_evalDist_map_mono_of_mem_support _ fun z₁ hz₁ ↦ ?_
   split_ifs with h
-  · exact prEvent_le_one _ _
+  · exact prEvent_le_one _
   · exact prEvent_mono_of_support _ _ _ fun z₂ hz₂ hE₂ ↦ (hE z₁ hz₁ z₂ hz₂ hE₂).resolve_left h
 
 omit [DecidableEq ι] in

@@ -241,7 +241,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     rw [add_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    simp only [Vector.getElem_map] at hA hB hC ⊢
+    simp only at hA hB hC ⊢
     exact ⟨⟨_, decode_entry (.xor _ _ _)⟩, hA, hB, hC⟩
 
 /-! ## Rows from executions -/

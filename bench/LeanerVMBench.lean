@@ -15,7 +15,6 @@ import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 import LeanerVM.Protocol.LeanIsa.Conditions
 import LeanerVM.Protocol.HonestProver
-import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Transform
 import LeanerVM.Parameters.Whir

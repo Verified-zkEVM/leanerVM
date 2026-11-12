@@ -8,7 +8,6 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.AppendLazy
 public import LeanerVM.Protocol.ToArkLib.StepSchedule
 public import Batteries.Recycling.MonadSatisfying.Basic
 public import ArkLib.OracleReduction.Security.Basic

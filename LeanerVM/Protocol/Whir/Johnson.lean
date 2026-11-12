@@ -225,11 +225,11 @@ theorem mcaBound_of_mcaJohnson {c : ℕ → ℕ → ℝ → ℝ} (hc : McaJohnso
 
 /-! ## The list bound -/
 
-/-- **The list bound from the pairwise Johnson bound.** At a threshold `a ≥ 2 ^ κ` with
+/-- **The list bound from the pairwise Johnson bound.** At a threshold `a` with
 `n D < a²` (`n = 2 ^ (κ + R)`, `D = 2 ^ κ - 1`), at most `⌊n (a - D) / (a² - n D)⌋`
 interleaved codewords of `2 ^ m` lanes agree with any word on `a` positions: two distinct ones
 agree on at most `D` positions, since a message is determined by `2 ^ κ` values of its encoding. -/
-theorem listBound_johnson {κ R a : ℕ} (m : ℕ) (hb : κ + R ≤ 64) (ha : 2 ^ κ ≤ a)
+theorem listBound_johnson {κ R a : ℕ} (m : ℕ) (hb : κ + R ≤ 64)
     (hpos : 2 ^ (κ + R) * (2 ^ κ - 1) < a * a) :
     ListBound κ R a m (Code.pairwiseJohnsonListBound (2 ^ (κ + R)) (2 ^ κ - 1) a) := by
   classical
@@ -250,7 +250,7 @@ theorem listBound_johnson {κ R a : ℕ} (m : ℕ) (hb : κ + R ≤ 64) (ha : 2 
       fun y hy ↦ ?_
     exact congrFun (Finset.mem_filter.mp hy).2 u
   obtain ⟨hfin, hcard⟩ := Code.agreementSet_finite_and_ncard_le_pairwiseJohnson
-    (Set.range cw) rcv (2 ^ κ - 1) a (by omega) (by rw [Fintype.card_fin]; exact hpos) hpair
+    (Set.range cw) rcv (2 ^ κ - 1) a (by rw [Fintype.card_fin]; exact hpos) hpair
   have : Finite {c | c ∈ Set.range cw ∧ a ≤ Code.agree c rcv} := hfin.to_subtype
   rw [Fintype.card_fin, ← Nat.card_coe_set_eq] at hcard
   have hmem : ∀ V : {V : Msgs m κ // Cl κ R a m F V},
@@ -521,7 +521,7 @@ def johnsonPar (sh : Shape) (κ : ℕ) (η : ℚ) (h : Fits κ sh.R η) : Par sh
   hdist := h.dist
   hle := h.le_n
   hb := h.hb
-  hlist := listBound_johnson sh.ℓ h.hb h.dist h.johnson
+  hlist := listBound_johnson sh.ℓ h.hb h.johnson
   hmca := (mcaBound_of_mcaJohnson (mcaJohnson_annexB E) h.one_le_κ h.one_le_R h.hb
     h.slack_pos (le_threshold h) h.le_n).mono (Nat.floor_le_of_le (mcaConstant_le_mcaCount h))
 

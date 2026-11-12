@@ -261,7 +261,8 @@ theorem digestOfBytes_append (d : Digest) (rest : List UInt8) :
     digestOfBytes (digestBytes d ++ rest) = d := by
   ext i hi
   simp only [digestOfBytes, digestBytes, wordsOfBytes_flatMap, Vector.getElem_ofFn]
-  rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_append_left (by simp; omega)]
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp; omega),
+    Option.getD_some, List.getElem_append_left (by simp; omega)]
   simp
 
 /-- The `K` word whose bytes begin a byte string is read back by `kOfBytes`. -/

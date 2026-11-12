@@ -9,7 +9,7 @@
 module
 
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
-public import VCVio.OracleComp.SimSemantics.StateT.Basic.Native
+public import VCVio.OracleComp.SimSemantics.StateT.Basic
 
 /-!
 # Replaying a logged run

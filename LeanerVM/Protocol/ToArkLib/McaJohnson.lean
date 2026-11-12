@@ -64,11 +64,11 @@ theorem mcaJohnson_comparisonEstimate (F : Type) [Field F] [Fintype F] [Sampleab
     McaJohnson F johnsonComparisonEstimate where
   le n domain D η hD hDn hη ha := by
     have ha' : johnsonAgreement n D η ≤ 1 := ha
-    have h := mcaError_affineLine_johnson_le domain hD hDn hη ha'
+    have h := mcaError_affineLine_johnson_le domain hD hDn hη
     rw [sub_sub]
     refine h.trans (min_le_right _ _ |>.trans (ENNReal.ofReal_le_ofReal ?_))
     exact div_le_div_of_nonneg_right
-      (johnsonExceptionCount_le_comparisonEstimate hD hDn hη ha' (Nat.le_ceil _))
+      (johnsonExceptionCount_le_comparisonEstimate hDn hη ha' (Nat.le_ceil _))
       (Nat.cast_nonneg _)
 
 /-! ## The fold line -/

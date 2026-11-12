@@ -121,7 +121,6 @@ import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.StatementSeeds
 import LeanerVM.Protocol.TableSumcheck
-import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.CachedProver
 import LeanerVM.Protocol.ToArkLib.CachedRounds
@@ -188,7 +187,6 @@ import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckCached
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
-import LeanerVM.Protocol.ToArkLib.TupleCompiledForms
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
@@ -227,7 +225,6 @@ import LeanerVM.Protocol.ToVCVio.ProofOfWork
 import LeanerVM.Protocol.ToVCVio.QueryBound
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
-import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformCondition
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript

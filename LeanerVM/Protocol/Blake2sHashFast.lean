@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.Blake2sHash
+import Mathlib.Data.List.GetD
 
 /-!
 # Faster byte hashing

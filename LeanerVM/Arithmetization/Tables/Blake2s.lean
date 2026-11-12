@@ -283,7 +283,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
       _, _, _, _, _, _, _, _, _, _⟩ := h_input
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
-    simp only [E.ofCell, Vector.getElem_map] at hm0 hm1 hm2 hm3 hcv0 hcv1 hout0 hout1 hmd ⊢
+    simp only [E.ofCell] at hm0 hm1 hm2 hm3 hcv0 hcv1 hout0 hout1 hmd ⊢
     exact ⟨⟨_, by rw [blake2s_entry, decode_entry]⟩, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0,
       hout1, hmd⟩
 

@@ -162,7 +162,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp h
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
-    simp only [Vector.getElem_map] at hk ⊢
+    simp only at hk ⊢
     exact ⟨⟨_, decode_entry (.setConstant _ (E.ofLimbs _ _ _))⟩, hk⟩
 
 /-! ## Rows from executions -/

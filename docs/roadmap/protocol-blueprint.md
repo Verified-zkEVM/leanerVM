@@ -1257,7 +1257,7 @@ theorem encode_mem_code ; theorem exists_encode_of_mem_code   -- the encoder's w
 def mcaConstant (n D : ℕ) (η : ℝ) : ℝ := ReedSolomon.HiddenDerivative.johnsonComparisonEstimate n D η
 theorem mcaJohnson_annexB (F) : McaJohnson F mcaConstant
 theorem mcaBound_of_mcaJohnson (hc : McaJohnson E c) … ((√ρ + η) n ≤ a) (a ≤ n) : McaBound κ R a ⌊c n D η⌋₊
-theorem listBound_johnson (m) … (2^κ ≤ a) (n D < a²) : ListBound κ R a m (Code.pairwiseJohnsonListBound n D a)
+theorem listBound_johnson (m) … (n D < a²) : ListBound κ R a m (Code.pairwiseJohnsonListBound n D a)
 def threshold (κ R) (η : ℚ) : ℕ                       -- ⌈(√ρ + η) n⌉₊ in naturals; = the ceiling under `Fits`
 def Fits (κ R) (η : ℚ) : Prop                         -- decidable: what the interfaces need of a level
 def mcaCount (κ R) (η : ℚ) : ℕ                        -- ⌈Annex B's formula at a rational lower bound on √ρ⌉; ≥ mcaConstant under `Fits`

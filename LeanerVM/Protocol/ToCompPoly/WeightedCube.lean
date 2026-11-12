@@ -68,7 +68,6 @@ theorem weightedCubeSum_zero (w : Fin 0 → R × R) (g : Vector R 0 → R) :
   rw [weightedCubeSum, Fintype.sum_unique, cubeWeight, Finset.univ_eq_empty, Finset.prod_empty,
     one_mul]
   congr 1
-  exact Vector.ext fun i hi ↦ absurd hi (Nat.not_lt_zero i)
 
 /-- A point on `k` coordinates followed by one more coordinate. -/
 private theorem boolVec_cubeIndex_push {k : ℕ} (i : Fin (2 ^ k)) (b : Fin (2 ^ 1)) :
