@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Protocol.Verify
 public import VCVio.OracleComp.SimSemantics.SimulateQ
+import Mathlib.Control.Lawful
 
 /-!
 # The verifier along a monad morphism
