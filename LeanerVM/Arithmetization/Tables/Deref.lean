@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `a985c76c`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:586-609` (`mod deref`, in that order), the store coordinates
 `tables.rs:616-623` (`deref_store`), the flushes `tables.rs:633-643` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no

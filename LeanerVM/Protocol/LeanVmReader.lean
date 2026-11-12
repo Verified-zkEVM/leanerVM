@@ -52,7 +52,7 @@ verifier `verifyWith`, its query bound `3 + verifierQueries` and the proof's roo
 
 An accepted proof's history decodes, at the sizes and rate it announces and from any start
 (`walkChainLogged_proof_decodes`), and so does the history an accepted replay logs from a
-computed start (`decodes_of_runFrom`).
+computed start.
 `verifierQueries_le_bound`: the verifier asks at most `verifierQueriesBound = 13700` queries
 whatever the program and the input: its seed's three, `μ_bus` at most `55`, the tables' heights at
 most `2^40`, and WHIR's walk and openings at most `8839` over the window.
