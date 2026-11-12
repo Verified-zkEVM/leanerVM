@@ -425,12 +425,12 @@ The spine fixes everything two neighbouring pieces of work would otherwise have 
 proves the composition once. It lives under `LeanerVM/Protocol/Spine/` (`Instance`, `Seams`,
 `Phase`, `Compose`, `Toy`) and, for the parts that belong in ArkLib, `LeanerVM/Protocol/ToArkLib/`
 (`Oracles`, `Component`, `PassThrough`, `SendOracle`, `KeepOracles`, `Refinement`), with its
-tests in `tests/LeanerVMTests/Protocol/Spine.lean`. After it, every phase, generic component, the instance and the compilation is a unit of work that
-consumes spine names only, is tested on the toy instance, and lands in two halves. It restates the
-shape of leanth's explore branch (a `Type 0` witness, a relation anchored to Clean, a commit stage
-pinning the oracle to the witness of record, the zerocheck point carried between stages, an
-abstract commitment boundary) and drops its two defects: an extractor chosen classically, and a
-balance summed in the field.
+tests in `tests/LeanerVMTests/Protocol/Spine.lean`. After it, every phase, generic component, the
+instance and the compilation is a unit of work that consumes spine names only, is tested on the toy
+instance, and lands in two halves. It restates the shape of leanth's explore branch (a `Type 0`
+witness, a relation anchored to Clean, a commit stage pinning the oracle to the witness of record,
+the zerocheck point carried between stages, an abstract commitment boundary) and drops its two
+defects: an extractor chosen classically, and a balance summed in the field.
 
 ### The relation ladder
 
@@ -647,8 +647,9 @@ are ArkLib's `KnowledgeStateFunction.appendGuarded` and
 `Verifier.append_rbrKnowledgeSoundnessWith_of_guarded_first`. The transport along the adaptor is
 `Refinement.knowledge_transport`: for the same game, provers and extractor, accepting while the
 mapped extracted witness is invalid has probability at most the knowledge error; it needs no
-prover conversion, since ArkLib's game quantifies over every prover's auxiliary input (#1347). The base theorems use the adaptor pointwise, `satisfiedBy_witnessOf` inside
-their event (Layer 13), so they wait on no round-by-round-to-plain step (the ledger).
+prover conversion, since ArkLib's game quantifies over every prover's auxiliary input (#1347). The
+base theorems use the adaptor pointwise, `satisfiedBy_witnessOf` inside their event (Layer 13), so
+they wait on no round-by-round-to-plain step (the ledger).
 
 `piop_rbrKnowledgeSoundness_exists` (the extractor forgotten) is kept as the shortest statement to
 read, but it is a soundness statement only (convention *Extractors*).
@@ -1120,8 +1121,9 @@ wrong line gives a nonzero polynomial of degree one in `r`; for the word check,
 public words with zero top limbs. The message's length is fixed by the check alone, so Layer 12
 serializes it without a length prefix. Both proofs start from ArkLib's guarded-verifier lemmas
 (`Reduction.perfectCompleteness_of_guarded_prover_support`,
-`Verifier.GuardedForm.check_and_of_prEvent_pos`); the bound is `ToVCVio/UniformSample.lean`'s. The line identity is derived here from
-`evalMle_append_boolVec` at slice zero: a point chosen by the protocol is not upstream material.
+`Verifier.GuardedForm.check_and_of_prEvent_pos`); the bound is `ToVCVio/UniformSample.lean`'s. The
+line identity is derived here from `evalMle_append_boolVec` at slice zero: a point chosen by the
+protocol is not upstream material.
 
 Tests: on the toy, the line's value accepted and a wrong, missing or extra value rejected; the
 stack `badLine` rejected by the check except at the one bad challenge; three lines in the shape of
@@ -1663,9 +1665,9 @@ def HitFrom (seedRoots) (rootsOf) (g : Run) : Prop :=
 /-- The bad challenges at a prefix `tr` of the compiled transcript on the statement `st`, ending before a
 challenge `i`: those at which some witness `w` of the next round makes the knowledge state function of
 `listBinding_compile` at `leanVmSecurity`, `deployedDecoder` and `F` true, while the round extractor's
-`extractMid … w` makes it false at the prefix: the event of ArkLib's `rbrKnowledgeSoundnessWith`. The
-committed words are messages of `tr`. A query group's challenge is the pair of the grinding check's digest and the
-positions, and a bad one passes the check. -/
+`extractMid … w` makes it false at the prefix: the event of ArkLib's `rbrKnowledgeSoundnessWith`.
+The committed words are messages of `tr`. A query group's challenge is the pair of the grinding
+check's digest and the positions, and a bad one passes the check. -/
 def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
   {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
   -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
@@ -1860,8 +1862,8 @@ first; its potential is then the probability, given the log, that the check pass
 positions are bad, and its later queries are martingale steps of that potential, charged
 nothing. Each further nonce is a further group and costs a fresh query. That is why the charged
 invariant is stated for a potential; an expected count of passing nonces would not compose with
-the per-query bound, which a fresh query pays before its answer is seen. `challengePositions` reads the positions
-as the Rust does for `1 ≤ b < 64` bits per position, and every deployed level has
+the per-query bound, which a fresh query pays before its answer is seen. `challengePositions` reads
+the positions as the Rust does for `1 ≤ b < 64` bits per position, and every deployed level has
 `msgLog + rate < 64`.
 
 `niError εquery V Q` is `(Q + V)` times `εquery`, the most one challenge can buy, plus
@@ -2557,7 +2559,7 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       Phase.Def  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
-                      probEvent_uniformSample_le_of_subsingleton
+                      prEvent_uniformSample_le_of_subsingleton
                       commitDef  commitComplete  commitExtractor  commitSecurity
                       Phases  Phases.Complete  Phases.Security  Phases.toDef
                       leanVmPiop  leanVmVerifier  leanVmProver  piopExtractor  piopExtractedStack  piopExtractedStack_eq

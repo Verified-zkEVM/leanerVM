@@ -36,7 +36,7 @@ the casts the appended types carry (`apply_heq_send`, `apply_heq_draw`, `prop_he
 A prover of an oracle reduction with no shared oracle (`[]ₒ`) makes no query: its oracle
 computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`), with that
 value as their one outcome; a verifier with no shared oracle that returns a statement in `Id`
-outputs it with positive probability (`Verifier.probEvent_pos_of_runNoOracle`).
+outputs it with positive probability (`Verifier.prEvent_pos_of_runNoOracle`).
 
 **The run on given challenges.** `Prover.runWithChallenges ch` is the run whose challenge `i` is
 `ch i`, deterministic. Three facts carry completeness from the oracle protocol to a run against a
@@ -291,7 +291,7 @@ theorem runNoOracle_eq_pure {w : Type → Type} [Monad w] [LawfulMonad w] {α : 
 /-- A verifier with no oracle whose run on a transcript returns `so` in `Id` outputs, under any
 implementation and initial state, a statement satisfying every property of `so` with positive
 probability. -/
-theorem Verifier.probEvent_pos_of_runNoOracle {StmtIn StmtOut : Type} {n : ℕ}
+theorem Verifier.prEvent_pos_of_runNoOracle {StmtIn StmtOut : Type} {n : ℕ}
     {pSpec : ProtocolSpec n} (V : Verifier []ₒ StmtIn StmtOut pSpec) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) (stmt : StmtIn)
     (tr : pSpec.FullTranscript) {so : StmtOut}
@@ -329,7 +329,7 @@ def IsRunTo (stmt : S) (wit : W) {i : Fin (n + 1)} (r : pSpec.Transcript i × P.
     Id.run (runToRoundWith (RoundCodec.ofChallenges ch) P i stmt wit) = r
 
 /-- Agreeing with a transcript extended by one round is agreeing with the transcript. -/
-theorem ChallengesAgree.of_concat {j : Fin n} {tr : pSpec.Transcript j.castSucc}
+private theorem ChallengesAgree.of_concat {j : Fin n} {tr : pSpec.Transcript j.castSucc}
     {x : pSpec.Type j} {ch : pSpec.Challenges}
     (h : ChallengesAgree (tr.concat x : pSpec.Transcript j.succ) ch) : ChallengesAgree tr ch :=
   fun k hk ↦ (h k (by simp only [Fin.val_succ, Fin.val_castSucc] at hk ⊢; omega)).trans

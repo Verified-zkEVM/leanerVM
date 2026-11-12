@@ -183,6 +183,12 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   is the same number. The cache form of `enncard_le_of_mem_support` is deleted; its consumer
   (`HashMisbehaves`) uses `QueryHistory.enncard_le_of_mem_support`, the same bound for every query
   history.
+* **Spelling and visibility only.** `SlotDecoder.run_succ_eq_some` (`ReaderSlots.lean`) is public
+  and also concludes `tr = Transcript.concat x t`: a stronger statement.
+  `Component.mapWitnessSecurity` and `Component.sendOracleSecurity` take `back`, `h` and `rel` as explicit binders, not section
+  variables, and `subspaceVanish_add`, `sumFin_eq_sum` and `prodFin_eq_prod` bind their arguments
+  plainly, not by pattern: the same propositions. `Verifier.prEvent_pos_of_runNoOracle` and
+  `prEvent_uniformSample_le_of_subsingleton` carry VCVio's `prEvent` names (formerly `probEvent_…`).
 * **Lean 4.35's `Vector` and `Array` equality (finding L1).** Core derives `Vector`'s
   `DecidableEq` with `@[expose]` and exposes `Array`'s, so `decide` and the kernel reduce
   equalities of vectors across module boundaries. The `CompressCells` instance unfolds to the
@@ -194,7 +200,7 @@ steps). None changes the statement of a headline theorem, `verify`, `prove`, `Sa
   exhaust the recursion depth; those sites rewrite first or decide in the kernel. `congr 1` now
   closes goals in `Vector R 0`.
 * **Mathlib's private imports.** Many of Mathlib's `public import`s became `import`s, so names stop
-  reaching modules transitively. Direct imports are added where a module used one:
+  reaching modules transitively. Direct imports are added where a module used one, among them
   `Mathlib.Data.List.GetD` (`List.getD_eq_getElem`), `Mathlib.Control.Lawful` (the `ExceptT` simp
   lemmas) and `Batteries.Control.Lemmas` (`StateT` lemmas). No Mathlib name that the repository uses
   is deprecated or removed.
