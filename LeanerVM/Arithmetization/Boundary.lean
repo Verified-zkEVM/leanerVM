@@ -254,13 +254,13 @@ def memTable : GeneralFormalCircuit K MemRow unit where
     circuit_proof_start [MemChannel]
     obtain ⟨_, _, hm⟩ := h_input
     subst hm
-    refine ⟨⟨by simpa only [Vector.getElem_map] using h_holds⟩, fun _ ↦ ?_⟩
-    simpa only [Vector.getElem_map] using (MemSeed.spec h_assumptions).word_eq
+    refine ⟨⟨h_holds⟩, fun _ ↦ ?_⟩
+    exact (MemSeed.spec h_assumptions).word_eq
   completeness := by
     circuit_proof_start [MemChannel]
     obtain ⟨_, _, hm⟩ := h_input
     subst hm
-    simpa only [Vector.getElem_map] using h_assumptions.word_eq
+    exact h_assumptions.word_eq
 
 /-- The rows of the memory block of log-size `κ`: `2^κ` of them, the address column fixed to
 `g^i` at row `i` (`gpowCell`), the words from the prover's hint, the finalize count the
