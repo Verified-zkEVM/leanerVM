@@ -41,10 +41,10 @@ Instance search finds ArkLib's instances for the messages and challenges of two 
 by side only when the left schedule is not a literal (a literal's type vector reduces under the
 appending, and the instance no longer matches), so every appended schedule declares its own by
 applying ArkLib's by name (`msgAppend`, `chalAppend`); compiled code reads them by one
-comparison with the seam (ArkLib's `@[csimp]` forms in `ArkLib.Data.Fin.Tuple.Lemmas`). A one-message schedule
-writes its direction as a function, not as ArkLib's one-message literal, whose message interface
-is the message type's own; here it is the trivial one, and the two must not be confused by
-instance search.
+comparison with the seam (ArkLib's `@[csimp]` forms in `ArkLib.Data.Fin.Tuple.Lemmas`). A
+one-message schedule writes its direction as a function, not as ArkLib's one-message literal,
+whose message interface is the message type's own; here it is the trivial one, and the two must
+not be confused by instance search.
 -/
 
 namespace LeanerVM.Protocol

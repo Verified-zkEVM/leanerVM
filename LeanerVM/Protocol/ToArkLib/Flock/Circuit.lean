@@ -39,9 +39,7 @@ the gates' forms.
 The two directions, over any nontrivial ring of characteristic two (`holds_iff_gates`):
 `trace_satisfies` (the trace of a bounded circuit satisfies the R1CS and holds `1` at the
 constant) and `holds_eq_trace` (a Boolean block satisfying it with `1` at the constant is the
-trace of its own inputs), with `gates_of_holds` (it satisfies every recorded gate), and their
-forms for a block known only to hold `0`/`1` entries (`gates_of_holds_isBool`,
-`eq_trace_of_holds_isBool`).
+trace of its own inputs), with `gates_of_holds` (it satisfies every recorded gate).
 
 Nothing here transcribes a source. ArkLib's `R1CS.relation` is the general relation with a third
 matrix; an R1CS export of Clean circuits allocates a fresh signal per product, so its third matrix

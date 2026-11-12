@@ -200,7 +200,8 @@ example :
 
 /-- A wrong word does not: the guarantee is a statement about the committed image. -/
 example :
-    ¬ MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
+    ¬ MemChannel.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩
+      sampleData := by
   show ¬ (imageOf sampleData).2.read (gpow 1) =
     some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
   rw [show gpow 1 = gpow (one : ℕ) from rfl,

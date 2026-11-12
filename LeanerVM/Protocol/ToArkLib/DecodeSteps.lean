@@ -20,8 +20,7 @@ The decoders of `LeanerVM.Protocol.ToArkLib.DecodeTranscript` for the schedules 
 * `SlotDecoder.rounds poly chal next σ m` decodes `roundsSpec C d m`, carrying a state (the
   running claim, say) from each round to the next;
 * a `SeqDecoder α l` holds a decoder of each step of a list `l` of steps, given the transcripts of
-  the steps before it, and `SeqDecoder.toDecoder` decodes `seqSpec l` (`SeqDecoder.runFull_cons`,
-  `SeqDecoder.decode_cons`).
+  the steps before it, and `SeqDecoder.toDecoder` decodes `seqSpec l`.
 
 For example, take readings `ρ` that are absorbed values or squeezed states, read by partial maps
 `absorbed? : ρ → Option M` and `squeezed? : ρ → Option S`. A message absorbed as one reading, a
