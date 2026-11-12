@@ -43,11 +43,6 @@ open LeanerVM.Parameters LeanerVM.Semantics
 /-- A BLAKE2s-256 digest, as the eight chaining words of its last compression. -/
 abbrev Digest := Vector UInt32 8
 
-/-- Digest equality decided on the word lists, usable from a module file, where core's
-`DecidableEq` for `Vector` is not exposed. -/
-def Digest.decEq : DecidableEq Digest := fun a b ↦
-  decidable_of_iff (a.toList = b.toList) Vector.toList_inj
-
 namespace Blake2sHash
 
 /-! ## RFC 7693 §3.3 -/
@@ -143,18 +138,6 @@ def digestOfScalars (s : E × E) : Option Digest :=
 
 /-! ## The encoding round trip -/
 
-/-- The low word of the `K` word with words `lo` and `hi` is `lo`. -/
-theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
-  apply UInt32.toBitVec_inj.mp
-  simp only [lowWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
-  exact BitVec.extractLsb'_append_eq_right
-
-/-- The high word of the `K` word with words `lo` and `hi` is `hi`. -/
-theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
-  apply UInt32.toBitVec_inj.mp
-  simp only [highWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
-  exact BitVec.extractLsb'_append_eq_left
-
 /-- Decoding the encoding of a digest gives the digest back. -/
 theorem digestOfScalars_digestScalars (d : Digest) :
     digestOfScalars (digestScalars d) = some d := by
@@ -195,12 +178,6 @@ private theorem wordsOfBytes_flatMap (rest : List UInt8) :
   | w :: ws => by
     simp only [List.flatMap_cons, wordBytes, List.cons_append, List.nil_append, wordsOfBytes,
       wordOfBytes_wordBytes, wordsOfBytes_flatMap rest ws]
-
-/-- Splitting a `K` word into its two words and joining them is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
-  have h := congrArg (·.limb 0)
-    (wordsCell_cellWords (x := E.ofLimbs a 0 0) (by show (E.ofLimbs a 0 0).limb 2 = 0; simp))
-  simpa [wordsCell, cellWords] using h
 
 /-- A digest is 32 bytes. -/
 theorem length_digestBytes (d : Digest) : (digestBytes d).length = 32 := by

@@ -778,13 +778,6 @@ theorem ReadsAlike.decodePrefix (h : ReadsAlike D D') (l : List α) :
     rw [htr']
     rfl
 
-/-- **Decodability does not depend on the values read**: decoders that read alike decode some
-prefix of the same inputs. -/
-theorem ReadsAlike.isSome_decodePrefix (h : ReadsAlike D D') (l : List α) :
-    (D.decodePrefix l).isSome = (D'.decodePrefix l).isSome := by
-  have := h.decodePrefix l
-  cases hD : D.decodePrefix l <;> cases hD' : D'.decodePrefix l <;> simp_all
-
 /-- Decoders of no round read alike. -/
 theorem readsAlike_empty {pSpec : ProtocolSpec 0} :
     ReadsAlike (empty : SlotDecoder α pSpec) empty := fun k ↦ k.elim0

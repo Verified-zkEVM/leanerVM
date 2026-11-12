@@ -315,8 +315,7 @@ theorem FlockPhase.mem_weighted_finish {I : M3Instance} (r : FlockRegion I.toSha
 /-- Knowledge soundness of the Flock phase on a slot. -/
 def flockSecurityOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
     Phase.Security I (flockPhaseOpt I o h).toDef (Seam.pub I) (Seam.flock I) (flockErrorOpt I o)
-  | none, h => Phase.passThroughSecurity I _ (fun s o hin ↦ ⟨hin.1, by simp⟩)
-      fun s o hout ↦ ⟨hout.1, fun r hr ↦ by simp [h] at hr⟩
+  | none, h => Phase.passThroughSecurity I _ fun s o hout ↦ ⟨hout.1, fun r hr ↦ by simp [h] at hr⟩
   | some r, h =>
     Component.Security.mono (flockError_le_flockErrorOf r.kBatch)
       (Flock.flockSecurity (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5

@@ -8,7 +8,8 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 
 /-!
 # Refuting a verifier

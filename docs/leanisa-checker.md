@@ -36,9 +36,6 @@ statements are.
   frame pointer, with no hypothesis and for every hint list. A `SentinelSafe` premise is
   unnecessary for semantic checking; it remains a separate premise of global constraint
   soundness.
-- [`RunTrace.lean`](../LeanerVM/Semantics/RunTrace.lean) gives relational steps and ordered
-  finite traces, equivalent to `run`. A failed step has no successor. The empty run has one
-  state and zero transitions.
 - [`TraceInput.lean`](../LeanerVM/Semantics/TraceInput.lean) preserves the entire finite export,
   checks its power-of-two memory shape and count accounting, and uses `sum(mainCounts)` as
   `Trace.steps`. `adapt_preserves` and `validateInput_eq_true_iff` specify these guarantees.

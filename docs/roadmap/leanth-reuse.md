@@ -424,7 +424,7 @@ modules are under `LeanerVM/Protocol/ToCompPoly/`; what specialises them to lean
 | `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
 | `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
 | `map_stackAt`, `stack_eval₂` | `ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
-| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
+| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
 | `unstack_eval₂_eq_sumCube` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:705-777` | #38 |
 | `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
 

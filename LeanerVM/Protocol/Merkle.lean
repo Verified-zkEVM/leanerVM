@@ -129,7 +129,7 @@ def merkleVerifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
         paths.siblingHashes with
     | none => return none
     | some r =>
-      return if @decide (r = root) (Digest.decEq r root) then
+      return if decide (r = root) then
         some (rowsInQueryOrder leafWords queries paths.leafData)
       else none
 
@@ -286,9 +286,9 @@ theorem run_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ) (q
   by_cases hroot : r = root
   · subst hroot
     rw [ite_eq_left ⟨by omega, by omega, hw, hr, rfl⟩]
-    exact ite_eq_left (@decide_eq_true _ (Digest.decEq r r) rfl)
+    exact ite_eq_left (decide_eq_true rfl)
   · rw [ite_eq_right fun h ↦ hroot (Option.some.inj h.2.2.2.2)]
-    exact ite_eq_right fun h ↦ hroot (@of_decide_eq_true _ (Digest.decEq r root) h)
+    exact ite_eq_right fun h ↦ hroot (of_decide_eq_true h)
 
 /-- The check read as VCVio's trees, for every byte hash `H`: an opening is accepted with `rows`
 exactly when one row is stored per distinct query, each `rowWords ≤ leafWords` wide, `rows` are

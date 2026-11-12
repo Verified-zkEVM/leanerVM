@@ -363,11 +363,6 @@ private theorem bytecode_blocks (prog : Program) (s : Sizes) (b : BoundaryBlock 
     | exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
     | simp only [isBytecodeBlock_coords, seps_ne, Bool.false_eq_true] at h
 
-/-- A boundary source of a side is a boundary block of the instance. -/
-private theorem mem_boundary_of_mem {I : M3Instance} {k : Fin 3} {b : BoundaryBlock I.toShape}
-    (h : Bus.Source.boundary b ∈ Bus.sources I k) : b ∈ I.boundary := by
-  fin_cases k <;> simp_all [Bus.sources, Bus.sideSources, Bus.countSources]
-
 /-- Sixteen weighted coordinates are those outside slots `3` to `10` and those eight. -/
 private theorem sum_sixteen (f : Fin 16 → E) :
     ∑ i, f i = (∑ i : Fin 16, if 3 ≤ i.val ∧ i.val < 11 then 0 else f i) +
@@ -418,8 +413,8 @@ private theorem totalWith_eq {prog : Program} {s : Sizes} (k : Fin 3) (α : Fin 
       boundaryValueWith (bytecodeShare prog z' α) α β vals (Bus.src _ k b)
           (Bus.lowAt (leanIsa_conditions _ prog s) k b ζ) =
         (Bus.src _ k b).boundaryValue α β vals (Bus.lowAt (leanIsa_conditions _ prog s) k b ζ) := by
-    refine boundaryValueWith_eq α β vals _ (fun bb hbb ↦ mem_boundary_of_mem (k := k) ?_) _ z'
-      fun i h₁ h₂ ↦ ?_
+    refine boundaryValueWith_eq α β vals _
+      (fun bb hbb ↦ (Bus.mem_boundary_of_mem (k := k) ?_).1) _ z' fun i h₁ h₂ ↦ ?_
     · rw [← hbb]
       exact List.mem_mergeSort.mp (List.getElem_mem _)
     · exact (lowPoint_getElem _ _ b ζ i h₁).trans (hz i _ h₂)

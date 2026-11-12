@@ -27,11 +27,6 @@ both unfold. Every predicate here is decidable.
 * `HasHit inPlay log`: some entry, at its input's first occurrence, is answered by a value in play
   before it, `inPlay` giving the values in play after each prefix of the log.
 
-`mem_take_of_inPlay` is what a hit buys: when `inPlay` only grows along the log, a consistent log
-with no hit asks every query whose answer is in play after `n` entries within those `n` entries;
-a value cannot be used before the query that produces it. `answer_not_mem_inPlay_nil`: no answer
-is in play before the first query.
-
 Mathlib's `List.dedupKeys log` keeps each input of a log at its first occurrence only: the fresh
 queries of a run against a lazy random oracle, in order. It applies to logs of a dependent
 function, as VCVio's `QueryLog spec` is. Appending an entry keeps it exactly when its input is
@@ -102,23 +97,6 @@ theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈
   refine ⟨_, hp, fun x hx ↦ ?_, Sigma.ext hq (heq_of_eq (hcons _ (List.getElem_mem _) e he hq))⟩
   obtain ⟨j, hj, rfl⟩ := List.mem_take_iff_getElem.mp hx
   simpa using List.not_of_lt_findIdx (Nat.lt_min.mp hj).1
-
-/-- In a consistent log with no hit, a logged query whose answer is in play after `n` entries is
-asked within them, when `inPlay` grows along the log. -/
-theorem mem_take_of_inPlay (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
-    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log)
-    {n : ℕ} (hn : e.2 ∈ inPlay (log.take n)) : e ∈ log.take n := by
-  obtain ⟨p, hp, hfresh, rfl⟩ := first_occurrence hcons he
-  by_cases hpn : p < n
-  · exact List.mem_take_iff_getElem.mpr ⟨p, Nat.lt_min.mpr ⟨hpn, hp⟩, rfl⟩
-  · exact absurd ⟨⟨p, hp⟩, hfresh,
-      hmono _ _ (List.take_prefix_take_left (Nat.not_lt.mp hpn)) _ hn⟩ hhit
-
-/-- In a consistent log with no hit, no answer is in play before the first query. -/
-theorem answer_not_mem_inPlay_nil (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
-    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log) :
-    e.2 ∉ inPlay [] := fun h ↦
-  List.not_mem_nil (mem_take_of_inPlay hmono hcons hhit he (n := 0) h)
 
 omit [DecidableEq Q] in
 /-- A query is fresh exactly when it is not among the log's inputs. -/

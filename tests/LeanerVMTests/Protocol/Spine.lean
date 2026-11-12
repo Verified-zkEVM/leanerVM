@@ -213,7 +213,7 @@ example (P : Phases toy) (S : P.Security) (s : K × ∀ i, NoOracle i)
 identity at the public-input seam. -/
 example : Phase.Security toy (Phase.passThrough toy id) (Seam.pub toy) (Seam.pub toy)
     (fun i ↦ Fin.elim0 i.1) :=
-  Phase.passThroughSecurity toy id (fun _ _ h ↦ h) fun _ _ h ↦ h
+  Phase.passThroughSecurity toy id fun _ _ h ↦ h
 
 /-- The relation the protocol starts from is `M3Holds`, in ArkLib's shape. -/
 example (input : K) (q : Column 3) :

@@ -190,15 +190,13 @@ def drawPointSecurity (j : ℕ) :
         rw [natCard_subtype_eq_zero fun x hx ↦ hall ⟨hx.1, hx.2.2⟩]
         exact zero_le_one
 
-/-- The point's draws, from an input relation the point's first relation is equivalent to. -/
+/-- The point's draws, from an input relation the point's first relation implies. -/
 def pointDrawsSecurity (relIn : Set ((S × ∀ i, O i) × Unit))
-    (hIn : ∀ s o, ((s, o), ()) ∈ relIn → (((s, #v[]), o), ()) ∈ pointRel P C z side 0)
     (hOut : ∀ s o, (((s, #v[]), o), ()) ∈ pointRel P C z side 0 → ((s, o), ()) ∈ relIn) :
     (j : ℕ) → Component.Security (Component.drawPushes (S := S) (W := Unit) O F j) relIn
       (pointRel P C z side j) (drawsError F (overF F 1) j)
-  | 0 => Component.passThroughSecurity O _ (fun s o w h ↦ by cases w; exact hOut s o h)
-      fun s o w h ↦ by cases w; exact hIn s o h
-  | j + 1 => (pointDrawsSecurity relIn hIn hOut j).append (drawPointSecurity P C z side j)
+  | 0 => Component.passThroughSecurity O _ fun s o w h ↦ by cases w; exact hOut s o h
+  | j + 1 => (pointDrawsSecurity relIn hOut j).append (drawPointSecurity P C z side j)
 
 /-! ## The univariate skip -/
 
@@ -550,12 +548,10 @@ def ringStartSecurity
       (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
     Component.Security (Component.drawPushes (S := OutStmt S F (P.m + P.κ) P.s) (W := Unit) O F 0)
       (outRel P z side) (ringRel P z side s' φ g 0) (drawsError F (overF F 1) 0) :=
-  Component.passThroughSecurity O _
-    (fun st o _ h ↦ ⟨h.1, fun i ↦ by
-      have herr := hinj _ (fun k hk ↦ h.2 k (by simpa using hk)) i
-      simp only [ringStages, List.ofFn_zero, frobMap, sliceError, sub_eq_zero] at herr
-      exact herr⟩)
-    fun _ _ _ h ↦ ringRel_zero_of_outRel P z side s' φ g h
+  Component.passThroughSecurity O _ fun st o _ h ↦ ⟨h.1, fun i ↦ by
+    have herr := hinj _ (fun k hk ↦ h.2 k (by simpa using hk)) i
+    simp only [ringStages, List.ofFn_zero, frobMap, sliceError, sub_eq_zero] at herr
+    exact herr⟩
 
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [CharP F 2] in
 /-- Before the last stage the `π`s run below `2 · 2 ^ (s' - p)`. -/
@@ -700,12 +696,6 @@ def flockSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut
     Component.Security (flock P C z side s' φ g lift finish (W := Unit)) relIn relOut
       (flockError P s') :=
   (pointDrawsSecurity P C z side relIn
-      (fun s o h ↦ by
-        obtain ⟨hside, hholds⟩ := (hIn s o).mp h
-        obtain ⟨herr, hconst⟩ := (batchHolds_iff C P.cpos (z o)).mp hholds
-        refine ⟨hside, fun i b ↦ ?_, hconst⟩
-        rw [evalMle_eq_sum]
-        exact Finset.sum_eq_zero fun u _ ↦ by rw [herr i u, zero_mul])
       (fun s o h ↦ (hIn s o).mpr ⟨h.1, (batchHolds_iff C P.cpos (z o)).mpr ⟨fun i u ↦
         eq_zero_of_restrictedZero_fixed P hfixed _ (isBool_errTable C (hbool o) i) (h.2.1 i) u,
         h.2.2⟩⟩)

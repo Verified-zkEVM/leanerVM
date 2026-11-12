@@ -400,10 +400,6 @@ def roundsSecurity (Φ : Family F X O W d) (m : ℕ) (H : Φ.Consistent m) (S : 
         have hjm : j = m := by omega
         subst hjm
         simpa only [Vector.cast_rfl] using hout)
-      (fun s o w hin ↦ by
-        have hjm : j = m := by omega
-        subst hjm
-        simpa only [Vector.cast_rfl] using hin)
   | i + 1, j, h =>
     (roundSecurity j Φ H S (by omega)).append (roundsSecurity Φ m H S i (j + 1) (by omega))
 
