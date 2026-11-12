@@ -102,8 +102,7 @@ private theorem testBit_clearTop {w : UInt64} (hn : w.toNat ≠ 0) (i : ℕ) :
     toNat_one_shiftLeft (log2_lt_64 w hn), Nat.testBit_two_pow]
   by_cases hi : i = w.toNat.log2
   · subst hi; simp [Nat.testBit_log2 hn]
-  · have : (w.toNat.log2 = i) = False := propext ⟨fun h ↦ hi h.symm, False.elim⟩
-    simp [hi, this]
+  · simp [hi, Ne.symm hi]
 
 /-- Clearing the top bit leaves a number below the top bit's power. -/
 private theorem toNat_clearTop_lt {w : UInt64} (hn : w.toNat ≠ 0) :
@@ -284,8 +283,7 @@ private theorem testBit_packWordAux (g : ℕ → Bool) :
       rw [UInt64.toNat_or, Nat.testBit_or, toNat_one_shiftLeft (by omega), Nat.testBit_two_pow]
       by_cases hi : i = n
       · subst hi; simp [hg]
-      · have : (n = i) = False := propext ⟨fun h ↦ hi h.symm, False.elim⟩
-        simp [this, hi]
+      · simp [hi, Ne.symm hi]
     · rename_i hg
       by_cases hi : i = n
       · subst hi; simp [hg]

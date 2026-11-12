@@ -204,8 +204,7 @@ private theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : Satisfie
   have hl : (blake2sLimbs prog _ w)[x] = fun k : Fin 18 ↦ cellOf (tableAt w 5) x (9 + k) :=
     Vector.getElem_ofFn _
   rw [hl]
-  simp only [cellOf_eq _ hx]
-  exact hv
+  simpa only [cellOf_eq _ hx] using hv
 
 /-- Within its width, an opcode table of a witness satisfying the constraint system is the
 stack's rows. -/
