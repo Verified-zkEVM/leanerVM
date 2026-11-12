@@ -183,11 +183,11 @@ def sendOracleBesideStateFunction :
     (sendBesideVerifier OStmt M out).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (keepExtractor (S × ∀ i, OStmt i) W (sayO M)) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun _ _ _ _ _ _ hw ↦ hw
   toFun_full := fun stmt tr w hpos ↦
-    have hv := Verifier.GuardedForm.of_probEvent_pos
-      (sendBesideVerifierPure OStmt M out).toGuardedForm init impl stmt tr _ hpos
+    have hv := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendBesideVerifierPure OStmt M out).toGuardedForm hpos
     h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.2
 
 /-- The security half of the send-oracle-beside component: no challenge, no error, whenever

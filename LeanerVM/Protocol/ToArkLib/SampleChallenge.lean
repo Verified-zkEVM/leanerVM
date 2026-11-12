@@ -160,10 +160,10 @@ def sampleStateFunction :
   toFun := fun m stmt tr w ↦
     if h0 : m.val = 0 then (stmt, w) ∈ relIn
     else check stmt.1 = true ∧ ((f stmt.1 (tr ⟨0, by omega⟩), stmt.2), w) ∈ relOut
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm ↦ nomatch hm
-  toFun_full := fun stmt tr w hpos ↦
-    Verifier.GuardedForm.of_probEvent_pos (sampleGuarded OStmt C check f) init impl stmt tr _ hpos
+  toFun_full := fun _ _ _ hpos ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (sampleGuarded OStmt C check f) hpos
 
 /-- A bad challenge: some witness fails the input relation at the statement and meets the output
 relation at the mapped statement. -/
@@ -196,7 +196,7 @@ passing the check has at most `N` bad challenges. -/
 theorem sample_rbr (N : ℕ)
     (hN : ∀ s o, check s = true →
       Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N) :
-    (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWith init impl
       relIn relOut (fun _ ↦ W) (keepExtractor _ W (draw C))
       (sampleStateFunction OStmt C check f init impl)
       (drawError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0))) := by
@@ -245,15 +245,15 @@ theorem sampleChallenge_not_rbr {WitMid : Fin 2 → Type}
     {kSF : (sampleVerifier OStmt C check f).toVerifier.KnowledgeStateFunction init impl relIn
       relOut E}
     {ε : (draw C).ChallengeIdx → ℝ≥0}
-    (h : (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWith init impl
       relIn relOut WitMid E kSF ε)
     (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (hc : check s = true)
     (w : W) (hesc : ∀ c, ((f s c, o), w) ∈ relOut) : 1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw C).Transcript 0) fun c ↦
       ⟨Transcript.concat c (default : (draw C).Transcript 0), rfl, w,
-        Verifier.GuardedForm.probEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
-          (s, o) _ (fun t ↦ (t, w) ∈ relOut) hc (hesc c)⟩
+        Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+          (sampleGuarded OStmt C check f) hc (hesc c)⟩
 
 /-! ## Challenges recorded in a vector -/
 

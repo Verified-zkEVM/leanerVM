@@ -67,7 +67,7 @@ drops `c_1` (the weight of `c_0` is `1 + 1`, zero in characteristic two) and a n
 check is the decoding of its wire (`decodeWire_encodeWire`), so the honest prover's message
 survives. `transport`: the round's verifier composed with the decoding, a verifier of the wire,
 is round-by-round knowledge sound at the round's error, with the extractor and the state function
-read on the decoded transcript; it is `Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap` on the
+read on the decoded transcript; it is `Verifier.rbrKnowledgeSoundnessWith_comap` on the
 map that decodes the round's wire (`roundDecoding`).
 
 *The compiled prover.* `roundPoly` evaluates every table's extension at every point. Compiled
@@ -804,11 +804,11 @@ theorem transport {P : SumcheckRound.Polys F X O W d} {wt : SumcheckRound.Weight
     (S : Component.Security (SumcheckRound.round P j wt) relIn relOut ε) (k : Fin (d + 1))
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (Verifier.comap (SumcheckRound.round P j wt).red.verifier.toVerifier
-      (roundDecoding (O := O) wt j k)).rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut
+      (roundDecoding (O := O) wt j k)).rbrKnowledgeSoundnessWith init impl relIn relOut
       S.witMid (Extractor.RoundByRound.comap S.extractor (roundDecoding wt j k))
       (Verifier.KnowledgeStateFunction.comap (S.kSF init impl) (roundDecoding wt j k))
       (fun i ↦ ε ((roundDecoding (O := O) wt j k).idx i)) :=
-  Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap (S.rbr init impl) _
+  Verifier.rbrKnowledgeSoundnessWith_comap (S.rbr init impl) _
 
 end Wire
 

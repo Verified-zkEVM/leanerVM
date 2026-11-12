@@ -155,7 +155,6 @@ import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
-import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.MapOracles
 import LeanerVM.Protocol.ToArkLib.MapWitness
 import LeanerVM.Protocol.ToArkLib.McaJohnson

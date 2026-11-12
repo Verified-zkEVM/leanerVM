@@ -79,7 +79,7 @@ example (F : FlockSpec) (prog : Program) (s : Sizes) {σ : Type} (init : ProbCom
 example (F : FlockSpec) (prog : Program) (s : Sizes) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (leanVmVerifier (leanVmPhases (leanIsaInstance F prog s)
-        (leanIsa_conditions F prog s))).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+        (leanIsa_conditions F prog s))).toVerifier.rbrKnowledgeSoundnessWith init impl
       (M3Rel (leanIsaInstance F prog s)) (Seam.done (leanIsaInstance F prog s))
       (leanVmSecurity _ (leanIsa_conditions F prog s) le_rfl).extraction.witMid
       (piopExtractor _ (leanVmSecurity _ (leanIsa_conditions F prog s) le_rfl))

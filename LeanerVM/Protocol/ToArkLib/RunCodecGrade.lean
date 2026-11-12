@@ -8,7 +8,6 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.RunCodec
-public import LeanerVM.Protocol.ToArkLib.ExtractIn
 public import LeanerVM.Protocol.ToVCVio.MonadRel
 
 /-!
@@ -133,13 +132,13 @@ theorem GradedOn.append {G₁ : p₁.FullTranscript → Prop} {G₂ : p₂.FullT
       have hA : (p₁ ++ₚ p₂).dir (Fin.castAdd n j) = p₁.dir j := Fin.vappend_left _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.castAdd n j) = p₁.Type j := Fin.vappend_left _ _ _
       rw [send_heq' hA hB (send_left c₁ c₂ j) h (hA.symm.trans h)
-        (FullTranscript.fst_heq tr j).symm, Fin.append_left]
+        (FullTranscript.fst_apply_heq tr j).symm, Fin.append_left]
       exact hS₁ _ hG.1 j _
     | right j =>
       have hA : (p₁ ++ₚ p₂).dir (Fin.natAdd m j) = p₂.dir j := Fin.vappend_right _ _ _
       have hB : (p₁ ++ₚ p₂).Type (Fin.natAdd m j) = p₂.Type j := Fin.vappend_right _ _ _
       rw [send_heq' hA hB (send_right c₁ c₂ j) h (hA.symm.trans h)
-        (FullTranscript.snd_heq tr j).symm, Fin.append_right]
+        (FullTranscript.snd_apply_heq tr j).symm, Fin.append_right]
       exact hS₂ _ hG.2 j _
   · induction i using Fin.addCases with
     | left j =>

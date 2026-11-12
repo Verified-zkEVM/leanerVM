@@ -7,7 +7,7 @@
 
 module
 
-public import ArkLib.OracleReduction.Security.CoordinateWiseSpecialSoundness.Guarded
+public import ArkLib.OracleReduction.Security.Guarded
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 
 /-!

@@ -109,15 +109,15 @@ def passThroughStateFunction :
     (passThroughVerifier OStmt f).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦
-    h stmt.1 stmt.2 w (Verifier.GuardedForm.of_probEvent_pos
-      (passThroughPure OStmt f).toGuardedForm init impl stmt tr _ hpos).2
+  toFun_full := fun stmt _ w hpos ↦
+    h stmt.1 stmt.2 w (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (passThroughPure OStmt f).toGuardedForm hpos).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the witness is kept. -/
 theorem passThrough_rbr :
-    (passThroughVerifier OStmt f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn
+    (passThroughVerifier OStmt f).toVerifier.rbrKnowledgeSoundnessWith init impl relIn
       relOut (fun _ ↦ W) (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[])
       (passThroughStateFunction OStmt f h init impl)
       (fun i ↦ Fin.elim0 i.1) :=

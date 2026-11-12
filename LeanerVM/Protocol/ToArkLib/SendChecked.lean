@@ -168,11 +168,11 @@ def sendCheckedStateFunction :
     (sendCheckedVerifier OStmt M check out).toVerifier.KnowledgeStateFunction init impl relIn
       relOut (keepExtractor _ W (say M)) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun _ _ _ _ _ _ hw ↦ hw
   toFun_full := fun stmt tr w hpos ↦
-    have hv := Verifier.GuardedForm.of_probEvent_pos (sendCheckedGuarded OStmt M check out) init
-      impl stmt tr _ hpos
+    have hv := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendCheckedGuarded OStmt M check out) hpos
     h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.1 hv.2
 
 /-- The security half of a checked message, at error zero: no challenge, the witness kept,
@@ -199,11 +199,10 @@ theorem sendChecked_no_stateFunction {W' : Fin 2 → Type}
   let tr : (say M).FullTranscript :=
     ProtocolSpec.Transcript.concat (m := 0) msg (default : (say M).Transcript 0)
   have hc' : (sendCheckedGuarded OStmt M check out).check (s, o) tr = true := hc
-  have hpos := Verifier.guarded_accepting_of_mem init impl _ _ _
-    (sendCheckedGuarded OStmt M check out).verify_eq (s, o) tr hc' {t | (t, w) ∈ relOut} hout
-  have hfull := K.toFun_full (s, o) tr w (lt_of_lt_of_eq zero_lt_one hpos.symm)
+  have hfull := K.toFun_full (s, o) tr w
+    ((sendCheckedGuarded OStmt M check out).prEvent_pos_of_check hc' hout)
   have hnext := K.toFun_next 0 rfl (s, o) (default : (say M).Transcript 0) msg _ hfull
-  exact hin _ ((K.toFun_empty (s, o) _).mpr hnext)
+  exact hin _ (K.toFun_empty (s, o) _ hnext)
 
 end Component
 

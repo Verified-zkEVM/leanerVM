@@ -49,7 +49,7 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   Merkle binding by log replay.
 * **The bad challenges** (`Bad`, `bad_density`). At a prefix of the compiled transcript ending
   at a challenge, the challenges that turn the state function of `listBinding_deployed` from
-  false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWorstCaseWith`.
+  false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWith`.
   Its density is at most the round's error (`listBindingError`), by the security's `rbr`.
 -/
 

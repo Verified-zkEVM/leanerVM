@@ -34,8 +34,9 @@ transcript, `piopExtractedStack`, is the committed message, whatever the phases'
 (`piopExtractedStack_eq`).
 `piop_rbrKnowledgeSoundness_exists` is the same with the extractor forgotten. Its plain reading,
 "a straight-line extractor returns a stack satisfying `M3Holds` except with probability the sum
-of `piopError`", is ArkLib's `rbrKnowledgeSoundness_implies_knowledgeSoundness`, admitted at the
-pinned revision.
+of `piopError`", is ArkLib's guarded bridge
+`Verifier.GuardedForm.knowledgeSoundnessWith_of_rbrKnowledgeSoundnessWith`, for the extractor
+that folds `piopExtractor` (`Extractor.RoundByRound.foldExtractor`); it is not restated here.
 
 Both theorems are stated in the ideal oracle model, over an abstract instance, and are
 conditional only on the phases' proofs; the compiled verifier and the leanISA instance are built
@@ -169,7 +170,7 @@ def piopExtractor (P : Phases I) (S : P.Security) :
 the commit round. -/
 def piopExtractedStack (P : Phases I) (S : P.Security) (s : I.Stmt × ∀ i, NoOracle i)
     (tr : (piopSpec I).FullTranscript) : Column I.μ :=
-  Extractor.RoundByRound.extractIn (piopExtractor P S) s tr ()
+  Extractor.RoundByRound.extractFull (piopExtractor P S) s tr ()
 
 /-- The first round of the protocol is the commit message. -/
 private theorem zero_lt_piopRounds : 0 < piopRounds I := by
@@ -198,11 +199,11 @@ theorem piopExtractedStack_eq (P : Phases I) (S : P.Security) (s : I.Stmt × ∀
     (tr : (piopSpec I).FullTranscript) :
     piopExtractedStack P S s tr = tr.fst.fst.fst.fst.fst 0 := by
   apply eq_of_heq
-  refine (Extractor.RoundByRound.extractIn_heq_of_readsFirst _ (piopExtractor_readsFirst P S)
-    zero_lt_piopRounds s tr ()).trans ?_
-  exact ((FullTranscript.fst_heq tr.fst.fst.fst.fst 0).trans
-    ((FullTranscript.fst_heq tr.fst.fst.fst _).trans ((FullTranscript.fst_heq tr.fst.fst _).trans
-      ((FullTranscript.fst_heq tr.fst _).trans (FullTranscript.fst_heq tr _))))).symm
+  refine (Extractor.RoundByRound.extractFull_heq_of_readsFirst _
+    (piopExtractor_readsFirst P S) zero_lt_piopRounds s tr ()).trans ?_
+  refine HEq.symm ?_
+  iterate 4 refine (FullTranscript.fst_apply_heq _ _).trans ?_
+  exact FullTranscript.fst_apply_heq _ _
 
 /-! ## The master theorems -/
 
@@ -221,7 +222,7 @@ message (`piopExtractedStack_eq`); see the module docstring for the plain readin
 waits on. -/
 theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel I)
+    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWith init impl (M3Rel I)
       (Seam.done I) S.extraction.witMid (piopExtractor P S) (S.extraction.kSF init impl)
       (piopError I) :=
   S.toDef.rbr init impl
@@ -230,7 +231,7 @@ theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
 (ArkLib's existential form). A soundness statement only. -/
 theorem piop_rbrKnowledgeSoundness_exists (P : Phases I) (S : P.Security) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCase init impl (M3Rel I)
+    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundness init impl (M3Rel I)
       (Seam.done I) (piopError I) :=
   ⟨_, _, _, piop_rbrKnowledgeSoundness P S init impl⟩
 

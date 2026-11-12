@@ -8,7 +8,7 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
+public import ArkLib.OracleReduction.Composition.Sequential.Append.GuardedRoundByRound
 
 /-!
 # Decoding transcripts from readings
@@ -41,9 +41,9 @@ Decoders compose. `empty` decodes a schedule of no round, `single s` one of one 
 `s` (`runFull_empty`, `runFull_single`). `append D₁ D₂` decodes `pSpec₁ ++ₚ pSpec₂`: the rounds
 of `pSpec₁` by `D₁`, then those of `pSpec₂` by `D₂ t₁`, where `t₁` is the transcript of `pSpec₁`
 read first. `runFull_append` and `decode_append` give its full decoding as the two in sequence;
-`run_append_left` and `run_append_right` its partial runs, read through the projections
-`Verifier.KnowledgeAppend.left`, `leftFull` and `right`. Decoders of the repository's schedules
-of steps are in `LeanerVM.Protocol.ToArkLib.DecodeSteps`.
+`run_append_left` and `run_append_right` its partial runs, read through ArkLib's projections
+`Transcript.fstUpTo` and `Transcript.sndUpTo` (`SlotDecoder.fstFull` at the seam). Decoders of
+the repository's schedules of steps are in `LeanerVM.Protocol.ToArkLib.DecodeSteps`.
 -/
 
 namespace LeanerVM.Protocol
@@ -435,15 +435,13 @@ section Append
 
 variable {α : Type} {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 
-/-- The rounds of `pSpec₁` in a transcript of `pSpec₁ ++ₚ pSpec₂` that has passed them, as a full
-transcript of `pSpec₁`: `left` at the seam, typed as a full transcript. -/
-def Verifier.KnowledgeAppend.leftFull {k : Fin (m + n + 1)}
-    (tr : (pSpec₁ ++ₚ pSpec₂).Transcript k) (h : m ≤ k.val) : pSpec₁.FullTranscript :=
-  left tr (Fin.last m) h
-
 namespace SlotDecoder
 
-open Verifier.KnowledgeAppend
+/-- The rounds of `pSpec₁` in a transcript of `pSpec₁ ++ₚ pSpec₂` that has passed them, as a full
+transcript of `pSpec₁`: ArkLib's `Transcript.fstUpTo` at the seam, typed as a full transcript. -/
+def fstFull {k : Fin (m + n + 1)} (tr : (pSpec₁ ++ₚ pSpec₂).Transcript k) (h : m ≤ k.val) :
+    pSpec₁.FullTranscript :=
+  tr.fstUpTo (Fin.last m) h
 
 /-- The decoder of `pSpec₁ ++ₚ pSpec₂`: the rounds of `pSpec₁` by `D₁`, then those of `pSpec₂` by
 `D₂ t₁`, where `t₁` is the transcript of `pSpec₁` read first. -/
@@ -451,9 +449,9 @@ def append (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → 
     SlotDecoder α (pSpec₁ ++ₚ pSpec₂) where
   slot := Fin.addCases (motive := fun k ↦
       (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k))
-    (fun i tr ↦ (D₁.slot i (left tr i.castSucc (by simp))).map
+    (fun i tr ↦ (D₁.slot i (tr.fstUpTo i.castSucc (by simp))).map
       (cast (append_Type_castAdd (pSpec₂ := pSpec₂) i).symm))
-    (fun j tr ↦ ((D₂ (leftFull tr (by simp))).slot j (right tr j.castSucc (by simp))).map
+    (fun j tr ↦ ((D₂ (fstFull tr (by simp))).slot j (tr.sndUpTo j.castSucc (by simp))).map
       (cast (append_Type_natAdd (pSpec₁ := pSpec₁) j).symm))
 
 variable (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
@@ -461,7 +459,7 @@ variable (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → Sl
 /-- A round of the first schedule is read by the first decoder's slot. -/
 theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨i, by omega⟩) :
-    (D₁.append D₂).slot ⟨i, h⟩ tr = (D₁.slot ⟨i, hi⟩ (left tr ⟨i, by omega⟩ le_rfl)).map
+    (D₁.append D₂).slot ⟨i, h⟩ tr = (D₁.slot ⟨i, hi⟩ (tr.fstUpTo ⟨i, by omega⟩ le_rfl)).map
       (cast (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, hi⟩).symm) := by
   dsimp only [append]
   exact congrFun (Fin.addCases_left (motive := fun k ↦
@@ -471,15 +469,16 @@ theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
 theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨m + j, by omega⟩) :
     (D₁.append D₂).slot ⟨m + j, h⟩ tr =
-      ((D₂ (leftFull tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (right tr ⟨j, by omega⟩ le_rfl)).map
+      ((D₂ (fstFull tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (tr.sndUpTo ⟨j, by omega⟩ le_rfl)).map
         (cast (append_Type_natAdd (pSpec₁ := pSpec₁) ⟨j, hj⟩).symm) := by
   dsimp only [append]
   exact congrFun (Fin.addCases_right (motive := fun k ↦
     (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k)) ⟨j, hj⟩) tr
 
-/-- A run inside the first schedule is the first decoder's run, read through `left`. -/
+/-- A run inside the first schedule is the first decoder's run, read through
+`Transcript.fstUpTo`. -/
 theorem run_append_left (i : ℕ) (hi : i ≤ m) (l : List α) :
-    ((D₁.append D₂).run i (by omega) l).map (fun p ↦ (left p.1 ⟨i, by omega⟩ le_rfl, p.2)) =
+    ((D₁.append D₂).run i (by omega) l).map (fun p ↦ (p.1.fstUpTo ⟨i, by omega⟩ le_rfl, p.2)) =
       D₁.run i hi l := by
   induction i with
   | zero => exact congrArg some (Prod.ext (funext fun a ↦ a.elim0) rfl)
@@ -495,26 +494,25 @@ theorem run_append_left (i : ℕ) (hi : i ≤ m) (l : List α) :
       rw [ho, Option.map_some] at ih
       rw [← ih, Option.bind_some, Option.bind_some, append_slot_left D₁ D₂ i (by omega)]
       simp only [Slot.map, Option.map_map]
-      cases hq : (D₁.slot ⟨i, by omega⟩ (left p.1 ⟨i, by omega⟩ le_rfl)).read p.2 with
+      cases hq : (D₁.slot ⟨i, by omega⟩ (p.1.fstUpTo ⟨i, by omega⟩ le_rfl)).read p.2 with
       | none => rfl
       | some q =>
         simp only [Option.map_some, Function.comp_apply, Option.some.injEq, Prod.mk.injEq,
           and_true]
-        refine (left_concat (i := ⟨i, by omega⟩) p.1 _ ⟨i, by omega⟩ rfl
-          (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, by omega⟩)).trans ?_
+        refine (Transcript.fstUpTo_concat_castAdd ⟨i, by omega⟩ p.1 _).trans ?_
         simp only [cast_cast, cast_eq]
         rfl
 
 private theorem runFull_append_first (l : List α) :
-    ((D₁.append D₂).run m (by omega) l).map (fun p ↦ (leftFull p.1 le_rfl, p.2)) =
+    ((D₁.append D₂).run m (by omega) l).map (fun p ↦ (fstFull p.1 le_rfl, p.2)) =
       D₁.runFull l :=
   run_append_left D₁ D₂ m le_rfl l
 
 private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i : ℕ) (hi : i ≤ m + n)
     (hij : i = m + j) :
     ((D₁.append D₂).run i hi l).map
-        (fun p ↦ (leftFull p.1 (by simp only; omega), right p.1 ⟨j, by omega⟩ (by simp only; omega),
-          p.2)) =
+        (fun p ↦ (fstFull p.1 (by simp only; omega),
+          p.1.sndUpTo ⟨j, by omega⟩ (by simp only; omega), p.2)) =
       (D₁.runFull l).bind fun p ↦ ((D₂ p.1).run j hj p.2).map fun q ↦ (p.1, q.1, q.2) := by
   induction j generalizing i with
   | zero =>
@@ -552,23 +550,23 @@ private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i :
       rw [hf, Option.bind_some, Option.bind_some, hr, Option.bind_some,
         append_slot_right D₁ D₂ j (by omega)]
       simp only [Slot.map, Option.map_map]
-      cases hq : ((D₂ (leftFull p.1 (Nat.le_add_right m j))).slot ⟨j, by omega⟩
-          (right p.1 ⟨j, by omega⟩ le_rfl)).read p.2 with
+      cases hq : ((D₂ (fstFull p.1 (Nat.le_add_right m j))).slot ⟨j, by omega⟩
+          (p.1.sndUpTo ⟨j, by omega⟩ le_rfl)).read p.2 with
       | none => rfl
       | some q =>
         simp only [Option.map_some, Function.comp_apply, Option.some.injEq, Prod.mk.injEq,
           and_true]
-        refine ⟨left_concat_eq (i := ⟨m + j, by omega⟩) p.1 _ (Fin.last m) (by simp), ?_⟩
-        refine (right_concat (i := ⟨m + j, by omega⟩) p.1 _ ⟨j, by omega⟩ rfl
-          (append_Type_natAdd (pSpec₁ := pSpec₁) ⟨j, by omega⟩)).trans ?_
+        refine ⟨Transcript.fstUpTo_concat_of_le (j := ⟨m + j, by omega⟩) p.1 _ (Fin.last m)
+          (by simp), ?_⟩
+        refine (Transcript.sndUpTo_concat_natAdd ⟨j, by omega⟩ p.1 _).trans ?_
         simp only [cast_cast, cast_eq]
         rfl
 
 /-- A run past the first schedule is the first decoder's full run, then the second decoder's run
-on what it left, read through `leftFull` and `right`. -/
+on what it left, read through `fstFull` and `Transcript.sndUpTo`. -/
 theorem run_append_right (j : ℕ) (hj : j ≤ n) (l : List α) :
     ((D₁.append D₂).run (m + j) (by omega) l).map
-        (fun p ↦ (leftFull p.1 (Nat.le_add_right m j), right p.1 ⟨j, by omega⟩ le_rfl, p.2)) =
+        (fun p ↦ (fstFull p.1 (Nat.le_add_right m j), p.1.sndUpTo ⟨j, by omega⟩ le_rfl, p.2)) =
       (D₁.runFull l).bind fun p ↦ ((D₂ p.1).run j hj p.2).map fun q ↦ (p.1, q.1, q.2) :=
   run_append_right_aux D₁ D₂ j hj l (m + j) (by omega) rfl
 

@@ -124,11 +124,11 @@ def mapOraclesStateFunction :
     (mapOraclesVerifier O O' f M).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (backExtractor back (StmtIn × ∀ i, O i) !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w' hpos ↦
-    h stmt.1 stmt.2 w' (Verifier.GuardedForm.of_probEvent_pos
-      (mapOraclesPure O O' f M).toGuardedForm init impl stmt tr _ hpos).2
+  toFun_full := fun stmt _ w' hpos ↦
+    h stmt.1 stmt.2 w' (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (mapOraclesPure O O' f M).toGuardedForm hpos).2
 
 /-- The security half, at the empty error, with the extractor that sends the output witness back
 by `back`. -/

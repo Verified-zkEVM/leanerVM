@@ -148,16 +148,16 @@ def queryCheckStateFunction :
     (queryCheckVerifier OStmt query check f).toVerifier.KnowledgeStateFunction init impl relIn
       relOut (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦
-    have hg := Verifier.GuardedForm.of_probEvent_pos (queryCheckGuarded OStmt query check f)
-      init impl stmt tr _ hpos
+  toFun_full := fun stmt _ w hpos ↦
+    have hg := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (queryCheckGuarded OStmt query check f) hpos
     h stmt.1 stmt.2 w hg.1 hg.2
 
 /-- Round-by-round knowledge soundness at the empty error: no challenge, the witness is kept. -/
 theorem queryCheck_rbr :
-    (queryCheckVerifier OStmt query check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init
+    (queryCheckVerifier OStmt query check f).toVerifier.rbrKnowledgeSoundnessWith init
       impl relIn relOut (fun _ ↦ W) (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[])
       (queryCheckStateFunction OStmt query check f h init impl) (fun i ↦ Fin.elim0 i.1) :=
   fun _ i ↦ Fin.elim0 i.1
@@ -233,7 +233,7 @@ theorem batchQuery_not_rbr {σ : Type} {init : ProbComp σ}
       |>.KnowledgeStateFunction init impl relIn relOut E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
     (h : (batchQuery (W := W) OStmt F value out query check f).red.verifier.toVerifier
-      |>.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+      |>.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E kSF ε)
     (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (w : W)
     (hesc : ∀ ρ, check (out s ρ (powerBatch (value s) ρ))
         (answerOf OStmt o (query (out s ρ (powerBatch (value s) ρ)))) = true ∧
@@ -242,12 +242,9 @@ theorem batchQuery_not_rbr {σ : Type} {init : ProbComp σ}
   refine Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw F).Transcript 0) fun c ↦ ?_
   refine ⟨Transcript.concat c (default : (draw F).Transcript 0), rfl, w, ?_⟩
-  apply Verifier.GuardedForm.probEvent_pos_of_check
-    (guardedAppend (D₁ := batch OStmt F value out) (D₂ := queryCheck OStmt query check f)
-      (sampleGuarded OStmt F _ _) (queryCheckGuarded OStmt query check f))
-    init impl (s, o) _ (fun t ↦ (t, w) ∈ relOut)
-  · exact (guardedAppend_check _ _ _ _).trans (hesc _).1
-  · exact (congrArg (fun t ↦ (t, w) ∈ relOut) (guardedAppend_out _ _ _ _)).mpr (hesc _).2
+  exact Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+    (OracleVerifier.appendGuardedForm (sampleGuarded OStmt F _ _)
+      (queryCheckGuarded OStmt query check f)) (hesc _).1 (hesc _).2
 
 end Component
 

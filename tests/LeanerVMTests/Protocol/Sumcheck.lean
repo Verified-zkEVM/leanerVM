@@ -446,7 +446,7 @@ theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
       (SumcheckRound.rel Φ 1)
       (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier Ex}
     {ε : (draw E).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (SumcheckRound.relMid Φ 0)
+    (h : Verifier.rbrKnowledgeSoundnessWith init impl (SumcheckRound.relMid Φ 0)
       (SumcheckRound.rel Φ 1)
       (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier WitMid Ex kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=

@@ -10,7 +10,6 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.RunCodec
-public import LeanerVM.Protocol.ToArkLib.ExtractIn
 
 /-!
 # The trace of a run against a wire
@@ -179,10 +178,12 @@ theorem RunsAs.append_inv {tr : (p₁ ++ₚ p₂).FullTranscript} {s s' : σ}
     ⟨fun k ↦ st ⟨m + k.val, by omega⟩, rfl, ?_, fun i ↦ ?_⟩⟩
   · rw [← h0]
     rfl
-  · exact stepAs_append_left sem c₁ c₂ i (FullTranscript.fst_heq tr i).symm (hs (Fin.castAdd n i))
+  · exact stepAs_append_left sem c₁ c₂ i (FullTranscript.fst_apply_heq tr i).symm
+      (hs (Fin.castAdd n i))
   · rw [← hl]
     rfl
-  · exact stepAs_append_right sem c₁ c₂ i (FullTranscript.snd_heq tr i).symm (hs (Fin.natAdd m i))
+  · exact stepAs_append_right sem c₁ c₂ i (FullTranscript.snd_apply_heq tr i).symm
+      (hs (Fin.natAdd m i))
 
 /-! ## The one-round wires -/
 
