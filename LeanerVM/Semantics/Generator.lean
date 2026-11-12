@@ -93,19 +93,19 @@ theorem isFillBlockB_iff (prog : Program) (t : Opcode) (s p : ℕ) :
       fun i hi ↦ (fetch_gpow_eq_codeAt prog (by omega)).symm.trans (hd i hi)⟩
 
 /-- A found start is a fill block. -/
-theorem findStart_spec {prog : Program} {t : Opcode} {s p : ℕ}
+private theorem findStart_spec {prog : Program} {t : Opcode} {s p : ℕ}
     (h : findStart prog t s = some p) : IsFillBlock prog t s p :=
   (isFillBlockB_iff prog t s p).mp (List.find?_some h)
 
 /-- A fill block is found when there is one. -/
-theorem findStart_isSome {prog : Program} {t : Opcode} {s : ℕ}
+private theorem findStart_isSome {prog : Program} {t : Opcode} {s : ℕ}
     (h : ∃ p, IsFillBlock prog t s p) : (findStart prog t s).isSome := by
   obtain ⟨p, hp⟩ := h
   rw [findStart, List.find?_isSome]
   exact ⟨p, List.mem_range.mpr (by have := hp.below; omega), (isFillBlockB_iff prog t s p).mpr hp⟩
 
 /-- The tabulated start of a table and a size of the ladder is the searched one. -/
-theorem fillStarts_eq (prog : Program) (t : Opcode) {k : ℕ} (hk : k < 8) :
+private theorem fillStarts_eq (prog : Program) (t : Opcode) {k : ℕ} (hk : k < 8) :
     fillStarts prog t (sizeAt k) = (findStart prog t (sizeAt k)).getD 0 := by
   have ht := tableIdx_lt t
   have hidx : fillSizes.idxOf (sizeAt k) = k := by interval_cases k <;> rfl

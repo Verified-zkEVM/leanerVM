@@ -44,7 +44,7 @@ open LeanerVM.Parameters
 
 /-- **One block per table suffices**: every table has a block of every size exactly when it has
 one of the largest size, whose tails are the smaller blocks. -/
-theorem hasFillBlocks_iff_largest (prog : Program) :
+private theorem hasFillBlocks_iff_largest (prog : Program) :
     HasFillBlocks prog ↔ ∀ t, ∃ p, IsFillBlock prog t 128 p := by
   refine ⟨fun h t ↦ h t 128 (by simp [fillSizes]), fun h t s hs ↦ ?_⟩
   have hs128 : s ≤ 128 := by
@@ -101,14 +101,14 @@ instance (prog : Program) : Decidable (WellFormedBytecode prog) :=
 /-! ## Traces that fit -/
 
 /-- The `JUMP` table can be filled exactly when the search finds an exponent. -/
-theorem jumpFeasible_iff (owed : ℕ) : JumpFeasible owed ↔ (jumpHeight owed).isSome := by
+private theorem jumpFeasible_iff (owed : ℕ) : JumpFeasible owed ↔ (jumpHeight owed).isSome := by
   refine ⟨jumpHeight_isSome, fun h ↦ ?_⟩
   obtain ⟨τ, hτ⟩ := Option.isSome_iff_exists.mp h
   exact ⟨τ, jumpHeight_spec hτ⟩
 
 /-- Feasibility of the `JUMP` table is decided by `jumpHeight`. -/
 instance (owed : ℕ) : Decidable (JumpFeasible owed) :=
-  decidable_of_iff _ (jumpFeasible_iff owed).symm
+  decidable_of_iff (jumpHeight owed).isSome (by exact (jumpFeasible_iff owed).symm)
 
 /-- Whether a trace of memory log-size `κ` whose run has `rows op` rows of each table `op` fits:
 room above the image, every table but `JUMP` within the row cap, and the `JUMP` table feasible. -/
