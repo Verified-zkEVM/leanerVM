@@ -945,7 +945,9 @@ theorem zeroTop_accepts (c : E) :
     accepts topOne (checkWords topOne) stmtTop c [1, 1] = true := by
   simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
   refine ⟨rfl, ?_⟩
-  show decide ((1 : E) + y * 1 = (1 + c) * E.ofLimbs 1 1 0 + c * E.ofLimbs 1 1 0) = true
+  have hf : (topOne.publicLines stmtTop.1).toList.filter (·.sent) =
+      [⟨⟨0, 0⟩, 1, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩] := rfl
+  simp only [checkWords, hf]
   apply decide_eq_true
   rw [ofLimbs_eq]
   have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)

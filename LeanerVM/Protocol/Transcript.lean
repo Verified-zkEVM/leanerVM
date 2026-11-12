@@ -118,10 +118,13 @@ theorem length_seedInput (iv : Digest) (input : PublicInput) :
 theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
     l = l'
   | [], [], _ => rfl
-  | [], b :: l', h | b :: l', [], h => by
+  | [], b :: l', h => by
     have := congrArg List.length h
     simp [length_kBytes] at this
     omega
+  | b :: l', [], h => by
+    have := congrArg List.length h
+    simp [length_kBytes] at this
   | a :: l, b :: l', h => by
     rw [List.flatMap_cons, List.flatMap_cons] at h
     obtain ⟨h₁, h₂⟩ := List.append_inj h (by simp [length_kBytes])
