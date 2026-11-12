@@ -135,7 +135,7 @@ theorem fill_dummies_run {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : Me
 
 /-- **A traversal returns to its start.** From the cycle's start state, the `s` dummies and the
 closing jump, `s + 1` steps, return to it. -/
-theorem fill_traversal_run {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
+private theorem fill_traversal_run {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
     (pcs : Opcode → ℕ → ℕ) (t : Opcode) {k : ℕ} (hk : k < 8) {prog : Program}
     (hb : IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k))) :
     run prog (padImage img pcs) (sizeAt k + 1) (cycleStart κ pcs t k) =

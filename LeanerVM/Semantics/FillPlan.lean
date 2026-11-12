@@ -103,13 +103,6 @@ theorem fillTarget_le {n floor τ : ℕ} (hn : n ≤ 2 ^ τ) (hf : floor ≤ 2 ^
   Nat.pow_le_pow_right (by norm_num)
     ((Nat.clog_le_iff_le_pow (by norm_num)).mpr (max_le (max_le hn hf) (Nat.one_le_two_pow)))
 
-/-- The traversals deliver the fill exactly: the size-`s` blocks, traversed as `fillGreedy p`
-says, hold `p` rows in all. -/
-theorem fillGreedy_sum (p : ℕ) : (List.zipWith (· * ·) (fillGreedy p) fillSizes).sum = p := by
-  simp only [fillGreedy, fillSizes, List.zipWith_cons_cons, List.zipWith_nil_left, List.sum_cons,
-    List.sum_nil]
-  omega
-
 /-- The bulk of a fill rides the largest block: one closing jump per `128` rows, and at most seven
 more for the remainder (`cpu/filler.rs:262-275`, `fill_uses_bulk_blocks`). -/
 theorem fillTraversals_le (p : ℕ) : fillTraversals p ≤ p / 128 + 7 := by

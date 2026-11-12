@@ -78,7 +78,8 @@ theorem compressCells_compressOut (m : Fin 4 → E) (cv0 cv1 md : E)
 
 /-- Every compression has output cells: on canonical inputs, the two cells holding the words of the
 compression satisfy `CompressCells`. -/
-theorem compressCells_exists (m : Fin 4 → E) (cv0 cv1 md : E) (hm : ∀ i, IsCanonical128 (m i))
+private theorem compressCells_exists (m : Fin 4 → E) (cv0 cv1 md : E) (hm : ∀ i, IsCanonical128
+    (m i))
     (hcv0 : IsCanonical128 cv0) (hcv1 : IsCanonical128 cv1) (hmd : IsCanonical128 md) :
     ∃ out0 out1 : E, CompressCells m cv0 cv1 out0 out1 md :=
   ⟨_, _, compressCells_compressOut m cv0 cv1 md hm hcv0 hcv1 hmd⟩

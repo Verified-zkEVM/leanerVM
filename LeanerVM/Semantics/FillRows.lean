@@ -142,7 +142,7 @@ theorem cycleSkels_step {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : Mem
 
 /-- Positions `1, ..., s, 0` are positions `0, ..., s` in another order: the successors of a
 traversal's states are a rotation of its states. -/
-theorem rotate_range_perm (s : ℕ) :
+private theorem rotate_range_perm (s : ℕ) :
     ((List.range (s + 1)).map fun i ↦ if i < s then i + 1 else 0).Perm (List.range (s + 1)) := by
   have h1 : (List.range (s + 1)).map (fun i ↦ if i < s then i + 1 else 0) =
       (List.range s).map (· + 1) ++ [0] := by

@@ -167,7 +167,8 @@ private theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (
 
 /-- **The run's state pulls and pushes balance with the boundary**: the initial state is pushed,
 the final one pulled, and each state stepped to is stepped from. -/
-theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+private theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some
+    (Regs.final prog)) :
     (#[1, 1] :: t.runSkels.map fun sk ↦ #[(nextOf t.image sk).pc, (nextOf t.image sk).fp]).Perm
       (#[prog.finalPc, 1] :: t.runSkels.map fun sk ↦ #[sk.pc, sk.fp]) := by
   obtain ⟨f, hf⟩ : ∃ f : ℕ → Array K, f = fun k ↦ #[(stateAt t k).pc, (stateAt t k).fp] :=
@@ -224,7 +225,7 @@ private theorem cycleSkels_fetch {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {t : 
     simpa using hb.close
 
 /-- **The skeletons of a fill are sound**: fetched, and they execute over the padded image. -/
-theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
+private theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
     (pcs : Opcode → ℕ → ℕ)
     (hpcs : ∀ t, ∀ k < 8, IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k)))
     (count : Opcode → ℕ → ℕ) :
@@ -267,7 +268,8 @@ end Fill
 
 /-- **A skeleton's row steps.** Every skeleton of the list the witness is built from is a row
 whose one state pull is its state and one state push its successor. -/
-theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ}
+    (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) {sk : Skel}
     (hsk : sk ∈ S) : RowSteps (padWitness prog input img S hκ hS) sk.regs (nextOf img sk) := by
@@ -300,7 +302,7 @@ theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (i
 
 /-- **The witness of a padded execution represents the trace**: the image the data names is the
 trace's, and every step of the trace's register sequence is a row. -/
-theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
+private theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
     (hκ : T.κ ≤ maxLogMem)
     (hv : run prog T.image T.steps Regs.initial = some (Regs.final prog)) (S : List Skel)
     (hS : S.length ≤ UInt64.size)
@@ -336,7 +338,7 @@ noncomputable def padSkelsOf (t : Trace prog) (pcs : Opcode → ℕ → ℕ) (τ
   t.runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)
 
 /-- Every table of the padded skeletons has a power-of-two height within the cap. -/
-theorem padSkelsOf_heights (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
+private theorem padSkelsOf_heights (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
     (h2 : 2 ^ τ ≠ t.owed + 1) (hfit : t.Fits) :
     ∀ op, ∃ σ ≤ maxLogRows, Skel.count op (padSkelsOf t pcs τ) = 2 ^ σ := by
   intro op

@@ -207,7 +207,7 @@ theorem entryCell_idx_eval (prog : Program) {i : ℕ} (hi : i < 2 ^ prog.logSize
   simp only [h]
 
 /-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
-private theorem cons_append_ops (e : Vector K 8) :
+theorem cons_append_ops (e : Vector K 8) :
     #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
   ext j hj
   interval_cases j <;> rfl

@@ -79,14 +79,6 @@ theorem padRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) :
   rw [List.length_map]
   rfl
 
-/-! ## Proof helpers -/
-
-/-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
-private theorem cons_append_ops (e : Vector K 8) :
-    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
-  ext j hj
-  interval_cases j <;> rfl
-
 /-! ## The tables -/
 
 /-- The rows of the table of an opcode: the raw rows of the rows of `R` whose instruction has the

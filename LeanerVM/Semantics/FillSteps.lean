@@ -51,7 +51,8 @@ theorem executeWith_xor_of_reads {read : K → Option E} {r : Regs K} {oA oB oC 
   simp [executeWith, hA, hB, hC, h]
 
 /-- `MUL_NATIVE` executes to the fall-through when its result cell holds the product. -/
-theorem executeWith_mul_of_reads {read : K → Option E} {r : Regs K} {oA oB oC : K} {a b c : E}
+private theorem executeWith_mul_of_reads {read : K → Option E} {r : Regs K} {oA oB oC : K}
+    {a b c : E}
     (hA : read (r.fp * oA) = some a) (hB : read (r.fp * oB) = some b)
     (hC : read (r.fp * oC) = some c) (h : c = a * b) :
     executeWith read r (.mulNative oA oB oC) = some r.next := by
@@ -64,7 +65,7 @@ theorem executeWith_set_of_read {read : K → Option E} {r : Regs K} {o : K} {k 
 
 /-- `DEREF` executes to the fall-through when the pointer is in `K` and the cell it names holds
 the source. -/
-theorem executeWith_deref_of_reads {read : K → Option E} {r : Regs K} {o1 o2 o3 : K}
+private theorem executeWith_deref_of_reads {read : K → Option E} {r : Regs K} {o1 o2 o3 : K}
     {mode : DerefMode} {p v3 v2 : E} (hp : read (r.fp * o1) = some p) (hK : IsInK p)
     (h3 : read (r.fp * o3) = some v3) (h2 : read (p.limb 0 * o2) = some v2)
     (hv : v2 = derefSource mode r v3) :
@@ -72,14 +73,14 @@ theorem executeWith_deref_of_reads {read : K → Option E} {r : Regs K} {o1 o2 o
   simp [executeWith, hp, hK, h3, h2, hv]
 
 /-- `JUMP` falls through when its three cells read as zero. -/
-theorem executeWith_jump_fall {read : K → Option E} {r : Regs K} {oc od of : K}
+private theorem executeWith_jump_fall {read : K → Option E} {r : Regs K} {oc od of : K}
     (hc : read (r.fp * oc) = some 0) (hd : read (r.fp * od) = some 0)
     (hf : read (r.fp * of) = some 0) : executeWith read r (.jump oc od of) = some r.next := by
   have h0 : IsInK (0 : E) := ⟨limb_zero 1, limb_zero 2⟩
   simp [executeWith, hc, hd, hf, h0]
 
 /-- `BLAKE2S` executes to the fall-through when its nine cells hold a compression. -/
-theorem executeWith_blake2s_of_reads {read : K → Option E} {r : Regs K} {om : Fin 4 → K}
+private theorem executeWith_blake2s_of_reads {read : K → Option E} {r : Regs K} {om : Fin 4 → K}
     {ocv oout omd : K} {m0 m1 m2 m3 cv0 cv1 out0 out1 md : E}
     (h0 : read (r.fp * om 0) = some m0) (h1 : read (r.fp * om 1) = some m1)
     (h2 : read (r.fp * om 2) = some m2) (h3 : read (r.fp * om 3) = some m3)
@@ -108,7 +109,7 @@ theorem frameCell_ptr (w0 : E) (pc base : ℕ) (t : Opcode) :
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr]
 
 /-- The cell nothing writes reads as zero. -/
-theorem frameCell_zero (w0 : E) (pc base : ℕ) (t : Opcode) :
+private theorem frameCell_zero (w0 : E) (pc base : ℕ) (t : Opcode) :
     frameCell w0 pc base t FillFrame.zero = 0 := by
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.zero,
     FillFrame.scratch, FillFrame.digest]
@@ -119,18 +120,18 @@ theorem frameCell_scratch_of_ne (w0 : E) (pc base : ℕ) {t : Opcode} (h : t ≠
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch, h]
 
 /-- The `DEREF` frame's scratch cell holds the word at memory cell `0`. -/
-theorem frameCell_scratch_deref (w0 : E) (pc base : ℕ) :
+private theorem frameCell_scratch_deref (w0 : E) (pc base : ℕ) :
     frameCell w0 pc base .deref FillFrame.scratch = w0 := by
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch]
 
 /-- The cell after the scratch cell, the second chaining-value cell, is zero. -/
-theorem frameCell_scratch_succ (w0 : E) (pc base : ℕ) (t : Opcode) :
+private theorem frameCell_scratch_succ (w0 : E) (pc base : ℕ) (t : Opcode) :
     frameCell w0 pc base t (FillFrame.scratch + 1) = 0 := by
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch,
     FillFrame.digest]
 
 /-- The four message cells of the `BLAKE2S` dummy are zero. -/
-theorem frameCell_message (w0 : E) (pc base : ℕ) (t : Opcode) {j : ℕ} (hj : j < 4) :
+private theorem frameCell_message (w0 : E) (pc base : ℕ) (t : Opcode) {j : ℕ} (hj : j < 4) :
     frameCell w0 pc base t (FillFrame.digest + 2 + j) = 0 := by
   unfold frameCell
   simp only [FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch,
@@ -138,7 +139,7 @@ theorem frameCell_message (w0 : E) (pc base : ℕ) (t : Opcode) {j : ℕ} (hj : 
   split_ifs <;> first | omega | rfl
 
 /-- The `BLAKE2S` frame's digest pair. -/
-theorem frameCell_digest (w0 : E) (pc base : ℕ) :
+private theorem frameCell_digest (w0 : E) (pc base : ℕ) :
     frameCell w0 pc base .blake2s FillFrame.digest = zeroDigest.1 ∧
       frameCell w0 pc base .blake2s (FillFrame.digest + 1) = zeroDigest.2 := by
   simp [frameCell, FillFrame.dest, FillFrame.nextFp, FillFrame.ptr, FillFrame.scratch,

@@ -43,19 +43,19 @@ namespace Blake2s
 @[inline] def rotr7 (x : UInt32) : UInt32 := (x >>> 7) ||| (x <<< 25)
 
 /-- Rotation by 16 is two shifts. -/
-theorem rotr_sixteen (x : UInt32) : rotr x 16 = rotr16 x := by
+private theorem rotr_sixteen (x : UInt32) : rotr x 16 = rotr16 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr16, BitVec.rotateRight_def]
 
 /-- Rotation by 12 is two shifts. -/
-theorem rotr_twelve (x : UInt32) : rotr x 12 = rotr12 x := by
+private theorem rotr_twelve (x : UInt32) : rotr x 12 = rotr12 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr12, BitVec.rotateRight_def]
 
 /-- Rotation by 8 is two shifts. -/
-theorem rotr_eight (x : UInt32) : rotr x 8 = rotr8 x := by
+private theorem rotr_eight (x : UInt32) : rotr x 8 = rotr8 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr8, BitVec.rotateRight_def]
 
 /-- Rotation by 7 is two shifts. -/
-theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
+private theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr7, BitVec.rotateRight_def]
 
 /-- `mix` on native rotations. -/
@@ -72,7 +72,7 @@ theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
   (((v.set a va).set b vb).set c vc).set d vd
 
 /-- `mixFast` is `mix`. -/
-theorem mixFast_eq : mixFast = mix := by
+private theorem mixFast_eq : mixFast = mix := by
   funext v a b c d x y
   simp only [mixFast, mix, rotr_sixteen, rotr_twelve, rotr_eight, rotr_seven]
 

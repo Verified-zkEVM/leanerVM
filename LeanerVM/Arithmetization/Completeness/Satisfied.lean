@@ -156,7 +156,7 @@ noncomputable def padSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : 
     memBlockSends img (padMemFin img S) ++ bcBlockSends prog (padBcFin S)
 
 /-- **The sends of the padded witness.** -/
-theorem padWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     (padWitness prog input img S hκ hS).interactions.map
@@ -185,7 +185,7 @@ private theorem opcode_mem_fillTables (o : Opcode) : o ∈ fillTables := by
 
 /-- **The six tables hold the rows of `R` regrouped by opcode**: their sends are a permutation of
 those of the rows in order. -/
-theorem tables_sends_perm {κ : ℕ} (img : MemImage κ) (R : List PRow) :
+private theorem tables_sends_perm {κ : ℕ} (img : MemImage κ) (R : List PRow) :
     (fillTables.flatMap fun op ↦
       (R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img)).Perm
       (R.flatMap (PRow.sends img)) := by
@@ -323,7 +323,7 @@ private theorem mem_ne_bytecode : MemChannel.name ≠ BytecodeChannel.name := by
 
 /-- **The memory channel balances**: the rows' reads, numbered by the chain, against the block's
 seeds and finalizes. -/
-theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ)
+private theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     (chanOf MemChannel.name .push (padSends prog img S)).Perm
       (chanOf MemChannel.name .pull (padSends prog img S)) := by
@@ -360,7 +360,7 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
 
 /-- **The bytecode channel balances**: the rows' fetches, numbered by the chain, against the
 block's seeds and finalizes. -/
-theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+private theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, SkelOk prog img sk) :
     (chanOf BytecodeChannel.name .push (padSends prog img S)).Perm
       (chanOf BytecodeChannel.name .pull (padSends prog img S)) := by
@@ -397,7 +397,7 @@ theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List S
 /-- **The state channel balances**, from the hypothesis that the skeletons' states and successors
 balance with the initial and final states: the rows' pulls and pushes are those states,
 regrouped by the six tables. -/
-theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+private theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
       (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
     (chanOf StateChannel.name .push (padSends prog img S)).Perm
@@ -498,7 +498,8 @@ theorem jumpRaw_constraints (r : JumpRow K) (w b : K) (h1 : b + r.vcond * w = 0)
 
 /-- **Every table of the padded witness satisfies its constraints**: only the `JUMP` table
 asserts anything, and its rows carry the honest inverse and indicator. -/
-theorem padWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ}
+    (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
     (padWitness prog input img S hκ hS).Constraints := by
   intro t ht row hrow
@@ -562,7 +563,7 @@ private theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemImage κ) (r : PR
   exact pow_ne_zero _ g_ne_zero
 
 /-- **Every read pull of the six tables carries a nonzero count.** -/
-theorem padWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : ℕ}
+private theorem padWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     CountsNonzero (padWitness prog input img S hκ hS) := by
@@ -590,7 +591,7 @@ theorem padWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : �
 
 /-- **Every `BLAKE2S` row compresses**: the row of an executing instruction satisfies the
 relation its execution checks. -/
-theorem padWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : ℕ}
+private theorem padWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
     Blake2sRowsValid (padWitness prog input img S hκ hS) := by
@@ -635,7 +636,7 @@ theorem opRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) (op : Opcod
 
 /-- **The announced sizes are within the caps**: the memory window, every table's height a power
 of two within the cap, and the `BLAKE2S` floor. -/
-theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hheights : ∀ op, ∃ σ ≤ maxLogRows, Skel.count op S = 2 ^ σ)
     (hblake : 2 ^ minLogRowsBlake2s ≤ Skel.count .blake2s S) :
@@ -670,7 +671,8 @@ theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img :
 
 /-- **The padded witness balances** on each of the three channels: every multiplicity `1`, and
 the messages of the pushes a permutation of those of the pulls. -/
-theorem padWitness_balanced (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem padWitness_balanced (prog : Program) (input : PublicInput) {κ : ℕ}
+    (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSok : ∀ sk ∈ S, SkelOk prog img sk)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm

@@ -48,7 +48,7 @@ theorem MemImage.read_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {
 
 /-- An instruction that executes over a reader executes to the same registers over a reader that
 reads everything the first reads, to the same words: the arms only read and compare. -/
-theorem executeWith_mono {read read' : K → Option E}
+private theorem executeWith_mono {read read' : K → Option E}
     (h : ∀ a v, read a = some v → read' a = some v) {r r' : Regs K} {ins : Instr}
     (he : executeWith read r ins = some r') : executeWith read' r ins = some r' := by
   cases ins <;>
@@ -56,7 +56,7 @@ theorem executeWith_mono {read read' : K → Option E}
     aesop
 
 /-- A step over `L` is the same step over an extension `L'`. -/
-theorem step_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {prog : Program} {L : MemImage κ}
+private theorem step_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {prog : Program} {L : MemImage κ}
     {L' : MemImage κ'} (h : ∀ i (hi : i < 2 ^ κ) (hi' : i < 2 ^ κ'), L' ⟨i, hi'⟩ = L ⟨i, hi⟩)
     {r r' : Regs K} (hs : step prog L r = some r') : step prog L' r = some r' := by
   unfold step at hs ⊢
@@ -65,7 +65,7 @@ theorem step_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {prog : Pr
     ⟨ins, hf, executeWith_mono (fun _ _ hr ↦ MemImage.read_mono hκ hκ' h hr) hex⟩
 
 /-- A run over `L` is the same run over an extension `L'`. -/
-theorem run_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {prog : Program} {L : MemImage κ}
+private theorem run_mono {κ κ' : ℕ} (hκ : κ ≤ κ') (hκ' : κ' < 64) {prog : Program} {L : MemImage κ}
     {L' : MemImage κ'} (h : ∀ i (hi : i < 2 ^ κ) (hi' : i < 2 ^ κ'), L' ⟨i, hi'⟩ = L ⟨i, hi⟩)
     {n : ℕ} {r r' : Regs K} (hr : run prog L n r = some r') : run prog L' n r = some r' := by
   induction n generalizing r with
