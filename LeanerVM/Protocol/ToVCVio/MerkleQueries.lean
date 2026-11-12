@@ -9,7 +9,7 @@
 module
 
 public import LeanerVM.Protocol.ToVCVio.Merkle
-public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
+public import LeanerVM.Protocol.ToVCVio.QueryBound
 
 /-!
 # The queries of a pruned opening's walk
@@ -32,36 +32,6 @@ open OracleComp OracleSpec
 private theorem pure_bound {ι : Type} {spec : OracleSpec ι} {α : Type} (x : α) (n : ℕ) :
     IsTotalQueryBound (pure x : OracleComp spec α) n :=
   isQueryBound_pure x n _ _
-
-/-! ## Mapping over a list or a vector -/
-
-section MapM
-
-variable {ι : Type} {spec : OracleSpec ι} {α β : Type} (f : α → OracleComp spec β) (k : ℕ)
-  (hf : ∀ x, IsTotalQueryBound (f x) k)
-
-include hf
-
-private theorem isTotalQueryBound_list_mapM :
-    ∀ l : List α, IsTotalQueryBound (l.mapM f) (l.length * k)
-  | [] => pure_bound _ _
-  | x :: l => by
-    rw [List.mapM_cons, List.length_cons, Nat.succ_mul, Nat.add_comm]
-    exact isTotalQueryBound_bind (hf x) fun _ ↦ isTotalQueryBound_bind (n₂ := 0)
-      (isTotalQueryBound_list_mapM l) fun _ ↦ pure_bound _ _
-
-/-- Mapping a computation of at most `k` queries over a vector of `n` entries asks at most
-`n * k`. -/
-theorem isTotalQueryBound_vector_mapM {n : ℕ} (v : Vector α n) :
-    IsTotalQueryBound (v.mapM f) (n * k) := by
-  have h : IsTotalQueryBound (Vector.toArray <$> v.mapM f) (n * k) := by
-    rw [Vector.toArray_mapM, Array.mapM_eq_mapM_toList]
-    refine (isQueryBound_map_iff _ _ _ _ _).mpr ?_
-    have := isTotalQueryBound_list_mapM f k hf v.toArray.toList
-    rwa [Array.length_toList, Vector.size_toArray] at this
-  exact (isQueryBound_map_iff _ _ _ _ _).mp h
-
-end MapM
 
 namespace MerkleTree
 

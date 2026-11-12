@@ -231,22 +231,6 @@ theorem map_steps_of {C : Type} {nside : ℕ} {enc : Vector C (2 ^ 2 + 1) → w 
   congr <;> funext x
   exacts [h₁ x, h₂ x]
 
-theorem map_gkr_of {C : Type} {nside : ℕ} (μ : ℕ)
-    {enc₁ : Vector C (2 ^ 1 + 1) → w Unit} {children₁ : (Fin nside → Vector C (2 ^ 1)) → w Unit}
-    {enc₂ : Vector C (2 ^ 2 + 1) → w Unit} {children₂ : (Fin nside → Vector C (2 ^ 2)) → w Unit}
-    {smp : w C} {enc₁' : Vector C (2 ^ 1 + 1) → w' Unit}
-    {children₁' : (Fin nside → Vector C (2 ^ 1)) → w' Unit}
-    {enc₂' : Vector C (2 ^ 2 + 1) → w' Unit}
-    {children₂' : (Fin nside → Vector C (2 ^ 2)) → w' Unit} {smp' : w' C}
-    (h₁ : ∀ x, ψ (enc₁ x) = enc₁' x) (h₂ : ∀ x, ψ (children₁ x) = children₁' x)
-    (h₃ : ∀ x, ψ (enc₂ x) = enc₂' x) (h₄ : ∀ x, ψ (children₂ x) = children₂' x)
-    (h₅ : ψ smp = smp') :
-    (gkr μ enc₁ children₁ enc₂ children₂ smp).map ψ =
-      gkr μ enc₁' children₁' enc₂' children₂' smp' := by
-  rw [map_gkr, h₅]
-  congr <;> funext x
-  exacts [h₁ x, h₂ x, h₃ x, h₄ x]
-
 end Of
 
 end RoundCodec
@@ -259,18 +243,19 @@ variable {w w' : Type → Type} [Monad w] [Monad w'] [LawfulMonad w] [LawfulMona
   (ψ : w →ᵐ w') {S W S' W' : Type} {n : ℕ} {pSpec : ProtocolSpec n}
   (c : RoundCodec w pSpec) (P : Prover []ₒ S W S' W' pSpec)
 
-theorem runNoOracle_hom {α : Type} (oa : OracleComp []ₒ α) :
+private theorem runNoOracle_hom {α : Type} (oa : OracleComp []ₒ α) :
     ψ (runNoOracle (w := w) oa) = runNoOracle oa := by
   rw [runNoOracle_eq_pure, runNoOracle_eq_pure (w := w'), MonadHom.mmap_pure]
 
-theorem stepWith_hom (j : Fin n) (tr : pSpec.Transcript j.castSucc) (st : P.PrvState j.castSucc) :
+private theorem stepWith_hom (j : Fin n) (tr : pSpec.Transcript j.castSucc)
+    (st : P.PrvState j.castSucc) :
     ψ (stepWith c P j tr st) = stepWith (c.map ψ) P j tr st := by
   unfold stepWith
   split
   · simp only [MonadHom.mmap_bind, MonadHom.mmap_pure, runNoOracle_hom, RoundCodec.map]
   · simp only [MonadHom.mmap_bind, MonadHom.mmap_pure, runNoOracle_hom, RoundCodec.map]
 
-theorem runToRoundWith_hom (i : Fin (n + 1)) (stmt : S) (wit : W) :
+private theorem runToRoundWith_hom (i : Fin (n + 1)) (stmt : S) (wit : W) :
     ψ (runToRoundWith c P i stmt wit) = runToRoundWith (c.map ψ) P i stmt wit := by
   induction i using Fin.induction with
   | zero => simp only [runToRoundWith, Fin.induction_zero, MonadHom.mmap_pure]

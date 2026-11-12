@@ -60,7 +60,7 @@ theorem prove_rom_eq_none_le (fuel : ℕ) {prog : Program} {input : PublicInput}
     hρ (Prove.isTotalQueryBound_proveWith_closed fuel hsat hs hμ hρ)
 
 /-- The honest run in the random-oracle model: the deployed prover's proof, then the verifier on
-it, both asking the one hash oracle; a prover out of fuel is rejected. -/
+it, both asking the one hash oracle; a prover that returns no proof is rejected. -/
 def honestGame (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
     (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : OracleComp hashSpec Bool := do
   match ← proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ with
@@ -146,7 +146,6 @@ theorem honestGame_rom_rejects_le_default {prog : Program} {input : PublicInput}
       (2 ^ 154 : ℝ≥0∞)⁻¹ :=
   (honestGame_rom_rejects_le (2 ^ 24) hsat hs hμ hρ).trans
     (rom_bound_default _ Prove.one_sub_pow_fuel_le)
-
 
 end
 

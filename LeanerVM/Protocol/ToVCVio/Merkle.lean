@@ -15,6 +15,7 @@ public import VCVio.CryptoFoundations.MerkleTree.ExtractionKernel
 public import VCVio.CryptoFoundations.MerkleTree.Inductive.Batch.Opening
 public import ToMathlib.Data.IndexedBinaryTree.Perfect
 public import PolyFun.Control.Monad.Hom.Loops
+public import LeanerVM.Protocol.ToVCVio.MonadRel
 
 /-!
 # Merkle trees and their pruned openings
@@ -51,14 +52,6 @@ right`, which carries no address.
 namespace LeanerVM.Protocol
 
 @[expose] public section
-
-/-- A monad morphism commutes with `Vector.mapM`. -/
-theorem Vector.mapM_hom {m m' : Type → Type} [Monad m] [Monad m'] [LawfulMonad m]
-    [LawfulMonad m'] (φ : m →ᵐ m') {α β : Type} {n : ℕ} (f : α → m β) (xs : Vector α n) :
-    φ (xs.mapM f) = xs.mapM fun a ↦ φ (f a) := by
-  apply Vector.map_toArray_inj.mp
-  rw [← MonadHom.mmap_map, Vector.toArray_mapM, Vector.toArray_mapM, Array.mapM_eq_mapM_toList,
-    Array.mapM_eq_mapM_toList, MonadHom.mmap_map, MonadHom.mmap_mapM]
 
 namespace MerkleTree
 

@@ -3,14 +3,15 @@
 
   Relations between the computations of two monads that `pure` and `bind` preserve, and
   properties of computations graded by a count that adds up along `bind`: what a program written
-  once over its primitives inherits from its primitives. Plain monad theory, importing only
-  `Mathlib.Init`; VCVio is its destination as the home of its first consumer, the query bounds
-  (`IsTotalQueryBound`) of programs written over oracle primitives.
+  once over its primitives inherits from its primitives; and that a monad morphism (PolyFun's,
+  which VCVio builds on) commutes with `Vector.mapM`. Plain monad theory; VCVio is its
+  destination as the home of its first consumers, the query bounds (`IsTotalQueryBound`) and the
+  simulations of programs written over oracle primitives.
 -/
 
 module
 
-public import Mathlib.Init
+public import PolyFun.Control.Monad.Hom.Loops
 
 /-!
 # Relations preserved by `pure` and `bind`
@@ -27,6 +28,9 @@ A `MonadGrade m` is a property of computations of `m` graded by a count: it hold
 `0`, and of `a >>= f` at `n + k` when it holds of `a` at `n` and of every `f x` at `k`. The count
 cannot depend on the value `x`, so a program's count follows from its primitives' when no count
 of the program depends on a value it reads: the queries a run asks, or the input it consumes.
+
+`Vector.mapM_hom`: a monad morphism (PolyFun's `m →ᵐ m'`) commutes with `Vector.mapM`, from
+PolyFun's list form `MonadHom.mmap_mapM`.
 -/
 
 namespace LeanerVM.Protocol
@@ -104,6 +108,14 @@ theorem ite_bind {α β : Type} (c : Prop) [Decidable c] {a b : m α} {j : α �
   · exact 𝓖.bind hb hj
 
 end MonadGrade
+
+/-- A monad morphism commutes with `Vector.mapM`. -/
+theorem Vector.mapM_hom {m m' : Type → Type} [Monad m] [Monad m'] [LawfulMonad m]
+    [LawfulMonad m'] (φ : m →ᵐ m') {α β : Type} {n : ℕ} (f : α → m β) (xs : Vector α n) :
+    φ (xs.mapM f) = xs.mapM fun a ↦ φ (f a) := by
+  apply Vector.map_toArray_inj.mp
+  rw [← MonadHom.mmap_map, Vector.toArray_mapM, Vector.toArray_mapM, Array.mapM_eq_mapM_toList,
+    Array.mapM_eq_mapM_toList, MonadHom.mmap_map, MonadHom.mmap_mapM]
 
 end
 
