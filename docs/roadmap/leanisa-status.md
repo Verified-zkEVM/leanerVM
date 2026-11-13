@@ -3,7 +3,7 @@
 **This branch** (`feat/leanisa-clean-equivalence`, 2026-10-29) ports Layers 5 to 10 to Clean main
 `ce2eee63` (fixed columns, Clean #446; direction-tagged multiset balance, Clean #493 and #495;
 the names that collided with ArkLib moved out of the root namespace, Clean #497); the pin has
-since moved to `a985c76c` (the Lean `v4.35.0` paragraph below).
+since moved to `6a2e7bb9` (the Lean `v4.35.0` paragraph below).
 The bus is three direction-tagged channels (`StateChannel`, `MemChannel`, `BytecodeChannel`),
 balanced by Clean's `Balance.multiset`; the memory and bytecode blocks are preallocated
 components with fixed columns (`memComponent κ`, its address column `gpowCell`;
@@ -38,9 +38,9 @@ interface. This resolves the historical C8 import restriction; C8 and E6 below r
 about the earlier pins. Current dependency revisions are in [dependencies.md](../dependencies.md).
 
 The Lean `v4.35.0` dependency port (Mathlib `56a00585`) moves Clean from `ce2eee63` to main
-`a985c76c` and CompPoly from `572f9973` to `e28da348`. At `a985c76c` Clean and Batteries both
-declare `Vector.get_eq_getElem`; the fix is Clean PR #513, open, and the Clean pin moves to its
-merge commit when it merges. At the new Clean pin `Balance.multiset` is the `0`/`1`
+`6a2e7bb9` and CompPoly from `572f9973` to `e28da348`. At `a985c76c` Clean and Batteries both
+declared `Vector.get_eq_getElem`; Clean PR #513 removed Clean's copy, and the Clean pin is its
+merge commit. At the new Clean pin `Balance.multiset` is the `0`/`1`
 multiplicities and the permutation of the active messages, with no bound on the number of
 interactions (Clean `21247235`). `SatisfiedBy` is unchanged in text and logically equivalent to
 its reading at `ce2eee63`: the old bound follows from the `caps` field on each of the three
@@ -628,18 +628,18 @@ module (P3).
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
   The name clash of C13 is resolved upstream (Clean #497), so no Clean item is owed.
-- **What the Clean pin `a985c76c` brought** (the Lean `v4.35.0` bump): `21247235` (2026-11-02) drops
+- **What the Clean pin `6a2e7bb9` brought** (the Lean `v4.35.0` bump): `21247235` (2026-11-02) drops
   `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions per channel, so
   `interactionsWith_length_lt`, which derives it from the caps, moves from the library to the tests
   and `SatisfiedBy` keeps its meaning; Clean PR
   [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moved Clean to Lean
-  `v4.34.1`, and `a985c76c` builds on `v4.35.0`, the root toolchain; `ProverData` became the
+  `v4.34.1`, and `6a2e7bb9` builds on `v4.35.0`, the root toolchain; `ProverData` became the
   structure `{tables, publicInput}`, with `deriveProverData` taking the public input; and Clean #511
   passes the data to `Circuit.witgen` and gives each circuit an honest environment,
-  `proverEnvironment`, which `jump_exec_complete` now uses in place of `jumpEnv`. Clean PR #513,
-  open, removes Clean's copy of Batteries' `Vector.get_eq_getElem`, which breaks any module
-  importing Clean and CompPoly's multivariate polynomials; the pin moves to its merge commit when it
-  merges.
+  `proverEnvironment`, which `jump_exec_complete` now uses in place of `jumpEnv`. Clean PR #513
+  (merged 2026-11-13; the pin is its merge commit) removed Clean's copy of Batteries'
+  `Vector.get_eq_getElem`, which broke any module importing Clean and CompPoly's multivariate
+  polynomials.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound

@@ -8,7 +8,7 @@ The repository tracks eight upstreams and six direct Lake packages:
 | Mathlib | `v4.35.0` (`56a00585`) | Algebra, finite types, probability measures, and tactics |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
 | CompPoly | `e28da34817c3775cfb935376acf5d416f555d64f` (current main) | Computable polynomial and field infrastructure |
-| Clean | `a985c76c845e1d69ab320831d535072fcadb7c76` (current main; needs Clean #513, see below) | Circuit, AIR, channel, and witness-generation infrastructure |
+| Clean | `6a2e7bb92df0a4407e398318150677375acb6d08` (current main, the merge of Clean #513) | Circuit, AIR, channel, and witness-generation infrastructure |
 | ArkLib | `011391e592df184540b4b52edc2c64ee300b00ab` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
 | VCVio | `fc54dd3d7691d6f5db7dc829e321a727f095bc2d` (ArkLib main's pin) | Native probability measures and oracle computation security carriers |
 | PolyFun | `d3ec3a414c233203e2050ed0f33fae8647f57eb7` (ArkLib main's pin) | Polynomial functors and free monads underlying oracle computations |
@@ -54,14 +54,11 @@ Regenerate the graph with plain `lake update`, then fetch Mathlib's artifacts wi
 `lake --keep-toolchain update`: in Lake 4.34 that option also changed dependency traversal, so
 that an inherited manifest could resolve a package before a later root requirement.
 
-**The Clean import clash.** At `a985c76c`, `Clean.Utils.Vector` declares
+**The Clean import clash.** At `a985c76c`, `Clean.Utils.Vector` declared
 `Vector.get_eq_getElem`, which `Batteries.Data.Vector.Lemmas` also declares with the same
-statement. A module whose imports reach both fails at import; `ToClean/ComponentPolynomial.lean`
-reaches Batteries' through CompPoly's multivariate polynomials. Clean PR #513 deletes Clean's copy
-and imports Batteries' lemma. Until it merges, `a985c76c` does not build this repository unpatched:
-the port was built with #513's change applied to the package checkout, and the committed manifest
-names `a985c76c` with no local override. Owed: when #513 merges, move the Clean pin to its merge
-commit (`lakefile.toml`, `lake-manifest.json`, `upstreams.json` and this page).
+statement, so a module whose imports reach both failed at import (`ToClean/ComponentPolynomial.lean`
+reaches Batteries' through CompPoly's multivariate polynomials). Clean PR #513 deleted Clean's copy;
+the pin is its merge commit `6a2e7bb9`, which differs from `a985c76c` in that one file only.
 
 The semantic changes were reviewed separately from the mechanical port (renames, imports, proof
 steps). None changes the statement of a headline theorem, `verify`, `prove`, `SatisfiedBy`,

@@ -56,7 +56,7 @@ translation is CompPoly's, proved equal to Clean's.
   `CountsAreVariables`, which a component's data decides, says every counted interaction has one.
 
 Written from the M3 model of leanVM's specification (§5.1 "The bus", §5.5 "The zerocheck") and
-Clean's semantics of a flat component at `a985c76c` (`Clean/Air/FlatComponent.lean`,
+Clean's semantics of a flat component at `6a2e7bb9` (`Clean/Air/FlatComponent.lean`,
 `Clean/Circuit/Operations.lean`, `Clean/Circuit/ExpressionPolynomial.lean`).
 
 ## Wrong readings excluded

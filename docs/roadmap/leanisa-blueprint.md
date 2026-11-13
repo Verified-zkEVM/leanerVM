@@ -155,14 +155,13 @@ whose bit encoding disagrees with `BF64` and is never used.
 
 ### Clean
 
-The Clean contract is at `a985c76c` (upstream main, with fixed columns #446, direction-tagged
+The Clean contract is at `6a2e7bb9` (upstream main, with fixed columns #446, direction-tagged
 multiset balance #493 and #495, `Channel.Direction` and `VerifierM` out of the root namespace
 #497, multiset balance without an interaction bound `21247235`, and per-circuit honest
 environments #511). Layers 5 to 10 were ported from `93c9d1ef`, where the channel pairs,
 `BalancedPair` and three named hypotheses of Layer 8 stood in for what Clean then lacked
-(status page, "Clean main"), to `ce2eee63` and then to `a985c76c`. The pin moves to the merge
-commit of Clean PR #513, open, which removes Clean's copy of Batteries'
-`Vector.get_eq_getElem`.
+(status page, "Clean main"), to `ce2eee63` and then to `6a2e7bb9`, the merge commit of Clean
+PR #513, which removed Clean's copy of Batteries' `Vector.get_eq_getElem`.
 
 | Declaration | Contract used here |
 | --- | --- |

@@ -21,7 +21,7 @@
     "repository": "Verified-zkEVM/clean",
     "tracking": "branch",
     "ref": "main",
-    "commit": "a985c76c845e1d69ab320831d535072fcadb7c76"
+    "commit": "6a2e7bb92df0a4407e398318150677375acb6d08"
   },
   "ArkLib": {
     "repository": "Verified-zkEVM/ArkLib",

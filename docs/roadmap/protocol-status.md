@@ -10,7 +10,7 @@ are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). O
 are not part of `main`.
 
 The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `011391e5`, CompPoly `e28da348`,
-Clean `a985c76c`, VCVio `fc54dd3d`, PolyFun `d3ec3a41`, Lean
+Clean `6a2e7bb9`, VCVio `fc54dd3d`, PolyFun `d3ec3a41`, Lean
 and Mathlib `v4.35.0` ([dependencies.md](../dependencies.md#lean-435-port-review)).
 
 ## On `main`
@@ -642,7 +642,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; upstream since the Clean pin `ce2eee63` and unchanged at `a985c76c`, which the bridge
+  by #28; upstream since the Clean pin `ce2eee63` and unchanged at `6a2e7bb9`, which the bridge
   imports; the verbatim copy kept until then is deleted). Where it differs from the sketch:
   - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
     (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
@@ -1639,7 +1639,6 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle; #858 (at the pin) gave salted trees binding on one shared oracle over a collision-free full table, with quantum random-oracle extraction, and a common-domain leaf and node encoding, not classical extraction from a log prefix |
 | VCVio #823, #824, #826 (at the pin) | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | ArkLib `SendSingleWitness.Adapter` (#1423, at the pin), `ReduceClaim.oracleReduction` | the spine's commit phase; every pass-through and map-witness step | `ToArkLib/SendOracle.lean`, `ToArkLib/PassThrough.lean`, `ToArkLib/MapWitness.lean` | consumed: the components are the upstream ones at the identity, with their proofs; the local modules package them as components and keep the pure forms the compiled verifier unfolds |
-| Clean #513 (open) | every module that imports Clean and CompPoly (`ToClean/ComponentPolynomial.lean`) | the `Vector.get_eq_getElem` clash between Clean and Batteries at the pin `a985c76c` | when it merges, move the Clean pin to its merge commit |
 | Clean #494 (open) | the adaptor; leanISA soundness | Clean sound channels for the counted memory and the bytecode, without which Clean's VM soundness theorems do not apply | when it merges |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 | ArkLib (none opened yet): generic upstream candidates written for this protocol | the phases' provers and verifiers, the Flock phase, the compiled verifier | `ToArkLib/`: cached honest provers and rounds (`CachedProver`, `CachedRounds`, `CachedSteps`, `SumcheckCached`, `ProductSumCached`, `GrandProductCached`, `ProductSumcheck`, `GrandProductRun`, `WeightCombination`); transcripts read back from a flat list of readings (`DecodeSteps`, `DecodeTranscript`, `StepSchedule`, `QueryRecord`, `ExtractIn`); oracle plumbing (`Oracles`, `KeepOracles`, `SendOracle`, `SendOracleBeside`, `MapWitness`, `PassCheck`, `PushSecurity`, `FrontRun`, `FrontVerifier`); a prover's run against a wire, carried along a monad morphism and counted (`RunCodecHom`, `RunCodecGrade`); the Flock argument (`Flock/BlockR1CS`, `Cached`, `CircuitFast`, `FrobeniusMap`, `Lincheck`, `Reduction`, `RingSwitch`, `Rounds`, `Run`, `Tables`, `Zerocheck`) | proposed upstream one module family at a time; each module deleted at the bump whose pin contains it |
