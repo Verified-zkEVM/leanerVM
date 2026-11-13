@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.ToArkLib.SendChecked
 public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import CompPoly.Univariate.ToPoly.Impl
 public import LeanerVM.Protocol.ToCompPoly.FinLoop
+public import LeanerVM.Protocol.ToCompPoly.PowerBatching
 
 /-!
 # A sumcheck round
@@ -86,6 +87,11 @@ abbrev Message (F : Type) (d : ℕ) : Type := Vector F (d + 1)
 
 /-- The value of a message at a point, `Σ_i q_i · x^i`. -/
 def evaluate (d : ℕ) (q : Message F d) (x : F) : F := ∑ i : Fin (d + 1), q[i] * x ^ (i : ℕ)
+
+/-- A message of degree two evaluates as its three coefficients. -/
+theorem evaluate_two (q₀ q₁ q₂ x : F) :
+    evaluate 2 (#v[q₀, q₁, q₂] : Message F 2) x = q₀ + q₁ * x + q₂ * x ^ 2 := by
+  simp [evaluate, Fin.sum_univ_three]
 
 /-- `evaluate` by Horner's rule: what compiled code runs (`evaluate_eq_evaluateHorner`). -/
 def evaluateHorner (d : ℕ) (q : Message F d) (x : F) : F :=
@@ -199,33 +205,9 @@ def Family.Sound [Finite F] (Φ : Family F X O W d) (m : ℕ) : Prop :=
 nonzero polynomial of degree at most `d`. -/
 theorem card_filter_evaluate_eq_le [Fintype F] [DecidableEq F] (q q' : Message F d)
     (hne : q ≠ q') :
-    (Finset.univ.filter fun x ↦ evaluate d q x = evaluate d q' x).card ≤ d := by
-  let p : Polynomial F := ∑ i : Fin (d + 1), Polynomial.monomial (i : ℕ) (q[i] - q'[i])
-  have hcoeff : ∀ i : Fin (d + 1), p.coeff i = q[i] - q'[i] := fun i ↦ by
-    simp only [p, Polynomial.finsetSum_coeff, Polynomial.coeff_monomial]
-    rw [Finset.sum_eq_single i]
-    · simp
-    · intro j _ hji
-      rw [ite_eq_right fun h ↦ hji (Fin.ext h)]
-    · intro h
-      exact absurd (Finset.mem_univ _) h
-  have hp0 : p ≠ 0 := by
-    intro hp
-    apply hne
-    ext i hi
-    have := hcoeff ⟨i, hi⟩
-    rw [hp, Polynomial.coeff_zero] at this
-    exact (sub_eq_zero.mp this.symm)
-  have hdeg : p.natDegree ≤ d := by
-    refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun i _ ↦ ?_
-    exact (Polynomial.natDegree_monomial_le _).trans (Nat.le_of_lt_succ i.isLt)
-  have heval : ∀ x : F, p.eval x = evaluate d q x - evaluate d q' x := fun x ↦ by
-    simp only [p, Polynomial.eval_finsetSum, Polynomial.eval_monomial, evaluate,
-      ← Finset.sum_sub_distrib, sub_mul]
-  refine (Polynomial.card_le_degree_of_subset_roots (p := p) ?_).trans hdeg
-  intro x hx
-  rw [Finset.mem_val, Finset.mem_filter] at hx
-  rw [Polynomial.mem_roots hp0, Polynomial.IsRoot, heval, hx.2, sub_self]
+    (Finset.univ.filter fun x ↦ evaluate d q x = evaluate d q' x).card ≤ d :=
+  card_false_batch_le (J := d + 1) (fun i ↦ q[i]) (fun i ↦ q'[i])
+    (not_forall.mp fun h ↦ hne (Vector.ext fun i hi ↦ h ⟨i, hi⟩))
 
 /-! ## The round -/
 
@@ -306,11 +288,11 @@ theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consisten
     (hj : j < m) (p : MidStmt X F j d) (o : ∀ i, O i) (hc : check j Φ.weight p.1 p.2 = true) :
     Nat.card {x // Component.badChallenge O F (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
       (relIn := relMid Φ j) (relOut := rel Φ (j + 1)) p o x} ≤ d := by
-  have := Fintype.ofFinite F
-  classical
-  rw [natCard_subtype_eq_card_filter]
   by_cases hW : Nonempty W
   · obtain ⟨w⟩ := hW
+    have := Fintype.ofFinite F
+    classical
+    rw [natCard_subtype_eq_card_filter]
     obtain ⟨s, q⟩ := p
     have hbad : ∀ x, Component.badChallenge O F (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
         (relIn := relMid Φ j) (relOut := rel Φ (j + 1)) (s, q) o x ↔
@@ -336,22 +318,15 @@ theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consisten
         rw [← H.check ((s.1, o), w) j s.2.1 hj, ← hqh]
         exact hc.symm
       · -- Another polynomial: bad challenges are where it agrees with the honest one.
-        refine (Finset.card_le_card fun x hx ↦ ?_).trans
+        refine (Finset.card_le_card (Finset.monotone_filter_right _ fun x _ hx ↦ ?_)).trans
           (card_filter_evaluate_eq_le q (Φ.poly ((s.1, o), w) j s.2.1) hqh)
-        rw [Finset.mem_filter] at hx ⊢
-        refine ⟨Finset.mem_univ _, ?_⟩
-        have hnext : evaluate d q x = Φ.claim ((s.1, o), w) (j + 1) (s.2.1.push x) := hx.2.2.2
+        have hnext : evaluate d q x = Φ.claim ((s.1, o), w) (j + 1) (s.2.1.push x) := hx.2.2
         rw [hnext, H.next ((s.1, o), w) j s.2.1 x hj]
     · -- The invariant fails: a bad challenge restores it.
-      refine (Finset.card_le_card fun x hx ↦ ?_).trans
-        ((natCard_subtype_eq_card_filter _).symm.trans_le
-          (S ((s.1, o), w) j s.2.1 hj hinv))
-      rw [Finset.mem_filter] at hx ⊢
-      exact ⟨Finset.mem_univ _, hx.2.2.1⟩
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le d)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    rintro x _ ⟨w, -⟩
-    exact hW ⟨w⟩
+      exact (Finset.card_le_card (Finset.monotone_filter_right _ fun _ _ hx ↦ hx.2.1)).trans
+        ((natCard_subtype_eq_card_filter _).symm.trans_le (S ((s.1, o), w) j s.2.1 hj hinv))
+  · rw [natCard_subtype_eq_zero fun _ ⟨w, _⟩ ↦ hW ⟨w⟩]
+    exact Nat.zero_le d
 
 /-- The security half of the challenge, at `d / |F|`. -/
 def drawChallengeSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
@@ -382,7 +357,7 @@ theorem drawChallenge_unchecked_not_rbr (Φ : Family F X O W d) {m : ℕ} (H : �
       (Component.sampleVerifier O F (fun _ ↦ true)
         (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ j) (rel Φ (j + 1))
+    (h : Verifier.rbrKnowledgeSoundnessWith init impl (relMid Φ j) (rel Φ (j + 1))
       (Component.sampleVerifier O F (fun _ ↦ true)
         (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier
       WitMid E kSF ε)
@@ -430,10 +405,6 @@ def roundsSecurity (Φ : Family F X O W d) (m : ℕ) (H : Φ.Consistent m) (S : 
         have hjm : j = m := by omega
         subst hjm
         simpa only [Vector.cast_rfl] using hout)
-      (fun s o w hin ↦ by
-        have hjm : j = m := by omega
-        subst hjm
-        simpa only [Vector.cast_rfl] using hin)
   | i + 1, j, h =>
     (roundSecurity j Φ H S (by omega)).append (roundsSecurity Φ m H S i (j + 1) (by omega))
 

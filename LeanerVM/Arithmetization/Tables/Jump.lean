@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Arithmetization.Tables.Basic
 public import Clean.Circuit.Formal
+public import Clean.Circuit.Foundations
 public import Clean.Utils.Tactics.CircuitProofStart
 public import Mathlib.Algebra.CharP.Two
 
@@ -19,7 +20,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `JUMP` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:688-712` (`mod jump`, in that order), the two identities
 `tables.rs:70-74` (`jump_identity`), the flushes `tables.rs:731-751` (`JumpTable::flushes`),
 matching specification §7.5 (`doc/leanvm/body/07-instruction-tables.tex:94-112`).
@@ -60,18 +61,15 @@ row; soundness reads `b` off the residuals (`flags_sound`), and leaves the bytec
 guarantee unused, the tuple `main` emits being `JUMP o_c o_d o_f`'s entry by construction
 (Layer 4's `decode_entry`, in completeness).
 
-**The witness discipline.** `jump_env_iff` says exactly which prover environments use the two
-local witnesses: slot `offset` is the honest inverse and slot `offset + 1` the honest
-indicator of the row's condition. `jumpEnv data r` is that environment for a row over its
-data, in which `jump_exec_complete` pushes the row of any valid execution through
-`completeness`. Clean's array generator `Circuit.witgen` computes the same two values (the
-tests run it), but its environment carries no data, so the data-carrying environment is
-`jumpEnv`, whose witness discipline is the theorem.
+**The honest environment.** `jump_exec_complete` pushes the row of any valid execution through
+`completeness` in Clean's honest prover environment over the data
+(`FormalCircuitBase.proverEnvironment`): the row in the first cells, the two local witnesses
+after it as the witness programs compute them.
 
 **Rows from executions.** `jumpRowOf mem pc fp o_c o_d o_f r_c r_d r_f r_bc` reads the three
 low limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_refines` proves it refines the
-relation, and `jump_exec_complete` its acceptance by `main` in `jumpEnv`, witnesses included,
-from the execution alone.
+relation, and `jump_exec_complete` its acceptance by `main` in the honest environment,
+witnesses included, from the execution alone.
 
 ## Wrong readings excluded
 
@@ -246,39 +244,6 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     exact ⟨(flags_complete _).1, (flags_complete _).2, ⟨_, decode_entry (.jump _ _ _)⟩,
       hc, hd, hf⟩
 
-/-! ## The witness discipline -/
-
-/-- A witness program's conditional on a decided field equality is the conditional on the
-equality of the evaluations. Applied before `circuit_norm` descends into the `decide` (the `↓`
-below): rewriting underneath a `decide` leaves its `Decidable` instance behind, an ill-typed
-term no later rewrite can touch (status finding E7). -/
-private theorem ite_feq {α : Type} (ctx : Witgen.Ctx K) (x y : Witgen.FExpr K) (a b : α) :
-    (if (Witgen.BExpr.feq x y).eval ctx = true then a else b) =
-      if x.eval ctx = y.eval ctx then a else b := by
-  simp only [Witgen.BExpr.eval_feq_iff]
-
-/-- A prover environment uses the two local witnesses of a `JUMP` row exactly when slot
-`offset` is the honest inverse and slot `offset + 1` the honest indicator of the condition. -/
-theorem jump_env_iff (env : ProverEnvironment K) (offset : ℕ) (r : Var JumpRow K) :
-    env.UsesLocalWitnessesCompleteness offset ((jumpTable.main r).operations offset) ↔
-      env.get offset = (if (eval env r).vcond = 0 then 0 else (eval env r).vcond⁻¹) ∧
-        env.get (offset + 1) = (if (eval env r).vcond = 0 then 0 else 1) := by
-  -- As `circuit_proof_start` does: the row destructured into its columns, the table unfolded
-  -- by `dsimp` (unfolding it by `simp` exhausts the recursion depth), then `circuit_norm`,
-  -- with `ite_feq` reading the witness programs' `Bool` conditions back as propositions before
-  -- the descent (E7).
-  obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := r
-  dsimp only [jumpTable]
-  simp only [↓ite_feq, circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
-  -- The two sides differ only in the instance paths of `K`'s field structure.
-  exact Iff.rfl
-
-/-- The honest prover environment of a `JUMP` row over `data`: slot `0` the inverse `w`, slot
-`1` the indicator `b`, as the two witness programs compute them; the data; no hints. -/
-def jumpEnv (data : ProverData K) (r : JumpRow K) : ProverEnvironment K :=
-  ⟨⟨fun j ↦ if j = 0 then (if r.vcond = 0 then 0 else r.vcond⁻¹)
-      else if j = 1 then (if r.vcond = 0 then 0 else 1) else 0, data⟩, default⟩
-
 /-! ## Rows from executions -/
 
 /-- The row of an execution of `JUMP o_c o_d o_f` from `(pc, fp)` over the image `mem`: the
@@ -297,7 +262,7 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {n
   have h := hexec
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨c, hc, d, hd, f, hf, u, hu, -⟩ := h
-  obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
+  obtain ⟨hcK, hdK, hfK⟩ := (Option.guard_eq_some' _).mp hu
   refine ⟨⟨?_, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
@@ -307,16 +272,17 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {n
     rw [MemImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
 /-- Every valid `JUMP` execution has a satisfying row, witnesses included, from the execution
-alone: the constraints of `main` hold of `jumpRowOf` in its honest environment over the data. -/
+alone: the constraints of `main` hold of `jumpRowOf` in Clean's honest prover environment over
+the data. -/
 theorem jump_exec_complete {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K) :
-    ConstraintsHold.Completeness
-      (jumpEnv data (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc))
-      ((jumpTable.main
-        (const (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc))).operations 0) :=
-  (jumpTable.completeness 0 (jumpEnv data _) (const _)
-    -- `jumpEnv` holds the honest inverse and indicator of the row's condition (`jump_env_iff`).
-    (by rw [jump_env_iff, ProvableType.eval_const_prover]; exact ⟨rfl, rfl⟩) _
-    ProvableType.eval_const_prover ⟨_, jumpRowOf_refines hexec rc rd rf rbc⟩).1
+    Operations.ConstraintsHold
+      (jumpTable.proverEnvironment (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc) data
+        default)
+      ((jumpTable.main (varFromOffset JumpRow 0)).operations (size JumpRow)) := by
+  refine (jumpTable.constraintsHold_of_usesLocalWitnesses _ _ _
+    (jumpTable.proverEnvironment_usesLocalWitnesses ..) ?_).1
+  rw [jumpTable.eval_proverEnvironment]
+  exact ⟨_, jumpRowOf_refines hexec rc rd rf rbc⟩
 
 end LeanerVM.Arithmetization

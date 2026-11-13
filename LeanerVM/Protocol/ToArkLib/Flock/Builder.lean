@@ -69,7 +69,7 @@ def mul {α : Type} (L : Lin m α) (a b : α) : BuilderOf m α α :=
     (L.var (pos s.next), { next := s.next + 1, gates := s.gates.push (pos s.next, ⟨a, b⟩) })
 
 /-- One `mul`: the gate at `next`, and `next` advanced. -/
-theorem run_mul {α : Type} (L : Lin m α) (a b : α) (σ : BuildStateOf m α) :
+private theorem run_mul {α : Type} (L : Lin m α) (a b : α) (σ : BuildStateOf m α) :
     (mul L a b).run σ =
       (L.var (pos σ.next), { next := σ.next + 1, gates := σ.gates.push (pos σ.next, ⟨a, b⟩) }) :=
   rfl
@@ -142,12 +142,6 @@ theorem grows_bind {α β : Type} {mb : Builder m α} {f : α → Builder m β} 
 
 theorem grows_pure {α : Type} (a : α) : Grows (pure a : Builder m α) := fun _ _ h ↦ h
 
-theorem grows_map {α β : Type} {mb : Builder m α} (f : α → β) (hm : Grows mb) :
-    Grows (f <$> mb) := fun σ kg h ↦ by rw [run_map']; exact hm σ kg h
-
-theorem grows_mul (a b : Form m) : Grows (mul (formLin m) a b) := fun σ kg h ↦ by
-  rw [run_mul]; exact Array.mem_push_of_mem _ h
-
 theorem sound_bind {α β : Type} {w : Pos m → Bool} {mb : Builder m α} {f : α → Builder m β}
     {P : α → Prop} {Q : β → Prop} (hm : Sound w mb P) (hg : ∀ a, Grows (f a))
     (hf : ∀ a, P a → Sound w (f a) Q) : Sound w (mb >>= f) Q := by
@@ -157,19 +151,6 @@ theorem sound_bind {α β : Type} {w : Pos m → Bool} {mb : Builder m α} {f : 
 
 theorem sound_pure {α : Type} {w : Pos m → Bool} {a : α} {P : α → Prop} (h : P a) :
     Sound w (pure a : Builder m α) P := fun _ _ ↦ h
-
-theorem sound_map {α β : Type} {w : Pos m → Bool} {mb : Builder m α} {f : α → β}
-    {P : α → Prop} {Q : β → Prop} (hm : Sound w mb P) (hf : ∀ a, P a → Q (f a)) :
-    Sound w (f <$> mb) Q := fun σ h ↦ by
-  rw [run_map'] at h ⊢
-  exact hf _ (hm σ h)
-
-/-- The gate `mul` records holds: its result evaluates to the product of its forms. -/
-theorem sound_mul {w : Pos m → Bool} (a b : Form m) :
-    Sound w (mul (formLin m) a b) (fun o ↦ o.eval w = (a.eval w && b.eval w)) := fun σ h ↦ by
-  rw [run_mul] at h ⊢
-  rw [eval_var]
-  exact h _ (Array.mem_push_self ..)
 
 /-! ## Well-formedness -/
 
@@ -234,7 +215,8 @@ theorem subN_zero (n : ℕ) : S.SubN 0 n := by
   intro j hj
   simp at hj
 
-theorem subN_var {k : Pos m} {n : ℕ} (h : S.AvailAt n k = true) : S.SubN (Form.var k) n := by
+private theorem subN_var {k : Pos m} {n : ℕ} (h : S.AvailAt n k = true) : S.SubN
+    (Form.var k) n := by
   intro j hj
   rw [getLsbD_var, decide_eq_true_eq] at hj
   rwa [← hj]
@@ -318,10 +300,6 @@ theorem ok_mul {n₀ : ℕ} {a b : Form m} (ha : S.SubN a n₀) (hb : S.SubN b n
   have := hσ.le
   dsimp only
   omega
-
-/-- The schedule of a good state is bounded from the start availability. -/
-theorem Inv.boundedFrom {σ : BuildState m} (h : S.Inv σ) : BoundedFrom S.avail σ.gates.toList :=
-  h.bounded
 
 /-- A circuit whose gates are those of a run from `base`, for a program with the contract, and
 whose inputs and constant are the start availability, is bounded. -/

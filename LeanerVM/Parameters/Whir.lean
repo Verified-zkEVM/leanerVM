@@ -77,10 +77,6 @@ def residualMaxLog : ℕ := 5
 `whir_config.rs:60`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- The round-by-round security target the query counts were derived for, in bits
-(`SECURITY_BITS`, `whir_config.rs:38`). -/
-def securityBits : ℕ := 128
-
 /-- The smallest stack the PCS commits: `MIN_MU` (`pcs.rs:49`; `MIN_STACKED_LOG`,
 `verifier.py:907`). A smaller witness is padded up to it. -/
 def minLogStack : ℕ := 15

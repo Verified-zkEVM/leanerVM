@@ -21,7 +21,7 @@ rounds from the combined claim, checks the descendants against the rounds' final
 (`Gkr.combineCheck`) and moves to the point of the combination challenges and the rounds'
 challenges, each tree's descendants interpolated there (`Gkr.interpDone`):
 `Gkr.run_layerStepFront`. The combination challenges alone are `Gkr.run_interpolateFront`.
-`Gkr.eq_stepTr` splits a layer's transcript into its four parts.
+`Gkr.eq_stepTr` and `Gkr.exists_eq_stepTr` split a layer's transcript into its four parts.
 -/
 
 namespace LeanerVM.Protocol
@@ -43,6 +43,17 @@ theorem eq_stepTr (t : (stepSpec F nside ρ m).FullTranscript) :
   rw [← eq_chalTr, ← eq_msgTr, FullTranscript.append_fst_snd, FullTranscript.append_fst_snd,
     FullTranscript.append_fst_snd]
 
+/-- A transcript of a layer is a combiner, rounds, descendants and a vector of combination
+challenges. -/
+theorem exists_eq_stepTr (t : (stepSpec F nside ρ m).FullTranscript) :
+    ∃ (lam : F) (R : (roundsSpec F (2 ^ ρ) m).FullTranscript) (ch : Fin nside → Vector F (2 ^ ρ))
+      (u : Vector F ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
+  obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
+  refine ⟨t.fst.fst.fst 0, t.fst.fst.snd, t.fst.snd 0, Vector.ofFn f, ?_⟩
+  conv_lhs => rw [eq_stepTr t]
+  rw [hf]
+  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
+
 /-- The transcript of `k + 1` layers of radix four: the first layer's, then the rest. -/
 def stepsCons {k : ℕ} (t : (stepSpec F nside 2 m).FullTranscript)
     (t' : (stepsSpec F nside k (m + 2)).FullTranscript) :
@@ -62,7 +73,7 @@ variable {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableT
 
 omit [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] in
 /-- The first `i` combination challenges append themselves to the statement. -/
-theorem run_interpPrefixFront (ρ m : ℕ) :
+private theorem run_interpPrefixFront (ρ m : ℕ) :
     ∀ (i : ℕ) (s : InterpStmt X F nside m ρ 0) (f : Fin i → F),
       (interpPrefixFront (F := F) (X := X) (O := O) nside ρ m i).run s (chalsTr i f) =
         some (s.1, Vector.ofFn f)
@@ -115,12 +126,9 @@ theorem run_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → LayerStmt X F ns
           (Nat.zero_add m)).run ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R).bind
         fun st ↦ if combineCheck nside ρ m st ch then
           some (interpDone nside ρ m ((st.1.1.1, (st.2.1, ch)), u)) else none := by
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
+  iterate 3
+    erw [Component.Front.run_append]
+    simp only [FullTranscript.append_fst, FullTranscript.append_snd]
   change (((some ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam))).bind fun s₁ ↦
       (SumcheckRound.roundsFront (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
         (Nat.zero_add m)).run s₁ R).bind fun st ↦
@@ -156,18 +164,15 @@ theorem run_gkrFront (s : X × (Fin nside → F)) (t₁ : (oddSpec F nside (μ %
       ((oddFront nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).run s
         t₁).bind fun ℓ ↦
         (layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2)).run ℓ t₂ := by
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
-  erw [Component.Front.run_append]
-  simp only [FullTranscript.append_fst, FullTranscript.append_snd]
+  iterate 2
+    erw [Component.Front.run_append]
+    simp only [FullTranscript.append_fst, FullTranscript.append_snd]
   rcases (oddFront nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).run s t₁
     with _ | ℓ
   · rfl
   · simp only [Option.bind_some]
     rcases (layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2)).run ℓ t₂
-      with _ | ℓ'
-    · rfl
-    · rfl
+      with _ | ℓ' <;> rfl
 
 end Gkr
 

@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Semantics.Instruction
+import Mathlib.Data.Fin.Tuple.Reflection
 
 /-!
 # The bytecode encoding
@@ -119,45 +120,33 @@ def decode (v : Vector K 8) : Option Instr :=
   | some .blake2s => some (.blake2s ![v[1], v[2], v[3], v[4]] v[5] v[6] v[7])
   | none => none
 
-/-! ## Proof helpers -/
-
-/-- A four-vector is its four entries. -/
-private theorem vecCons_apply (om : Fin 4 → K) : ![om 0, om 1, om 2, om 3] = om := by
-  funext i
-  fin_cases i <;> rfl
-
 /-! ## Load-bearing lemmas -/
 
 /-- The flags of a mode decode to that mode. -/
-theorem derefMode?_flags (m : DerefMode) :
+private theorem derefMode?_flags (m : DerefMode) :
     derefMode? (derefFlags m).1 (derefFlags m).2 = some m := by
   cases m <;> simp [derefMode?, derefFlags]
 
 /-- A flag pair decodes to a mode exactly when it is that mode's flags. -/
-theorem derefMode?_eq_some_iff {fpc ffp : K} {m : DerefMode} :
-    derefMode? fpc ffp = some m ↔ (fpc, ffp) = derefFlags m := by
-  constructor
-  · intro h
+private theorem derefMode?_eq_some_iff {fpc ffp : K} {m : DerefMode} :
+    derefMode? fpc ffp = some m ↔ (fpc, ffp) = derefFlags m :=
+  ⟨fun h ↦ by
     unfold derefMode? at h
-    have hm := List.find?_some h
-    exact (of_decide_eq_true hm).symm
-  · intro h
-    obtain ⟨rfl, rfl⟩ := Prod.ext_iff.mp h
-    exact derefMode?_flags m
+    exact (of_decide_eq_true (List.find?_some h :)).symm,
+    fun h ↦ by
+      obtain ⟨rfl, rfl⟩ := Prod.ext_iff.mp h
+      exact derefMode?_flags m⟩
 
 /-- The code of an opcode decodes to that opcode. -/
-theorem opcode?_code (o : Opcode) : opcode? o.code = some o := by
+private theorem opcode?_code (o : Opcode) : opcode? o.code = some o := by
   cases o <;> simp [opcode?, Opcode.code_injective.eq_iff]
 
 /-- A word decodes to an opcode exactly when it is that opcode's code. -/
-theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.code := by
-  constructor
-  · intro h
+private theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.code :=
+  ⟨fun h ↦ by
     unfold opcode? at h
-    have hm := List.find?_some h
-    exact (of_decide_eq_true hm).symm
-  · rintro rfl
-    exact opcode?_code o
+    exact (of_decide_eq_true (List.find?_some h :)).symm,
+    fun h ↦ h ▸ opcode?_code o⟩
 
 /-- Slot 3 is the opcode. -/
 theorem entry_getElem_zero (i : Instr) : (entry i)[0] = i.opcode.code := by
@@ -167,7 +156,7 @@ theorem entry_getElem_zero (i : Instr) : (entry i)[0] = i.opcode.code := by
 theorem decode_entry (i : Instr) : decode (entry i) = some i := by
   cases i with
   | blake2s om ocv oout omd =>
-    have h := vecCons_apply om
+    have h : ![om 0, om 1, om 2, om 3] = om := FinVec.etaExpand_eq om
     simp [decode, entry, opcode?_code, h]
   | _ => simp [decode, entry, opcode?_code, derefMode?_flags, ofLimbs_limb]
 
@@ -228,11 +217,8 @@ theorem decode_deref_eq_some_iff {o1 o2 o3 fpc ffp : K} {i : Instr} :
     rw [derefMode?_eq_some_iff.mpr hf]
 
 /-- Distinct instructions have distinct entries. -/
-theorem entry_injective : Function.Injective entry := by
-  intro i j h
-  have hi := decode_entry i
-  rw [h, decode_entry] at hi
-  exact (Option.some.inj hi).symm
+theorem entry_injective : Function.Injective entry := fun i j h ↦
+  Option.some.inj <| (decode_entry i).symm.trans <| (congrArg decode h).trans (decode_entry j)
 
 /-- The sixteen slots: the entry at slots 3–10, zero elsewhere (specification §8.1). -/
 theorem encodeSlots_getElem (i : Instr) (j : ℕ) (hj : j < 16) :

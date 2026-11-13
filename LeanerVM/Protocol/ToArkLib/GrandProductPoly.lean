@@ -99,7 +99,7 @@ theorem map_tupleMultiset_injective {R S : Type*} [Semiring R] [Semiring S]
     (Vector.map_inj_right fun _ _ h ↦ hφ h).mp h
 
 /-- Every tuple contributes at most `max 1 n` to the joint total degree. -/
-theorem totalDegree_grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
+private theorem totalDegree_grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
     (grandProductPoly M).totalDegree ≤ max 1 n * M.card := by
   refine (MvPolynomial.totalDegree_multiset_prod _).trans ?_
   simp only [Multiset.map_map, Function.comp_def]

@@ -8,7 +8,6 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryCheck
 
 /-!
@@ -100,15 +99,10 @@ def mapOraclesComplete {relIn : Set ((StmtIn × ∀ i, O i) × W)}
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, M.map o), g w) ∈ relOut) :
     Complete (mapOracles O O' f g M) relIn relOut where
   guarded := (mapOraclesPure O O' f M).toGuardedForm
-  complete := fun init impl ↦ by
-    apply Reduction.perfectCompleteness_of_run_support
-    intro stmtIn witIn hIn x hx
-    obtain ⟨s, o⟩ := stmtIn
-    have hrun : ((mapOracles O O' f g M).red.toReduction.run (s, o) witIn).run =
-        pure (some (((show (!p[] : ProtocolSpec 0).FullTranscript from
-          fun i ↦ Fin.elim0 i), (f s, M.map o), g witIn), (f s, M.map o))) := rfl
-    rw [hrun, support_pure, Set.mem_singleton_iff] at hx
-    exact ⟨_, hx, h s o witIn hIn, rfl⟩
+  complete := fun _ _ ↦ Reduction.perfectCompleteness_of_guarded_prover_support _
+    (mapOraclesPure O O' f M).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ by
+      obtain rfl := (mem_support_pure_iff _ _).mp hq
+      exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-! ## Security -/
 
@@ -122,13 +116,13 @@ variable (back : W' → W) {relIn : Set ((StmtIn × ∀ i, O i) × W)}
 /-- The knowledge state function: the input relation, at the witness that `back` extracts. -/
 def mapOraclesStateFunction :
     (mapOraclesVerifier O O' f M).toVerifier.KnowledgeStateFunction init impl relIn relOut
-      (backExtractor back (StmtIn × ∀ i, O i) !p[]) where
+      (ReduceClaim.extractor fun _ ↦ back) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w' hpos ↦
-    h stmt.1 stmt.2 w' (Verifier.GuardedForm.of_probEvent_pos
-      (mapOraclesPure O O' f M).toGuardedForm init impl stmt tr _ hpos).2
+  toFun_full := fun stmt _ w' hpos ↦
+    h stmt.1 stmt.2 w' (Verifier.GuardedForm.check_and_of_prEvent_pos
+      (mapOraclesPure O O' f M).toGuardedForm hpos).2
 
 /-- The security half, at the empty error, with the extractor that sends the output witness back
 by `back`. -/
@@ -136,7 +130,7 @@ def mapOraclesSecurity :
     Security (mapOracles O O' f g M) relIn relOut (fun i ↦ Fin.elim0 i.1) where
   guarded := (mapOraclesPure O O' f M).toGuardedForm
   witMid := fun _ ↦ W
-  extractor := backExtractor back (StmtIn × ∀ i, O i) !p[]
+  extractor := ReduceClaim.extractor fun _ ↦ back
   kSF := mapOraclesStateFunction O O' f M back h
   rbr := fun _ _ _ i ↦ Fin.elim0 i.1
 

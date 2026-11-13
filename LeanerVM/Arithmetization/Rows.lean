@@ -20,7 +20,7 @@ functions of the row's typed input `valueFromOffset Row 0 (t.environment row)`, 
 cell `0`. The rows are arbitrary, honest or not, and nothing about the constraints is assumed.
 Category A: facts about this repository's circuits, which transcribe leanVM at pin
 `a386121f84292f6fa663aaa3e570c15bc0240ea2` (specification §5.1 "The bus", §6, §7;
-`crates/lean_vm/src/tables.rs`, `cpu/layout.rs:352-395`), over Clean `ce2eee63`.
+`crates/lean_vm/src/tables.rs`, `cpu/layout.rs:352-395`), over Clean `6a2e7bb9`.
 
 **Opcode rows.** A row of each of the six opcode tables sends an `OpcodeSends`: it pulls its
 state `pull`, pushes `push`, reads its bytecode tuple `bc`, and reads the memory tuples `mem`.
@@ -193,7 +193,7 @@ def blake2sSends (r : Blake2sRow K) : OpcodeSends where
 def verifierMessagesOn {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (c : RawChannel K) (d : BusDir) : List (Array K) :=
   activeMessages (((leanIsaEnsemble prog κ).verifierOperations.interactionValues
-    (.fromInput w.publicInput w.data)).filter (·.channel.name = c.name)) d
+    w.data.publicEnvironment).filter (·.channel.name = c.name)) d
 
 /-! ## Proof helpers -/
 

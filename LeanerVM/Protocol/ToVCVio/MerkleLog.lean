@@ -59,7 +59,8 @@ log under a root are those read off `logA`, so no leaf joins a root once the roo
 namespace LeanerVM.Protocol.MerkleTree
 
 open MerkleTreeExtractor (QueryLog)
-open LeanerVM.Protocol.QueryLog (Consistent HasCollision Fresh)
+open LeanerVM.Protocol.QueryLog (HasCollision Fresh)
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 
@@ -117,18 +118,6 @@ theorem Known.mono {d : D} (hroots : roots ⊆ roots') (hlog : log ⊆ log') :
     Known node? roots log d → Known node? roots' log' d
   | .inl h => .inl (hroots h)
   | .inr ⟨e, he, hc⟩ => .inr ⟨e, hlog he, hc⟩
-
-omit [DecidableEq Q] [DecidableEq D] in
-/-- A fresh hit stays one in a larger `logV`. -/
-theorem FreshHit.mono_logV (h : logV ⊆ logV') :
-    FreshHit node? roots logA logV → FreshHit node? roots logA logV' :=
-  fun ⟨e, he, hf, hk⟩ ↦ ⟨e, h he, hf, hk⟩
-
-omit [DecidableEq Q] [DecidableEq D] in
-/-- A fresh hit stays one with more roots. -/
-theorem FreshHit.mono_roots (h : roots ⊆ roots') :
-    FreshHit node? roots logA logV → FreshHit node? roots' logA logV :=
-  fun ⟨e, he, hf, hk⟩ ↦ ⟨e, he, hf, hk.mono h (List.Subset.refl _)⟩
 
 omit [DecidableEq D] in
 /-- In a consistent log, a fresh hit is a hit at the first occurrence of its input: that query
@@ -207,7 +196,7 @@ def extractLeaf (node? : Q → Option (D × D)) (leaf? : Q → Option P) (log : 
   (extractTree node? log root depth p).bind (leafPreimage leaf? log)
 
 /-- A tree read off two logs whose node preimages agree is the same. -/
-theorem extractTree_congr {node? : Q → Option (D × D)} {log log' : QueryLog Q D}
+private theorem extractTree_congr {node? : Q → Option (D × D)} {log log' : QueryLog Q D}
     (h : ∀ d, nodePreimage node? log' d = nodePreimage node? log d) :
     ∀ (top : D) (k p : ℕ), extractTree node? log' top k p = extractTree node? log top k p
   | _, 0, _ => rfl
@@ -273,7 +262,7 @@ private theorem getElem?_foldl_indexStep {R : Type} (parse : Q → Option R) (d 
       · simp [he]
 
 /-- The index maps an answer to the parse of the first logged query it answers that parses. -/
-theorem getElem?_parseIndex {R : Type} (parse : Q → Option R) (log : QueryLog Q D) (d : D) :
+private theorem getElem?_parseIndex {R : Type} (parse : Q → Option R) (log : QueryLog Q D) (d : D) :
     (parseIndex parse log)[d]? = log.findSome? fun e ↦ if e.2 = d then parse e.1 else none := by
   simp [parseIndex, getElem?_foldl_indexStep]
 
@@ -481,7 +470,7 @@ private theorem mem_logA (hcons : Consistent (logA ++ logV))
   · exact absurd ⟨e, h, hf, hk⟩ hhit
   simp only [Fresh, not_forall, not_not] at hf
   obtain ⟨e', he', h1⟩ := hf
-  exact Sigma.ext h1 (heq_of_eq (hcons _ (List.mem_append_left _ he') _ he h1)) ▸ he'
+  exact hcons _ (List.mem_append_left _ he') _ he h1 ▸ he'
 
 /-- A child of a query of `logA` that parses as a node is known. -/
 private theorem known_child {e : (_ : Q) × D} (he : e ∈ logA) {l r : D}

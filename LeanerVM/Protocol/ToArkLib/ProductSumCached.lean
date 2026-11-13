@@ -41,7 +41,7 @@ def lowCache (T : CMlPolynomialEval F n) (j : ℕ) (c : Vector F j) :
   else Vector.replicate _ 0
 
 /-- The bound table, read at round `j`, is the table `roundPolyFolded` binds. -/
-theorem cast_lowCache (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c : Vector F j) :
+private theorem cast_lowCache (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c : Vector F j) :
     Vector.cast (congrArg (2 ^ ·) (by omega)) (lowCache T j c) = boundLow T hj c := by
   rw [lowCache, dite_eq_left hj.le, bindLows_cast (by omega), Vector.cast_cast]
   rfl
@@ -81,13 +81,6 @@ theorem stepLow_lowCache (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c :
   rw [stepLow, dite_eq_left hj, lowCache, dite_eq_left hj.le, lowCache,
     dite_eq_left (Nat.succ_le_of_lt hj), bindLows_cast (by omega), bindLow_bindLows,
     Vector.cast_cast, Vector.cast_cast]
-
-/-- The bound table on every one of the first `j` coordinates, for `j ≤ n`, as a table on the
-others: at `j = n`, the one entry is the extension at the challenges. -/
-theorem lowCache_eq_foldBind (T : CMlPolynomialEval F n) {j : ℕ} (hj : j ≤ n) (c : Vector F j) :
-    lowCache T j c =
-      bindLows (k := n - j) (Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' hj).symm) T) c := by
-  rw [lowCache, dite_eq_left hj]
 
 variable {X : Type} {ι : Type} {O : ι → Type} {W : Type}
 

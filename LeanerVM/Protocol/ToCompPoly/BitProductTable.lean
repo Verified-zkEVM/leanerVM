@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+import Mathlib.Data.Nat.BitIndices
 
 /-!
 # Tables that factor over the index bits
@@ -52,15 +53,7 @@ theorem bitProductTable_getElem {n : ℕ} (f : Fin n → Bool → R) {i : ℕ} (
 `n · 2^n` (`LeanerVM.Protocol.ToCompPoly.Doubling`). -/
 @[csimp] theorem bitProductTable_eq_doublingTable : @bitProductTable = @doublingTable := by
   funext R _ n f
-  apply Vector.ext
-  intro i hi
-  rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
-
-theorem map_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R) :
-    CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) := by
-  apply Vector.ext
-  intro i hi
-  simp [CMlPolynomialEval.map, bitProductTable]
+  exact Vector.ext fun i hi ↦ by rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
 
 /-- The extension of a table that factors over the index bits factors over the coordinates. -/
 theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector R n) :
@@ -73,8 +66,7 @@ theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector
     have hstep : evalMleLayer (bitProductTable f) x.head =
         ((1 - x.head) * f 0 false + x.head * f 0 true) •
           bitProductTable (fun k ↦ f k.succ) := by
-      apply Vector.ext
-      intro j hj
+      refine Vector.ext fun j hj ↦ ?_
       rw [← Vector.get_eq_getElem _ ⟨j, hj⟩, evalMleLayer_get, Vector.getElem_smul]
       simp only [bitProductTable, Vector.get_ofFn, Vector.getElem_ofFn, smul_eq_mul]
       rw [Fin.prod_univ_succ, Fin.prod_univ_succ]
@@ -90,63 +82,41 @@ theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector
     congr 1
     exact Finset.prod_congr rfl fun k _ ↦ by simp [Nat.add_comm]
 
-/-- The extension at a point of another ring, after mapping the entries. -/
-theorem eval₂Mle_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R)
-    (x : Vector S n) :
-    eval₂Mle (bitProductTable f) φ x =
-      ∏ k : Fin n, ((1 - x[k]) * φ (f k false) + x[k] * φ (f k true)) := by
-  rw [eval₂Mle, map_bitProductTable, evalMle_bitProductTable]
-
 /-- The Lagrange basis factors over the index bits. -/
-theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
-    lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] := by
-  apply Vector.ext
-  intro i hi
-  rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
+private theorem lagrangeBasis_eq_bitProductTable {n : ℕ} (w : Vector R n) :
+    lagrangeBasis w = bitProductTable fun k b ↦ if b then w[k] else 1 - w[k] :=
+  Vector.ext fun i hi ↦ by rw [lagrangeBasis_getElem_nat w hi, bitProductTable_getElem _ hi]
+
+/-- The binary expansion of `i < 2 ^ n`: the powers of its bits sum to `i`. -/
+theorem sum_testBit_two_pow {n i : ℕ} (hi : i < 2 ^ n) :
+    ∑ k ∈ (Finset.range n).filter (i.testBit ·), 2 ^ k = i := by
+  have h : (Finset.range n).filter (i.testBit ·) = i.bitIndices.toFinset := by
+    ext k
+    simp only [Finset.mem_filter, Finset.mem_range, List.mem_toFinset, Nat.mem_bitIndices,
+      and_iff_right_iff_imp]
+    exact fun hk ↦
+      (Nat.pow_lt_pow_iff_right (by decide)).1 ((Nat.ge_two_pow_of_testBit hk).trans_lt hi)
+  rw [h, List.sum_toFinset _ Nat.bitIndices_nodup, Nat.sum_map_two_pow_bitIndices]
 
 /-- A power is the product of the repeated squares its exponent's bits select. -/
-theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
+theorem pow_eq_prod_testBit {M : Type*} [CommMonoid M] (a : M) {n i : ℕ} (hi : i < 2 ^ n) :
     a ^ i = ∏ k : Fin n, if i.testBit k then a ^ 2 ^ k.val else 1 := by
-  induction n generalizing a i with
-  | zero =>
-    have : i = 0 := by simpa using hi
-    simp [this]
-  | succ n ih =>
-    rw [Fin.prod_univ_succ]
-    have hdiv : i / 2 < 2 ^ n := by omega
-    have hrest : ∀ k : Fin n,
-        (if i.testBit (k.succ : Fin (n + 1)).val then a ^ 2 ^ (k.succ : Fin (n + 1)).val else 1) =
-          if (i / 2).testBit k then (a ^ 2) ^ 2 ^ k.val else 1 := fun k ↦ by
-      rw [Fin.val_succ, Nat.testBit_succ, ← pow_mul, ← pow_succ']
-    rw [Finset.prod_congr rfl fun k _ ↦ hrest k, ← ih (a ^ 2) hdiv, ← pow_mul]
-    have hi2 : i = i % 2 + 2 * (i / 2) := (Nat.mod_add_div i 2).symm
-    rcases Nat.mod_two_eq_zero_or_one i with h | h
-    · have hb : i.testBit 0 = false := by simp [Nat.testBit_zero, h]
-      simp only [Fin.val_zero, hb]
-      rw [h, zero_add] at hi2
-      simp only [Bool.false_eq_true, ↓reduceIte, one_mul]
-      conv_lhs => rw [hi2]
-    · have hb : i.testBit 0 = true := by simp [Nat.testBit_zero, h]
-      simp only [Fin.val_zero, hb, ite_true, pow_zero, pow_one]
-      rw [h] at hi2
-      conv_lhs => rw [hi2, pow_add, pow_one]
+  rw [Fin.prod_univ_eq_prod_range (fun k ↦ if i.testBit k then a ^ 2 ^ k else 1),
+    ← Finset.prod_filter, Finset.prod_pow_eq_pow_sum, sum_testBit_two_pow hi]
 
 /-- The geometric table: entry `i` is `a ^ i`. -/
 def powersTable (a : R) (n : ℕ) : CMlPolynomialEval R n :=
   Vector.ofFn fun i ↦ a ^ i.val
 
-theorem powersTable_eq_bitProductTable (a : R) (n : ℕ) :
+private theorem powersTable_eq_bitProductTable (a : R) (n : ℕ) :
     powersTable a n = bitProductTable fun k b ↦ if b then a ^ 2 ^ k.val else 1 := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [bitProductTable_getElem _ hi, ← pow_eq_prod_testBit a hi]
   simp [powersTable]
 
-theorem map_powersTable (φ : R →+* S) (a : R) (n : ℕ) :
-    CMlPolynomialEval.map φ (powersTable a n) = powersTable (φ a) n := by
-  apply Vector.ext
-  intro i hi
-  simp [CMlPolynomialEval.map, powersTable]
+private theorem map_powersTable (φ : R →+* S) (a : R) (n : ℕ) :
+    CMlPolynomialEval.map φ (powersTable a n) = powersTable (φ a) n :=
+  Vector.ext fun i hi ↦ by simp [CMlPolynomialEval.map, powersTable]
 
 /-- The extension of the geometric table is the product of its one-bit interpolants. -/
 theorem evalMle_powersTable (a : R) (n : ℕ) (x : Vector R n) :

@@ -10,6 +10,7 @@ module
 
 public import Mathlib.Data.Nat.Notation
 public import Mathlib.Data.List.Sigma
+public import VCVio.OracleComp.QueryTracking.QueryLogCheck
 import Mathlib.Data.List.Induction
 
 /-!
@@ -17,20 +18,15 @@ import Mathlib.Data.List.Induction
 
 A log is the list of a run's queries with their answers, in the order asked:
 `List ((_ : Q) × D)`, to which VCVio's `(Q →ₒ D).QueryLog` and `MerkleTreeExtractor.QueryLog Q D`
-both unfold. Every predicate here is decidable.
+both unfold. Every predicate here is decidable, and so is VCVio's `QueryLog.Consistent` (no input
+appears with two answers; the log is the trace of a function), which the lemmas below assume.
 
-* `Consistent`: no input appears with two answers; the log is the trace of a function.
 * `HasCollision`: two different inputs have one answer. On `(Q →ₒ D).QueryLog` it is equivalent
   to VCVio's `OracleComp.LogHasCollision`, stated by log positions with `HEq` answers over a
   dependent range; the form here, by entries over a plain range, needs no `OracleSpec`.
 * `Fresh log q`: the log never asks `q`.
 * `HasHit inPlay log`: some entry, at its input's first occurrence, is answered by a value in play
   before it, `inPlay` giving the values in play after each prefix of the log.
-
-`mem_take_of_inPlay` is what a hit buys: when `inPlay` only grows along the log, a consistent log
-with no hit asks every query whose answer is in play after `n` entries within those `n` entries;
-a value cannot be used before the query that produces it. `answer_not_mem_inPlay_nil`: no answer
-is in play before the first query.
 
 Mathlib's `List.dedupKeys log` keeps each input of a log at its first occurrence only: the fresh
 queries of a run against a lazy random oracle, in order. It applies to logs of a dependent
@@ -42,15 +38,34 @@ hit, being at a first occurrence, survives deduplication when the values in play
 (`hasHit_dedupKeys`).
 -/
 
+universe u v
+
+namespace OracleSpec.QueryLog
+
+@[expose] public section
+
+variable {ι : Type u} {spec : OracleSpec.{u, v} ι}
+
+instance [DecidableEq ι] [∀ t, DecidableEq (spec.Range t)] (log : QueryLog spec) :
+    Decidable log.Consistent := by
+  unfold Consistent; infer_instance
+
+/-- A consistent log's prefix is consistent. -/
+theorem Consistent.of_prefix {log log' : QueryLog spec} (hcons : log.Consistent)
+    (h : log' <+: log) : log'.Consistent :=
+  fun e₁ h₁ e₂ h₂ ↦ hcons e₁ (h.subset h₁) e₂ (h.subset h₂)
+
+end
+
+end OracleSpec.QueryLog
+
 namespace LeanerVM.Protocol.QueryLog
+
+open OracleSpec.QueryLog (Consistent)
 
 @[expose] public section
 
 variable {Q D : Type}
-
-/-- No input appears in the log with two answers: the log is the trace of a function. -/
-def Consistent (log : List ((_ : Q) × D)) : Prop :=
-  ∀ e₁ ∈ log, ∀ e₂ ∈ log, e₁.1 = e₂.1 → e₁.2 = e₂.2
 
 /-- A collision: two different inputs of the log with one answer. -/
 def HasCollision (log : List ((_ : Q) × D)) : Prop :=
@@ -67,9 +82,6 @@ def HasHit (inPlay : List ((_ : Q) × D) → List D) (log : List ((_ : Q) × D))
 section Decidable
 
 variable [DecidableEq Q] [DecidableEq D]
-
-instance (log : List ((_ : Q) × D)) : Decidable (Consistent log) := by
-  unfold Consistent; infer_instance
 
 instance (log : List ((_ : Q) × D)) : Decidable (HasCollision log) := by
   unfold HasCollision; infer_instance
@@ -91,11 +103,6 @@ theorem HasCollision.mono {log log' : List ((_ : Q) × D)} (h : HasCollision log
   let ⟨e₁, h₁, e₂, h₂, h⟩ := h
   ⟨e₁, hsub e₁ h₁, e₂, hsub e₂ h₂, h⟩
 
-/-- A query fresh with respect to a log is fresh with respect to any part of it. -/
-theorem Fresh.anti {log log' : List ((_ : Q) × D)} {q : Q} (h : log ⊆ log') :
-    Fresh log' q → Fresh log q :=
-  fun hf e he ↦ hf e (h he)
-
 variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
 
 /-- The first occurrence of a logged input: a position before which the log never asks it, and
@@ -104,30 +111,13 @@ theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈
     ∃ (p : ℕ) (hp : p < log.length), Fresh (log.take p) e.1 ∧ log[p] = e := by
   have hp := List.findIdx_lt_length_of_exists (p := fun x ↦ x.1 = e.1) ⟨e, he, by simp⟩
   have hq := of_decide_eq_true (List.findIdx_getElem (w := hp))
-  refine ⟨_, hp, fun x hx ↦ ?_, Sigma.ext hq (heq_of_eq (hcons _ (List.getElem_mem _) e he hq))⟩
+  refine ⟨_, hp, fun x hx ↦ ?_, hcons _ (List.getElem_mem _) e he hq⟩
   obtain ⟨j, hj, rfl⟩ := List.mem_take_iff_getElem.mp hx
   simpa using List.not_of_lt_findIdx (Nat.lt_min.mp hj).1
 
-/-- In a consistent log with no hit, a logged query whose answer is in play after `n` entries is
-asked within them, when `inPlay` grows along the log. -/
-theorem mem_take_of_inPlay (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
-    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log)
-    {n : ℕ} (hn : e.2 ∈ inPlay (log.take n)) : e ∈ log.take n := by
-  obtain ⟨p, hp, hfresh, rfl⟩ := first_occurrence hcons he
-  by_cases hpn : p < n
-  · exact List.mem_take_iff_getElem.mpr ⟨p, Nat.lt_min.mpr ⟨hpn, hp⟩, rfl⟩
-  · exact absurd ⟨⟨p, hp⟩, hfresh,
-      hmono _ _ (List.take_prefix_take_left (Nat.not_lt.mp hpn)) _ hn⟩ hhit
-
-/-- In a consistent log with no hit, no answer is in play before the first query. -/
-theorem answer_not_mem_inPlay_nil (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
-    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log) :
-    e.2 ∉ inPlay [] := fun h ↦
-  List.not_mem_nil (mem_take_of_inPlay hmono hcons hhit he (n := 0) h)
-
 omit [DecidableEq Q] in
 /-- A query is fresh exactly when it is not among the log's inputs. -/
-theorem fresh_iff_not_mem_keys {log : List ((_ : Q) × D)} {q : Q} :
+private theorem fresh_iff_not_mem_keys {log : List ((_ : Q) × D)} {q : Q} :
     Fresh log q ↔ q ∉ log.map (·.1) := by
   simp only [Fresh, List.mem_map, not_exists, not_and]
 
@@ -178,7 +168,7 @@ theorem dedupKeys_concat (l : List ((q : Q) × β q)) (e : (q : Q) × β q) :
           rfl
 
 /-- The deduplicated log is a sublist of the log. -/
-theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Sublist l := by
+private theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Sublist l := by
   induction l using List.reverseRecOn with
   | nil => simp
   | append_singleton l e ih =>
@@ -186,20 +176,6 @@ theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Subl
     split
     · exact ih.trans (List.sublist_append_left l [e])
     · exact ih.append (List.Sublist.refl [e])
-
-/-- Each input appears once in the deduplicated log. -/
-theorem nodup_keys_dedupKeys (l : List ((q : Q) × β q)) : ((List.dedupKeys l).map (·.1)).Nodup := by
-  induction l using List.reverseRecOn with
-  | nil => simp
-  | append_singleton l e ih =>
-    rw [dedupKeys_concat]
-    split
-    · exact ih
-    · rename_i h
-      rw [List.map_append, List.nodup_append]
-      refine ⟨ih, by simp, fun a ha b hb hab ↦ ?_⟩
-      obtain rfl : b = e.1 := by simpa using hb
-      exact h ((mem_keys_dedupKeys l _).mp (hab ▸ ha))
 
 /-- **Deduplicating an appended log**: the deduplicated first part, then the second part's first
 occurrences of inputs the first part does not ask. -/
@@ -219,7 +195,7 @@ theorem dedupKeys_cons (e : (q : Q) × β q) (l : List ((q : Q) × β q)) :
   simpa using dedupKeys_append [e] l
 
 /-- The deduplicated part of a log up to a point is a prefix of the deduplicated log. -/
-theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
+private theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
     List.dedupKeys (l.take i) <+: List.dedupKeys l := by
   have h := dedupKeys_append (l.take i) (l.drop i)
   rw [List.take_append_drop] at h
@@ -227,7 +203,7 @@ theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
   exact List.prefix_append _ _
 
 /-- The deduplicated part of a log up to a point is the deduplicated log cut at its length. -/
-theorem take_dedupKeys (l : List ((q : Q) × β q)) (i : ℕ) :
+private theorem take_dedupKeys (l : List ((q : Q) × β q)) (i : ℕ) :
     (List.dedupKeys l).take (List.dedupKeys (l.take i)).length = List.dedupKeys (l.take i) :=
   (List.prefix_iff_eq_take.mp (dedupKeys_take_prefix l i)).symm
 
@@ -237,29 +213,17 @@ section DedupConsistent
 
 variable {log : List ((_ : Q) × D)}
 
-omit [DecidableEq Q] in
-/-- An entry of a consistent log is the entry at its input's first logged occurrence. -/
-private theorem eq_of_consistent (hcons : Consistent log) {e x : (_ : Q) × D} (he : e ∈ log)
-    (hx : x ∈ log) (h : x.1 = e.1) : x = e :=
-  Sigma.ext h (heq_of_eq (hcons x hx e he h))
-
 /-- In a consistent log, every entry is kept by deduplication. -/
-theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
+private theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
     e ∈ List.dedupKeys log := by
   obtain ⟨x, hx, hxe⟩ := List.mem_map.mp
     ((mem_keys_dedupKeys log e.1).mpr (List.mem_map_of_mem (f := (·.1)) he))
-  rwa [eq_of_consistent hcons he ((dedupKeys_sublist log).subset hx) hxe] at hx
+  rwa [hcons _ ((dedupKeys_sublist log).subset hx) _ he hxe] at hx
 
 /-- A consistent log and its deduplication have the same entries. -/
 theorem mem_dedupKeys_iff (hcons : Consistent log) {e : (_ : Q) × D} :
     e ∈ List.dedupKeys log ↔ e ∈ log :=
   ⟨fun h ↦ (dedupKeys_sublist log).subset h, mem_dedupKeys_of_mem hcons⟩
-
-omit [DecidableEq Q] in
-/-- A consistent log's prefix is consistent. -/
-theorem Consistent.of_prefix {log' : List ((_ : Q) × D)} (hcons : Consistent log)
-    (h : log' <+: log) : Consistent log' :=
-  fun e₁ h₁ e₂ h₂ ↦ hcons e₁ (h.subset h₁) e₂ (h.subset h₂)
 
 /-- A search along a consistent log finds what it finds along the deduplicated log. -/
 theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
@@ -272,8 +236,8 @@ theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
     split
     · rename_i h
       obtain ⟨x, hx, hxe⟩ := List.mem_map.mp h
-      obtain rfl := eq_of_consistent hcons (List.mem_append_right l (List.mem_singleton_self e))
-        (List.mem_append_left _ hx) hxe
+      obtain rfl := hcons _ (List.mem_append_left _ hx) _
+        (List.mem_append_right l (List.mem_singleton_self e)) hxe
       rw [ih hl, List.findSome?_append]
       rcases hf : l.findSome? f with _ | y
       · simp [List.findSome?_eq_none_iff.mp hf x hx]

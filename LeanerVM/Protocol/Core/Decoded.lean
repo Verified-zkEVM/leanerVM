@@ -10,6 +10,7 @@ module
 public import LeanerVM.Protocol.Compile.Front
 public import LeanerVM.Protocol.DecodeWire
 public import LeanerVM.Protocol.Prove.ReadBack
+import Mathlib.Lean.Thunk
 
 /-!
 # The decoded transcript
@@ -178,15 +179,6 @@ theorem toVec_toList {n : ℕ} (v : Vector E n) : toVec n v.toList = v := by
   intro i _
   simp [toVec]
 
-private theorem exists_eq_stepTr' {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
-    ∃ (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
-      (u : Vector E ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
-  obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
-  refine ⟨t.fst.fst.fst 0, t.fst.fst.snd, t.fst.snd 0, Vector.ofFn f, ?_⟩
-  conv_lhs => rw [Gkr.eq_stepTr t]
-  rw [hf]
-  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
-
 private theorem out_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
     (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
     (u : Vector E ρ) :
@@ -206,17 +198,17 @@ private theorem out_layerStepFront (ρ m : ℕ) {S : Type} (inp : S → Gkr.Laye
 private theorem stRel_layerNext (ρ m : ℕ) {S : Type} (inp : S → Gkr.LayerStmt X E 3 m) (s : S)
     (t : (stepSpec E 3 ρ m).FullTranscript) :
     StRel (layerNext t) ((Gkr.layerStepFront 3 μ leaves ρ m inp).out s t) := by
-  obtain ⟨lam, R, ch, u, rfl⟩ := exists_eq_stepTr' t
+  obtain ⟨lam, R, ch, u, rfl⟩ := Gkr.exists_eq_stepTr t
   rw [out_layerStepFront]
   obtain ⟨-, h₂, -⟩ := out_roundsFront (Gkr.roundPoly 3 μ leaves ρ m) (Gkr.weights 3 m) m m 0
     (Nat.zero_add m) ((inp s, lam), (#v[], powerBatch (inp s).2.2 lam)) R
     (Thunk.pure (powerBatch (inp s).2.2 lam), 0) rfl
   refine ⟨?_, ?_⟩
-  · simp only [layerNext, get_thunk_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
+  · simp only [layerNext, Thunk.get_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
       FullTranscript.append_snd, drawsList_chalsTr, Vector.toList_cast, Vector.toList_append, h₂,
       ofFn_getElem_eq_toList]
     simp
-  · simp only [layerNext, get_thunk_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
+  · simp only [layerNext, Thunk.get_mk, Gkr.interpDone, Gkr.childNext, FullTranscript.append_fst,
       FullTranscript.append_snd, drawsList_chalsTr, msgTr_zero, ofFn_getElem_eq_toList,
       toVec_toList]
 
@@ -234,9 +226,9 @@ private theorem always_layerDec (st : GkrState) (ρ m : ℕ) :
       T.fst.snd) ?_)
     (fun _ _ ↦ Always.true _) ?_
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
     simpa only [layerCombiner, drawOf, FullTranscript.append_fst, FullTranscript.append_snd]
       using h
@@ -319,7 +311,7 @@ private theorem always_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I)
       (powerBatch (TableSumcheck.claimed I s.get) (T.fst 0)) T.snd) ?_)
     (fun _ _ ↦ Always.true _) ?_
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h _
     refine ⟨t₁.fst 0, t₁.snd, t₂ 0, ?_, h⟩
     rw [tableTrOf, ← eq_chalTr, ← eq_msgTr, FullTranscript.append_fst_snd]
@@ -371,7 +363,7 @@ private theorem always_flockDecOf (k : ℕ) :
     (fun _ _ h _ ↦ by simpa only [FullTranscript.append_fst] using h))
     (fun _ _ ↦ Always.true _) (fun _ _ h _ ↦ by simpa only [FullTranscript.append_fst] using h)
   · intro t₁ t₂ _ h
-    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, get_thunk_mk] using h
+    simpa only [FullTranscript.append_fst, FullTranscript.append_snd, Thunk.get_mk] using h
   · intro t₁ t₂ h₁ h₂
     simp only [FullTranscript.append_fst, FullTranscript.append_snd]
     refine ⟨h₁, ?_⟩
@@ -380,11 +372,6 @@ private theorem always_flockDecOf (k : ℕ) :
   · intro t₁ t₂ h₁ h₂
     simp only [FullTranscript.append_fst, FullTranscript.append_snd]
     exact ⟨h₁, h₂⟩
-
-private theorem toVec_ofFn {n : ℕ} (f : Fin n → E) : toVec n (List.ofFn f) = Vector.ofFn f := by
-  apply Vector.ext
-  intro i _
-  simp [toVec]
 
 private theorem exists_eq_chalsTr_vec {k : ℕ} (t : (draws E k).FullTranscript) :
     ∃ v : Vector E k, t = chalsTr k fun i ↦ v[i] := by
@@ -573,13 +560,13 @@ theorem Always.and {α β : Type} {s : Slot α β} {P Q : β → Prop} (h₁ : A
     (h₂ : Always s Q) : Always s fun x ↦ P x ∧ Q x :=
   fun l x r h ↦ ⟨h₁ l x r h, h₂ l x r h⟩
 
-theorem always_seqTail {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
+private theorem always_seqTail {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
     {Q : (seqSpec l).FullTranscript → Prop} (h : ∀ t, Always (D.2 t).toDecoder.toSlot Q) :
     Always D.toDecoder.toSlot fun T ↦ Q (seqTail T) :=
   always_append (Always.true _) (fun t _ ↦ h t) fun _ _ _ h₂ ↦ by
     simpa only [seqTail, FullTranscript.append_snd] using h₂
 
-theorem always_seqHead {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
+private theorem always_seqHead {a : Step} {l : List Step} {D : SeqDecoder Reading (a :: l)}
     {P : a.spec.FullTranscript → Prop} (h : Always D.1.toSlot P) :
     Always D.toDecoder.toSlot fun T ↦ P (seqHead T) :=
   always_append h (fun _ _ ↦ Always.true _) fun _ _ h₁ _ ↦ by

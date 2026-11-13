@@ -73,7 +73,7 @@ def encodeMatrix {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) : Fin N → Fin (2
   fun i u ↦ novelAt φ κ (domainPt (T i)) u
 
 /-- A row of the matrix times a message is the message's encoding at the row's position. -/
-theorem sum_encodeMatrix {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R)))
+private theorem sum_encodeMatrix {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R)))
     (m : CMlPolynomialEval S κ) (i : Fin N) :
     ∑ u, encodeMatrix φ κ R T i u * m[u] = encode φ κ R m (T i) :=
   (encode_eq_sum φ κ R m (T i)).symm
@@ -82,7 +82,7 @@ variable {φ κ R}
 
 /-- On `2 ^ κ` distinct positions the encoder's matrix is injective, when `κ + R ≤ 64` and `φ`
 is injective: two messages whose encodings agree there are equal. -/
-theorem encodeMatrix_injective (hφ : Function.Injective φ) (hb : κ + R ≤ 64)
+private theorem encodeMatrix_injective (hφ : Function.Injective φ) (hb : κ + R ≤ 64)
     {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} (hT : Function.Injective T) (x : Fin (2 ^ κ) → S)
     (hx : ∀ i, ∑ j, encodeMatrix φ κ R T i j * x j = 0) : x = 0 := by
   have hm := encode_eq_of_agree φ hb hφ (m := (Vector.ofFn x : CMlPolynomialEval S κ))
@@ -96,7 +96,7 @@ theorem encodeMatrix_injective (hφ : Function.Injective φ) (hb : κ + R ≤ 64
   simpa [Fin.getElem_fin] using this
 
 /-- Over `E`, the encoder's matrix is the image of the matrix over `K`. -/
-theorem encodeMatrix_algebraMap {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (i : Fin N)
+private theorem encodeMatrix_algebraMap {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (i : Fin N)
     (u : Fin (2 ^ κ)) :
     encodeMatrix (algebraMap K E) κ R T i u =
       algebraMap K E (encodeMatrix (RingHom.id K) κ R T i u) := by
@@ -104,7 +104,8 @@ theorem encodeMatrix_algebraMap {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (i 
     RingHom.id_apply]
 
 /-- A message over `E` encodes at `T i` to the row of the matrix over `K` acting on it. -/
-theorem encode_eq_sum_smul {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (m : CMlPolynomialEval E κ)
+private theorem encode_eq_sum_smul {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R)))
+    (m : CMlPolynomialEval E κ)
     (i : Fin N) :
     encode (algebraMap K E) κ R m (T i) = ∑ u, encodeMatrix (RingHom.id K) κ R T i u • m[u] := by
   rw [← sum_encodeMatrix]
@@ -192,7 +193,7 @@ def encodeRows (κ R : ℕ) (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
     Vector.ofFn fun u : Fin (2 ^ κ) ↦ ∏ k : Fin κ, if u.val.testBit k then w[k] else 1
 
 /-- The rows are the encoder's matrix. -/
-theorem encodeRows_eq (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
+private theorem encodeRows_eq (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
     (fun i j : Fin (2 ^ κ) ↦ (encodeRows κ R T)[i][j]) = encodeMatrix (RingHom.id K) κ R T := by
   funext i u
   simp [encodeRows, encodeMatrix, novelAt, Fin.getElem_fin]
@@ -248,7 +249,7 @@ instance : Module K (LaneVec m) :=
   get_injective.module K getHom fun _ _ ↦ by funext i; simp [getHom, get, v_smul]
 
 /-- The entry of a lane of a sum of `K`-multiples. -/
-theorem get_sum_smul {N : ℕ} (u : Fin m) (c : Fin N → K) (x : Fin N → LaneVec m) :
+private theorem get_sum_smul {N : ℕ} (u : Fin m) (c : Fin N → K) (x : Fin N → LaneVec m) :
     (∑ j, c j • x j).get u = ∑ j, algebraMap K E (c j) * (x j).get u := by
   have h := congrFun (map_sum getHom (fun j ↦ c j • x j) Finset.univ) u
   rw [Finset.sum_apply] at h
@@ -274,7 +275,7 @@ def candidateAt (κ R ℓ : ℕ) (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) (F : 
   (gaussSolve (2 ^ κ) (fun i j ↦ rows[i][j]) (laneRows κ R ℓ T F)).map lanesOfSolution
 
 /-- The candidate is read off the elimination. -/
-theorem candidateAt_eq {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)} :
+private theorem candidateAt_eq {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)} :
     candidateAt κ R ℓ T F = (gaussSolve (2 ^ κ) (encodeMatrix (RingHom.id K) κ R T)
       (laneRows κ R ℓ T F)).map lanesOfSolution := by
   rw [← encodeRows_eq]
@@ -291,14 +292,6 @@ private theorem encode_lanesOfSolution {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))}
   rw [encode_eq_sum_smul]
   simp only [lanesOfSolution, Algebra.smul_def, Fin.getElem_fin, Vector.getElem_ofFn]
   simpa [LaneVec.get, laneRows, Fin.getElem_fin] using h
-
-/-- A candidate's encoding takes the word's values at the positions. -/
-theorem candidateAt_sound {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)}
-    {V : Msgs ℓ κ} (h : candidateAt κ R ℓ T F = some V) (i : Fin (2 ^ κ)) (u : Fin (2 ^ ℓ)) :
-    encode (algebraMap K E) κ R (V u) (T i) = F (T i) u := by
-  rw [candidateAt_eq] at h
-  obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.mp h
-  exact encode_lanesOfSolution (gaussSolve_sound _ _ _ x hx) i u
 
 /-- The candidate at distinct positions where the codeword of `V` agrees with the word is
 `V`. -/

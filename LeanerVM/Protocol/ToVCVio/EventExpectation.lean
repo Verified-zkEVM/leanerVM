@@ -7,8 +7,8 @@
 
 module
 
-public import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 public import VCVio.EvalDist.ProbabilityBounds
+public import VCVio.EvalDist.Monad.Measure
 
 /-!
 # Events and constants in scalar expectations

@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Protocol.LeanVmReader
 public import LeanerVM.Protocol.Prove.Openings
+import Mathlib.Control.Lawful
 
 /-!
 # The openings, read off the log

@@ -62,9 +62,20 @@ private theorem testBit_two_pow_add {k r : ℕ} (hr : r < 2 ^ k) (j : ℕ) (hj :
   have h := Nat.testBit_two_pow_mul_add 1 hr j
   rwa [mul_one, show j - k = 0 by omega] at h
 
+/-- Below `p`, the bits of `x + 2^p` are those of `x`. -/
+theorem testBit_add_two_pow_low {x p i : ℕ} (hi : i < p) :
+    (x + 2 ^ p).testBit i = x.testBit i := by
+  rw [add_comm, Nat.testBit_two_pow_add_gt hi]
+
+/-- Bit `p` of `x + 2^p` for `x < 2^p` is set. -/
+theorem testBit_add_two_pow_self {x p : ℕ} (hx : x < 2 ^ p) :
+    (x + 2 ^ p).testBit p = true := by
+  rw [add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hx]
+  rfl
+
 /-- Entry `i` of the doubling on `k` coordinates is the product of the first `k` factors at the
 bits of `i`. -/
-theorem getElem_doublingArray {n : ℕ} (f : Fin n → Bool → R) :
+private theorem getElem_doublingArray {n : ℕ} (f : Fin n → Bool → R) :
     ∀ (k : ℕ) (h : k ≤ n) (i : ℕ) (hi : i < (doublingArray f k h).size),
       (doublingArray f k h)[i] = ∏ j : Fin k, f ⟨j, by omega⟩ (i.testBit j)
   | 0, _, i, hi => by
@@ -129,9 +140,9 @@ def lagrangeBasisFast {S : Type*} {n : ℕ} [CommRing S] (w : Vector S n) : Vect
     exact size_doublingArray _ n le_rfl⟩
 
 /-- The doubling is the Lagrange basis. -/
-theorem lagrangeBasisFast_eq {n : ℕ} (w : Vector R n) : lagrangeBasisFast w = lagrangeBasis w := by
-  apply Vector.ext
-  intro i hi
+private theorem lagrangeBasisFast_eq {n : ℕ} (w : Vector R n) :
+    lagrangeBasisFast w = lagrangeBasis w := by
+  refine Vector.ext fun i hi ↦ ?_
   have h := lagrangeBasis_getElem (w := w) ⟨i, hi⟩
   simp only [BitVec.getLsb_eq_getElem, Fin.getElem_fin, BitVec.getElem_ofFin] at h
   rw [h]
@@ -162,14 +173,13 @@ def evalMleStepFast {S : Type*} [CommRing S] {n : ℕ} (values : Vector S (2 ^ (
   | _ + 1, values, x => evalMleValuesFast (evalMleStepFast values x.head) x.tail
 
 /-- `evalMleValuesFast` is CompPoly's interpolation. -/
-theorem evalMleValuesFast_eq {S : Type*} [CommRing S] :
+private theorem evalMleValuesFast_eq {S : Type*} [CommRing S] :
     ∀ {n : ℕ} (values : Vector S (2 ^ n)) (x : Vector S n),
       evalMleValuesFast values x = evalMleValues values x
   | 0, _, _ => rfl
   | n + 1, values, x => by
     have h : evalMleStepFast values x.head = evalMleStep values x.head := by
-      apply Vector.ext
-      intro j hj
+      refine Vector.ext fun j hj ↦ ?_
       simp only [evalMleStepFast, evalMleStep, Vector.getElem_ofFn]
       ring
     rw [evalMleValuesFast, h, evalMleValuesFast_eq]

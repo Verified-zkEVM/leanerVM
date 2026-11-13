@@ -29,10 +29,6 @@ open OracleComp OracleSpec
 
 @[expose] public section
 
-private theorem pure_bound {ι : Type} {spec : OracleSpec ι} {α : Type} (x : α) (n : ℕ) :
-    IsTotalQueryBound (pure x : OracleComp spec α) n :=
-  isQueryBound_pure x n _ _
-
 namespace MerkleTree
 
 variable {ι : Type} {spec : OracleSpec ι} {D : Type}
@@ -48,14 +44,14 @@ private theorem levelBound_mono {X : Type} {c : OracleComp spec (Option (List X 
 
 private theorem levelBound_none {X : Type} (n : ℕ) :
     LevelBound (pure none : OracleComp spec (Option (List X × List D))) n := by
-  refine ⟨pure_bound _ _, fun r hr p hp ↦ ?_⟩
+  refine ⟨isQueryBound_pure _ _ _ _, fun r hr p hp ↦ ?_⟩
   rw [mem_support_pure_iff] at hr
   subst hr
   cases hp
 
 private theorem levelBound_nil {X : Type} (sibs : List D) :
     LevelBound (pure (some (([] : List X), sibs)) : OracleComp spec _) 0 := by
-  refine ⟨pure_bound _ _, fun r hr p hp ↦ ?_⟩
+  refine ⟨isQueryBound_pure _ _ _ _, fun r hr p hp ↦ ?_⟩
   rw [mem_support_pure_iff] at hr
   subst hr
   cases hp
@@ -66,7 +62,7 @@ private theorem levelBound_consParent {U : Type} (i : ℕ) {parent : OracleComp 
     (hp : IsTotalQueryBound parent 1) (hr : LevelBound rest n) :
     LevelBound (consParent i parent rest) (n + 1) := by
   refine ⟨(isTotalQueryBound_bind hp fun _ ↦ isTotalQueryBound_bind hr.1 fun _ ↦
-    pure_bound _ 0).mono (by omega), fun r hr' p hp' ↦ ?_⟩
+    isQueryBound_pure _ 0 _ _).mono (by omega), fun r hr' p hp' ↦ ?_⟩
   simp only [consParent, mem_support_bind_iff, mem_support_pure_iff] at hr'
   obtain ⟨_, -, r', hr'', rfl⟩ := hr'
   cases r' with
@@ -87,7 +83,7 @@ variable (hash : D → D → OracleComp spec D) (hh : ∀ a b, IsTotalQueryBound
 include hh
 
 /-- One level of the walk asks at most one query per node and returns at most as many parents. -/
-theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
+private theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
     IsTotalQueryBound (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs) nodes.length ∧
       ∀ r ∈ support (levelStep (NodeAlgebra.ofHash hash) (h := h) nodes sibs), ∀ p,
         r = some p → p.1.length ≤ nodes.length := by
@@ -107,13 +103,13 @@ theorem levelStep_queries {h : ℕ} (nodes : List (ℕ × D)) (sibs : List D) :
 /-- **The walk over `k` levels** from `n` opened nodes asks at most `k * n` queries. -/
 theorem fold_queries : ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × D)) (sibs : List D),
     IsTotalQueryBound (fold (NodeAlgebra.ofHash hash) k h t e nodes sibs) (k * nodes.length)
-  | 0, _, _, rfl, nodes, sibs => pure_bound _ _
+  | 0, _, _, rfl, nodes, sibs => isQueryBound_pure _ _ _ _
   | k + 1, h, t, e, nodes, sibs => by
     simp only [fold]
     refine (isTotalQueryBound_bind_of_mem_support (levelStep_queries hash hh (h := h) nodes sibs).1
       (suffixBound := k * nodes.length) fun r hr ↦ ?_).mono (by rw [Nat.succ_mul]; omega)
     cases r with
-    | none => exact pure_bound _ _
+    | none => exact isQueryBound_pure _ _ _ _
     | some p =>
       exact (fold_queries k (h + 1) t (by omega) p.1 p.2).mono
         (Nat.mul_le_mul_left k ((levelStep_queries hash hh nodes sibs).2 _ hr p rfl))
@@ -132,12 +128,12 @@ private theorem parentsM_queries {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
 /-- **Building a tree's levels** over `2^k` nodes asks at most `2^k` queries. -/
 theorem buildLevelsM_queries :
     ∀ (k : ℕ) (level : Vector D (2 ^ k)), IsTotalQueryBound (buildLevelsM hash k level) (2 ^ k)
-  | 0, _ => pure_bound _ _
+  | 0, _ => isQueryBound_pure _ _ _ _
   | k + 1, level => by
     unfold buildLevelsM
     rw [pow_succ, Nat.mul_two]
     exact isTotalQueryBound_bind (parentsM_queries hash hh level) fun ps ↦
-      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦ pure_bound _ _
+      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦ isQueryBound_pure _ _ _ _
 
 end MerkleTree
 

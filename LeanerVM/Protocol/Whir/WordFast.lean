@@ -61,8 +61,7 @@ theorem ofRows_kwordRows {ℓ κ R t : ℕ} (hb : κ + R ≤ 64) (q : CMlPolynom
   dsimp only
   congr 1
   funext y
-  apply Vector.ext
-  intro u hu
+  refine Vector.ext fun u hu ↦ ?_
   simp only [Fin.getElem_fin, Vector.getElem_ofFn]
   exact encodeFast_getElem _ hb _ y
 

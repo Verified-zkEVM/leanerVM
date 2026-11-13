@@ -444,7 +444,7 @@ theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInp
         (leanVmReader.VerifierFlipFor (g.prog, g.input)) g.toRun] = 1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s_adaptive hg
-      obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (QueryLog.support_simulateQ_subset _ _ hg)
+      obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (support_simulateQ_subset _ _ hg)
       subst hp hi
       exact Core.core_of_mem_support hg' hc (hok.trans (hpr ▸ hacc))
         (hpr ▸ hl ▸ not_extracts_nil _ _ _ _)
@@ -459,7 +459,7 @@ theorem adaptiveReplayer_ok_le (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) :
     Pr{let z ← runRandom (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
       z.1.ok = true] ≤ ((0 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 0 : NNReal) :=
-  (OracleComp.prEvent_mono_of_support _ fun z hz h ↦ ⟨h, fun ⟨e, he, _⟩ ↦ by
+  (prEvent_mono_of_support _ _ _ fun z hz h ↦ ⟨h, fun ⟨e, he, _⟩ ↦ by
     obtain ⟨-, -, -, hl⟩ := adaptiveReplayer_run (mem_support_runRandom_adaptive hz).1
     rw [hl, extract_nil] at he
     cases he⟩).trans (baseVerifier_extractsWitness_rom_adaptive (Q := 0) trivial)
@@ -526,7 +526,7 @@ example (A : Adversary) {δ : ℝ≥0∞}
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
   baseVerifier_extractsExecution_adaptive_wellFormed hB fun g hg ↦ by
-    have hg' := QueryLog.support_simulateQ_subset _ _ hg
+    have hg' := support_simulateQ_subset _ _ hg
     rw [adaptiveGame_const, support_map] at hg'
     obtain ⟨_, -, rfl⟩ := hg'
     exact ladder_wellFormed

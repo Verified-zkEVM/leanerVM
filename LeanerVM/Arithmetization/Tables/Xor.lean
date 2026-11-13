@@ -18,7 +18,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `XOR` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:436-456` (`mod arith`, in that order), the flushes
 `tables.rs:483-495` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:461-473`
 (`arith_result`, the lane-wise sum), all matching specification §7.1
@@ -226,10 +226,8 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hA, fun _ ↦ hB, fun _ ↦ hC⟩
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    refine (xor_refines_iff _ _ _).mpr ⟨⟨?_, ?_⟩, ?_, rfl⟩
-    · simpa only [Vector.getElem_map] using hA
-    · simpa only [Vector.getElem_map] using hB
-    · simpa only [add_limbs, Vector.getElem_map] using hC
+    refine (xor_refines_iff _ _ _).mpr ⟨⟨hA, hB⟩, ?_, rfl⟩
+    simpa only [add_limbs] using hC
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
@@ -241,7 +239,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     rw [add_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    simp only [Vector.getElem_map] at hA hB hC ⊢
+    simp only at hA hB hC ⊢
     exact ⟨⟨_, decode_entry (.xor _ _ _)⟩, hA, hB, hC⟩
 
 /-! ## Rows from executions -/

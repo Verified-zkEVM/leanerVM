@@ -49,7 +49,7 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   Merkle binding by log replay.
 * **The bad challenges** (`Bad`, `bad_density`). At a prefix of the compiled transcript ending
   at a challenge, the challenges that turn the state function of `listBinding_deployed` from
-  false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWorstCaseWith`.
+  false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWith`.
   Its density is at most the round's error (`listBindingError`), by the security's `rbr`.
 -/
 
@@ -121,11 +121,6 @@ columns' cells rounded up to whole lanes, at least one (`StackShape::n_lanes`,
 (`deployedHeadKap_eq`), it must equal the executable verifier's row width (`Verify.nLanes`). -/
 def level0Lanes (prog : Program) (s : Sizes) (κ : ℕ) : ℕ :=
   max 1 (((LeanIsa.blocks prog s).total + 2 ^ κ - 1) / 2 ^ κ)
-
-/-- The executable verifier's row width is the lanes at `μ - initialFold`. -/
-theorem nLanes_eq_level0Lanes (prog : Program) (s : Sizes) :
-    Verify.nLanes prog s = level0Lanes prog s (leanIsaμ prog s - Parameters.Whir.initialFold) :=
-  rfl
 
 /-- Level 0 of every admissible chain leaves `μ - initialFold` variables: one decision on the
 window. -/
@@ -216,7 +211,6 @@ theorem HashMisbehavesFrom.mono {seedRoots : List Digest}
 
 instance (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest) (g : Run) :
     Decidable (HitFrom seedRoots rootsOf g) := by
-  letI := Digest.decEq
   unfold HitFrom
   infer_instance
 
@@ -286,8 +280,8 @@ theorem bad_density (st : (leanIsaInstance F prog s).Stmt × ∀ i, NoOracle i)
         (leanIsaChain prog s hs ρ hρ).pars i := by
   have h := (listBinding_deployed F prog s hs ρ hρ).rbr (pure ()) noSharedOracle st i tr
   unfold Bad
-  simp only [Set.mem_ofPred_eq]
   convert h using 5
+  simp only [Set.mem_ofPred_eq]
 
 end Bad
 

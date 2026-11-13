@@ -9,8 +9,9 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.ToArkLib.Component
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import LeanerVM.Protocol.ToArkLib.Schedule
@@ -128,18 +129,13 @@ theorem sampleChallenge_complete
     (h : ∀ s o w, ((s, o), w) ∈ relIn → check s = true ∧ ∀ c, ((f s c, o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sampleChallenge OStmt C check f).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sampleGuarded OStmt C check f) (s, o) witIn hx
-  have hout := sampleProver_run_support OStmt C f s o witIn pr hpr
-  have hc : (sampleGuarded OStmt C check f).check (s, o) pr.1 = true := (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  refine ⟨_, rfl, ?_, congrArg Prod.fst hout⟩
-  show ((f s (pr.1 0), o), pr.2.2) ∈ relOut
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sampleGuarded OStmt C check f) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  have hout := sampleProver_run_support OStmt C f s o w q hq
+  refine ⟨(h s o w hIn).1, ?_, congrArg Prod.fst hout⟩
+  show ((f s (q.1 0), o), q.2.2) ∈ relOut
   rw [congrArg Prod.snd hout]
-  exact (h s o witIn hIn).2 (pr.1 0)
+  exact (h s o w hIn).2 (q.1 0)
 
 /-- The completeness half. -/
 def sampleChallengeComplete
@@ -160,10 +156,10 @@ def sampleStateFunction :
   toFun := fun m stmt tr w ↦
     if h0 : m.val = 0 then (stmt, w) ∈ relIn
     else check stmt.1 = true ∧ ((f stmt.1 (tr ⟨0, by omega⟩), stmt.2), w) ∈ relOut
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm ↦ nomatch hm
-  toFun_full := fun stmt tr w hpos ↦
-    Verifier.GuardedForm.of_probEvent_pos (sampleGuarded OStmt C check f) init impl stmt tr _ hpos
+  toFun_full := fun _ _ _ hpos ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (sampleGuarded OStmt C check f) hpos
 
 /-- A bad challenge: some witness fails the input relation at the statement and meets the output
 relation at the mapped statement. -/
@@ -177,26 +173,17 @@ theorem card_badChallenge_le_of_unit {relIn : Set ((StmtIn × ∀ i, OStmt i) ×
     {relOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)} (N : ℕ) (s : StmtIn) (o : ∀ i, OStmt i)
     (h : ((s, o), ()) ∉ relIn → Nat.card {c // ((f s c, o), ()) ∈ relOut} ≤ N) :
     Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N := by
-  have := Fintype.ofFinite C
-  classical
-  rw [natCard_subtype_eq_card_filter]
   by_cases hin : ((s, o), ()) ∈ relIn
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le N)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    rintro c - ⟨w, hw, -⟩
-    exact hw hin
-  · refine (Finset.card_le_card fun c hc ↦ ?_).trans
-      ((natCard_subtype_eq_card_filter _).symm.trans_le (h hin))
-    rw [Finset.mem_filter] at hc ⊢
-    obtain ⟨-, w, -, hw⟩ := hc
-    exact ⟨Finset.mem_univ _, hw⟩
+  · rw [natCard_subtype_eq_zero fun _ ⟨_, hw, _⟩ ↦ hw hin]
+    exact Nat.zero_le N
+  · exact (natCard_subtype_mono fun _ ⟨_, _, hw⟩ ↦ hw).trans (h hin)
 
 /-- Round-by-round knowledge soundness of a checked challenge at `N / |C|`, when a statement
 passing the check has at most `N` bad challenges. -/
 theorem sample_rbr (N : ℕ)
     (hN : ∀ s o, check s = true →
       Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N) :
-    (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWith init impl
       relIn relOut (fun _ ↦ W) (keepExtractor _ W (draw C))
       (sampleStateFunction OStmt C check f init impl)
       (drawError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0))) := by
@@ -245,15 +232,15 @@ theorem sampleChallenge_not_rbr {WitMid : Fin 2 → Type}
     {kSF : (sampleVerifier OStmt C check f).toVerifier.KnowledgeStateFunction init impl relIn
       relOut E}
     {ε : (draw C).ChallengeIdx → ℝ≥0}
-    (h : (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWith init impl
       relIn relOut WitMid E kSF ε)
     (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (hc : check s = true)
     (w : W) (hesc : ∀ c, ((f s c, o), w) ∈ relOut) : 1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw C).Transcript 0) fun c ↦
       ⟨Transcript.concat c (default : (draw C).Transcript 0), rfl, w,
-        Verifier.GuardedForm.probEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
-          (s, o) _ (fun t ↦ (t, w) ∈ relOut) hc (hesc c)⟩
+        Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+          (sampleGuarded OStmt C check f) hc (hesc c)⟩
 
 /-! ## Challenges recorded in a vector -/
 

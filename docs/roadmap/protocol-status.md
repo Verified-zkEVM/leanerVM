@@ -9,9 +9,9 @@ blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly `572f9973`,
-Clean `ce2eee63`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
-and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review)).
+The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `011391e5`, CompPoly `e28da348`,
+Clean `6a2e7bb9`, VCVio `fc54dd3d`, PolyFun `d3ec3a41`, Lean
+and Mathlib `v4.35.0` ([dependencies.md](../dependencies.md#lean-435-port-review)).
 
 ## On `main`
 
@@ -19,7 +19,7 @@ and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review
 | --- | --- | --- | --- |
 | field instances (Layer 0) | #15 | `51021d9` | 2026-09-11 |
 | the spine | #58 | `5cb7da6` | 2026-09-28 |
-| the knowledge-soundness composition, ported from ArkLib #615 | #58 | `5cb7da6` | 2026-09-28 |
+| the knowledge-soundness composition, ported from ArkLib #615 (ArkLib's own #1295 since the Lean 4.35 bump) | #58 | `5cb7da6` | 2026-09-28 |
 | tables and stacking (Layer 1) | #59 | `f4d858c` | 2026-09-29 |
 | the public-input phase with the specification's check (Layer 8), both halves | #60 | `b435631` | 2026-09-29 |
 | no hole: the upgrade to Lean 4.34.1 and the new pins | #61 | `144c5aa` | 2026-09-29 |
@@ -64,7 +64,7 @@ and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review
 | the core and the headline theorems | #174 | `3fd40e49` | 2026-11-06 |
 | adaptive knowledge soundness, where the adversary chooses the statement | #175 | `ce67112b` | 2026-11-06 |
 | the headline theorems over leanISA executions | #185 | `25da57d3` | 2026-11-06 |
-| the witness generator, and completeness from an execution in the random-oracle model | #192 | on merge | on merge |
+| the witness generator, and completeness from an execution in the random-oracle model | #192 | `3f557382` | 2026-11-12 |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
@@ -224,7 +224,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   `evalMle_lagrangeBasis`, `slice_bytecodeColumn`, `readColumn_stackColumn`, `idxColumn_get`,
   `bytecodeSlotColumn`, `prodVars` and its two lemmas are gone, with `BlockClaims.lean` and its
   test; the adaptor builds the slot columns it needs. The generic helpers the deleted module
-  consumed (`unstack_eval₂_eq_sumCube`, `unstack_eq_of_window_eq`) stay as upstream material.
+  consumed (`unstack_eval₂_eq_sumCube`) stays as upstream material.
 - **Layer 8's verifier** is `verifierWith` at the check and the pool from the values sent, a
   shape the refutation tests instantiate with the check removed, weakened to its first value,
   the unsent line's claim dropped, the cells swapped and an extra check. The pool (`pooledFrom`)
@@ -483,7 +483,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     messages that pass the round's check (`decodeWire`, `encodeWire_decodeWire`,
     `decodeWire_encodeWire`). It rests on a theorem for any verifier and any causal map of
     transcripts from one schedule to another with the same directions that carries the
-    challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the
+    challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWith_comap`); the
     map need not be injective. The map of the whole protocol's transcripts, and Fiat–Shamir's
     absorption of the wire, are the compiled verifier's to build.
   - Knowledge soundness is the rounds' (`SumcheckRound.roundsSecurity`, for the family with no
@@ -506,10 +506,11 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
     last message has no knowledge state function at all); the round check's is the base's
     `SumcheckRound.drawChallenge_unchecked_not_rbr`.
-  - Decision 33 is taken by default: the sumcheck is written here. ArkLib's legacy sumcheck has
-    its knowledge soundness admitted; its typed sumcheck proves completeness and plain soundness
-    for one polynomial with unit weights, and no open pull request adds knowledge soundness to
-    either (the survey is in the watch list below).
+  - Decision 33 is taken by default: the sumcheck is written here. ArkLib's legacy sumcheck is
+    proved with round-by-round knowledge soundness at the pin (#1244, #1382, #1391), with unit
+    weights and an existential extractor; its typed sumcheck proves completeness and
+    round-by-round soundness for one polynomial with unit weights, with no extractor (the survey
+    is in the watch list below).
 - **The Flock phase (Layer 9)** is the generic Flock argument of `ToArkLib/Flock/` (an ArkLib
   candidate: block R1CS, tables, round polynomials, zerocheck, lincheck, ring switching and their
   composition `Flock.flock`) at leanVM's sizes, constants and region (`Protocol/Flock.lean`).
@@ -641,8 +642,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; upstream at the Clean pin `ce2eee63`, which the bridge imports; the verbatim copy
-  kept until then is deleted). Where it differs from the sketch:
+  by #28; upstream since the Clean pin `ce2eee63` and unchanged at `6a2e7bb9`, which the bridge
+  imports; the verbatim copy kept until then is deleted). Where it differs from the sketch:
   - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
     (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
     predicate, and the count columns are listed in column order, each once, as the Rust's
@@ -691,9 +692,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
     node query of `logA`), then every opened payload is the one read off `logA` at its position.
     `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
-    off the whole log under a root are those read off `logA`. A fresh hit grows with `logV`, the
-    roots and `logA`'s known digests, and is a hit at the first occurrence of its input
-    (`FreshHit.mono_logV`, `FreshHit.mono_roots`, `Known.mono`, `Fresh.anti`, `FreshHit.first`).
+    off the whole log under a root are those read off `logA`. The known digests grow with the
+    roots and the log (`Known.mono`), and a fresh hit is a hit at the first occurrence of its
+    input (`FreshHit.first`).
     Each condition has a toy mutation in which the check accepts a payload other than the
     extracted one, or with none extracted, and only that condition fails
     (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
@@ -817,13 +818,10 @@ opening type `M`, which the Merkle trees will fix. The reader (`ReaderState`, `R
 hash's monad, failing with a `ReadError`) has `nextScalar(s)`, `nextRoot`, `nextRoundPoly`,
 `sample`, `checkPow`, `nextOpening` (with an authenticator), `finish` and `readSizes` (the
 announced sizes and `read_public`'s setup checks, `setupOk`); the writer (`WriteM`) mirrors it.
-`Proof.announced?` and `Proof.sizes?` read the sizes off the stream, and
-`announced?_of_readSizes` says the reader accepts only those. `RoundPoly.decode` derives the
+`Proof.announced?` and `Proof.sizes?` read the sizes off the stream. `RoundPoly.decode` derives the
 dropped coefficient from the claim as `transcript.rs:289-309` does (`c_1` in a plain round, `c_0`
 with the equality weight factored out); `decode_encode`, `encode_decode` and `check_of_decode`
-make it an injection onto the polynomials that pass the round's check, and
-`Reader.nextRoundPoly_eq` says that reading a round is reading `d` scalars and decoding them, so
-its chain effect does not depend on the claim. The round trip is
+make it an injection onto the polynomials that pass the round's check. The round trip is
 `ReadsBack`, proved for each pair of mirrored operations at every hash function in `Id` and
 composed along `bind`; `runRead_runWrite`: the reader run on what the writer wrote returns the
 related value and the writer's chain state, with nothing left over. The tests read the Rust's
@@ -853,22 +851,19 @@ VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest`
 `prEvent_challengeOf`: the challenge of a uniform digest is uniform on `E`;
 `prEvent_lowBitsZero`: a grinding check of `bits ≤ 64` bits passes on a uniform digest with
 probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
-(`Transcript.lean`: `Block.input`, `FsState.step` and its agreement with `observe`, `sample` and
-`absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
-`digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
-state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
-generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
-a hit is a fresh answer in play after the entries before it, for an in-play function of the
-prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
-fixed roots (none at leanVM's), the halves of every logged 64-byte input, the program hash every
-logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
-absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the
-charged invariant needs.
-`chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
-and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
-collision and no hit, the history is in the log before any query from the chain's last state that
-is none of its steps: the next step, `chainHistory_take_of_step`, the grinding base or the
-grinding check); `chainHistory_determined`. A Merkle node, a 64-byte input of the same oracle, may
+(`Transcript.lean`: `Block.input`, the parser `Block.parse?` with `parse?_input`, over the byte
+decoders `digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back
+from a state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over
+the generic log predicates `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`; a hit is a
+fresh answer in play after the entries before it, for an in-play function of the prefix) and
+VCVio's `QueryLog.Consistent`, in which the Merkle log replay states its binding too. The digests in
+play (`inPlay`) are fixed roots (none at leanVM's), the halves of every logged 64-byte input, the
+program hash every logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots
+the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of
+the prefix, as the charged invariant needs.
+`chainHistory_of_noCollision` (a logged chain is its history when the log has no collision and no
+later state of the chain is a start); `chainHistory_determined` (a history found in part of a log
+is the history in the whole log). A Merkle node, a 64-byte input of the same oracle, may
 parse as a step and is one more entry of the log. The tests: the random oracle's answer to a fresh
 query is uniform, a repeated query is answered from the cache, the log of an honest chain (with a
 node beside it) gives back its blocks and states, also before the grinding base, and a collision,
@@ -896,20 +891,20 @@ level `0`), so `2^-128` after grinding.
 *On merge* of the charged-budgets pull request, the generic probability the random-oracle bound of
 `verify_knowledgeSound` (Layer 12, toward T4) consumes is on `main` beside the charged invariant
 (`ToVCVio/ChargedInvariant.lean`, `ToVCVio/UniformSample.lean`, `ToVCVio/EventExpectation.lean`).
-Budgets: `expected_charge_le_of_isQueryBound` (a charge paid by a query bound of VCVio's general
-form, its budget priced) and `expected_charge_le_sum` (a sum of components, component `j` at most
-`κ j` on the queries satisfying `p j` and zero elsewhere, has expected total at most
-`∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
-input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
+Since the Lean 4.35 bump, the charged invariant is VCVio's budgeted supermartingale bound
+`OracleComp.lintegral_run_le_of_isQueryBoundP` (VCVio #766) at a potential on the record of queries
+(`QueryHistory.lintegral_le_of_potential`). A step bound `κ` per fresh query, which need hold only
+within the budget of `n` queries, gives `Φ s + n * κ`. The per-kind budgets, the charged oracle
+and its expected-charge bounds of the charged-budgets pull request are deleted. The adversary's run
+is budgeted by its `Q` queries.
 The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
 `left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so
 `niError_le`'s term is `(Q + V)·2^-128`, not `(Q + rounds)·2^-128`, beside a `hashTerm` that
-already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
-event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
-on its bad event and of the second run's bound otherwise;
-`QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
-leaves, so the groups the adversary leaves open are counted once; the supremum form
-`prEvent_simulateQ_bind_le_add_iSup` would count them twice.
+already carries `Q + V`. Two runs in sequence: `QueryHistory.prEvent_bind_le_of_potential` takes
+`oa >>= ob` with `oa` within the budget, and the second run's event probability at most `Φ` plus
+`ε` from every reachable end of the first, and gives `Φ s + n * κ + ε`. The second run starts from
+the potential the first leaves, in expectation, so the groups the adversary leaves open are
+counted once; a supremum over the first run's ends would count them twice.
 Uniform laws: the first half of a bijection, coordinatewise on tuples, low digits, first entries,
 and digits in chunks are uniform. In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the
 challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` and
@@ -930,7 +925,7 @@ the probability `π` that it closes on one, and what one more clean query change
 (`flipAt_append`, `openGroups_append_subset`). `Protocol/RandomOracleBound.lean`: the potential
 `Φ` (the open groups' `π`, `1` off a clean log), the charge (`|B|/2^256` for the answers to avoid,
 plus the groups the query opens), `potential_step`, the step of
-`QueryHistory.potential_le_expected_charge`, and `charge_le`
+`QueryHistory.lintegral_le_of_potential`, and `charge_le`
 (`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
 generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
 `HashChain.history_dedupKeys`, `UniformCondition.lean`). `Protocol/HashMisbehaves.lean`:
@@ -1288,7 +1283,8 @@ theorem advances.
 - **Solved transcripts**: a transcript whose round polynomials pass their checks, each against its
   running claim (`RoundsSolved`, `BusSolved`, `TableSolved`, `FlockSolved`, `LevelSolved`,
   `FinalSolved`, `LadderSolved`, `WhirSolved`, and `Solved` for the whole protocol), which every
-  accepted transcript is (`*_of_check`, `whirSolved_of_run`). On a solved transcript the converse
+  accepted transcript is (`roundsSolved_of_check`, and each phase's file-local `*_of_check` or
+  `*_of_run`). On a solved transcript the converse
   holds: each phase's algebra is its oracle verifier's run (`*_of_solved`), the opening's guarded
   verifier accepts when WHIR's algebra does (`whirOpenGuarded_run_of_whirCheck`), and the compiled
   verifier accepts when the algebra does (`compiled_of_algebra`, `Compile/Agree.lean`).
@@ -1481,7 +1477,8 @@ Also owed:
   prover's query bound (`Prove.isTotalQueryBound_proveWith_closed`), and the honest run, the
   prover and then the verifier at one lazy random oracle, accepted except with the small
   probability of the grind bound below (`honestGame_rom_rejects_le`, through the run at the final
-  cache's answers, `evalWithAnswerFn_eq_of_mem_support_randomOracle`). What remains is to state them
+  cache's answers, VCVio's `QueryImpl.le_snd_of_mem_support_run_simulateQ_withCaching` and
+  `QueryCache.evalWithAnswerFn_eq_of_agreesWithFn`). What remains is to state them
   for `honestAdversary` in `loggedGame` and combine them with `misbehaves_rom`, which then forbids
   every accepted run flipping. `δ = 0` at BLAKE2s on the test vector stays open; only the first
   route below gives it. Two routes:
@@ -1629,30 +1626,29 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
-| ArkLib #615, #1295 (merged after the pin) | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | a verbatim copy of #1295 at the next refactor; deleted at the bump that contains it |
-| ArkLib's typed framework (its roadmap items 3–4; a knowledge notion since #1259–#1260) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
-| ArkLib #1263, #1264 (merged after the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
-| ArkLib #1349 (merged after the pin; #1245 closed unmerged) | none | the round-by-round-to-plain corollary, as guarded bridges, which no theorem here uses | reference only |
-| ArkLib #1413 (merged after the pin) | every `Security` field; the knowledge-soundness composition | the fixed-prefix names: `rbrKnowledgeSoundnessWorstCaseWith` becomes `rbrKnowledgeSoundnessWith` | at the bump that contains it, rename every consumer |
-| ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
-| ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
+| ArkLib's typed framework (knowledge certificates and their composition, #1259–#1260; knowledge, round-by-round and state-restoration notions, #1473–#1481; all at the pin) | the spine | the framework decision (decision 24) | its condition holds at the pin: the revisit is owed |
+| ArkLib #1263, #1264 (at the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
+| ArkLib #1349 (at the pin; #1245 closed unmerged) | none | the round-by-round-to-plain corollary, as guarded bridges, which no theorem here uses | reference only |
+| ArkLib #1244, #1382, #1391, #1128, #1129 | the sumchecks | the classical sumcheck repaired (the verifier evaluates the sent polynomial) and proved with round-by-round knowledge soundness, with unit weights and an existential extractor; honest round identities over one `MvPolynomial` | reference only |
+| ArkLib #1261, #1269, #1274, #1277, #1474 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness; #1474 (at the pin) states it as an interaction-layer protocol, perfectly complete, still without knowledge soundness | when the typed framework proves round-by-round knowledge soundness for it (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
-| ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
-| ArkLib's compiled snocs and appends of `Fin` tuples (ArkLib #1344, from `scaraven/ArkLib` branch `perf/fin-append-compiled-forms`, `f1a1e7deb`; merged on 2026-10-27 as `1beb99cc`, after the pin, with the same names); the pin's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `OracleInterface` instance) and `FullTranscript.append` | every phase run through `Prover.run` or an appended transcript | `ToArkLib/TupleCompiledForms.lean`, a verbatim copy of the proposal: `Fin.vconcat`, `Fin.fconcat`, `Fin.fconcat₂`, `Fin.hconcat`, `Fin.fappend`, `Fin.fappend₂` and `Fin.happend` read by one comparison, by `@[csimp]`; compiled as defined they are exponential in the length of the second tuple (261 s for 9 trivial sumcheck rounds, each prepended to the rest). `ToArkLib/AppendLazy.lean` compiles the pin's instances and `FullTranscript.append` again after them | a pin contains `1beb99cc` (49 commits past the pin, ArkLib there on Lean v4.35.0: a toolchain drift review); then delete both files, and their importers import `ArkLib.Data.Fin.Tuple.Lemmas` |
+| ArkLib #1256, #1257, #1289, #1319, #1325 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
-| VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
-| VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
-| VCVio #823, #824, #826 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
+| VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle; #858 (at the pin) gave salted trees binding on one shared oracle over a collision-free full table, with quantum random-oracle extraction, and a common-domain leaf and node encoding, not classical extraction from a log prefix |
+| VCVio #823, #824, #826 (at the pin) | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
+| ArkLib `SendSingleWitness.Adapter` (#1423, at the pin), `ReduceClaim.oracleReduction` | the spine's commit phase; every pass-through and map-witness step | `ToArkLib/SendOracle.lean`, `ToArkLib/PassThrough.lean`, `ToArkLib/MapWitness.lean` | consumed: the components are the upstream ones at the identity, with their proofs; the local modules package them as components and keep the pure forms the compiled verifier unfolds |
+| Clean #494 (open) | the adaptor; leanISA soundness | Clean sound channels for the counted memory and the bytecode, without which Clean's VM soundness theorems do not apply | when it merges |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 | ArkLib (none opened yet): generic upstream candidates written for this protocol | the phases' provers and verifiers, the Flock phase, the compiled verifier | `ToArkLib/`: cached honest provers and rounds (`CachedProver`, `CachedRounds`, `CachedSteps`, `SumcheckCached`, `ProductSumCached`, `GrandProductCached`, `ProductSumcheck`, `GrandProductRun`, `WeightCombination`); transcripts read back from a flat list of readings (`DecodeSteps`, `DecodeTranscript`, `StepSchedule`, `QueryRecord`, `ExtractIn`); oracle plumbing (`Oracles`, `KeepOracles`, `SendOracle`, `SendOracleBeside`, `MapWitness`, `PassCheck`, `PushSecurity`, `FrontRun`, `FrontVerifier`); a prover's run against a wire, carried along a monad morphism and counted (`RunCodecHom`, `RunCodecGrade`); the Flock argument (`Flock/BlockR1CS`, `Cached`, `CircuitFast`, `FrobeniusMap`, `Lincheck`, `Reduction`, `RingSwitch`, `Rounds`, `Run`, `Tables`, `Zerocheck`) | proposed upstream one module family at a time; each module deleted at the bump whose pin contains it |
-| CompPoly (none opened yet): generic polynomial algorithms | the honest provers' speed | `ToCompPoly/`: `AmbientStacking`, `BindStep`, `Doubling` (with its `lagrangeBasis`, `evalMle` and `eval₂Mle` substitutions), `EqBatch`, `FinLoop`, `Frobenius`, `HighSum`, `Interpolation`, `MvEval` (with its `CMvPolynomial.eval` and `eval₂` substitutions), `PlainSum`, `ProductLevels`, `TableFold` | as for ArkLib's |
-| VCVio (none opened yet): oracle-computation tools | the random-oracle theorems | `ToVCVio/`: `LogReplay` (replaying a logged run), `RandomOracleReplay` (a lazy random oracle's run is the computation at its final cache's answers), `ProofOfWork` (a proof-of-work search against a lazy random oracle runs out of candidates with small probability), `MerkleQueries` (the queries of a pruned opening's walk and of building a tree's levels), `QueryBound` (query bounds of `mapM`, and that one exists when every answer type is finite), `MonadRel` (relations preserved by `pure` and `bind`, and `Vector.mapM_hom`), `UniformCondition` | as for ArkLib's |
+| CompPoly (none opened yet): generic polynomial algorithms | the honest provers' speed | `ToCompPoly/`: `AmbientStacking`, `BindStep`, `Doubling` (with its `lagrangeBasis`, `evalMle` and `eval₂Mle` substitutions), `EqBatch`, `FinLoop`, `Frobenius`, `HighSum`, `Interpolation`, `MvEval` (with its `CMvPolynomial.eval` and `eval₂` substitutions), `PlainSum`, `ProductLevels`, `TableFold`. `ToCompPoly/Multilinear.lean`'s Boolean-point facts come from CompPoly #404 (`vertex`) since the Lean 4.35 bump | as for ArkLib's |
+| CompPoly #405 (at the pin): the coset additive NTT | the WHIR encoder | the proofs of `Whir/Transform.lean`, whose subspace-polynomial facts `NovelBasis.lean` already takes from #405 | CompPoly gains an executable `Vector`/`Array` network with its bridge to `network_ntt` |
+| VCVio (none opened yet): oracle-computation tools | the random-oracle theorems | `ToVCVio/`: `LogReplay` (replaying a logged run; `support_simulateQ_subset` is VCVio's `OracleComp.support_simulateQ_subset` since the Lean 4.35 bump), `ProofOfWork` (a proof-of-work search against a lazy random oracle runs out of candidates with small probability), `MerkleQueries` (the queries of a pruned opening's walk and of building a tree's levels), `QueryBound` (query bounds of `mapM`, and that one exists when every answer type is finite), `MonadRel` (relations preserved by `pure` and `bind`, and `Vector.mapM_hom`), `UniformCondition` | as for ArkLib's |
 
 Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
 budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
-(least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
+(least margin 128.19 bits), so `rs_mcaError_le_in_johnson_range`, proved since ArkLib #1369, is not needed
 ([whir-mca-budget.md](../reviews/whir-mca-budget.md)).
 
 The survey log kept here until 2026-09-29 is archived in

@@ -136,7 +136,7 @@ example : (toyCircuit.toBlockR1CS (ZMod 2)).Holds (liftBlock (ZMod 2) (fun _ ↦
   · have e : ∀ L : Form 8, L.eval (fun _ ↦ false) = false := fun L ↦ by
       apply toZ_injective
       rw [toZ_eval, Form.evalZ]
-      simp [toZ]
+      simp [show toZ false = 0 from rfl]
     rw [e, e]; rfl
   · have := congrFun h toyCircuit.cpos
     rw [traceF_cpos toy_bounded] at this

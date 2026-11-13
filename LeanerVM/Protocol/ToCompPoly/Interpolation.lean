@@ -9,6 +9,7 @@
 module
 
 public import Mathlib.LinearAlgebra.Lagrange
+import CompPoly.ToMathlib.Polynomial.Roots
 
 /-!
 # Interpolation at nodes
@@ -76,7 +77,7 @@ theorem lagrangeWeight_eq (x : Vector F N) (z : F) (i : Fin N) :
   rw [Finset.prod_mul_distrib, Finset.prod_inv_distrib, mul_comm]
 
 /-- The interpolated value is Mathlib's interpolant at `z`. -/
-theorem interpolateAt_eq (x v : Vector F N) (z : F) :
+private theorem interpolateAt_eq (x v : Vector F N) (z : F) :
     interpolateAt x v z =
       (Lagrange.interpolate Finset.univ (fun j : Fin N ↦ x[j]) (fun j : Fin N ↦ v[j])).eval z := by
   simp only [interpolateAt, Lagrange.interpolate_apply, eval_finsetSum, eval_mul, eval_C,
@@ -119,11 +120,10 @@ theorem card_interpolateAt_eq_le [Fintype F] [DecidableEq F] (x : Vector F N)
     have hlt : (Q - P).degree < N := (degree_sub_le Q P).trans_lt (max_lt hQdeg hP)
     have := (natDegree_lt_iff_degree_lt hne).mpr hlt
     omega
-  refine (Polynomial.card_le_degree_of_subset_roots (p := Q - P) ?_).trans hdeg
-  intro z hz
-  rw [Finset.mem_val, Finset.mem_filter] at hz
-  rw [Polynomial.mem_roots hne, Polynomial.IsRoot, eval_sub, hQ, ← interpolateAt_eq, hz.2,
-    sub_self]
+  calc _ = (Finset.univ.filter fun z ↦ (Q - P).eval (id z) = 0).card := by
+        simp only [id, eval_sub, sub_eq_zero, interpolateAt_eq, ← hQ]
+    _ ≤ _ := Polynomial.card_eval_zero_le_natDegree _ id (Set.injOn_id _) _ hne
+    _ ≤ N - 1 := hdeg
 
 end
 end LeanerVM.Protocol

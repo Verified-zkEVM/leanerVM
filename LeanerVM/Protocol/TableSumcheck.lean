@@ -204,7 +204,7 @@ def rowValueFast (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.1) → 
       hornerFin (fun i : Fin (I.constraints t.1).length ↦ evalRow (I.constraints t.1)[i] e) x.2 +
     ξB * hornerFin (fun s : Fin 3 ↦ formAt (x.1.2.forms s t) e) x.2
 
-theorem rowValueFast_eq (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.1) → E) :
+private theorem rowValueFast_eq (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.1) → E) :
     rowValueFast I x t e (x.2 ^ I.B) = rowValue I x t e := by
   rw [rowValueFast, rowValue, hornerFin_eq_sum, hornerFin_eq_sum, Finset.mul_sum, Finset.mul_sum]
   refine congrArg₂ (· + ·) ?_ ?_
@@ -482,10 +482,8 @@ theorem trueValues_eq_claimed_iff (s : I.Stmt × BusOut I) (q : Column I.μ) :
     · obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hC
       have := congrFun h (Fin.castAdd 3 (constraintPos I ⟨j, ⟨i, hi⟩⟩))
       simp only [trueValues, claimed, Fin.append_left] at this
-      rw [Equiv.symm_apply_apply] at this
-      exact this
-    · have := congrFun h (Fin.natAdd I.B side)
-      simpa [trueValues, claimed, formTotal] using this
+      rwa [Equiv.symm_apply_apply] at this
+    · simpa [trueValues, claimed, formTotal] using congrFun h (Fin.natAdd I.B side)
   · rintro ⟨hc, hf⟩
     funext k
     cases k using Fin.addCases with
@@ -591,8 +589,7 @@ theorem finalClaims_holds_iff (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Un
     rfl
   constructor
   · intro h
-    apply Vector.ext
-    intro k hk'
+    refine Vector.ext fun k hk' ↦ ?_
     exact (hk ⟨k, hk'⟩).mp (h _ (Vector.mem_toList_iff.mpr (Vector.getElem_mem hk')))
   · rintro hv c hc
     obtain ⟨k, hk', rfl⟩ := Vector.getElem_of_mem (Vector.mem_toList_iff.mp hc)

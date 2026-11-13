@@ -17,11 +17,11 @@ sends every witness valid for `R` to one valid for `S`. Knowledge of `R` then yi
 of `S` by applying the map to whatever an extractor returns: `map_option_valid` is that step on
 an extractor's output slot (a witness, or a failure), `Extractor.Straightline.map` is the same
 post-composition on ArkLib's straight-line extractor, and `knowledge_transport` is the
-probabilistic statement: in the same knowledge-soundness game, with the same provers and the
-same extractor, accepting while the mapped extracted witness is invalid for `S` has probability
-at most the knowledge error for `R`. It is stated as that event, not as
-`knowledgeSoundnessWith` for `S`: ArkLib's game fixes the malicious prover's input-witness type
-to the relation's, so the game for `S` is another game.
+probabilistic statement: in the knowledge-soundness game for `R`, with any prover and the same
+extractor, accepting while the mapped extracted witness is invalid for `S` has probability at
+most the knowledge error for `R`. It is stated as that event rather than as
+`knowledgeSoundnessWith` for `S` and `Extractor.Straightline.map`, which differs only in where
+the map is applied.
 -/
 
 namespace LeanerVM.Protocol
@@ -86,12 +86,13 @@ theorem Refinement.knowledge_transport {StmtOut : Type} {W₁ W₂ : Type}
     {E : Extractor.Straightline oSpec StmtIn W₁ WitOut pSpec} {ε : ℝ≥0} {σ : Type}
     {init : ProbComp σ} {impl : QueryImpl oSpec (StateT σ ProbComp)}
     (h : V.knowledgeSoundnessWith init impl R relOut E ε)
-    (stmtIn : StmtIn) (witIn : W₁) (prover : Prover oSpec StmtIn W₁ StmtOut WitOut pSpec) :
+    (stmtIn : StmtIn) {Aux : Type} (aux : Aux)
+    (prover : Prover oSpec StmtIn Aux StmtOut WitOut pSpec) :
     let pImpl : QueryImpl (oSpec + [pSpec.Challenge]ₒ) (StateT σ ProbComp) :=
       impl.addLift challengeQueryImpl
     let exec := do
       let ⟨⟨⟨transcript, ⟨_, witOut⟩⟩, stmtOut⟩, proveQueryLog, verifyQueryLog⟩
-        ← (Reduction.mk prover V).runWithLog stmtIn witIn
+        ← (Reduction.mk prover V).runWithLog stmtIn aux
       let extractedWitIn? ←
         liftM (E stmtIn witOut transcript proveQueryLog.fst verifyQueryLog).run
       return (stmtIn, extractedWitIn?, stmtOut, witOut)
@@ -99,7 +100,7 @@ theorem Refinement.knowledge_transport {StmtOut : Type} {W₁ W₂ : Type}
       (simulateQ pImpl exec.run).run' (← init)}[
         (∀ extractedWitIn ∈ extractedWitIn?, (stmtIn, f.map stmtIn extractedWitIn) ∉ S) ∧
           (stmtOut, witOut) ∈ relOut] ≤ ε := by
-  refine le_trans (prEvent_mono _ _ _ ?_) (h stmtIn witIn prover)
+  refine le_trans (prEvent_mono _ _ _ ?_) (h Aux stmtIn aux prover)
   rintro ⟨s, w?, t, w⟩ ⟨hbad, hout⟩
   exact ⟨fun w' hw' hR ↦ hbad w' hw' (f.map_valid s w' hR), hout⟩
 

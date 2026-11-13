@@ -126,7 +126,7 @@ def fold1M {m κ : ℕ} (c : E) (V : Msgs (m + 1) κ) : Msgs m κ := fun u ↦
     (V ⟨2 * u.val + 1, two_mul_lt (b := 1) u (by norm_num)⟩)
 
 /-- The two-lane word of the lane pair `2u, 2u + 1`. -/
-def pairF {b : ℕ} (F : LW b) (u : ℕ) : LW b := fun y i ↦ F y (2 * u + i)
+private def pairF {b : ℕ} (F : LW b) (u : ℕ) : LW b := fun y i ↦ F y (2 * u + i)
 
 /-- The event of mutual correlated agreement for a two-lane word and a fold `c`: on some set of
 at least `a` positions the fold agrees with the code while the two lanes do not agree with the
@@ -152,7 +152,7 @@ def ListBound (κ R a m L : ℕ) : Prop :=
 
 /-- Folds that are not bad for any lane pair lift: messages within `a` of the fold are the fold of
 messages within `a` of the word. -/
-theorem lift_fold {κ R a m : ℕ} (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) (c : E)
+private theorem lift_fold {κ R a m : ℕ} (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) (c : E)
     (F : LW (κ + R)) (hc : ∀ u : Fin (2 ^ m), ¬ McaBad κ R a (pairF F u) c)
     (V : Msgs m κ) (hV : Cl κ R a m (fold1W c F) V) :
     ∃ V₀ : Msgs (m + 1) κ, Cl κ R a (m + 1) F V₀ ∧ fold1M c V₀ = V := by

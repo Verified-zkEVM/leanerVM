@@ -134,6 +134,7 @@ import LeanerVMTests.Semantics.PaddedImageRefutation
 import LeanerVMTests.Semantics.PaddedRows
 import LeanerVMTests.Semantics.PaddedRun
 import LeanerVMTests.Semantics.PaddedTrace
+import LeanerVMTests.Semantics.RunTrace
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
 import LeanerVMTests.Semantics.Walk

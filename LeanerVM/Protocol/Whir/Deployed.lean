@@ -88,7 +88,7 @@ theorem deployed_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
   Option.isSome_of_any (deployed_any h)
 
 /-- The opening's stack has `μ` variables: the first level's folds and the variables it leaves. -/
-theorem deployed_vars {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
+private theorem deployed_vars {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     (deployed μ logInvRate).all (fun c ↦ c.κ + c.sh.ℓ == μ) := by
   obtain ⟨c, hc, hp⟩ := (Option.any_eq_true _ _).mp (deployed_any h)
   rw [hc]

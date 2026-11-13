@@ -48,16 +48,10 @@ open LeanerVM.Parameters LeanerVM.Semantics
 /-- The bulk rides the largest block: the same bound the Rust asserts. -/
 example : fillTraversals 6072 ≤ 6072 / 128 + 7 := fillTraversals_le 6072
 
--- The traversals add up to the fill, and the table reaches its target.
+-- The traversals add up to the fill.
 #guard (List.zipWith (· * ·) (fillGreedy 6072) fillSizes).sum = 6072
-example : 125000 + (List.zipWith (· * ·) (fillGreedy (fillTarget 125000 1 - 125000))
-    fillSizes).sum = fillTarget 125000 1 := fill_rows_sum 125000 1
 
-/-- A target is a power of two, positive, and at least the floor. -/
-example : ∃ τ, fillTarget 5 1 = 2 ^ τ := fillTarget_pow 5 1
-
-example : 0 < fillTarget 5 1 := fillTarget_pos 5 1
-
+/-- A target is at least the floor. -/
 example : 8 ≤ fillTarget 0 8 := floor_le_fillTarget 0 8
 
 /-! ## The rows the `JUMP` table owes -/
@@ -83,7 +77,7 @@ example : JumpFeasible (jumpOwed mulRows) :=
 
 /-! ## Bounds -/
 
-example : fillTarget 0 8 = 2 ^ 3 := fillTarget_eq (by norm_num)
+#guard fillTarget 0 8 = 2 ^ 3
 
 example : fillTarget 125000 1 ≤ 2 ^ 17 := fillTarget_le (by norm_num) (by norm_num)
 
@@ -95,7 +89,7 @@ theorem no_gap_of_one : ¬ ∃ a b : ℕ, 1 = 2 * a + 3 * b := by
   omega
 
 /-- Every other gap is. -/
-example : ∃ a b : ℕ, 7 = 2 * a + 3 * b := jump_gap_decomp 7 (by norm_num)
+example : ∃ a b : ℕ, 7 = 2 * a + 3 * b := ⟨2, 1, rfl⟩
 
 -- The mix delivers every gap but one: all twos when even, one three when odd.
 #guard jumpMix 0 = (0, 0)

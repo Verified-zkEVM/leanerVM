@@ -44,7 +44,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 abbrev toyVerifier := (leanVmVerifier (leanVmPhases toy toy_conditions)).toVerifier
 
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    toyVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy) (Seam.done toy)
+    toyVerifier.rbrKnowledgeSoundnessWith init impl (M3Rel toy) (Seam.done toy)
       (leanVmSecurity toy toy_conditions (by decide)).extraction.witMid
       (piopExtractor _ (leanVmSecurity toy toy_conditions (by decide)))
       ((leanVmSecurity toy toy_conditions (by decide)).extraction.kSF init impl) (piopError toy) :=
@@ -158,7 +158,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 abbrev blockyVerifier := (leanVmVerifier (leanVmPhases blocky blocky_conditions)).toVerifier
 
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    blockyVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel blocky) (Seam.done blocky)
+    blockyVerifier.rbrKnowledgeSoundnessWith init impl (M3Rel blocky) (Seam.done blocky)
       (leanVmSecurity blocky blocky_conditions (by decide)).extraction.witMid
       (piopExtractor _ (leanVmSecurity blocky blocky_conditions (by decide)))
       ((leanVmSecurity blocky blocky_conditions (by decide)).extraction.kSF init impl)

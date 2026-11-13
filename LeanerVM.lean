@@ -27,7 +27,6 @@ import LeanerVM.Arithmetization.Tables.Xor
 import LeanerVM.Arithmetization.WitnessGen
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
-import LeanerVM.Parameters.CleanField
 import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Flock
 import LeanerVM.Parameters.Generator
@@ -121,7 +120,6 @@ import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.StatementSeeds
 import LeanerVM.Protocol.TableSumcheck
-import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.CachedProver
 import LeanerVM.Protocol.ToArkLib.CachedRounds
@@ -153,10 +151,8 @@ import LeanerVM.Protocol.ToArkLib.GrandProductCached
 import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 import LeanerVM.Protocol.ToArkLib.GrandProductRun
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
-import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
-import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.MapOracles
 import LeanerVM.Protocol.ToArkLib.MapWitness
 import LeanerVM.Protocol.ToArkLib.McaJohnson
@@ -188,7 +184,6 @@ import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckCached
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
-import LeanerVM.Protocol.ToArkLib.TupleCompiledForms
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
@@ -226,8 +221,6 @@ import LeanerVM.Protocol.ToVCVio.MonadRel
 import LeanerVM.Protocol.ToVCVio.ProofOfWork
 import LeanerVM.Protocol.ToVCVio.QueryBound
 import LeanerVM.Protocol.ToVCVio.QueryLog
-import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
-import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformCondition
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript
@@ -290,7 +283,6 @@ import LeanerVM.Semantics.PaddedImage
 import LeanerVM.Semantics.PaddedRows
 import LeanerVM.Semantics.PaddedRun
 import LeanerVM.Semantics.PaddedTrace
-import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.Walk

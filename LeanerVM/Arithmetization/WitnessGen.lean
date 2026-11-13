@@ -469,6 +469,20 @@ the tables. Addresses are read through one table of powers, checked on every rea
   | none => none
   | some τ => witnessAt prog input t pcs P (runS ++ padSkels t.κ pcs (planCount rows τ))
 
+/-- The generator's run is the trace's skeletons, through any table of powers. -/
+private theorem runSkelsBy_readBy {prog : Program} {input : PublicInput} {t : Trace prog}
+    (h : ValidExecution prog input t) (P : PowTable) :
+    (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P)) t.steps Regs.initial
+      #[]).toList = t.runSkels :=
+  runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog P))
+    (executeWith_readBy (lt_of_le_of_lt h.1.2.1 (by decide)) t.image P)
+
+/-- The generator counts the trace's rows. -/
+private theorem countsOf_runSkels {prog : Program} (t : Trace prog) :
+    countsOf (skelCountTable t.runSkels) = t.runRows := by
+  rw [countsOf_skelCountTable]
+  exact funext t.count_runSkels
+
 /-- **Correctness of the witness generator**. On well-formed bytecode, every valid
 execution that fits gets a witness, which satisfies the constraint statement and represents the
 trace padded at the searched fill starts. -/
@@ -476,22 +490,13 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
     (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t) (hfit : t.Fits) :
     ∃ w, witnessGen prog input t = some w ∧ SatisfiedBy prog input w ∧
       AssignmentRepresents w (padTrace t (fillStarts prog)) := by
-  have hκ64 : t.κ < 64 := lt_of_le_of_lt h.1.2.1 (by decide)
-  have hrun : ∀ P, (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P))
-      t.steps Regs.initial #[]).toList = t.runSkels := fun P ↦
-    runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog P))
-      (executeWith_readBy hκ64 t.image P)
-  have hrows : countsOf (skelCountTable t.runSkels) = t.runRows := by
-    rw [countsOf_skelCountTable]
-    funext op
-    exact t.count_runSkels op
   obtain ⟨τ, hτeq⟩ := Option.isSome_iff_exists.mp (jumpHeight_isSome hfit.jump)
   obtain ⟨hτ, h1, h2⟩ := jumpHeight_spec hτeq
   have hcap : (padTrace t (fillStarts prog)).κ ≤ maxLogMem := hfit.room
   have hlen := padSkelsOf_length_le (pcs := fillStarts prog) hτ h1 h2 hfit
   refine ⟨_, ?_, padWitness_complete (fillStarts_spec hwf.hasFillBlocks) hτ h1 h2 h hfit hcap
     hlen⟩
-  simp only [witnessGen, hrun, hrows]
+  simp only [witnessGen, runSkelsBy_readBy h, countsOf_runSkels]
   rw [show jumpOwed t.runRows = t.owed from rfl, hτeq]
   have hcap' : t.κ + 1 ≤ maxLogMem := hcap
   have hlen' : (t.runSkels ++ padSkels t.κ (startsOf (fillStartTable prog))
@@ -518,16 +523,7 @@ theorem witnessGen_heights {prog : Program} {input : PublicInput} {t : Trace pro
     ∃ τ, jumpHeight t.owed = some τ ∧ ∀ j : Fin 6,
       (tableAt w ⟨j, by omega⟩).table.length =
         tableHeight t.runRows τ (fillTables.getD j .xor) := by
-  have hκ64 : t.κ < 64 := lt_of_le_of_lt h.1.2.1 (by decide)
-  have hrun : ∀ P, (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P))
-      t.steps Regs.initial #[]).toList = t.runSkels := fun P ↦
-    runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog P))
-      (executeWith_readBy hκ64 t.image P)
-  have hrows : countsOf (skelCountTable t.runSkels) = t.runRows := by
-    rw [countsOf_skelCountTable]
-    funext op
-    exact t.count_runSkels op
-  simp only [witnessGen, hrun, hrows] at hw
+  simp only [witnessGen, runSkelsBy_readBy h, countsOf_runSkels] at hw
   rw [show jumpOwed t.runRows = t.owed from rfl] at hw
   rcases hτ : jumpHeight t.owed with _ | τ
   · rw [hτ] at hw

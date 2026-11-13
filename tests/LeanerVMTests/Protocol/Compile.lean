@@ -9,8 +9,9 @@ and the Flock phase, once, and every check below runs on that one reading (`chec
 decodes to a transcript of its phase's oracle protocol, the dropped coefficients rebuilt from the
 running claims (`busTr?`, `tableTr?`, `pubTr`, `flockTr?`), and each transcript carries its wire
 back. The oracle verifiers of the bus phase, the table sumcheck and the public input accept their
-transcripts, with the executable's outputs where both are computed (`busStep_eq`,
-`tableStep_eq`, `pubStep_eq`); each phase starts from the oracle verifier's verdict before it.
+transcripts, with the executable's outputs where both are computed (the file-local `*Step_eq`
+lemmas of `LeanerVM.Protocol.Compile.Bus` and `LeanerVM.Protocol.Compile.Tables`); each phase
+starts from the oracle verifier's verdict before it.
 
 The decoding checks nothing; the mutations show that the checks are the verifiers'. A flipped
 descendant of the grand product and a zero count root decode, and both verifiers reject. A
@@ -22,7 +23,7 @@ flipped the executable rejects.
 
 The Flock phase's oracle verifier's lincheck walks the region's block R1CS (`BlockR1CS.rows`),
 `2^28` terms a matrix, which the executable replaces by `blake2sRows` (`blake2sRows_eq`,
-`leanVmFlock_eq`); that check is evaluated on the executable's side only.
+`blake2sRows_eq_region`); that check is evaluated on the executable's side only.
 -/
 
 namespace LeanerVMTests.Protocol.Compile

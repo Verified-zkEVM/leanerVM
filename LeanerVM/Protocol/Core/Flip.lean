@@ -203,10 +203,11 @@ private theorem squeezesOnly_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSp
   rintro ⟨k, hk⟩ hd tr
   by_cases hkm : k < m
   · rw [append_slot_left D₁ D₂ k hkm hk tr]
-    exact (h₁ _ (by rw [← append_dir_castAdd (pSpec₂ := pSpec₂) ⟨k, hkm⟩]; exact hd) _).slotMap _
+    exact (h₁ _ (by rw [← ChallengeTree.appendDir_left (pSpec₂ := pSpec₂) ⟨k, hkm⟩]; exact hd)
+      _).slotMap _
   · obtain ⟨j, rfl⟩ : ∃ j, k = m + j := ⟨k - m, by omega⟩
     rw [append_slot_right D₁ D₂ j (by omega) hk tr]
-    exact (h₂ _ _ (by rw [← append_dir_natAdd (pSpec₁ := pSpec₁)
+    exact (h₂ _ _ (by rw [← ChallengeTree.appendDir_right (pSpec₁ := pSpec₁)
       ⟨j, by omega⟩]; exact hd) _).slotMap _
 
 private theorem squeezesOnly_draws {C : Type} {s : Slot Reading C} (hs : ReadsOnlySqueezes s) :
@@ -360,21 +361,6 @@ section Cut
 
 variable {n : ℕ} {pSpec : ProtocolSpec n}
 
-private theorem run_succ_eq_some {D : SlotDecoder Reading pSpec} {j : ℕ} {hj : j + 1 ≤ n}
-    {l : List Reading} {tr : pSpec.Transcript ⟨j + 1, by omega⟩} {r : List Reading}
-    (h : D.run (j + 1) hj l = some (tr, r)) :
-    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) ∧
-      tr = Transcript.concat (m := ⟨j, hj⟩) x t := by
-  simp only [SlotDecoder.run, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-  obtain ⟨⟨t, l₁⟩, ht, ⟨x, r'⟩, hx, he⟩ := h
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-  exact ⟨t, l₁, x, ht, hx, rfl⟩
-
-private theorem take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
-    full.take j.succ.val j.succ.is_le =
-      Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
-  Fin.take_succ_eq_snoc j.val j.isLt full
-
 /-- **Where a challenge sits in a decoded history**: before it, a prefix the decoder reads
 exactly to the challenge; then its squeezes, whose digests give it; then the rest. -/
 private theorem challenge_cut {D : SlotDecoder Reading pSpec} {f : ChalSlots pSpec}
@@ -390,10 +376,9 @@ private theorem challenge_cut {D : SlotDecoder Reading pSpec} {f : ChalSlots pSp
   obtain ⟨r₂, hr₂⟩ := D.run_take hfull i.1.val (Nat.le_of_lt i.1.isLt)
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hp.symm.trans hr₂))
   have hxt : x = t i.1 := by
-    have h₁ := take_succ_eq_concat t i.1
     have h₂ : Transcript.concat (m := i.1) x (t.take i.1.val i.1.castSucc.is_le) =
         Transcript.concat (m := i.1) (t i.1) (t.take i.1.val i.1.castSucc.is_le) :=
-      he.symm.trans h₁
+      he.symm.trans (Fin.take_succ_eq_snoc i.1.val i.1.isLt t)
     have := congrArg (fun T ↦ T (Fin.last i.1.val)) h₂
     simp only [Transcript.concat_last] at this
     exact this
@@ -421,7 +406,8 @@ end Cut
 
 /-! ## The squeezes of a chain in a log -/
 
-private theorem squeezeRun_of_chain {l : hashSpec.QueryLog} (hc : QueryLog.Consistent l) :
+private theorem squeezeRun_of_chain {l : hashSpec.QueryLog}
+    (hc : OracleSpec.QueryLog.Consistent l) :
     ∀ (x : Digest) (ds : List Digest),
       (∀ e ∈ HashChain.queries Block.input x (squeezeBlocks ds), e ∈ l) →
       squeezeRun l x ds.length = ds
@@ -478,7 +464,7 @@ private theorem mem_queries_squeezes {x : Digest} {m : ℕ} (hm : 0 < m) (ds : F
   simp [squeezeBlocks, List.ofFn_succ, HashChain.queries, squeezeInput]
 
 /-- The challenge a transcript carries at `i` is bad at the prefix before it. -/
-def _root_.LeanerVM.Protocol.SlotReader.BadIn (R : SlotReader) {a : R.Ann}
+private def _root_.LeanerVM.Protocol.SlotReader.BadIn (R : SlotReader) {a : R.Ann}
     (tr : (R.spec a).FullTranscript) (i : (R.spec a).ChallengeIdx) : Prop :=
   challengeAt tr i ∈ R.Bad a i (prefixBefore tr i)
 
@@ -503,7 +489,8 @@ proof of work passing, and its history starts at that start: a flip on the chain
 group whose chain step is one of the history's steps, so that a log `lV` holding the history's
 steps asked it. -/
 private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotReader)
-    {l : hashSpec.QueryLog} {st : R.Stmt} {lV : hashSpec.QueryLog} (hc : QueryLog.Consistent l)
+    {l : hashSpec.QueryLog} {st : R.Stmt} {lV : hashSpec.QueryLog}
+    (hc : OracleSpec.QueryLog.Consistent l)
     (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest} (hσ : R.stmtAt l σ = some st) {a : R.Ann}
     {hist : List Reading}
     (hstates : ∀ x ∈ hist.map (·.2), R.isStart l x = false)
@@ -524,10 +511,7 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
       (D (R.wordsAt a l c)).decodePrefix c = (D W).decodePrefix c)
     {tr : (R.spec a).FullTranscript} (hdec : (D W).decode hist = some tr)
     (i : (R.spec a).ChallengeIdx) (hbad : R.BadIn tr i) : R.FlipAtForIn l st lV := by
-  have hcut := challenge_cut (hS W) (hO W) hP hdec i
-  obtain ⟨c, hcut⟩ := hcut
-  obtain ⟨ds₀, hcut⟩ := hcut
-  obtain ⟨rest, hl₀, hpre₀, hchal₀⟩ := hcut
+  obtain ⟨c, ds₀, rest, hl₀, hpre₀, hchal₀⟩ := challenge_cut (hS W) (hO W) hP hdec i
   have hpre : R.decodePrefix a (R.wordsAt a l c) c = some (R.prefixOf tr i) :=
     ((hD _ _).trans (hwords c _ hl₀)).trans hpre₀
   set ds : Fin (R.slot a i).m → Digest := fun j ↦ ds₀ (Fin.cast (hm i) j) with hds_def
@@ -659,7 +643,7 @@ bad at the prefix before it is closed on it, its proof of work passing, and its 
 `σ`: a flip on the chain of `(prog, input)`, on a group whose chain step is one of the history's
 steps, so that a log `lV` holding the history's steps, such as the verifier's, asked it. -/
 theorem flipAt_of_bad {prog : Program} {input : PublicInput} {l lV : hashSpec.QueryLog}
-    (hc : QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest}
+    (hc : OracleSpec.QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest}
     (hσ : stmtOf l σ = some (prog, input)) {a : Ann prog} {hist : List Reading}
     (hstates : ∀ x ∈ hist.map (·.2), stmtOf l x = none)
     (hchain : ∀ e ∈ HashChain.queries Block.input σ hist, e ∈ l)

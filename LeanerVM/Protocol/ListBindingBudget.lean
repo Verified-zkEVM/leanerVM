@@ -96,7 +96,7 @@ private theorem flockErrorOpt_le :
 theorem flockError_le_overE : ∀ i, flockError I i ≤ overE (2 ^ 31) := flockErrorOpt_le I I.flock
 
 /-- `L₀` times `x / |E|` is at most `2^-128` when `L₀ x ≤ 2^64`. -/
-theorem nsmul_overE_le {L₀ x : ℕ} (h : L₀ * x ≤ 2 ^ 64) : L₀ • overE x ≤ (2 ^ 128)⁻¹ := by
+private theorem nsmul_overE_le {L₀ x : ℕ} (h : L₀ * x ≤ 2 ^ 64) : L₀ • overE x ≤ (2 ^ 128)⁻¹ := by
   rw [nsmul_eq_mul, nat_mul_overE, ← natCast_div_card_eq_overE]
   exact natCast_div_card_le h
 

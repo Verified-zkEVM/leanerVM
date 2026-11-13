@@ -152,26 +152,18 @@ def CompressCells (m : Fin 4 → E) (cv0 cv1 out0 out1 md : E) : Prop :=
       compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
         (unpackMetadata md).2.1 (unpackMetadata md).2.2
 
-/-- `CompressCells` is decided by comparing the output *lists* of words: core's `DecidableEq` for
-`Vector` is not exposed to module-system importers, so neither `decide` nor the kernel can reduce
-it there, while `List` equality reduces. -/
+/-- `CompressCells` is decided conjunct by conjunct. -/
 instance {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E} :
-    Decidable (CompressCells m cv0 cv1 out0 out1 md) :=
-  decidable_of_iff
-    ((∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
-      IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md ∧
-      (cellWords out0 ++ cellWords out1).toList =
-        (compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-          (unpackMetadata md).2.1 (unpackMetadata md).2.2).toList)
-    (by simp only [CompressCells, Vector.toList_inj])
+    Decidable (CompressCells m cv0 cv1 out0 out1 md) := by
+  unfold CompressCells; infer_instance
 
 /-! ## Proof helpers -/
 
 /-- Splitting a `K` element into its two words and joining them again is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
+theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
   apply BF64.toBitVec_injective
-  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0) (len₁ := 32)
-    (start₂ := 32) (len₂ := 32) rfl
+  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0)
+    (len₁ := 32) (start₂ := 32) (len₂ := 32) rfl
   simpa [ofWords, lowWord, highWord] using this
 
 /-! ## Load-bearing lemmas -/

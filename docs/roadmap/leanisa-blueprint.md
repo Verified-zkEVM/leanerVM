@@ -107,9 +107,10 @@ cited section of a source. The tables below record the original implementation b
 leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
 `3468b38c`, Clean `93c9d1ef`, Lean `v4.33.1`.
 
-Current pins are in `upstreams.json` and [dependencies.md](../dependencies.md). That page
-records the 4.34 port: `BF64` now wraps its bit coordinates, wire literals use `K.ofBits`,
-and field enumeration is proof-only. The semantic source revision and limb encoding are retained.
+Current pins are in `upstreams.json` and [dependencies.md](../dependencies.md). Its
+[dependency boundaries](../dependencies.md#dependency-boundaries) record what the Lean 4.34 port
+changed: `BF64` wraps its bit coordinates, wire literals use `K.ofBits`, and field enumeration
+is proof-only. The semantic source revision and limb encoding are retained.
 
 ### The leanVM specification and implementation
 
@@ -154,22 +155,25 @@ whose bit encoding disagrees with `BF64` and is never used.
 
 ### Clean
 
-The Clean contract is at `ce2eee63` (upstream main, with fixed columns #446, direction-tagged
-multiset balance #493 and #495, and `Channel.Direction` and `VerifierM` out of the root namespace
-#497); Layers 5 to 10 were ported to it from `93c9d1ef`, where the
-channel pairs, `BalancedPair` and three named hypotheses of Layer 8 stood in for what Clean then
-lacked (status page, "Clean main").
+The Clean contract is at `6a2e7bb9` (upstream main, with fixed columns #446, direction-tagged
+multiset balance #493 and #495, `Channel.Direction` and `VerifierM` out of the root namespace
+#497, multiset balance without an interaction bound `21247235`, and per-circuit honest
+environments #511). Layers 5 to 10 were ported from `93c9d1ef`, where the channel pairs,
+`BalancedPair` and three named hypotheses of Layer 8 stood in for what Clean then lacked
+(status page, "Clean main"), to `ce2eee63` and then to `6a2e7bb9`, the merge commit of Clean
+PR #513, which removed Clean's copy of Batteries' `Vector.get_eq_getElem`.
 
 | Declaration | Contract used here |
 | --- | --- |
-| `FiniteField F` (`Clean/Utils/FiniteField.lean`) | The field interface every Clean object is generic over. Layer 0 supplies the `K` instance (`size = 2^64`). |
+| `FiniteField F` (`Clean/Utils/FiniteField.lean`), `instFiniteFieldBF64` (`Clean/Utils/BinaryField.lean`) | The field interface every Clean object is generic over. Clean supplies the `K` instance: `val` is the word's value, `fromNat` is `K.ofBits`, `size = 2^64` (Layer 0). |
 | `GeneralFormalCircuit F Input Output` with `name`, `Assumptions`, `Spec`, `ProverAssumptions`, `soundness`, `completeness` (`Clean/Circuit/Formal.lean`) | One per table and per boundary block. Soundness: constraints, the circuit's `Assumptions` and the guarantees of pulled tuples imply `Spec` and the requirements of pushed tuples. Completeness: an honest row satisfies the constraints and the pull guarantees. |
 | `Channel.Direction` (named here only through `abbrev BusDir`), `Channel F Message` with `name` and `Guarantees`, `Channel.pull`, `Channel.push`, `Channel.Direction.Requirements` (`Clean/Circuit/Channel.lean`, `Basic.lean`) | A bus channel; every interaction carries its direction as a tag, never as a multiplicity's sign. A pull of multiplicity `1` is granted `Guarantees`; an active push owes them. leanISA has three channels, one per bus (Layer 5). |
-| `ProverData F` (`Clean/Circuit/Expression.lean`), `ProverData.getRows` | The string-keyed store a component's `Spec` sees; in a witness it is derived from the tables' input rows, the image being the memory block's `"mem"` rows (Layer 5). The program is never in it. |
+| `ProverData F` (`Clean/Circuit/Expression.lean`), `ProverData.getRows` | The store a component's `Spec` sees, a structure of string-keyed `tables` and the `publicInput`; in a witness its `tables` are derived from the witness tables' input rows, the image being the memory block's `"mem"` rows (Layer 5). The program is never in it. |
 | `ProvableStruct`, its deriving handler, `toElements` (`Clean/Circuit/Provable.lean`) | Typed messages as flat element vectors: `toElements` lists the fields in declaration order, a `Vector F n` field as its `n` elements in place. |
 | `Air.Flat.Component` with `generation` (`demand`, `preallocated`), `Assumptions`, `circuit_assumptions_of_assumptions`; `Air.Flat.Table` with `fixed_rows_match`, `data_consistent` (`Clean/Air/FlatComponent.lean`, `WitnessGeneration/Generation.lean`) | A component is one row circuit checked on every row. A preallocated component has a fixed height and fixed cells, verifier-known columns that every row agrees with; its circuit's `Assumptions` are derived from those cells and the derived data. The two blocks are preallocated; the six tables carry a guardless demand mode (`opcodeGeneration`) only because a component needs a `generation`: with Clean's default guard accepting every message, all six tables accept every pushed state, and Clean's generator stops at the first with `ambiguousDemand` (`findAnswer`), so it is metadata, not a witness generator. No theorem uses Clean's witness generator; the completeness witness is built from the trace, and computed by leanISA's own generator `witnessGen`. |
 | `Air.Flat.Ensemble`, `EnsembleWitness`, `deriveProverData`, `EnsembleWitness.Constraints`, `EnsembleWitness.Balanced` (`Clean/Air/FlatEnsemble.lean`); `Verifier.Program` (`Clean/Air/Verifier.lean`) | The multi-table carrier with unique component and channel names, the derived data, "every component's constraints hold on every row", and a balance check on every channel. The verifier is a program of interactions, not a component. |
-| `Balance.multiset`, `activeMessages` (`Clean/Air/Balance.lean`) | Balance over `K`: multiplicities `0` or `1`, fewer than `2^64` interactions per channel, and the active pushes' messages a permutation of the active pulls' (Layer 8). |
+| `FormalCircuitBase.proverEnvironment`, `constraintsHold_of_usesLocalWitnesses` (`Clean/Circuit/Foundations.lean`) | The honest prover environment of a circuit on an input over the data: the input in the first cells, the witnesses as the circuit's witness programs compute them. `jump_exec_complete` is stated in it (Layer 6). |
+| `Balance.multiset`, `activeMessages` (`Clean/Air/Balance.lean`) | Balance over `K`: multiplicities `0` or `1`, and the active pushes' messages a permutation of the active pulls' (Layer 8). It bounds no number of interactions. |
 | `Air.Flat.Component.weakSoundness`, `Table.circuitAssumptions_of_assumptions` | Per-row soundness, used by Layer 10 with the rows' assumptions from the BLAKE2s validity and the derived data's shape. |
 
 Not consumed: `Balance.logUp` (a field sum, which over `K` admits at most one interaction,
@@ -215,7 +219,7 @@ the state channel's walk decomposition is Layer 9's.
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
 | Numerals over `K` | At the current CompPoly pin, `K` wraps `BitVec 64` and natural casts follow characteristic two: `(2 : K) = 0`. Use `K.ofBits` for encoded wire words; the generator is `K.ofBits 2`. Historical E6 describes the previous bare-`BitVec` representation. |
-| Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (`ite_feq`, applied as a `↓` simp lemma). |
+| Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (a lemma on the conditional, applied as a `↓` simp lemma). |
 | Large witnesses | A block of `2^κ_mem` rows is a `List.ofFn` no proof enumerates: its facts are stated through equation lemmas and `getElem?` (`memBlock_rows`, `imageOf_apply`), an `imageOf` equality is proved once and substituted, and a conjunct with dependent binders over `imageOf w.data` is proved for a destructured witness by `subst`, never by `rw`; a definitional comparison of a stuck projection against a `List.ofFn`/`Array.ofFn`, or of the data's log-size against a numeral, evaluates the block in both the elaborator and the kernel (status finding E8). The kernel reads a table's interactions through `Component.rowOperations` (`table_interactions_eq`), never `Component.operations`. |
 | Row closed forms | What a row sends is proved once per component, by one `simp` over a row variable `x` with `eval env x = r` (`xor_sends_gen` and its siblings, `Arithmetization/Messages.lean`), as arrays of the typed row's fields; soundness (`Arithmetization/Rows.lean`) and completeness both specialize these closed forms, at Clean's `varFromOffset` and at honest rows, and no column index is computed. A projection of an evaluated vector left under a product in `K` makes the kernel unfold `K` multiplication, and in a `module` the check does not return (status finding E9). |
 | Module system | Production declaration files use Lean `module`s, including the Clean bridges now that Clean itself is modular. Kernel-evaluation tests and root aggregates stay classic for full-body access and axiom inspection. |
@@ -230,8 +234,9 @@ available is written as a block comment at its place (see
 
 ### Layer 0: fields, limbs, and the generator
 
-`LeanerVM/Parameters/Field.lean`, `LeanerVM/Parameters/Generator.lean`, and, for Clean's field
-interface, the plain file `LeanerVM/Parameters/CleanField.lean`.
+`LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`. Clean's field
+interface for `K` is Clean's own instance, checked in the plain test file
+`tests/LeanerVMTests/Parameters/CleanField.lean`.
 
 Define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, and
 `E.ofCell v = E.ofLimbs v[0] v[1] 0` (the canonical cell shape `BLAKE2S` consumes) as
@@ -247,20 +252,14 @@ E.ofLimbs (…)`, the twelve products over nine limb pairs folded by `y^3 = y + 
 `y_pow_three`; Rust `TOWER_LANES`). A row's three-limb column `v` is always the word
 `E.ofLimbs v[0] v[1] v[2]`; there is no second spelling.
 
-Supply Clean's field interface for `K` and prove it introduces no second field structure:
+Clean's field interface for `K` is `instFiniteFieldBF64` (`Clean.Utils.BinaryField`): `val` is
+the word's value, `fromNat` the wire decoding, `size = 2^64`. Check that it decodes as Layer 0
+does and introduces no second field structure:
 
 ```lean
-instance : FiniteField K where
-  val := BitVec.toNat
-  fromNat n := BitVec.ofNat 64 n
-  size := 2 ^ 64
-  val_lt x := x.isLt
-  val_injective := fun _ _ h ↦ BitVec.eq_of_toNat_eq h
-  val_fromNat n hn := by simp [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn]
-  val_zero := rfl
-  val_one := rfl
-
-example : (@FiniteField.toField K _ : Field K) = inferInstance := rfl
+example : FiniteField.size K = 2 ^ 64 := rfl
+example : (FiniteField.fromNat : ℕ → K) = K.ofBits := rfl
+example : (instFiniteFieldBF64.toField : Field K) = BF64.instField := rfl
 ```
 
 Define the generator and certify its order:
@@ -670,12 +669,12 @@ executes from the row's own columns, never a program:
   `ProverAssumptions` of the honest row over the data; `*_exec_complete` pushes it through
   `completeness` over the data: every valid execution of the opcode has a satisfying row, from
   the execution alone, its constraints holding in `rowEnv data` (no witness slots, the data)
-  or, for `JUMP`, in `jumpEnv data r`. A step of a program that fetches the instruction is such
-  an execution (`execute_of_step`). `BLAKE2S` also states `blake2sRow_complete`, local
-  completeness of any bound row with the compression unchecked: the boundary with Flock, as a
-  theorem. An executable, data-aware generator is T2's, against these theorems: Clean's
-  `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`), and the kernel does not
-  reduce it.
+  or, for `JUMP`, in Clean's honest environment `jumpTable.proverEnvironment r data default`.
+  A step of a program that fetches the instruction is such an execution (`execute_of_step`).
+  `BLAKE2S` also states `blake2sRow_complete`, local completeness of any bound row with the
+  compression unchecked: the boundary with Flock, as a theorem. An executable, data-aware
+  generator is T2's, against these theorems: Clean's `Circuit.witgen` takes the data, but the
+  kernel does not reduce it.
 - A table file states nothing beyond this (review follow-up, 2026-09-14): what its bytecode
   tuple decodes to is Layer 4's (`decode_entry`, `decode_deref_eq_some_iff`), and one-line
   corollaries of `soundness` and `completeness` (the returned successor, a row's acceptance,
@@ -760,10 +759,10 @@ Table-specific targets, each the opcode's equation and successor rule of `*_refi
   `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`, a function of the witness `b`, which is why a
   table returns its successor rather than naming it in `Spec` from the row. The specification
   does not mention `w`: with `v_cond = 0` every `w` satisfies the residuals. Prove
-  `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1`, `flags_complete`,
-  and `jump_env_iff` (an environment uses the two witnesses exactly when slots `offset`,
-  `offset + 1` hold the honest inverse and indicator); `jumpEnv data r` is that environment
-  for a row over its data, in which `jump_exec_complete` is stated.
+  `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1` and `flags_complete`.
+  `jump_exec_complete` is stated in Clean's honest environment
+  `jumpTable.proverEnvironment r data default`, whose slots after the row hold the honest
+  inverse and indicator, and closed by Clean's `constraintsHold_of_usesLocalWitnesses`.
 - **BLAKE2S.** The bindings are the nine canonical cell reads (`E.ofCell`, third coordinate
   `0`); `Blake2sSpec` expands to the bindings, `Blake2sRelation r` (`CompressCells` on the nine
   cells) and `(g·pc, fp)`. The Flock relation stays the named `Assumptions` field
@@ -784,9 +783,10 @@ limb (`XOR`, `MUL_NATIVE`), a changed immediate the cell does not hold (`SET_CON
 non-canonical cell (`BLAKE2S`) failing the constraints `main` emits in every environment over
 the data, read back through `soundness`; an `XOR` row with honest reads at another counter
 accepted, the program being the bus's (decision 14); the two `JUMP` residuals rejecting the
-wrong witness `b = 1` at `v_cond = 0` (`flags_sound`); Clean's `Circuit.witgen` computing the
-two `JUMP` witnesses `jumpEnv` holds (compiled); and the `BLAKE2S` boundary, a bound and locally
-complete row (`blake2sRow_complete`) whose canonical output is not the compression, failing
+wrong witness `b = 1` at `v_cond = 0` (`flags_sound`); the two `JUMP` witness slots of Clean's
+honest environment, and Clean's `Circuit.witgen`, computing the honest inverse and indicator
+(compiled `#guard`); and the `BLAKE2S` boundary, a bound and locally complete row
+(`blake2sRow_complete`) whose canonical output is not the compression, failing
 `Blake2sRelation` and `Blake2sSpec`.
 
 ### Layer 7: the boundary blocks
@@ -1050,9 +1050,10 @@ theorem bytecodeBlock_rows (w) :
 /-- With the memory cap, the one conjunct that makes Clean's `w.Assumptions` (Layer 10). -/
 theorem assumptions_of_blake2sRowsValid (hκ : κ ≤ maxLogMem) : Blake2sRowsValid w → w.Assumptions
 theorem assignmentRepresents_image : AssignmentRepresents w t → imageOf w.data = ⟨t.κ, t.image⟩
-theorem rowAt_toElements (data) (r : Row K) :
-    valueFromOffset Row 0 (Environment.fromArray (toElements r).toArray data) = r
-theorem memRowAt_toElements, blake2sRowAt_toElements                 -- its two instances
+theorem fromElements_rowPrefix (r : Row K) :
+    fromElements (Air.Flat.rowPrefix (size Row) (toElements r).toArray) = r
+-- two instances of Clean's `ProvableType.valueFromOffset_zero_fromInput_eq`:
+theorem memRowAt_toElements, blake2sRowAt_toElements
 theorem mem_tables_iff : t ∈ w.tables ↔ ∃ j : Fin 8, tableAt w j = t
 theorem tableAt_component (j) : (tableAt w j).component = (leanIsaEnsemble prog κ).tables[j]
 
@@ -1090,17 +1091,18 @@ def witnessOfTables (prog : Program) (κ : ℕ) (pi : PublicIO K) (ts : List (Ai
   decidable equality, and a classical filter would make no balance decidable in a test.
   `memRowAt w row`, `bytecodeRowAt w row` and `blake2sRowAt w row` are Clean's
   `Component.rowInput` for the three components whose rows the statement and its consumers read:
-  the first `size Row` cells of a raw row, a missing cell `0`; `rowAt_toElements` says a row
-  written from a typed row reads back as it. `w.tables` is read by position (`tableAt`,
+  the first `size Row` cells of a raw row, a missing cell `0`; Clean's
+  `ProvableType.valueFromOffset_zero_fromInput_eq` says a row written from a typed row reads
+  back as it (`memRowAt_toElements`, `blake2sRowAt_toElements`; `fromElements_rowPrefix` for
+  the prefix of a raw row). `w.tables` is read by position (`tableAt`,
   `mem_tables_iff`, `tableAt_component`); the ensemble's order is the one guard of the indices
   `5`, `6`, `7`.
 - **Balance** is Clean's `Balance.multiset` on every channel (`balanced : w.Balanced
-  .multiset`): every multiplicity `0` or `1`, fewer than `2^64` interactions on the channel, and
-  the active pushes' messages a permutation of the active pulls', counted in `ℕ` (§5.1
-  "Balance"; acceptance test 14), never a field sum. `SatisfiedBy.perm` reads it as a
-  `List.Perm` of `messagesOn`, the form Layer 9 consumes. Every interaction of the ensemble has
-  multiplicity `1` (Layer 5), so the multiset of active messages is the multiset of
-  interactions, and the direction of an interaction is its tag.
+  .multiset`): every multiplicity `0` or `1`, and the active pushes' messages a permutation of
+  the active pulls', counted in `ℕ` (§5.1 "Balance"; acceptance test 14), never a field sum.
+  `SatisfiedBy.perm` reads it as a `List.Perm` of `messagesOn`, the form Layer 9 consumes.
+  Every interaction of the ensemble has multiplicity `1` (Layer 5), so the multiset of active
+  messages is the multiset of interactions, and the direction of an interaction is its tag.
 - **The verifier's checks.** `CountsNonzero` is the nonzero count product (§6.2 "The count
   product"): the count channel of `layout.rs:73` and `:397-413` stacks the *read-count columns
   of the six tables* and nothing else, so the conjunct quantifies over the pulls of
@@ -1516,7 +1518,7 @@ work, the Flock integration (#3), and the `Protocol` layer consume them and do n
 step, a table, or a balance predicate under another spelling.
 
 ```text
-Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  E.ofCell  IsInK  IsCanonical128  instFiniteFieldK
+Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  E.ofCell  IsInK  IsCanonical128
                   limb_add  limb_zero  ofK_add  ofK_mul  ofK_eq_ofLimbs  isInK_ofLimbs
                   ofLimbs_of_isInK  ofLimbs_eq_zero_iff  add_limbs  mul_limbs
                   g  gpow  orderOf_g  gpow_injOn
@@ -1559,7 +1561,6 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   jumpRowOf_refines  blake2sRowOf_refines  blake2sRow_complete
                   xor_exec_complete  mul_exec_complete  set_exec_complete  deref_exec_complete
                   jump_exec_complete  blake2s_exec_complete
-                  jumpEnv  jump_env_iff
                   storeCoords_eval  flags_sound  flags_complete
                   PublicIO  PublicIO.ofInput  BytecodeRow
                   gpowCell  gpowCell_eval  gpowCell_idx_eval  entryCell  entryCell_eval
@@ -1574,7 +1575,7 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   blake2sComponent
                   leanIsaEnsemble  tableAt  blake2sRows  memBlockRows  bytecodeBlockRows
                   messagesOn  rowMessagesOn  memRowAt  bytecodeRowAt  blake2sRowAt
-                  rowAt_toElements  memRowAt_toElements  blake2sRowAt_toElements
+                  fromElements_rowPrefix  memRowAt_toElements  blake2sRowAt_toElements
                   mem_tables_iff  tableAt_component  table_data  tableAt_data
                   memRows_size  memBlock_rows  bytecodeBlock_rows  imageOf_data_fst
                   Blake2sRowsValid  assumptions_of_blake2sRowsValid

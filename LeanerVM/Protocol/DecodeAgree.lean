@@ -26,8 +26,7 @@ reads it at (`ProofRoots.rootOffsets readingCounts`).
 two decoders' slots read alike (`AgreeAt.run`: they run alike). Words that agree on every word whose
 root lies within the history (`WordsAgree N W W'`) give decoders that agree from reading `0`
 (`agreeAt_compiledDec`), hence `decodePrefix_words_congr`: a history decodes to the same transcript
-prefix with either. With one family of words, a history's prefix decodes to the first rounds of the
-history's decoded transcript (`decodePrefix_take`).
+prefix with either.
 -/
 
 namespace LeanerVM.Protocol
@@ -51,15 +50,16 @@ def ReadsN (D : SlotDecoder Reading pSpec) (N : ℕ) : Prop := readGrade.P D.toS
 theorem ReadsN.of_eq {D : SlotDecoder Reading pSpec} {N N' : ℕ} (h : ReadsN D N) (e : N = N') :
     ReadsN D N' := e ▸ h
 
-theorem readsN_empty {pSpec : ProtocolSpec 0} : ReadsN (empty : SlotDecoder Reading pSpec) 0 :=
+private theorem readsN_empty {pSpec : ProtocolSpec 0} :
+    ReadsN (empty : SlotDecoder Reading pSpec) 0 :=
   readGrade.pure _
 
-theorem readsN_single {pSpec : ProtocolSpec 1} {s : Slot Reading (pSpec.«Type» 0)} {k : ℕ}
+private theorem readsN_single {pSpec : ProtocolSpec 1} {s : Slot Reading (pSpec.«Type» 0)} {k : ℕ}
     (hs : readGrade.P s k) : ReadsN (single s) k := by
   rw [ReadsN, toSlot_single]
   exact readGrade.map hs _
 
-theorem readsN_append {m n₂ : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n₂}
+private theorem readsN_append {m n₂ : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n₂}
     {D₁ : SlotDecoder Reading pSpec₁} {D₂ : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂}
     {N₁ N₂ : ℕ} (h₁ : ReadsN D₁ N₁) (h₂ : ∀ t, ReadsN (D₂ t) N₂) :
     ReadsN (D₁.append D₂) (N₁ + N₂) := by
@@ -67,12 +67,12 @@ theorem readsN_append {m n₂ : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Pro
   exact readGrade.of_eq (readGrade.bind h₁ fun t ↦ readGrade.bind (h₂ t) fun _ ↦ readGrade.pure _)
     rfl
 
-theorem readsN_draws {C : Type} {s : Slot Reading C} (hs : readGrade.P s 1) :
+private theorem readsN_draws {C : Type} {s : Slot Reading C} (hs : readGrade.P s 1) :
     ∀ k, ReadsN (SlotDecoder.draws s k) k
   | 0 => readsN_empty
   | k + 1 => readsN_append (readsN_draws hs k) fun _ ↦ readsN_single hs
 
-theorem readsN_rounds {C σ : Type} {d : ℕ} {poly : σ → Slot Reading (Vector C (d + 1))}
+private theorem readsN_rounds {C σ : Type} {d : ℕ} {poly : σ → Slot Reading (Vector C (d + 1))}
     {chal : σ → Slot Reading C} {next : σ → (roundSpec C d).FullTranscript → σ}
     (hp : ∀ a, readGrade.P (poly a) d) (hc : ∀ a, readGrade.P (chal a) 1) :
     ∀ (a : σ) (m : ℕ), ReadsN (SlotDecoder.rounds poly chal next a m) (m * (d + 1))
@@ -146,7 +146,7 @@ private theorem decodeAt_congr {D D' : SlotDecoder Reading pSpec} {l : List Read
     simp only [D.decodeAt_eq_some, D'.decodeAt_eq_some, h]
 
 /-- **Decoders that run alike decode the same prefix.** -/
-theorem decodePrefix_congr {D D' : SlotDecoder Reading pSpec} {l : List Reading}
+private theorem decodePrefix_congr {D D' : SlotDecoder Reading pSpec} {l : List Reading}
     (h : ∀ k (hk : k ≤ n), D.run k hk l = D'.run k hk l) :
     D.decodePrefix l = D'.decodePrefix l := by
   have hd := decodeAt_congr h
@@ -173,7 +173,7 @@ variable {m n₂ : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n�
 
 /-- **Appended decoders agree** when the first parts agree and, from where the first part ends,
 the second parts do. -/
-theorem agreeAt_append {D₁ D₁' : SlotDecoder Reading pSpec₁}
+private theorem agreeAt_append {D₁ D₁' : SlotDecoder Reading pSpec₁}
     {D₂ D₂' : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂} {p N N₁ : ℕ}
     (h₁ : AgreeAt D₁ D₁' p N) (hN : ReadsN D₁ N₁) (h₂ : ∀ t, AgreeAt (D₂ t) (D₂' t) (p + N₁) N) :
     AgreeAt (D₁.append D₂) (D₁'.append D₂') p N := by
@@ -331,7 +331,7 @@ private theorem readsN_flockDecOf (k : ℕ) : ReadsN (flockDecOf k) (readingCoun
       ring)
 
 /-- The readings of the Flock slot: the Flock phase's, or none. -/
-def flockReadings {I : M3Instance} : Option (FlockRegion I.toShape) → ℕ
+private def flockReadings {I : M3Instance} : Option (FlockRegion I.toShape) → ℕ
   | none => 0
   | some r => readingCounts.flock r.kBatch
 
@@ -341,7 +341,7 @@ private theorem readsN_flockDec (I : M3Instance) :
   | some r => readsN_flockDecOf r.kBatch
 
 /-- The readings of the front of the compiled protocol. -/
-def frontReadings (I : M3Instance) (input : I.Stmt) : ℕ :=
+private def frontReadings (I : M3Instance) (input : I.Stmt) : ℕ :=
   readingCounts.setup + readingCounts.bus I.μBus I.busClaims +
     readingCounts.tables I.τmax I.tableColumns +
     readingCounts.pub (PublicInput.sentCount I (I.publicLines input)) + flockReadings I.flock +
@@ -432,7 +432,7 @@ private theorem agreeAt_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) 
 /-- **The compiled decoder agrees** at words that agree on every word whose root lies within the
 history: the level-0 word, read with the commitment's root at readings `8` and `9`, and each later
 level's, its root at the reading offset after the front and the levels before it. -/
-theorem agreeAt_compiledDec (I : M3Instance) (hI : Bus.Conditions I) (input : I.Stmt)
+private theorem agreeAt_compiledDec (I : M3Instance) (hI : Bus.Conditions I) (input : I.Stmt)
     (ann : List E) (c : Chain) (W W' : Words c) {N : ℕ} (h0 : 10 ≤ N → W.level0 = W'.level0)
     (hL : LaterAgree N c.ladder
       (levelRootOffsets readingCounts (frontReadings I input + 2) c.ladder.shapes) W.later
@@ -490,16 +490,6 @@ theorem decodePrefix_words_congr {W W' : LeanWords prog s hs ρ hρ} {hist : Lis
   refine decodePrefix_congr ((agreeAt_compiledDec _ _ _ _ _ W W' h.1 ?_).run (Nat.zero_add _))
   rw [← whirStart_eq_frontReadings]
   exact h.2
-
-/-- **A prefix decodes to the prefix of the decode**: with one family of words, the transcript
-prefix a history's prefix decodes to is the decoded transcript's first rounds. -/
-theorem decodePrefix_take {W : LeanWords prog s hs ρ hρ} {hist rest : List Reading}
-    {t : (deployedSpec Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ).FullTranscript}
-    {i : Fin _} {tr : (deployedSpec Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ).Transcript i}
-    (ht : DecodeChain.decode prog input s hs ρ hρ W (hist ++ rest) = some t)
-    (h : DecodeChain.decodePrefix prog input s hs ρ hρ W hist = some ⟨i, tr⟩) :
-    FullTranscript.take i.val i.is_le t = tr :=
-  (decoder prog input s hs ρ hρ W).decode_eq_of_decodePrefix ht h
 
 end Deployed
 

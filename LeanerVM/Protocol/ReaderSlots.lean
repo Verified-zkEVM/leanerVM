@@ -78,9 +78,6 @@ def cast {C' : Type} (e : C = C') (u : UniformSlot C) : UniformSlot C' where
 
 @[simp] theorem m_cast {C' : Type} (e : C = C') (u : UniformSlot C) : (u.cast e).m = u.m := rfl
 
-private theorem assemble_cast {C' : Type} (e : C = C') (u : UniformSlot C) (ds : Fin u.m → Digest) :
-    (u.cast e).assemble ds = _root_.cast e (u.assemble ds) := rfl
-
 /-- The squeeze slot of `u` on any sampler of its type: uniform samplers agree. -/
 def slotAt (u : UniformSlot C) (inst : SampleableType C) : @SqueezeSlot C inst :=
   @SqueezeSlot.mk C inst u.m u.assemble fun p ↦
@@ -90,14 +87,6 @@ def slotAt (u : UniformSlot C) (inst : SampleableType C) : @SqueezeSlot C inst :
 end UniformSlot
 
 /-! ## Families over a schedule's challenges -/
-
-theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    (i : Fin m) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.castAdd n i) = pSpec₁.dir i := by
-  simp only [Fin.vappend_eq_append, Fin.append_left]
-
-theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    (j : Fin n) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.natAdd m j) = pSpec₂.dir j := by
-  simp only [Fin.vappend_eq_append, Fin.append_right]
 
 /-- A uniform slot for every challenge round of a schedule. -/
 abbrev ChalSlots {n : ℕ} (pSpec : ProtocolSpec n) : Type :=
@@ -120,13 +109,15 @@ variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 def append (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) : ChalSlots (pSpec₁ ++ₚ pSpec₂) :=
   Fin.addCases (motive := fun k ↦
       (pSpec₁ ++ₚ pSpec₂).dir k = .V_to_P → UniformSlot ((pSpec₁ ++ₚ pSpec₂).«Type» k))
-    (fun i h ↦ (f₁ i (by rwa [append_dir_castAdd] at h)).cast (append_Type_castAdd i).symm)
-    (fun j h ↦ (f₂ j (by rwa [append_dir_natAdd] at h)).cast (append_Type_natAdd j).symm)
+    (fun i h ↦ (f₁ i (by rwa [ChallengeTree.appendDir_left] at h)).cast
+      (append_Type_castAdd i).symm)
+    (fun j h ↦ (f₂ j (by rwa [ChallengeTree.appendDir_right] at h)).cast
+      (append_Type_natAdd j).symm)
 
 theorem append_left (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (i : ℕ) (hi : i < m)
     (h : i < m + n) (hd : (pSpec₁ ++ₚ pSpec₂).dir ⟨i, h⟩ = .V_to_P) :
     append f₁ f₂ ⟨i, h⟩ hd = (f₁ ⟨i, hi⟩ (by
-        rw [← append_dir_castAdd (pSpec₂ := pSpec₂)]; exact hd)).cast
+        rw [← ChallengeTree.appendDir_left (pSpec₂ := pSpec₂)]; exact hd)).cast
       (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, hi⟩).symm := by
   unfold append
   exact congrFun (Fin.addCases_left (motive := fun k ↦
@@ -136,7 +127,7 @@ theorem append_left (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (i :
 theorem append_right (f₁ : ChalSlots pSpec₁) (f₂ : ChalSlots pSpec₂) (j : ℕ) (hj : j < n)
     (h : m + j < m + n) (hd : (pSpec₁ ++ₚ pSpec₂).dir ⟨m + j, h⟩ = .V_to_P) :
     append f₁ f₂ ⟨m + j, h⟩ hd = (f₂ ⟨j, hj⟩ (by
-        rw [← append_dir_natAdd (pSpec₁ := pSpec₁)]; exact hd)).cast
+        rw [← ChallengeTree.appendDir_right (pSpec₁ := pSpec₁)]; exact hd)).cast
       (append_Type_natAdd (pSpec₁ := pSpec₁) ⟨j, hj⟩).symm := by
   unfold append
   exact congrFun (Fin.addCases_right (motive := fun k ↦
@@ -191,21 +182,21 @@ def SqueezeReads (D : SlotDecoder (Block × Digest) pSpec) (f : ChalSlots pSpec)
   ∀ (k : Fin n) (h : pSpec.dir k = .V_to_P) (tr : pSpec.Transcript k.castSucc),
     ReadsSqueezes (D.slot k tr) (f k h)
 
-theorem squeezeReads_empty {pSpec : ProtocolSpec 0} (f : ChalSlots pSpec) :
+private theorem squeezeReads_empty {pSpec : ProtocolSpec 0} (f : ChalSlots pSpec) :
     SqueezeReads (empty : SlotDecoder (Block × Digest) pSpec) f := fun k ↦ k.elim0
 
-theorem squeezeReads_say {M : Type} (s : Slot (Block × Digest) M) :
+private theorem squeezeReads_say {M : Type} (s : Slot (Block × Digest) M) :
     SqueezeReads (single (pSpec := say M) s) (ChalSlots.say M) := fun ⟨0, _⟩ h ↦ nomatch h
 
 private theorem squeezeReads_sayO {M : Type} [OracleInterface M] (s : Slot (Block × Digest) M) :
     SqueezeReads (single (pSpec := Component.sayO M) s) (ChalSlots.sayO M) :=
   fun ⟨0, _⟩ h ↦ nomatch h
 
-theorem squeezeReads_draw {C : Type} {s : Slot (Block × Digest) C} {u : UniformSlot C}
+private theorem squeezeReads_draw {C : Type} {s : Slot (Block × Digest) C} {u : UniformSlot C}
     (hs : ReadsSqueezes s u) : SqueezeReads (single (pSpec := draw C) s) (ChalSlots.draw u) :=
   fun ⟨0, _⟩ _ _ ↦ hs
 
-theorem squeezeReads_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+private theorem squeezeReads_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     {D₁ : SlotDecoder (Block × Digest) pSpec₁}
     {D₂ : pSpec₁.FullTranscript → SlotDecoder (Block × Digest) pSpec₂} {f₁ : ChalSlots pSpec₁}
     {f₂ : ChalSlots pSpec₂} (h₁ : SqueezeReads D₁ f₁) (h₂ : ∀ t, SqueezeReads (D₂ t) f₂) :
@@ -235,15 +226,16 @@ theorem squeezeReads_rounds {C σ : Type} {d : ℕ}
       (squeezeReads_append (squeezeReads_say _) fun _ ↦ squeezeReads_draw (hc a))
       fun t ↦ squeezeReads_rounds hc (next a t) m
 
-/-- A run of `j + 1` rounds is a run of `j`, then round `j`'s slot. -/
-private theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
+/-- A run of `j + 1` rounds is a run of `j`, then round `j`'s slot, its value concatenated. -/
+theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
     {l : List (Block × Digest)} {tr : pSpec.Transcript ⟨j + 1, by omega⟩}
     {r : List (Block × Digest)} (h : D.run (j + 1) hj l = some (tr, r)) :
-    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) := by
+    ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) ∧
+      tr = Transcript.concat (m := ⟨j, hj⟩) x t := by
   simp only [run, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
   obtain ⟨⟨t, l₁⟩, ht, ⟨x, r'⟩, hx, he⟩ := h
-  obtain ⟨-, rfl⟩ := Prod.mk.inj he
-  exact ⟨t, l₁, x, ht, hx⟩
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+  exact ⟨t, l₁, x, ht, hx, rfl⟩
 
 /-- **A challenge reads its squeezes, in the longest-prefix form**: if a history decodes exactly to
 the start of a challenge, then the history followed by the challenge's squeezes and anything
@@ -353,13 +345,13 @@ variable {n : ℕ} {pSpec : ProtocolSpec n}
 def SlotDecoder.Blind (D : SlotDecoder (Block × Digest) pSpec) : Prop :=
   ∀ k tr, (D.slot k tr).Blind
 
-theorem blind_empty {pSpec : ProtocolSpec 0} :
+private theorem blind_empty {pSpec : ProtocolSpec 0} :
     (empty : SlotDecoder (Block × Digest) pSpec).Blind := fun k ↦ k.elim0
 
 theorem blind_single {pSpec : ProtocolSpec 1} {s : Slot (Block × Digest) (pSpec.«Type» 0)}
     (hs : s.Blind) : (single s).Blind := fun ⟨0, _⟩ _ ↦ hs
 
-theorem blind_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+private theorem blind_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     {D₁ : SlotDecoder (Block × Digest) pSpec₁}
     {D₂ : pSpec₁.FullTranscript → SlotDecoder (Block × Digest) pSpec₂} (h₁ : D₁.Blind)
     (h₂ : ∀ t, (D₂ t).Blind) : (D₁.append D₂).Blind := by
@@ -413,7 +405,7 @@ theorem SlotDecoder.Blind.decodeAt {D : SlotDecoder (Block × Digest) pSpec} (hD
     rfl
 
 /-- **A decoder of blind slots decodes a history's view as the history.** -/
-theorem SlotDecoder.Blind.decodePrefix_view {D : SlotDecoder (Block × Digest) pSpec}
+private theorem SlotDecoder.Blind.decodePrefix_view {D : SlotDecoder (Block × Digest) pSpec}
     (hD : D.Blind) (l : List (Block × Digest)) :
     D.decodePrefix (l.map view) = D.decodePrefix l := by
   rcases h : D.decodePrefix l with _ | ⟨i, tr⟩
@@ -539,7 +531,7 @@ theorem mark_afterNonce_of {D : SlotDecoder (Block × Digest) pSpec} {N : Fin n 
   obtain ⟨⟨k, hk⟩, hd⟩ := i
   simp only at hj hr
   subst hj
-  obtain ⟨t, l₁, x, ht, hx⟩ := run_succ_eq_some hr
+  obtain ⟨t, l₁, x, ht, hx, -⟩ := run_succ_eq_some hr
   obtain ⟨n', d, rfl⟩ := hN j t hNj l₁ x [] hx
   obtain ⟨c, rfl, -⟩ := D.run_eq_some_iff.mp ht
   exact ⟨c, n', d, rfl⟩

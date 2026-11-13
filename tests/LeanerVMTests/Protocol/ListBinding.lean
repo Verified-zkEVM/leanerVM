@@ -150,7 +150,7 @@ example : Component.Security (listBindingDef (leanVmPhases toy toy_conditions) l
 
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (listBindingDef (leanVmPhases toy toy_conditions) lb_height lbLadder).red.verifier.toVerifier
-      |>.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy) Set.univ toyCompile.witMid
+      |>.rbrKnowledgeSoundnessWith init impl (M3Rel toy) Set.univ toyCompile.witMid
         toyCompile.extractor (toyCompile.kSF init impl) (listBindingError toy lbLadder lbPars) :=
   listBinding_rbrKnowledgeSoundness _ _ _ _ _ _ init impl
 

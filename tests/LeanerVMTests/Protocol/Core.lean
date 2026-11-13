@@ -42,7 +42,7 @@ example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths)
 -- The core implication at one adversary, as the base theorems use it.
 example (prog : Program) (input : PublicInput) (A : Adversary) :
     ∀ g ∈ support (loggedGame Verify.verifyWith prog input A),
-      QueryLog.Consistent g.log → g.ok = true →
+      OracleSpec.QueryLog.Consistent g.log → g.ok = true →
       ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA →
       HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input)) g :=
   fun _ hg hc hok hX ↦ Core.core_of_mem_support hg hc hok hX

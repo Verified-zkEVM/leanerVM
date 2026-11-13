@@ -296,7 +296,7 @@ def foldRoundsSecurity : (i j : ℕ) → (h : j + i = sh.ℓ) →
   | 0, j, h => by
     have hjm : j = sh.ℓ := by omega
     subst hjm
-    exact Component.passThroughSecurityOfImp (OneW sh κ) _ fun s o w hout ↦ by
+    exact Component.passThroughSecurity (OneW sh κ) _ fun s o w hout ↦ by
       simpa only [Vector.cast_rfl] using hout
   | i + 1, j, h => (foldRoundSecurity P (by omega)).append (foldRoundsSecurity i (j + 1) (by omega))
 

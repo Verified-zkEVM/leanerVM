@@ -32,8 +32,8 @@ deployed protocol.
   and a root of `proofRoots` past the first `k₀` queries), plus the probabilities of the groups
   `t` opens.
 * `potential_step`: at every fresh query, the expected potential after the uniform answer is at
-  most the potential before plus the charge, the step of
-  `QueryHistory.potential_le_expected_charge`.
+  most the potential before plus the charge, the step of `QueryHistory.lintegral_le_of_potential`
+  once `charge_le` bounds the charge within the budget.
   An answer to avoid makes the potential `1`; any other answer keeps the log clean but for a flip,
   which is a group open before or opened by the query reaching probability `1`, and moves only the
   groups the query touches, each a step of a martingale (`lintegral_π_le`): the probability of a
@@ -112,7 +112,7 @@ def StartsSafe : Prop :=
   ∀ l σ st, R.stmtAt l σ = some st → σ ∈ seedRoots ∨ R.announcementOf st [] = none
 
 /-- **Starts among the roots are safe.** -/
-theorem startsSafe_of_roots (h : ∀ l d, R.isStart l d = true → d ∈ seedRoots) :
+private theorem startsSafe_of_roots (h : ∀ l d, R.isStart l d = true → d ∈ seedRoots) :
     R.StartsSafe seedRoots :=
   fun l σ _ hσ ↦ .inl (h l σ (by simp [ChainStarts.isStart, hσ]))
 
@@ -340,9 +340,8 @@ private theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : Qu
 /-- A uniform digest is one of `B` with probability at most `|B| / 2^256`. -/
 private theorem prEvent_mem_le (B : List Digest) :
     Pr{let u ← $ᵗ Digest}[u ∈ B] ≤ (B.length : ℝ≥0∞) / 2 ^ 256 := by
-  have h := (SampleableType.prEvent_uniformSample_le_div_iff (· ∈ B) (c := B.length)).mpr
-    ((congrArg Finset.card (Finset.ext fun _ ↦ by simp)).trans_le B.toFinset_card_le)
-  rwa [card_digest, Nat.cast_pow, Nat.cast_ofNat] at h
+  have h := SampleableType.prEvent_uniformSample_exists_eq_le B.get
+  simpa only [← List.mem_iff_get, card_digest, Nat.cast_pow, Nat.cast_ofNat] using h
 
 /-- A group open in a log starts from a digest in play. -/
 private theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :

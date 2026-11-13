@@ -149,10 +149,8 @@ instance [DecidableEq R] {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) 
 
 /-- The point of the empty partial point at a completion is the cube point itself. -/
 @[simp] theorem Partial.point_empty {n : ℕ} (b : Fin (2 ^ n)) :
-    (Partial.empty : Partial R).point b = boolVec b := by
-  apply Vector.ext
-  intro k hk
-  simp [Partial.point, Partial.empty]
+    (Partial.empty : Partial R).point b = boolVec b :=
+  Vector.ext fun k hk ↦ by simp [Partial.point, Partial.empty]
 
 /-- On the empty partial point, zero means the table is zero. -/
 theorem restrictedZero_empty_iff {n : ℕ} (t : CMlPolynomialEval R n) :
@@ -175,8 +173,7 @@ theorem diffTable_restrictedZero_empty_iff {n : ℕ} (t t' : CMlPolynomialEval R
   rw [restrictedZero_empty_iff]
   constructor
   · intro h
-    apply Vector.ext
-    intro i hi
+    refine Vector.ext fun i hi ↦ ?_
     have := h ⟨i, hi⟩
     simp only [diffTable, Fin.getElem_fin, Vector.getElem_ofFn] at this
     exact sub_eq_zero.mp this
@@ -188,9 +185,7 @@ theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partia
     (hp : ∀ k (hk : k < n), σ k = some p[k]) :
     RestrictedZero t σ ↔ evalMle t p = 0 := by
   have hpoint : ∀ b : Fin (2 ^ n), σ.point b = p := fun b ↦ by
-    apply Vector.ext
-    intro k hk
-    simp [Partial.point, hp k hk]
+    exact Vector.ext fun k hk ↦ by simp [Partial.point, hp k hk]
   simp only [RestrictedZero, hpoint]
   exact ⟨fun h ↦ h ⟨0, Nat.two_pow_pos n⟩, fun h _ ↦ h⟩
 
@@ -198,8 +193,7 @@ theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partia
 private theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n) (c : R)
     (b : Fin (2 ^ n)) :
     Partial.point (Function.update σ k (some c)) b = (σ.point b).set k c := by
-  apply Vector.ext
-  intro j hj
+  refine Vector.ext fun j hj ↦ ?_
   by_cases hjk : j = k
   · subst hjk
     simp [Partial.point]
@@ -208,10 +202,8 @@ private theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : 
 /-- Fixing a coordinate beyond the table's variables changes nothing. -/
 private theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) (hk : n ≤ k) (c : R)
     (b : Fin (2 ^ n)) :
-    Partial.point (Function.update σ k (some c)) b = σ.point b := by
-  apply Vector.ext
-  intro j hj
-  simp [Partial.point, Function.update_of_ne (show j ≠ k by omega)]
+    Partial.point (Function.update σ k (some c)) b = σ.point b :=
+  Vector.ext fun j hj ↦ by simp [Partial.point, Function.update_of_ne (show j ≠ k by omega)]
 
 /-- Setting a coordinate of a completion to its own value changes nothing. -/
 private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
@@ -243,8 +235,7 @@ private theorem testBit_setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : 
 private theorem Partial.point_set_bool {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
     (hσ : σ k = Option.none) (b : Fin (2 ^ n)) (β : Bool) :
     (σ.point b).set k (if β then 1 else 0) = σ.point (setBitIndex b k hk β) := by
-  apply Vector.ext
-  intro j hj
+  refine Vector.ext fun j hj ↦ ?_
   by_cases hjk : j = k
   · subst hjk
     simp [Partial.point, hσ, boolVec, testBit_setBitIndex]

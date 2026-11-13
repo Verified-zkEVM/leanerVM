@@ -57,7 +57,7 @@ theorem g_mul_gpow (i : ℕ) : g * gpow i = gpow (i + 1) := (gpow_succ i).symm
 /-! ## The successor (acceptance test 3) -/
 
 /-- The fall-through successor multiplies by `g`. -/
-example : Regs.next ⟨1, 1⟩ = ⟨g, 1⟩ := rfl
+example : Regs.next ⟨1, 1⟩ = ⟨g, 1⟩ := by rw [Regs.next, mul_one]
 
 /-- `pc + 1` would not even be injective on a run: `1 + 1 = 0` in `K`. -/
 example : (1: K) + 1 = 0 := by decide
@@ -441,8 +441,9 @@ theorem jumpSentinel_row1 : step jumpSentinelProg ctlImage Regs.initial = some �
 /-- Row 2, at the sentinel counter: `(g, g)` jumps to the final registers `(g, 1)`. -/
 theorem jumpSentinel_row2 :
     step jumpSentinelProg ctlImage ⟨g, g⟩ = some (Regs.final jumpSentinelProg) := by
-  rw [step_of_fetch_eq_some (r := ⟨g, g⟩) (jumpSentinelProg.fetch_gpow 1)]
-  show execute ctlImage ⟨g, g⟩ (.jump g (gpow 13) g) = some ⟨gpow 1, 1⟩
+  rw [show (⟨g, g⟩ : Regs K) = ⟨gpow 1, g⟩ by simp,
+    step_of_fetch_eq_some (r := ⟨gpow 1, g⟩) (jumpSentinelProg.fetch_gpow 1)]
+  show execute ctlImage ⟨gpow 1, g⟩ (.jump g (gpow 13) g) = some ⟨gpow 1, 1⟩
   have hgg : g * g = gpow 2 := (pow_two g).symm
   simp only [execute, executeWith, hgg, g_mul_gpow, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel

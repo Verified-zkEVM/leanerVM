@@ -271,7 +271,7 @@ example (bus : Phase.FrontDef toy K (K × BusOut toy) (busSpec toy))
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     let S : Phases.Security ⟨bus, table, deployedPublicInputPhase toy, flock, openingPhase toy⟩ :=
       ⟨sb, st, deployedPublicInputSecurity toy, sf, openingSecurity toy⟩
-    (leanVmVerifier _).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy)
+    (leanVmVerifier _).toVerifier.rbrKnowledgeSoundnessWith init impl (M3Rel toy)
       (Seam.done toy) S.extraction.witMid (piopExtractor _ S) (S.extraction.kSF init impl)
       (piopError toy) :=
   piop_rbrKnowledgeSoundness _ _ init impl
@@ -379,7 +379,7 @@ theorem unchecked_not_rbr {σ : Type} {init : ProbComp σ}
     {kSF : (unchecked toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
       (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (unchecked toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (unchecked toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWith init impl
       (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
   Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (Opening.batched toy)
     (Opening.question toy) (fun _ _ ↦ true) (fun _ ↦ ()) h badStmt theHonest badStmt_not_flock ()
@@ -399,7 +399,7 @@ theorem only_not_rbr {σ : Type} {init : ProbComp σ}
     {kSF : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.KnowledgeStateFunction init impl
       (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+    (h : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.rbrKnowledgeSoundnessWith
       init impl (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
   Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy)
     (onlyOut toy ⟨0, by decide⟩) (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h
@@ -428,7 +428,7 @@ theorem unitWeights_not_rbr {σ : Type} {init : ProbComp σ}
     {kSF : (unitWeights toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
       (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (unitWeights toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (unitWeights toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWith init impl
       (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
   Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (unitOut toy)
     (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h dupStmt theHonest
@@ -474,7 +474,7 @@ theorem columnsOnly_not_rbr {σ : Type} {init : ProbComp σ}
     {kSF : (columnsOnly flocky).red.verifier.toVerifier.KnowledgeStateFunction init impl
       (Seam.flock flocky) (Seam.done flocky) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (columnsOnly flocky).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init
+    (h : (columnsOnly flocky).red.verifier.toVerifier.rbrKnowledgeSoundnessWith init
       impl (Seam.flock flocky) (Seam.done flocky) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
   Component.batchQuery_not_rbr (TheOracle flocky) E (Opening.values flocky) (columnsOut flocky)
     (Opening.question flocky) (Opening.check flocky) (fun _ ↦ ()) h flockyBad theZero

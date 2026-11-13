@@ -238,11 +238,6 @@ attribute [local simp] WireOps.map_send WireOps.map_sample WireOps.map_grind Wir
   sendAll_hom samples_hom positions_hom sendPlain_hom sendNormal_hom sendTables_hom
 
 omit [LawfulMonad w] [LawfulMonad w'] in
-private theorem commitCodec_map (n : ℕ) {ℓ b t : ℕ} :
-    (commitCodec ops n (ℓ := ℓ) (b := b) (t := t)).map ψ = commitCodec (ops.map ψ) n :=
-  RoundCodec.map_sendOne_of ψ fun _ ↦ rfl
-
-omit [LawfulMonad w] [LawfulMonad w'] in
 private theorem pubCodec_map : (pubCodec ops).map ψ = pubCodec (ops.map ψ) :=
   RoundCodec.ext' (fun | ⟨0, _⟩, h, _ => nomatch h | ⟨1, _⟩, _, xs => sendAll_hom ψ ops xs)
     fun | ⟨0, _⟩, _ => rfl | ⟨1, _⟩, h => nomatch h
@@ -356,7 +351,8 @@ private theorem proveFrom_hom (seed : m FsState) (fuel : ℕ) (F : FlockSpec) (p
 
 /-- **The prover along a monad morphism**: a run of `proveWith H`, mapped by `φ`, is the run of
 `proveWith` with every hash's answer mapped. -/
-theorem proveWith_hom (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput) {κ : ℕ}
+private theorem proveWith_hom (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput)
+    {κ : ℕ}
     (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) :
     φ (proveWith H fuel F prog input w ρ) = proveWith (fun t ↦ φ (H t)) fuel F prog input w ρ := by
   rw [proveWith, proveFrom_hom, FsState.seedWith_hom]

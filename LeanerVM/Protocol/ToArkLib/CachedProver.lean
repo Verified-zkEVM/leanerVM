@@ -65,7 +65,7 @@ def adaptProver (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S
   output := fun st ↦ fOut <$> P.output st
 
 /-- The adapted prover reaches every round as `P` does from the mapped input. -/
-theorem adaptProver_runToRound (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S₄ × W₄)
+private theorem adaptProver_runToRound (fIn : S₁ × W₁ → S₂ × W₂) (fOut : S₃ × W₃ → S₄ × W₄)
     (P : Prover oSpec S₂ W₂ S₃ W₃ pSpec) (i : Fin (n + 1)) (s : S₁) (w : W₁) :
     (adaptProver fIn fOut P).runToRound i s w = P.runToRound i (fIn (s, w)).1 (fIn (s, w)).2 :=
   rfl
@@ -277,8 +277,8 @@ def Cached.passThrough (hupd : ∀ p, upd p (cin p) = cout ((f p.1.1, p.1.2), p.
   run_eq s w := by
     change (pure _ : OracleComp _ _) = _ <$> (pure _ : OracleComp _ _)
     rw [map_pure]
-    simp only [cachedPassProver, Component.passThrough, Component.passThroughProver, _root_.id,
-      hupd]
+    simp only [cachedPassProver, _root_.id, hupd]
+    rfl
 
 end PassThrough
 

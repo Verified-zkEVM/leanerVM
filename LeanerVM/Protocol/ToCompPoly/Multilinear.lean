@@ -10,6 +10,7 @@ module
 
 public import CompPoly.Multilinear.Basic
 public import LeanerVM.Protocol.ToCompPoly.Doubling
+import CompPoly.Multilinear.Unique
 import Mathlib.Algebra.BigOperators.Fin
 
 /-!
@@ -42,6 +43,8 @@ Nothing here transcribes a source.
 * **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
   `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
   coordinates: its extension ignores them (`evalMle_repeatHigh`).
+* **Halves.** `lowHalf`, `highHalf` and `joinHalves` split a vector of `2 ^ (j + 1)` entries into
+  its two halves and join them back.
 
 A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
@@ -123,8 +126,7 @@ private theorem evalMle_replicate_one {n : ℕ} (x : Vector R n) :
     rw [evalMle_succ]
     have h : evalMleLayer (Vector.replicate (2 ^ (n + 1)) (1 : R)) x.head =
         Vector.replicate (2 ^ n) 1 := by
-      apply Vector.ext
-      intro j hj
+      refine Vector.ext fun j hj ↦ ?_
       rw [← Vector.get_eq_getElem _ ⟨j, hj⟩, evalMleLayer_get]
       simp only [Vector.get_replicate, Vector.getElem_replicate]
       ring
@@ -164,7 +166,7 @@ def cubeIndex {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) : Fin (2 ^ (k + m)
 @[simp] theorem cubeIndex_val {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val = i.val + 2 ^ k * j.val := rfl
 
-theorem cubeIndex_div {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
+private theorem cubeIndex_div {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val / 2 ^ k = j.val := by
   rw [cubeIndex_val, Nat.add_mul_div_left _ _ (Nat.two_pow_pos k), Nat.div_eq_of_lt i.isLt,
     zero_add]
@@ -204,24 +206,19 @@ def highVec {k m : ℕ} (w : Vector R (k + m)) : Vector R m :=
 
 omit [CommRing R] in
 @[simp] theorem lowVec_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    lowVec (z ++ s) = z := by
-  apply Vector.ext
-  intro a _
-  simp [lowVec]
+    lowVec (z ++ s) = z :=
+  Vector.ext fun a _ ↦ by simp [lowVec]
 
 omit [CommRing R] in
 @[simp] theorem highVec_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    highVec (z ++ s) = s := by
-  apply Vector.ext
-  intro b hb
-  simp [highVec, Vector.getElem_append_right]
+    highVec (z ++ s) = s :=
+  Vector.ext fun b hb ↦ by simp [highVec, Vector.getElem_append_right]
 
 omit [CommRing R] in
 /-- A point is its low coordinates followed by its high coordinates. -/
 theorem lowVec_append_highVec {k m : ℕ} (w : Vector R (k + m)) :
     lowVec w ++ highVec w = w := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [Vector.getElem_append]
   split
   · simp [lowVec]
@@ -295,25 +292,20 @@ def onesIndex (m : ℕ) : Fin (2 ^ m) :=
 
 /-- The point of index zero is the origin. -/
 theorem boolVec_zero {m : ℕ} :
-    (boolVec (⟨0, Nat.two_pow_pos m⟩ : Fin (2 ^ m)) : Vector R m) = Vector.replicate m 0 := by
-  apply Vector.ext
-  intro b hb
-  simp [boolVec]
+    (boolVec (⟨0, Nat.two_pow_pos m⟩ : Fin (2 ^ m)) : Vector R m) = Vector.replicate m 0 :=
+  Vector.ext fun b hb ↦ by simp [boolVec]
 
 /-- The point of the all-ones index has every coordinate one. -/
 theorem boolVec_onesIndex {m : ℕ} :
-    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 := by
-  apply Vector.ext
-  intro b hb
-  simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
+    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 :=
+  Vector.ext fun b hb ↦ by simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
 
 /-- The tail of a cube point is the cube point of the index halved. -/
-theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
+private theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
     (boolVec j : Vector R (m + 1)).tail =
       boolVec (⟨j.val / 2, Nat.div_lt_of_lt_mul (by rw [← pow_succ']; exact j.isLt)⟩ :
         Fin (2 ^ m)) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [boolVec, Vector.getElem_tail, Vector.getElem_ofFn, Nat.testBit_add_one]
 
 /-- On the cube, the decoder inverts the encoder. -/
@@ -351,38 +343,19 @@ theorem boolVec_cast {m m' : ℕ} (h : m = m') (j : Fin (2 ^ m)) :
 /-- Two cube points side by side are the cube point of the combined index. -/
 theorem boolVec_append {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (boolVec i : Vector R k) ++ (boolVec j : Vector R m) = boolVec (cubeIndex i j) := by
-  apply Vector.ext
-  intro a ha
+  refine Vector.ext fun a ha ↦ ?_
   simp only [boolVec, Vector.getElem_append, Vector.getElem_ofFn, testBit_cubeIndex]
   split <;> rfl
 
-/-- Two indices below `2 ^ m` agree iff their `m` low bits agree. -/
-theorem fin_eq_iff_testBit {m : ℕ} (i j : Fin (2 ^ m)) :
-    i = j ↔ ∀ b : Fin m, i.val.testBit b = j.val.testBit b := by
-  refine ⟨fun h b ↦ by rw [h], fun h ↦ Fin.ext (Nat.eq_of_testBit_eq fun b ↦ ?_)⟩
-  by_cases hb : b < m
-  · exact h ⟨b, hb⟩
-  · have hi : i.val < 2 ^ b :=
-      lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    have hj : j.val < 2 ^ b :=
-      lt_of_lt_of_le j.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    rw [Nat.testBit_lt_two_pow hi, Nat.testBit_lt_two_pow hj]
+/-- A cube point is CompPoly's Boolean vertex. -/
+private theorem boolVec_eq_vertex {m : ℕ} (j : Fin (2 ^ m)) :
+    (boolVec j : Vector R m) = CMlPolynomialEval.vertex j := rfl
 
 /-- The Lagrange basis at a Boolean point is the indicator of that point. -/
 theorem lagrangeBasis_boolVec {m : ℕ} (j i : Fin (2 ^ m)) :
     (lagrangeBasis (boolVec j : Vector R m))[i.val] = if i = j then 1 else 0 := by
-  rw [lagrangeBasis_getElem_nat _ i.isLt]
-  have h : ∀ b : Fin m,
-      (if i.val.testBit b then (boolVec j : Vector R m)[b]
-        else 1 - (boolVec j : Vector R m)[b]) =
-      if i.val.testBit b = j.val.testBit b then 1 else 0 := by
-    intro b
-    simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn]
-    cases i.val.testBit b <;> cases j.val.testBit b <;> simp
-  simp only [h, Fintype.prod_boole]
-  by_cases hij : i = j
-  · simp [hij]
-  · simp [hij, (fin_eq_iff_testBit i j).not.mp hij]
+  rw [boolVec_eq_vertex, CMlPolynomialEval.lagrangeBasis_vertex]
+  exact if_congr eq_comm rfl rfl
 
 /-- The Lagrange basis at the all-ones index is the product of the coordinates. -/
 theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
@@ -400,9 +373,7 @@ theorem lagrangeBasis_zero_index {m : ℕ} (s : Vector R m) :
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :
     evalMle t (boolVec j) = t[j] := by
-  rw [evalMle_eq_sum]
-  simp only [Fin.getElem_fin, lagrangeBasis_boolVec, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+  rw [eval_mle_eq_eval, boolVec_eq_vertex, CMlPolynomialEval.eval_vertex]
 
 /-! ## Slices: reading and placing a subcube -/
 
@@ -458,10 +429,8 @@ theorem sliceLow_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin 
 /-- Mapping the entries commutes with taking a low slice. -/
 theorem sliceLow_map {S : Type*} [CommRing S] (φ : R →+* S) {k m : ℕ}
     (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
-    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i := by
-  apply Vector.ext
-  intro j hj
-  simp [sliceLow, CMlPolynomialEval.map]
+    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i :=
+  Vector.ext fun j hj ↦ by simp [sliceLow, CMlPolynomialEval.map]
 
 /-- The strided selection identity: Boolean low coordinates select the slice at that low
 index. The mirror of `evalMle_append_boolVec`. -/
@@ -482,8 +451,7 @@ def placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
 /-- Slicing a placed table gives the table at its index and zero at every other index. -/
 theorem slice_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j h : Fin (2 ^ m)) :
     slice (placeSlice t j) h = if h = j then t else Vector.replicate (2 ^ k) 0 := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have hdiv := cubeIndex_div (⟨i, hi⟩ : Fin (2 ^ k)) h
   simp only [cubeIndex_val] at hdiv
   by_cases hh : h = j
@@ -585,10 +553,8 @@ omit [CommRing R] in
 omit [CommRing R] in
 /-- The low coordinates of a point split at `k` are its first part. -/
 @[simp] theorem lowCoords_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
-    lowCoords (Nat.le_add_right k m) (z ++ s) = z := by
-  apply Vector.ext
-  intro a ha
-  rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
+    lowCoords (Nat.le_add_right k m) (z ++ s) = z :=
+  Vector.ext fun a ha ↦ by rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
 
 /-- A table on `k` coordinates read on `n ≥ k`: the entry at `x` is the table's entry at the low
 `k` bits of `x`, whatever the high bits. -/
@@ -597,10 +563,9 @@ def repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (_ : k ≤ n) : CMlPolyno
 
 omit [CommRing R] in
 /-- Every slice of a repeated table is the table. -/
-theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+private theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
     slice (repeatHigh t (Nat.le_add_right k m)) j = t := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   rw [← Fin.getElem_fin _ ⟨i, hi⟩, slice_getElem]
   simp only [repeatHigh, Fin.getElem_fin, Vector.getElem_ofFn, cubeIndex_mod]
 
@@ -614,6 +579,61 @@ theorem evalMle_repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (h : k ≤ n)
   have hs := sumCube_lagrangeBasis (highVec z)
   simp only [sumCube] at hs
   rw [hs, one_mul]
+
+/-! ## Halves of a vector -/
+
+section Halves
+
+variable {α : Type*} {j : ℕ}
+
+/-- The first half of a vector of `2 ^ (j + 1)` entries. -/
+def lowHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
+  Vector.ofFn fun i ↦ v[i.val]'(by have := i.isLt; rw [pow_succ]; omega)
+
+/-- The second half. -/
+def highHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
+  Vector.ofFn fun i ↦ v[i.val + 2 ^ j]'(by have := i.isLt; rw [pow_succ]; omega)
+
+/-- Two halves joined. -/
+def joinHalves (a b : Vector α (2 ^ j)) : Vector α (2 ^ (j + 1)) :=
+  (a ++ b).cast (Nat.two_pow_succ j).symm
+
+/-- The entries of the first half. -/
+@[simp] theorem lowHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
+    (lowHalf v)[i] = v[i]'(by rw [pow_succ]; omega) := by
+  simp [lowHalf]
+
+/-- The entries of the second half. -/
+@[simp] theorem highHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
+    (highHalf v)[i] = v[i + 2 ^ j]'(by rw [pow_succ]; omega) := by
+  simp [highHalf]
+
+/-- The entries of two halves joined. -/
+theorem joinHalves_getElem (a b : Vector α (2 ^ j)) (w : ℕ) (hw : w < 2 ^ (j + 1)) :
+    (joinHalves a b)[w] =
+      if h : w < 2 ^ j then a[w] else b[w - 2 ^ j]'(by rw [pow_succ] at hw; omega) := by
+  simp [joinHalves, Vector.getElem_append]
+
+/-- The first half of two halves joined. -/
+@[simp] theorem lowHalf_join (a b : Vector α (2 ^ j)) : lowHalf (joinHalves a b) = a := by
+  ext i hi
+  simp [joinHalves_getElem, hi]
+
+/-- The second half of two halves joined. -/
+@[simp] theorem highHalf_join (a b : Vector α (2 ^ j)) : highHalf (joinHalves a b) = b := by
+  ext i hi
+  simp [joinHalves_getElem]
+
+/-- A vector is its two halves joined. -/
+@[simp] theorem join_halves (v : Vector α (2 ^ (j + 1))) :
+    joinHalves (lowHalf v) (highHalf v) = v := by
+  ext w hw
+  rw [joinHalves_getElem]
+  split
+  · simp
+  · simp [Nat.sub_add_cancel (Nat.le_of_not_lt ‹_›)]
+
+end Halves
 
 end
 end LeanerVM.Protocol

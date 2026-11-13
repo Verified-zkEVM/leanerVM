@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Blake2sHash
 public import LeanerVM.Protocol.Blake2sHashFast
 public import LeanerVM.Protocol.ToVCVio.Merkle
 public import Mathlib.Data.List.Destutter
+import Mathlib.Data.List.Sort
 
 /-!
 # leanVM's Merkle trees
@@ -129,7 +130,7 @@ def merkleVerifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
         paths.siblingHashes with
     | none => return none
     | some r =>
-      return if @decide (r = root) (Digest.decEq r root) then
+      return if decide (r = root) then
         some (rowsInQueryOrder leafWords queries paths.leafData)
       else none
 
@@ -188,15 +189,6 @@ def merkleOpen {k : ℕ} (c : MerkleCommitment k) (queries : List ℕ) : PrunedM
   leafData := (sortedUnique queries).map fun q ↦ c.rows[q]?.getD []
   siblingHashes := c.levels.siblings (sortedUnique queries)
 
-/-- The committed root is the root of the tree over the rows' leaf images. -/
-theorem root_merkleCommitWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
-    (rows : Vector (List K) (2 ^ k)) :
-    (merkleCommitWith H leafWords rows).root =
-      merkleRootWith H (rows.map (leafImage leafWords)) := by
-  simp only [MerkleCommitment.root, merkleCommitWith, MerkleTree.root_buildLevels, merkleRootWith,
-    MerkleTree.root, Vector.map_map]
-  rfl
-
 /-! ## The query model -/
 
 /-- The node hash as a VCVio query model: a node queries its children's 64 bytes, left first,
@@ -205,30 +197,22 @@ def nodeModel : MerkleTreeExtractability.NodeQueryModel (List UInt8) Unit Digest
   MerkleTree.nodeQueryModelOfEncoding digestBytes digestOfBytes 32 length_digestBytes
     digestOfBytes_digestBytes
 
-theorem nodeModel_mkQuery (left right : Digest) :
-    nodeModel.mkQuery () (left, right) = nodeBytes left right := rfl
-
 /-! ## The sorted distinct positions -/
-
-private theorem pairwise_mergeSort_le (queries : List ℕ) : queries.mergeSort.Pairwise (· ≤ ·) :=
-  (List.pairwise_mergeSort (le := fun a b ↦ decide (a ≤ b))
-    (fun _ _ _ h₁ h₂ ↦ decide_eq_true (Nat.le_trans (of_decide_eq_true h₁) (of_decide_eq_true h₂)))
-    (fun a b ↦ Bool.or_eq_true_iff.mpr ((Nat.le_total a b).imp decide_eq_true decide_eq_true))
-    queries).imp of_decide_eq_true
 
 private theorem sortedUnique_eq_dedup (queries : List ℕ) :
     sortedUnique queries = queries.mergeSort.dedup :=
-  (pairwise_mergeSort_le queries).destutter_eq_dedup
+  (List.pairwise_mergeSort' (r := (· ≤ ·)) queries).destutter_eq_dedup
 
 theorem mem_sortedUnique {queries : List ℕ} {q : ℕ} : q ∈ sortedUnique queries ↔ q ∈ queries := by
   rw [sortedUnique_eq_dedup, List.mem_dedup, List.mem_mergeSort]
 
 theorem pairwise_sortedUnique (queries : List ℕ) : (sortedUnique queries).Pairwise (· < ·) := by
   rw [sortedUnique_eq_dedup]
-  exact (((pairwise_mergeSort_le queries).sublist (List.dedup_sublist _)).and
+  exact (((List.pairwise_mergeSort' (r := (· ≤ ·)) queries).sublist (List.dedup_sublist _)).and
     (List.nodup_dedup _)).imp fun h ↦ Nat.lt_of_le_of_ne h.1 h.2
 
-theorem sortedUnique_eq_nil {queries : List ℕ} : sortedUnique queries = [] ↔ queries = [] := by
+private theorem sortedUnique_eq_nil {queries : List ℕ} :
+    sortedUnique queries = [] ↔ queries = [] := by
   rw [sortedUnique, List.destutter_eq_nil, ← List.length_eq_zero_iff, List.length_mergeSort,
     List.length_eq_zero_iff]
 
@@ -297,9 +281,9 @@ theorem run_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ) (q
   by_cases hroot : r = root
   · subst hroot
     rw [ite_eq_left ⟨by omega, by omega, hw, hr, rfl⟩]
-    exact ite_eq_left (@decide_eq_true _ (Digest.decEq r r) rfl)
+    exact ite_eq_left (decide_eq_true rfl)
   · rw [ite_eq_right fun h ↦ hroot (Option.some.inj h.2.2.2.2)]
-    exact ite_eq_right fun h ↦ hroot (@of_decide_eq_true _ (Digest.decEq r root) h)
+    exact ite_eq_right fun h ↦ hroot (of_decide_eq_true h)
 
 /-- The check read as VCVio's trees, for every byte hash `H`: an opening is accepted with `rows`
 exactly when one row is stored per distinct query, each `rowWords ≤ leafWords` wide, `rows` are

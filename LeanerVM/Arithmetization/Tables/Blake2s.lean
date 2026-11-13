@@ -19,7 +19,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `BLAKE2S` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:833-863` (`mod blake2st`, in that order), the flushes
 `tables.rs:873-908` (`Blake2sTable::flushes`), matching specification §7.6
 (`doc/leanvm/body/07-instruction-tables.tex:114-141`). There is no table constraint: the
@@ -265,15 +265,15 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
     refine (blake2s_refines_iff _ _ _).mpr
       ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, h_assumptions, rfl⟩
-    · simpa only [E.ofCell, Vector.getElem_map] using hm0
-    · simpa only [E.ofCell, Vector.getElem_map] using hm1
-    · simpa only [E.ofCell, Vector.getElem_map] using hm2
-    · simpa only [E.ofCell, Vector.getElem_map] using hm3
-    · simpa only [E.ofCell, Vector.getElem_map] using hcv0
-    · simpa only [E.ofCell, Vector.getElem_map] using hcv1
-    · simpa only [E.ofCell, Vector.getElem_map] using hout0
-    · simpa only [E.ofCell, Vector.getElem_map] using hout1
-    · simpa only [E.ofCell, Vector.getElem_map] using hmd
+    · simpa only [E.ofCell] using hm0
+    · simpa only [E.ofCell] using hm1
+    · simpa only [E.ofCell] using hm2
+    · simpa only [E.ofCell] using hm3
+    · simpa only [E.ofCell] using hcv0
+    · simpa only [E.ofCell] using hcv1
+    · simpa only [E.ofCell] using hout0
+    · simpa only [E.ofCell] using hout1
+    · simpa only [E.ofCell] using hmd
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead, E.ofCell]
@@ -283,7 +283,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
       _, _, _, _, _, _, _, _, _, _⟩ := h_input
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
-    simp only [E.ofCell, Vector.getElem_map] at hm0 hm1 hm2 hm3 hcv0 hcv1 hout0 hout1 hmd ⊢
+    simp only [E.ofCell] at hm0 hm1 hm2 hm3 hcv0 hcv1 hout0 hout1 hmd ⊢
     exact ⟨⟨_, by rw [blake2s_entry, decode_entry]⟩, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0,
       hout1, hmd⟩
 
@@ -325,7 +325,7 @@ theorem blake2sRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp om0 om1 om2 o
     Option.bind_eq_some_iff] at h
   obtain ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
     md, hmd, u, hu, -⟩ := h
-  obtain ⟨hcm, hccv0, hccv1, hcout0, hcout1, hcmd, -⟩ := guard_eq_some hu
+  obtain ⟨hcm, hccv0, hccv1, hcout0, hcout1, hcmd, -⟩ := (Option.guard_eq_some' _).mp hu
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * om0) = some (E.ofCell (mem.cellAt (fp * om0)))
     rw [MemImage.ofCell_cellAt hm0 (hcm 0)]; exact hm0

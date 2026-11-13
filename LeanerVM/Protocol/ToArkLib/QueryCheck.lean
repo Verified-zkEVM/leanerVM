@@ -51,7 +51,7 @@ def askInput (t : [OStmt]ₒ.Domain) : OracleComp [OStmt]ₒ ([OStmt]ₒ.Range t
 
 /-- A question to the input oracles, lifted past the shared oracles and the messages and
 simulated with the oracles and the messages, is answered by the oracles. -/
-private theorem simulateQ_askInput {n : ℕ} {pSpec : ProtocolSpec n}
+theorem simulateQ_askInput {n : ℕ} {pSpec : ProtocolSpec n}
     [∀ i, OracleInterface (pSpec.Message i)] (o : ∀ i, OStmt i) (msgs : pSpec.Messages)
     (t : [OStmt]ₒ.Domain) :
     simulateQ (OracleInterface.simOracle2 []ₒ o msgs)
@@ -74,15 +74,22 @@ def queryCheckVerifier : OracleVerifier []ₒ StmtIn OStmt StmtOut OStmt !p[] wh
 def queryCheck : Def StmtIn OStmt W StmtOut OStmt W !p[] where
   red := ⟨passThroughProver OStmt f, queryCheckVerifier OStmt query check f⟩
 
-/-- As an ordinary verifier: if the check holds of the oracles' answer, the verdict is the mapped
-statement and the oracles; otherwise it rejects. -/
-theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
-    (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
-    (queryCheckVerifier OStmt query check f).toVerifier.verify (s, o) tr =
-      if check s (answerOf OStmt o (query s)) then pure (f s, o) else failure := by
-  simp only [OracleVerifier.toVerifier]
-  rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
-  simp only [queryCheckVerifier]
+/-- An oracle verifier with no round that asks the input oracles the question, rejects unless the
+check holds of the answer and returns `out` of it: as an ordinary verifier, the verdict is `out`
+of the oracles' answer and the materialized output oracles when the check holds, a rejection
+otherwise. -/
+theorem toVerifier_verify_of_askInput {ι' StmtOut' : Type} {OStmtOut : ι' → Type}
+    [∀ i, OracleInterface (OStmtOut i)] (V : OracleVerifier []ₒ StmtIn OStmt StmtOut' OStmtOut !p[])
+    (out : (s : StmtIn) → [OStmt]ₒ.Range (query s) → StmtOut')
+    (hV : ∀ s ch, V.verify s ch = do
+      let a ← liftM (askInput OStmt (query s))
+      if check s a then pure (out s a) else failure)
+    (s : StmtIn) (o : ∀ i, OStmt i) (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
+    V.toVerifier.verify (s, o) tr =
+      if check s (answerOf OStmt o (query s)) then
+        pure (out s (answerOf OStmt o (query s)), V.materializeOutput tr.challenges o tr.messages)
+      else failure := by
+  simp only [OracleVerifier.toVerifier, hV]
   rw [show (liftM (askInput OStmt (query s)) :
       OptionT (OracleComp ([]ₒ + ([OStmt]ₒ + [(!p[] : ProtocolSpec 0).Message]ₒ))) _) =
       OptionT.lift (liftM (askInput OStmt (query s)) :
@@ -96,6 +103,15 @@ theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
     rfl
   · rw [ite_eq_right h, ite_eq_right h]
     rfl
+
+/-- As an ordinary verifier: if the check holds of the oracles' answer, the verdict is the mapped
+statement and the oracles; otherwise it rejects. -/
+theorem queryCheckVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
+    (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
+    (queryCheckVerifier OStmt query check f).toVerifier.verify (s, o) tr =
+      if check s (answerOf OStmt o (query s)) then pure (f s, o) else failure := by
+  rw [toVerifier_verify_of_askInput OStmt query check _ (fun s _ ↦ f s) (fun _ _ ↦ rfl),
+    OracleVerifier.materializeOutput_of_keepOracles _ rfl]
 
 /-- The query-check verifier is a check followed by a verdict, as data: the check reads the
 statement and the oracles' answer. -/
@@ -113,21 +129,10 @@ theorem queryCheck_complete
       check s (answerOf OStmt o (query s)) = true ∧ ((f s, o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (queryCheck OStmt query check f).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (queryCheckGuarded OStmt query check f) (s, o) witIn hx
-  have hrun : (passThroughProver OStmt f).run (s, o) witIn =
-      pure ((show (!p[] : ProtocolSpec 0).FullTranscript from fun i ↦ Fin.elim0 i),
-        (f s, o), witIn) := rfl
-  have hpr' : pr ∈ support ((passThroughProver OStmt f).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (queryCheckGuarded OStmt query check f).check (s, o)
-      (fun i ↦ Fin.elim0 i) = true := (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (queryCheckGuarded OStmt query check f) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def queryCheckComplete
@@ -148,16 +153,16 @@ def queryCheckStateFunction :
     (queryCheckVerifier OStmt query check f).toVerifier.KnowledgeStateFunction init impl relIn
       relOut (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦
-    have hg := Verifier.GuardedForm.of_probEvent_pos (queryCheckGuarded OStmt query check f)
-      init impl stmt tr _ hpos
+  toFun_full := fun stmt _ w hpos ↦
+    have hg := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (queryCheckGuarded OStmt query check f) hpos
     h stmt.1 stmt.2 w hg.1 hg.2
 
 /-- Round-by-round knowledge soundness at the empty error: no challenge, the witness is kept. -/
 theorem queryCheck_rbr :
-    (queryCheckVerifier OStmt query check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init
+    (queryCheckVerifier OStmt query check f).toVerifier.rbrKnowledgeSoundnessWith init
       impl relIn relOut (fun _ ↦ W) (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[])
       (queryCheckStateFunction OStmt query check f h init impl) (fun i ↦ Fin.elim0 i.1) :=
   fun _ i ↦ Fin.elim0 i.1
@@ -233,7 +238,7 @@ theorem batchQuery_not_rbr {σ : Type} {init : ProbComp σ}
       |>.KnowledgeStateFunction init impl relIn relOut E}
     {ε : (draw F).ChallengeIdx → ℝ≥0}
     (h : (batchQuery (W := W) OStmt F value out query check f).red.verifier.toVerifier
-      |>.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+      |>.rbrKnowledgeSoundnessWith init impl relIn relOut WitMid E kSF ε)
     (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (w : W)
     (hesc : ∀ ρ, check (out s ρ (powerBatch (value s) ρ))
         (answerOf OStmt o (query (out s ρ (powerBatch (value s) ρ)))) = true ∧
@@ -242,12 +247,9 @@ theorem batchQuery_not_rbr {σ : Type} {init : ProbComp σ}
   refine Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw F).Transcript 0) fun c ↦ ?_
   refine ⟨Transcript.concat c (default : (draw F).Transcript 0), rfl, w, ?_⟩
-  apply Verifier.GuardedForm.probEvent_pos_of_check
-    (guardedAppend (D₁ := batch OStmt F value out) (D₂ := queryCheck OStmt query check f)
-      (sampleGuarded OStmt F _ _) (queryCheckGuarded OStmt query check f))
-    init impl (s, o) _ (fun t ↦ (t, w) ∈ relOut)
-  · exact (guardedAppend_check _ _ _ _).trans (hesc _).1
-  · exact (congrArg (fun t ↦ (t, w) ∈ relOut) (guardedAppend_out _ _ _ _)).mpr (hesc _).2
+  exact Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+    (OracleVerifier.appendGuardedForm (sampleGuarded OStmt F _ _)
+      (queryCheckGuarded OStmt query check f)) (hesc _).1 (hesc _).2
 
 end Component
 

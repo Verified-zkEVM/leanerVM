@@ -14,7 +14,7 @@ public import LeanerVM.Arithmetization.Completeness.Bus
 /-!
 # The witness of a padded execution
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `ce2eee63`.
+leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `6a2e7bb9`.
 Category A. Given the program, the public input, the image `img` and a list of skeletons `S`
 (the states stepped from and the instructions fetched there: the run and the fill),
 `padWitness prog input img S hκ hS` is Clean's `EnsembleWitness` of `leanIsaEnsemble prog κ`,
@@ -79,20 +79,6 @@ theorem padRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) :
   rw [List.length_map]
   rfl
 
-/-! ## Proof helpers -/
-
-/-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
-private theorem cons_append_ops (e : Vector K 8) :
-    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
-  ext j hj
-  interval_cases j <;> rfl
-
-/-- A typed row written as a raw row reads back from its prefix of the row type's width. -/
-private theorem fromElements_rowPrefix_rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) :
-    fromElements (Air.Flat.rowPrefix (size Row) (rawRow r)) = r := by
-  rw [← Air.Flat.valueFromOffset_fromArray (Input := Row) (rawRow r) (fun _ _ ↦ #[])]
-  exact rowAt_toElements _ r
-
 /-! ## The tables -/
 
 /-- The rows of the table of an opcode: the raw rows of the rows of `R` whose instruction has the
@@ -151,7 +137,7 @@ theorem memRowsOf_fixed {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) 
     show (memMode κ).FixedAt (UInt64.ofNat i)
       (fromElements (Air.Flat.rowPrefix (size MemRow) (memRowsOf img fin)[i]))
     rw [memMode_fixedAt_iff hi' hκ64]
-    simp only [memRowsOf, List.getElem_ofFn, fromElements_rowPrefix_rawRow]
+    simp only [memRowsOf, List.getElem_ofFn, rawRow, fromElements_rowPrefix]
     rfl
 
 /-- The memory block: `memComponent κ` with one row per cell. -/
@@ -190,7 +176,7 @@ theorem bcRowsOf_fixed (prog : Program) (fin : K → ℕ) :
     show (bytecodeMode prog).FixedAt (UInt64.ofNat i)
       (fromElements (Air.Flat.rowPrefix (size BytecodeRow) (bcRowsOf prog fin)[i]))
     rw [bytecodeMode_fixedAt_iff prog hi']
-    simp only [bcRowsOf, List.getElem_ofFn, fromElements_rowPrefix_rawRow]
+    simp only [bcRowsOf, List.getElem_ofFn, rawRow, fromElements_rowPrefix]
     exact ⟨rfl, cons_append_ops _⟩
 
 /-- The bytecode block: `bytecodeComponent prog` with one row per slot. -/
@@ -287,7 +273,7 @@ private theorem memRows_padWitness :
       (((memRowsOf img (padMemFin img S)).map (Air.Flat.rowPrefix (size MemRow))).toArray.map
         (fromElements (M := MemRow))).map (·.m) := by
   rw [padWitness, witnessOfTables_data]
-  have h := Air.Flat.deriveProverData_eq_of_mem (padTables prog img S hκ hS)
+  have h := Air.Flat.deriveTables_eq_of_mem (padTables prog img S hκ hS)
     (names_nodup (padTables_components prog img S hκ hS))
     (table := memBlock hκ img (padMemFin img S)) (by simp [padTables]) (size MemRow)
   unfold memRows ProverData.getRows
@@ -299,7 +285,7 @@ theorem memRows_padWitness_get (k : ℕ) (hk : k < 2 ^ κ) :
       some #v[(img ⟨k, hk⟩).limb 0, (img ⟨k, hk⟩).limb 1, (img ⟨k, hk⟩).limb 2] := by
   rw [memRows_padWitness, Array.getElem?_map, Array.getElem?_map, List.getElem?_toArray,
     List.getElem?_map, memRowsOf, List.getElem?_ofFn]
-  simp only [hk, ↓reduceDIte, Option.map_some, fromElements_rowPrefix_rawRow]
+  simp only [hk, ↓reduceDIte, Option.map_some, rawRow, fromElements_rowPrefix]
   rfl
 
 /-- **The image the padded witness's data names is `img`**, as one equality of dependent pairs:

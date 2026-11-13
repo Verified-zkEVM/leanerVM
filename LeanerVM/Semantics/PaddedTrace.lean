@@ -127,7 +127,7 @@ theorem Trace.Fits.of_short {prog : Program} {t : Trace prog} {rf : Regs K}
 /-! ## The rows of a run -/
 
 /-- Every state a valid run steps from fetches an instruction: the step that follows it succeeded. -/
-theorem Trace.exists_fetch_of_mem_dropLast {prog : Program} {t : Trace prog} {rf : Regs K}
+private theorem Trace.exists_fetch_of_mem_dropLast {prog : Program} {t : Trace prog} {rf : Regs K}
     (h : run prog t.image t.steps Regs.initial = some rf) {r : Regs K}
     (hr : r ∈ t.regs.dropLast) : ∃ ins, prog.fetch r.pc = some ins := by
   have hreg : t.regs = (List.range t.steps).filterMap
@@ -154,7 +154,7 @@ theorem Trace.exists_fetch_of_mem_dropLast {prog : Program} {t : Trace prog} {rf
 
 /-- A list of states that all fetch an instruction has one row on exactly one of the six tables
 each. -/
-theorem sum_filter_opcode_length {prog : Program} (l : List (Regs K))
+private theorem sum_filter_opcode_length {prog : Program} (l : List (Regs K))
     (hl : ∀ r ∈ l, ∃ ins, prog.fetch r.pc = some ins) :
     (fillTables.map fun op ↦
       (l.filter fun r ↦ (prog.fetch r.pc).map Instr.opcode = some op).length).sum = l.length := by

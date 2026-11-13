@@ -78,7 +78,7 @@ def answerOracles (o₀ : ∀ i, O i) :
 
 omit [∀ i, SampleableType (pSpec.Challenge i)] in
 /-- Answering the oracles with `o₀`, then the messages, is answering both. -/
-theorem simulateQ_answerOracles (o₀ : ∀ i, O i) (msgs : pSpec.Messages) {α : Type}
+private theorem simulateQ_answerOracles (o₀ : ∀ i, O i) (msgs : pSpec.Messages) {α : Type}
     (mx : OracleComp ([]ₒ + ([O]ₒ + [pSpec.Message]ₒ)) α) :
     simulateQ (OracleInterface.simOracle []ₒ msgs) (simulateQ (answerOracles o₀) mx) =
       simulateQ (OracleInterface.simOracle2 []ₒ o₀ msgs) mx := by
@@ -162,7 +162,7 @@ omit [∀ i, OracleInterface (O i)] [∀ i, OracleInterface (pSpec.Message i)]
   [∀ i, SampleableType (pSpec.Challenge i)] [∀ i, OracleInterface (O' i)] in
 /-- Every round of `proverVia` is the round of the prover it wraps, the new oracles and witness
 beside it. -/
-theorem runToRound_proverVia (P : OracleProver []ₒ StmtIn O WitIn StmtOut O WitOut pSpec)
+private theorem runToRound_proverVia (P : OracleProver []ₒ StmtIn O WitIn StmtOut O WitOut pSpec)
     (read : W' → (∀ i, O i) × WitIn) (s : StmtIn) (o' : ∀ i, O' i) (w : W') (i : Fin (n + 1)) :
     (proverVia (O' := O') P read).runToRound i (s, o') w =
       (fun r ↦ (r.1, (r.2, (o', w)))) <$> P.runToRound i (s, (read w).1) (read w).2 := by
@@ -184,27 +184,6 @@ theorem run_proverVia (P : OracleProver []ₒ StmtIn O Unit StmtOut O Unit pSpec
       (fun r ↦ (r.1, (r.2.1.1, o'), w)) <$> P.run (s, read w) () := by
   simp only [Prover.run, runToRound_proverVia]
   simp [proverVia, map_bind]
-
-omit [∀ i, OracleInterface (O i)] [∀ i, OracleInterface (pSpec.Message i)]
-  [∀ i, SampleableType (pSpec.Challenge i)] [∀ i, OracleInterface (O' i)] in
-/-- The run of a reduction whose verifier is guarded: the prover's run, then the verdict when the
-check passes on the prover's transcript and a rejection otherwise. -/
-private theorem run_eq_map_of_guarded {S W T W₂ : Type}
-    (red : Reduction []ₒ S W T W₂ pSpec) (G : red.verifier.GuardedForm) (stmt : S) (wit : W) :
-    (red.run stmt wit).run =
-      (fun pr ↦ if G.check stmt pr.1 then some (pr, G.out stmt pr.1) else none) <$>
-        red.prover.run stmt wit := by
-  unfold Reduction.run
-  conv_rhs => rw [map_eq_bind_pure_comp]
-  simp only [OptionT.run_bind, Option.elimM, OptionT.run_monadLift, monadLift_self,
-    bind_map_left, Option.elim_some, Function.comp_def]
-  refine bind_congr fun pr ↦ ?_
-  rw [Verifier.run, show red.verifier.verify stmt pr.1 = _ from G.verify_eq stmt pr.1]
-  by_cases hc : G.check stmt pr.1 = true
-  · simp only [hc, ↓reduceIte, OptionT.run_pure, liftM_pure, pure_bind, Option.elim_some,
-      Option.getM_some]
-  · simp only [hc, Bool.false_eq_true, ↓reduceIte, OptionT.run_failure, liftM_pure,
-      OptionT.run_pure, pure_bind, Option.elim_some, Option.getM_none, Option.elim_none]
 
 /-- A relation over the oracles `O` read through a witness: the new oracles and the witness are
 `good` together, and the statement is related to the oracles read off the witness. -/
@@ -228,9 +207,9 @@ theorem Front.over_complete {D : Def StmtIn O Unit StmtOut O Unit pSpec} (F : Fr
   have hD := (OptionT.prEvent_mk_eq_one_iff _ _).mp (hC (s, read q) () hin)
   refine (OptionT.prEvent_mk_eq_one_iff _ _).mpr fun x hx ↦ ?_
   set F' := F.overFront o₀ (proverVia (O' := O') D.red.prover fun w ↦ (read w, ()))
-  have hrun' := run_eq_map_of_guarded _ F'.toGuarded.guarded (s, o') q
-  have hrun := run_eq_map_of_guarded _ F.toGuarded.guarded (s, read q) ()
-  simp only [OptionT.run] at hrun' hrun
+  have hrun' := Reduction.run_eq_of_guarded_verifier _ F'.toGuarded.guarded (s, o') q
+  have hrun := Reduction.run_eq_of_guarded_verifier _ F.toGuarded.guarded (s, read q) ()
+  simp only [OptionT.run, bind_pure_comp] at hrun' hrun
   rw [hrun', show (F.over o₀ (proverVia D.red.prover fun w ↦ (read w, ()))).red.toReduction.prover
     = proverVia (O' := O') D.red.prover (fun w ↦ (read w, ())) from rfl,
     run_proverVia D.red.prover read s o' q] at hx
@@ -287,24 +266,17 @@ def Front.relistStateFunction :
     D'.red.verifier.toVerifier.KnowledgeStateFunction init impl (relistRel list relIn)
       (relistRel list relOut) (keepExtractor (StmtIn × ∀ i, O' i) W' pSpec) where
   toFun := fun m s tr _ ↦ ∃ q ∈ list s.2, ∃ wm, (X.kSF init impl).toFun m (s.1, q) tr wm
-  toFun_empty := fun s _ ↦ by
-    constructor
-    · rintro ⟨q, hq, w, hw⟩
-      refine ⟨q, hq, cast X.extractor.eqIn.symm w, ((X.kSF init impl).toFun_empty _ _).mp ?_⟩
-      rw [cast_cast, cast_eq]
-      exact hw
-    · rintro ⟨q, hq, wm, h⟩
-      exact ⟨q, hq, cast X.extractor.eqIn wm, ((X.kSF init impl).toFun_empty _ _).mpr h⟩
+  toFun_empty := fun _ _ ⟨q, hq, _, h⟩ ↦ ⟨q, hq, _, (X.kSF init impl).toFun_empty _ _ h⟩
   toFun_next := fun m hdir s tr msg _ ⟨q, hq, wm, h⟩ ↦
     ⟨q, hq, X.extractor.extractMid m (s.1, q) (tr.concat msg) wm,
       (X.kSF init impl).toFun_next m hdir (s.1, q) tr msg wm h⟩
   toFun_full := fun s tr _ hpos ↦ by
     obtain ⟨hc, q, hq, w, hw⟩ :=
-      Verifier.GuardedForm.of_probEvent_pos F'.toGuarded.guarded init impl s tr _ hpos
+      Verifier.GuardedForm.check_and_of_prEvent_pos F'.toGuarded.guarded hpos
     refine ⟨q, hq, X.extractor.extractOut (s.1, q) tr w,
       (X.kSF init impl).toFun_full (s.1, q) tr w ?_⟩
-    refine Verifier.GuardedForm.probEvent_pos_of_check F.toGuarded.guarded init impl (s.1, q) tr
-      (fun t ↦ (t, w) ∈ relOut) ((hcheck s.1 tr).symm.trans hc) ?_
+    refine Verifier.GuardedForm.prEvent_pos_of_check (p := fun t ↦ (t, w) ∈ relOut)
+      F.toGuarded.guarded ((hcheck s.1 tr).symm.trans hc) ?_
     have hw' : ((F'.out s.1 tr, q), w) ∈ relOut := hw
     exact (congrArg (fun t ↦ ((t, q), w) ∈ relOut) (hout s.1 tr)).mp hw'
 

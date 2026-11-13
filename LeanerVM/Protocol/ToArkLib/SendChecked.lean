@@ -8,8 +8,9 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.ToArkLib.Component
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 public import LeanerVM.Protocol.ToArkLib.Schedule
 
@@ -70,38 +71,21 @@ def sendCheckedVerifier : OracleVerifier []ₒ StmtIn OStmt StmtOut OStmt (say M
 def sendChecked : Def StmtIn OStmt W StmtOut OStmt W (say M) where
   red := ⟨sendCheckedProver OStmt M honest out, sendCheckedVerifier OStmt M check out⟩
 
-/-- Reading the message returns the transcript's entry. -/
-private theorem simulateQ_queryMessage (o : ∀ i, OStmt i) (tr : (say M).FullTranscript) :
-    simulateQ (OracleInterface.simOracle2 []ₒ o tr.messages)
-      (OptionT.lift (liftM (queryMessage M) :
-        OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M)).run =
-      (pure (tr 0) : OptionT (OracleComp []ₒ) M) := by
-  have h : simulateQ (OracleInterface.simOracle2 []ₒ o tr.messages)
-      (liftM (queryMessage M) : OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M) =
-      pure (tr 0) := rfl
-  rw [OptionT.run_lift, simulateQ_bind, h, pure_bind, simulateQ_pure]
-  rfl
-
 /-- As an ordinary verifier: if the transcript's message passes the check, the verdict is `out`
 of the statement and the message, with the oracles; otherwise it rejects. -/
 theorem sendCheckedVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i)
     (tr : (say M).FullTranscript) :
     (sendCheckedVerifier OStmt M check out).toVerifier.verify (s, o) tr =
       if check s (tr 0) then pure (out s (tr 0), o) else failure := by
-  simp only [OracleVerifier.toVerifier]
-  rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+  rw [OracleVerifier.toVerifier_verify_of_query_guard (sendCheckedVerifier OStmt M check out)
+    (show [(say M).Message]ₒ.Domain from ⟨⟨0, rfl⟩, (by change Unit; exact ())⟩)
+    (fun s a _ ↦ check s a = true) (fun s a _ ↦ out s a) (fun s _ ↦ ?_),
+    OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+  · rfl
   simp only [sendCheckedVerifier]
-  rw [show (liftM (queryMessage M) :
-        OptionT (OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ))) M) =
-      OptionT.lift (liftM (queryMessage M) :
-        OracleComp ([]ₒ + ([OStmt]ₒ + [(say M).Message]ₒ)) M) from
-    (OracleComp.monadLift_liftM_OptionT _).symm]
-  rw [simulateQ_optionT_bind_run, simulateQ_queryMessage, pure_bind]
-  by_cases h : check s (tr 0) = true
-  · rw [ite_eq_left h, ite_eq_left h]
-    rfl
-  · rw [ite_eq_right h, ite_eq_right h]
-    rfl
+  congr 1
+  funext a
+  by_cases h : check s a = true <;> simp [h]
 
 /-- The send-checked verifier is a check followed by a verdict, as data. -/
 def sendCheckedGuarded : (sendCheckedVerifier OStmt M check out).toVerifier.GuardedForm where
@@ -134,20 +118,12 @@ theorem sendChecked_complete
       check s (honest ((s, o), w)) = true ∧ ((out s (honest ((s, o), w)), o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendChecked OStmt M honest check out).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sendCheckedGuarded OStmt M check out) (s, o) witIn hx
-  replace hpr : pr ∈ support ((sendCheckedProver OStmt M honest out).run (s, o) witIn) := hpr
-  rw [sendCheckedProver_run, support_pure, Set.mem_singleton_iff] at hpr
-  subst hpr
-  have hc : (sendCheckedGuarded OStmt M check out).check (s, o)
-      (ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-        (default : (say M).Transcript 0)) = true :=
-    (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendCheckedGuarded OStmt M check out) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  replace hq : q ∈ support ((sendCheckedProver OStmt M honest out).run (s, o) w) := hq
+  rw [sendCheckedProver_run, support_pure, Set.mem_singleton_iff] at hq
+  subst hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def sendCheckedComplete
@@ -168,11 +144,11 @@ def sendCheckedStateFunction :
     (sendCheckedVerifier OStmt M check out).toVerifier.KnowledgeStateFunction init impl relIn
       relOut (keepExtractor _ W (say M)) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun _ _ _ _ _ _ hw ↦ hw
   toFun_full := fun stmt tr w hpos ↦
-    have hv := Verifier.GuardedForm.of_probEvent_pos (sendCheckedGuarded OStmt M check out) init
-      impl stmt tr _ hpos
+    have hv := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendCheckedGuarded OStmt M check out) hpos
     h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.1 hv.2
 
 /-- The security half of a checked message, at error zero: no challenge, the witness kept,
@@ -199,11 +175,10 @@ theorem sendChecked_no_stateFunction {W' : Fin 2 → Type}
   let tr : (say M).FullTranscript :=
     ProtocolSpec.Transcript.concat (m := 0) msg (default : (say M).Transcript 0)
   have hc' : (sendCheckedGuarded OStmt M check out).check (s, o) tr = true := hc
-  have hpos := Verifier.guarded_accepting_of_mem init impl _ _ _
-    (sendCheckedGuarded OStmt M check out).verify_eq (s, o) tr hc' {t | (t, w) ∈ relOut} hout
-  have hfull := K.toFun_full (s, o) tr w (lt_of_lt_of_eq zero_lt_one hpos.symm)
+  have hfull := K.toFun_full (s, o) tr w
+    ((sendCheckedGuarded OStmt M check out).prEvent_pos_of_check hc' hout)
   have hnext := K.toFun_next 0 rfl (s, o) (default : (say M).Transcript 0) msg _ hfull
-  exact hin _ ((K.toFun_empty (s, o) _).mpr hnext)
+  exact hin _ (K.toFun_empty (s, o) _ hnext)
 
 end Component
 

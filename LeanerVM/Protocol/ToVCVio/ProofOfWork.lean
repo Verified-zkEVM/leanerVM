@@ -270,25 +270,21 @@ private theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [Decidab
     ((Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome).card : ℝ≥0∞) ≤
       c.enncard := by
   classical
-  let g : Y → (t : D) × (D →ₒ Y).Range t := fun b ↦
-    if h : ∃ n < S.F, (c (S.cand b n)).isSome then
-      ⟨S.cand b h.choose, (c (S.cand b h.choose)).get h.choose_spec.2⟩
-    else ⟨S.cand b 0, b⟩
-  have hmaps : Set.MapsTo g (Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome :
-      Finset Y) c.toSet := fun b hb ↦ by
-    have h : ∃ n < S.F, (c (S.cand b n)).isSome := (Finset.mem_filter.mp hb).2
-    simp only [g, dite_eq_left h, QueryCache.mem_toSet, Option.some_get]
-  have hinj : Set.InjOn g (Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome :
-      Finset Y) := fun b hb b' hb' he ↦ by
-    have h : ∃ n < S.F, (c (S.cand b n)).isSome := (Finset.mem_filter.mp hb).2
-    have h' : ∃ n < S.F, (c (S.cand b' n)).isSome := (Finset.mem_filter.mp hb').2
+  let g : Y → D := fun b ↦
+    if h : ∃ n < S.F, (c (S.cand b n)).isSome then S.cand b h.choose else S.cand b 0
+  set A := Finset.univ.filter fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome
+  have hinj : Set.InjOn g A := fun b hb b' hb' he ↦ by
+    have h := (Finset.mem_filter.mp hb).2
+    have h' := (Finset.mem_filter.mp hb').2
     simp only [g, dite_eq_left h, dite_eq_left h'] at he
-    exact (S.cand_inj h.choose_spec.1 h'.choose_spec.1 (Sigma.mk.inj he).1).1
-  have := Set.encard_le_encard_of_injOn hmaps hinj
-  rw [Set.encard_coe_eq_coe_finsetCard] at this
-  unfold QueryCache.enncard
-  rw [← ENat.toENNReal_coe]
-  exact ENat.toENNReal_le.mpr this
+    exact (S.cand_inj h.choose_spec.1 h'.choose_spec.1 he).1
+  have hS : ∀ t ∈ g '' A, (c t).isSome := by
+    rintro _ ⟨b, hb, rfl⟩
+    have h := (Finset.mem_filter.mp hb).2
+    rw [show g b = S.cand b h.choose from dite_eq_left h]
+    exact h.choose_spec.2
+  rw [← ENat.toENNReal_coe, ← Set.encard_coe_eq_coe_finsetCard, ← hinj.encard_image]
+  exact QueryCache.encard_le_enncard _ hS
 
 omit [DecidableEq D] in
 /-- The expected failure probability of the search from a uniform base: `q^F`, or up to `1` for
@@ -386,17 +382,16 @@ theorem prEvent_exhausted_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     {N : ℕ} (hN : IsTotalQueryBound oa N) :
     Pr{let z ← (simulateQ (D →ₒ Y).randomOracle oa).run ∅}[S.Exhausted z.2] ≤
       (N + 1) * q ^ S.F + N * N / Fintype.card Y := by
-  refine (prEvent_le_of_potential _ (S.potential q) (fun z hz ↦ S.one_le_potential hz) (S.charge q)
-    (fun c t hc ↦ S.potential_step hq hq1 hc) oa ∅).trans ?_
-  rw [S.potential_empty]
-  refine (add_le_add le_rfl (QueryHistory.cache.expected_charge_le_mul (κ := q ^ S.F +
-    N / Fintype.card Y) hN ∅ fun c t _ hc ↦ ?_)).trans_eq ?_
-  · simp only [QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc
+  rw [← QueryHistory.randomOracle_cache]
+  refine (QueryHistory.cache.prEvent_le_of_potential _ (S.potential q)
+    (fun z hz ↦ S.one_le_potential hz) (κ := q ^ S.F + N / Fintype.card Y) hN ∅
+    fun c t hc hb ↦ (S.potential_step hq hq1 hc).trans (add_le_add le_rfl ?_)).trans_eq ?_
+  · simp only [QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hb
     unfold charge
     split_ifs
-    · exact add_le_add le_rfl (ENNReal.div_le_div_right (le_self_add.trans hc) _)
+    · exact add_le_add le_rfl (ENNReal.div_le_div_right (le_self_add.trans hb) _)
     · exact zero_le
-  · rw [mul_add, ← mul_div_assoc]
+  · rw [S.potential_empty, mul_add, ← mul_div_assoc]
     ring
 
 end PowSearch

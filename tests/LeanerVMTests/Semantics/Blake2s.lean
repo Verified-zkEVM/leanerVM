@@ -13,10 +13,8 @@ The cell encoding is checked against the executor test `blake2s_computes_the_com
 pinned leanVM, reproduced by `scripts/dump-blake2s-rust.sh`. The mutations at the end pin roadmap
 acceptance tests 10–12.
 
-Vector equalities are decided on the underlying word lists (`Vector.toList_inj`), because core's
-`DecidableEq` for `Vector` is not exposed to module-system importers; full compressions use
-`decide +kernel`, which reduces one in about a second where the elaborator's reducer exhausts its
-recursion budget.
+Full compressions use `decide +kernel`, which reduces one in about a second where the
+elaborator's reducer exhausts its recursion budget.
 -/
 
 namespace LeanerVMTests.Semantics.Blake2s
@@ -44,18 +42,18 @@ example : Blake2s.initialState paramIv 3 flag 0 =
     #v[0x6B08E647, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB,
        0x5BE0CD19, 0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527C, 0x9B05688C,
        0xE07C2654, 0x5BE0CD19] :=
-  Vector.toList_inj.mp (by decide)
+  by decide
 
 /-- `(i=1)`: the working vector after the first round. -/
 example : Blake2s.round (Blake2s.initialState paramIv 3 flag 0) abcBlock sigma[0] =
     #v[0x16A3242E, 0xD7B5E238, 0xCE8CE24B, 0x927AEDE1, 0xA7B430D9, 0x93A4A14E, 0xA44E7C31,
        0x41D4759B, 0x95BF33D3, 0x9A99C181, 0x608A3A6B, 0xB666383E, 0x7A8DD50F, 0xBE378ED7,
        0x353D1EE6, 0x3BB44C6B] :=
-  Vector.toList_inj.mp (by decide)
+  by decide
 
 /-- `h[8]`: the digest. -/
 example : compress paramIv abcBlock 3 flag 0 = abcDigest :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 /-! ## `hashlib.blake2s` digests, with and without `last_node` -/
 
@@ -65,17 +63,17 @@ def emptyBlock : Vector UInt32 16 := #v[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 example : compress paramIv emptyBlock 0 flag 0 =
     #v[0x307a2169, 0x94809079, 0xd02111e1, 0x7c4a3542, 0x48b6551f, 0x1ea5a12c, 0xfd0d251b,
        0xf9eed01e] :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 example : compress paramIv emptyBlock 0 flag flag =
     #v[0x3c11fc24, 0x848cbe3d, 0x40703c49, 0x680dafae, 0xab7b3bcc, 0x49aecd0d, 0x704abbdb,
        0x365c9d25] :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 example : compress paramIv abcBlock 3 flag flag =
     #v[0xe063d90c, 0x1b6b357a, 0x42f4d4c4, 0x4862616b, 0x2945048f, 0xa0e8e232, 0xd447538b,
        0x3fee2294] :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 /-- The first block of the 65-byte message `0x00, 0x01, …, 0x40`. -/
 def longBlock0 : Vector UInt32 16 :=
@@ -90,12 +88,12 @@ def longBlock1 : Vector UInt32 16 := #v[0x00000040, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 example : compress (compress paramIv longBlock0 64 0 0) longBlock1 65 flag 0 =
     #v[0x94ee531b, 0x4b4ef3aa, 0xde489d15, 0x067f2c35, 0x0ea4d061, 0x0b5af9df, 0x09b43916,
        0x7244970e] :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 example : compress (compress paramIv longBlock0 64 0 0) longBlock1 65 flag flag =
     #v[0x3fd35bba, 0x4a5edc81, 0x67981930, 0x8e45dd10, 0xb3a09522, 0x9eeaa8a8, 0x1d5b657f,
        0x83ba75bb] :=
-  Vector.toList_inj.mp (by decide +kernel)
+  by decide +kernel
 
 /-! ## The executor vector: `blake2s_computes_the_compression` (`cpu/mod.rs:889-917`) -/
 
@@ -124,10 +122,10 @@ example : messageWords rustM =
     #v[0x89abcdef, 0x01234567, 0x76543210, 0xfedcba98, 0x33334444, 0x11112222, 0x77778888,
        0x55556666, 0xcafebabe, 0xdeadbeef, 0x0badf00d, 0x0badf00d, 0xbbbbcccc, 0x9999aaaa,
        0xffff0000, 0xddddeeee] :=
-  Vector.toList_inj.mp (by decide)
+  by decide
 
 example : cellWords rustCv0 ++ cellWords rustCv1 = #v[7, 0, 0, 0, 11, 0, 0, 0] :=
-  Vector.toList_inj.mp (by decide)
+  by decide
 
 example : unpackMetadata rustMd = (64, flag, 0) := by decide
 
@@ -135,7 +133,7 @@ example : unpackMetadata rustMd = (64, flag, 0) := by decide
 example : cellWords rustOut0 ++ cellWords rustOut1 =
     #v[0x350e2137, 0x583fffe1, 0x29a5c508, 0x0de9e326, 0x15df60bb, 0xf1b0679a, 0xed9b3a24,
        0x0228c8d4] :=
-  Vector.toList_inj.mp (by decide)
+  by decide
 
 /-- The nine cells satisfy the relation. -/
 example : CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1 rustMd := by decide +kernel

@@ -115,12 +115,16 @@ theorem length_seedInput (iv : Digest) (input : PublicInput) :
   simp [seedInput, length_digestBytes, length_kBytes]
 
 /-- Words are determined by their bytes. -/
-theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
+private theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
     l = l'
   | [], [], _ => rfl
-  | [], b :: l', h | b :: l', [], h => by
+  | [], b :: l', h => by
     have := congrArg List.length h
-    simp [length_kBytes] at this <;> omega
+    simp [length_kBytes] at this
+    omega
+  | b :: l', [], h => by
+    have := congrArg List.length h
+    simp [length_kBytes] at this
   | a :: l, b :: l', h => by
     rw [List.flatMap_cons, List.flatMap_cons] at h
     obtain ⟨h₁, h₂⟩ := List.append_inj h (by simp [length_kBytes])
@@ -146,7 +150,7 @@ theorem seedInput_injective : Function.Injective2 seedInput := fun _ _ input inp
 /-! ## The program's bytes -/
 
 /-- The program's bytes are eight per word of the bytecode column. -/
-theorem length_programBytes (prog : Program) :
+private theorem length_programBytes (prog : Program) :
     (programBytes prog).length = 2 ^ (prog.logSize + 4) * 8 := by
   simp [programBytes, List.length_flatMap, length_kBytes]
 
@@ -412,29 +416,6 @@ theorem parse?_input (cv : Digest) (b : Block) : parse? (input cv b) = some (cv,
   | nonce n => simp [tag, elem, powNonceTag_ne_observeTag, powNonceTag_ne_squeezeTag]
 
 end Block
-
-namespace FsState
-
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-
-/-- One step of the chain: the new chaining value is the hash of the old one and the block. -/
-def step (s : FsState) (b : Block) : m FsState := FsState.mk <$> H (Block.input s.cv b)
-
-/-- An observe is the step on `observe x`. -/
-theorem observe_eq_step (s : FsState) (x : E) : observe H s x = step H s (.observe x) := rfl
-
-/-- A nonce absorption is the step on `nonce n`. -/
-theorem absorbNonce_eq_step (s : FsState) (n : E) : absorbNonce H s n = step H s (.nonce n) :=
-  rfl
-
-/-- A squeeze is the step on `squeeze`, with the challenge read off the new state. -/
-theorem sample_eq_step [LawfulMonad m] (s : FsState) :
-    sample H s = (fun s' ↦ (challengeOf s'.cv, s')) <$> step H s .squeeze := by
-  simp only [sample, step, Block.input, Block.elem, Block.tag, Functor.map_map]
-  rw [map_eq_bind_pure_comp]
-  rfl
-
-end FsState
 
 end
 end LeanerVM.Protocol

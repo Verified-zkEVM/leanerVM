@@ -177,7 +177,7 @@ def extracted : Column 3 :=
 #guard extracted.values = honest.values
 
 /-- The commit phase's extractor, folded to the input, reads the stack off the message. -/
-example : (commitExtractor toy).extractIn ((1: K), fun i : Fin 0 ↦ i.elim0) honestTranscript () =
+example : (commitExtractor toy).extractFull ((1: K), fun i : Fin 0 ↦ i.elim0) honestTranscript () =
     honest := rfl
 
 /-- The public-input phase fills its slot: its two halves typecheck against the spine's seams
@@ -198,7 +198,7 @@ example (P : Phases toy) (C : P.Complete) {σ : Type} (init : ProbComp σ)
 
 example (P : Phases toy) (S : P.Security) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy)
+    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWith init impl (M3Rel toy)
       (Seam.done toy) S.extraction.witMid (piopExtractor P S) (S.extraction.kSF init impl)
       (piopError toy) :=
   piop_rbrKnowledgeSoundness P S init impl
@@ -213,7 +213,7 @@ example (P : Phases toy) (S : P.Security) (s : K × ∀ i, NoOracle i)
 identity at the public-input seam. -/
 example : Phase.Security toy (Phase.passThrough toy id) (Seam.pub toy) (Seam.pub toy)
     (fun i ↦ Fin.elim0 i.1) :=
-  Phase.passThroughSecurity toy id (fun _ _ h ↦ h) fun _ _ h ↦ h
+  Phase.passThroughSecurity toy id fun _ _ h ↦ h
 
 /-- The relation the protocol starts from is `M3Holds`, in ArkLib's shape. -/
 example (input : K) (q : Column 3) :

@@ -89,7 +89,7 @@ true with probability at most its slot's error. -/
 theorem leanVm_rbrKnowledgeSoundness (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
     {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier (leanVmPhases I h)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (leanVmVerifier (leanVmPhases I h)).toVerifier.rbrKnowledgeSoundnessWith init impl
       (M3Rel I) (Seam.done I) (leanVmSecurity I h hd).extraction.witMid
       (piopExtractor _ (leanVmSecurity I h hd))
       ((leanVmSecurity I h hd).extraction.kSF init impl) (piopError I) :=

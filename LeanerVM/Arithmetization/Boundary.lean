@@ -20,7 +20,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The boundary blocks
 
 leanISA roadmap Layer 7 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the three
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the three
 blocks are `crates/lean_vm/src/cpu/layout.rs:352-395` (the "shared blocks" of `layout`), matching
 specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary), §6.2
 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:95`, the index
@@ -207,7 +207,7 @@ theorem entryCell_idx_eval (prog : Program) {i : ℕ} (hi : i < 2 ^ prog.logSize
   simp only [h]
 
 /-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
-private theorem cons_append_ops (e : Vector K 8) :
+theorem cons_append_ops (e : Vector K 8) :
     #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
   ext j hj
   interval_cases j <;> rfl
@@ -254,13 +254,13 @@ def memTable : GeneralFormalCircuit K MemRow unit where
     circuit_proof_start [MemChannel]
     obtain ⟨_, _, hm⟩ := h_input
     subst hm
-    refine ⟨⟨by simpa only [Vector.getElem_map] using h_holds⟩, fun _ ↦ ?_⟩
-    simpa only [Vector.getElem_map] using (MemSeed.spec h_assumptions).word_eq
+    refine ⟨⟨h_holds⟩, fun _ ↦ ?_⟩
+    exact (MemSeed.spec h_assumptions).word_eq
   completeness := by
     circuit_proof_start [MemChannel]
     obtain ⟨_, _, hm⟩ := h_input
     subst hm
-    simpa only [Vector.getElem_map] using h_assumptions.word_eq
+    exact h_assumptions.word_eq
 
 /-- The rows of the memory block of log-size `κ`: `2^κ` of them, the address column fixed to
 `g^i` at row `i` (`gpowCell`), the words from the prover's hint, the finalize count the

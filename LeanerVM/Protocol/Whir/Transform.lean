@@ -38,66 +38,6 @@ open LeanerVM.Parameters CompPoly
 
 @[expose] public section
 
-/-! ## Halves of a vector -/
-
-section Halves
-
-variable {α : Type*} {j : ℕ}
-
-/-- Two halves of `2 ^ (j + 1)`. -/
-theorem two_pow_add_two_pow (j : ℕ) : 2 ^ j + 2 ^ j = 2 ^ (j + 1) := by
-  rw [pow_succ]
-  omega
-
-/-- The first half of a vector of `2 ^ (j + 1)` entries. -/
-def lowHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
-  Vector.ofFn fun i ↦ v[i.val]'(by have := i.isLt; rw [pow_succ]; omega)
-
-/-- The second half. -/
-def highHalf (v : Vector α (2 ^ (j + 1))) : Vector α (2 ^ j) :=
-  Vector.ofFn fun i ↦ v[i.val + 2 ^ j]'(by have := i.isLt; rw [pow_succ]; omega)
-
-/-- Two halves joined. -/
-def joinHalves (a b : Vector α (2 ^ j)) : Vector α (2 ^ (j + 1)) :=
-  (a ++ b).cast (two_pow_add_two_pow j)
-
-/-- The entries of the first half. -/
-@[simp] theorem lowHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
-    (lowHalf v)[i] = v[i]'(by rw [pow_succ]; omega) := by
-  simp [lowHalf]
-
-/-- The entries of the second half. -/
-@[simp] theorem highHalf_getElem (v : Vector α (2 ^ (j + 1))) (i : ℕ) (hi : i < 2 ^ j) :
-    (highHalf v)[i] = v[i + 2 ^ j]'(by rw [pow_succ]; omega) := by
-  simp [highHalf]
-
-/-- The entries of two halves joined. -/
-theorem joinHalves_getElem (a b : Vector α (2 ^ j)) (w : ℕ) (hw : w < 2 ^ (j + 1)) :
-    (joinHalves a b)[w] =
-      if h : w < 2 ^ j then a[w] else b[w - 2 ^ j]'(by rw [pow_succ] at hw; omega) := by
-  simp [joinHalves, Vector.getElem_append]
-
-/-- The first half of two halves joined. -/
-@[simp] theorem lowHalf_join (a b : Vector α (2 ^ j)) : lowHalf (joinHalves a b) = a := by
-  ext i hi
-  simp [joinHalves_getElem, hi]
-
-/-- The second half of two halves joined. -/
-@[simp] theorem highHalf_join (a b : Vector α (2 ^ j)) : highHalf (joinHalves a b) = b := by
-  ext i hi
-  simp [joinHalves_getElem]
-
-/-- A vector is its two halves joined. -/
-@[simp] theorem join_halves (v : Vector α (2 ^ (j + 1))) :
-    joinHalves (lowHalf v) (highHalf v) = v := by
-  ext w hw
-  rw [joinHalves_getElem]
-  split
-  · simp
-  · simp [Nat.sub_add_cancel (Nat.le_of_not_lt ‹_›)]
-
-end Halves
-
 /-! ## The transform -/
 
 section Transform
@@ -120,7 +60,7 @@ def twiddle (j : ℕ) (s : K) : K :=
   if h : j < 64 then vanish s j * rootInvs[j] else normW j s
 
 /-- The twiddle is `Ŵ_j(s)`. -/
-theorem twiddle_eq (j : ℕ) (s : K) : twiddle j s = normW j s := by
+private theorem twiddle_eq (j : ℕ) (s : K) : twiddle j s = normW j s := by
   unfold twiddle normW
   split
   · rw [rootInvs, Vector.getElem_ofFn, div_eq_mul_inv]
@@ -189,57 +129,39 @@ theorem inv_fwd : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), inv φ j (fwd φ
 
 /-! ## The values -/
 
-/-- `x_v` is additive in the position: `x_{a ⊕ b} = x_a + x_b`. -/
-private theorem domainPt_xor' (a b : ℕ) : domainPt (a ^^^ b) = domainPt a + domainPt b := by
-  unfold domainPt K.ofBits
-  rw [BF64.add_def, BitVec.ofNat_xor]
-  rfl
-
-/-- A position below `2 ^ j` plus a multiple of `2 ^ j` adds the points. -/
-theorem domainPt_add_mul {w j : ℕ} (hw : w < 2 ^ j) (c : ℕ) :
-    domainPt (w + c * 2 ^ j) = domainPt w + domainPt (c * 2 ^ j) := by
-  rw [← domainPt_xor', Nat.sum_of_and_eq_zero_is_xor]
-  refine Nat.eq_of_testBit_eq fun i ↦ ?_
-  simp only [Nat.testBit_and, Nat.testBit_mul_two_pow, Nat.zero_testBit]
-  by_cases h : j ≤ i
-  · simp [h, Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hw (Nat.pow_le_pow_right (by norm_num) h))]
-  · simp [h]
-
 /-- A novel polynomial of `j + 1` variables: the one of `j`, times `Ŵ_j` when bit `j` is set. -/
-theorem novelAt_succ (j : ℕ) (x : K) (u : ℕ) :
+private theorem novelAt_succ (j : ℕ) (x : K) (u : ℕ) :
     novelAt φ (j + 1) x u = novelAt φ j x u * if u.testBit j then φ (normW j x) else 1 := by
   unfold novelAt
   rw [Fin.prod_univ_castSucc]
   rfl
 
 /-- Bit `j` does not change the first `j` factors. -/
-theorem novelAt_add_two_pow {j i : ℕ} (x : K) :
+private theorem novelAt_add_two_pow {j i : ℕ} (x : K) :
     novelAt φ j x (i + 2 ^ j) = novelAt φ j x i := by
   unfold novelAt
   refine Finset.prod_congr rfl fun k _ ↦ ?_
   rw [add_comm, Nat.testBit_two_pow_add_gt k.isLt]
 
 /-- The polynomial of `j + 1` variables is its low half plus `Ŵ_j` times its high half. -/
-theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
+private theorem novelEval_succ (j : ℕ) (m : Vector S (2 ^ (j + 1))) (x : K) :
     novelEval φ (j + 1) m x =
       novelEval φ j (lowHalf m) x + φ (normW j x) * novelEval φ j (highHalf m) x := by
   unfold novelEval
-  rw [← Fin.sum_congr' _ (two_pow_add_two_pow j), Fin.sum_univ_add, Finset.mul_sum]
+  rw [← Fin.sum_congr' _ (Nat.two_pow_succ j).symm, Fin.sum_univ_add, Finset.mul_sum]
   congr 1
   · refine Finset.sum_congr rfl fun i _ ↦ ?_
     simp only [Fin.getElem_fin, Fin.val_cast, Fin.val_castAdd, novelAt_succ,
       Nat.testBit_eq_false_of_lt i.isLt, lowHalf_getElem]
     simp
   · refine Finset.sum_congr rfl fun i _ ↦ ?_
-    have hbit : (i.val + 2 ^ j).testBit j = true := by
-      rw [Nat.add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_eq_false_of_lt i.isLt]
-      rfl
     simp only [Fin.getElem_fin, Fin.val_cast, Fin.val_natAdd, novelAt_succ, highHalf_getElem,
-      Nat.add_comm (2 ^ j) (i : ℕ), novelAt_add_two_pow, hbit, ↓reduceIte]
+      Nat.add_comm (2 ^ j) (i : ℕ), novelAt_add_two_pow, testBit_add_two_pow_self i.isLt,
+      ↓reduceIte]
     ring
 
 /-- The polynomial is linear in its coefficients. -/
-theorem novelEval_ofFn_add_mul (j : ℕ) (p q : Fin (2 ^ j) → S) (c : S) (x : K) :
+private theorem novelEval_ofFn_add_mul (j : ℕ) (p q : Fin (2 ^ j) → S) (c : S) (x : K) :
     novelEval φ j (Vector.ofFn fun i ↦ p i + c * q i) x =
       novelEval φ j (Vector.ofFn p) x + c * novelEval φ j (Vector.ofFn q) x := by
   simp only [novelEval, Fin.getElem_fin, Vector.getElem_ofFn, Finset.mul_sum,

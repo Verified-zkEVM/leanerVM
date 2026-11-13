@@ -10,9 +10,10 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
 public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToVCVio.UniformSample
@@ -195,7 +196,7 @@ def sentCount {n : ℕ} (ls : Vector (PublicLine I.toShape) n) : ℕ :=
   (ls.toList.filter (·.sent)).length
 
 /-- The expected values are one per sent line. -/
-theorem expectedValues_length (input : I.Stmt) (r : E) :
+private theorem expectedValues_length (input : I.Stmt) (r : E) :
     (expectedValues I input r).length = sentCount I (I.publicLines input) :=
   List.length_map ..
 
@@ -215,9 +216,7 @@ private theorem getElem?_filter_length_take {α : Type} (p : α → Bool) :
     simp [ha]
   | a :: l, i + 1, hi, h => by
     have ih := getElem?_filter_length_take p l i (Nat.lt_of_succ_lt_succ hi) (by simpa using h)
-    by_cases hpa : p a = true
-    · simp [hpa, ih]
-    · simp [hpa, ih]
+    by_cases hpa : p a = true <;> simp [hpa, ih]
 
 /-- A sent line's position is inside a message with one value per sent line. -/
 theorem sentBefore_lt {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (i : Fin n)
@@ -255,8 +254,7 @@ private theorem claimsFrom_expected (r : E) (input : I.Stmt)
     (h : (expectedValues I input r).length = sentCount I (I.publicLines input)) :
     claimsFrom I r (I.publicLines input) (expectedValues I input r) h =
       (I.publicLines input).map (lineClaim I r) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [claimsFrom, claimsWith, Vector.getElem_ofFn, Vector.getElem_map, lineClaim,
     Fin.getElem_fin]
   split_ifs with hsent
@@ -303,9 +301,7 @@ private theorem line_challenge_unique {a b c0 c1 : K} (hne : ¬ (a = c0 ∧ b = 
   by_cases hβ : ofK b - ofK a - ofK c0 - ofK c1 = 0
   · exfalso
     apply hne
-    have hα : ofK a = ofK c0 := by
-      rw [hβ, mul_zero, add_zero, sub_eq_zero] at e₁
-      exact e₁
+    have hα : ofK a = ofK c0 := by rwa [hβ, mul_zero, add_zero, sub_eq_zero] at e₁
     refine ⟨ofK_injective hα, ofK_injective ?_⟩
     have hb : ofK b = ofK c0 + ofK c0 + ofK c1 := by linear_combination hβ + hα
     rw [hb, CharTwo.add_self_eq_zero, zero_add]
@@ -516,7 +512,7 @@ theorem accepts_check_iff (s : I.Stmt × TableOut I) (r : E) (cs : List E) :
     ⟨by rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length], hc⟩⟩
 
 /-- When the check passes, the verdict is the pool of the lines' claims. -/
-theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+private theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
     (hc : check I s r cs = true) : verdict I (pooledFrom I) s r cs = pooled I s r := by
   have hl : cs.length = sentCount I (I.publicLines s.1) := by
     rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length]
@@ -571,18 +567,13 @@ private theorem complete_with
     (OracleReduction.mk (prover I)
       ((verifierWith I accept (pooledFrom I)).toOracleVerifier (TheOracle I))).perfectCompleteness
         init impl (Seam.table I) (Seam.pub I) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ :=
-    Reduction.mem_support_run_of_guarded _ (guardedWith I accept (pooledFrom I)) (s, o) witIn hx
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (guardedWith I accept (pooledFrom I)) fun ⟨s, o⟩ _ hIn pr hpr ↦ ?_
   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
   have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
-  have hacc' : (guardedWith I accept (pooledFrom I)).check (s, o) pr.1 = true := hacc _ _ _ hc
   have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
     verdict_pooledFrom_of_check I hc
-  rw [ite_eq_left hacc']
-  refine ⟨_, rfl, ?_, ?_⟩
+  refine ⟨hacc _ _ _ hc, ?_, ?_⟩
   · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
     rw [hpool]
     exact pooled_mem_pub I s o hIn (pr.1 0)
@@ -731,10 +722,7 @@ private theorem bad_challenge_unique_words (s : I.Stmt × TableOut I) (o : ∀ i
   rw [verdict, dite_eq_left hl₂] at hp₂
   obtain ⟨hold, hline₁⟩ := pool_holds I hp₁
   obtain ⟨-, hline₂⟩ := pool_holds I hp₂
-  have haux : I.aux (theStack o) := by
-    have hp := hp₁
-    obtain ⟨-, haux⟩ := hp
-    exact haux
+  have haux : I.aux (theStack o) := (show _ ∧ _ from hp₁).2
   have hlines : ¬ I.PublicLinesHold s.1 (theStack o) := fun hl ↦ hin ⟨hold, hl, haux⟩
   simp only [M3Instance.PublicLinesHold, not_forall] at hlines
   obtain ⟨l, hl, hne⟩ := hlines
@@ -815,7 +803,7 @@ written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe
 `Extractor.RoundByRound` leaves free. -/
 def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
     ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) Unit Unit pubSpec (fun _ ↦ Unit) where
-  eqIn := rfl
+  extractIn := fun _ w ↦ w
   extractMid := fun _ _ _ _ ↦ ()
   extractOut := fun _ _ _ ↦ ()
 
@@ -835,7 +823,7 @@ def stateFunction :
       accepts I (check I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
         ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
           Seam.pub I
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm stmt tr msg w h ↦ by
     have hm1 : m = 1 := by
       fin_cases m
@@ -843,15 +831,14 @@ def stateFunction :
       · rfl
     subst hm1
     obtain ⟨hc, hp⟩ := h
-    rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
-    exact hp
-  toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr _ h
+    rwa [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
+  toFun_full := fun _ _ _ h ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (guarded I) h
 
 /-- Round-by-round knowledge soundness at the slot's error `1/|E|`: a bad transition is a bad
 challenge, and there is at most one. -/
 theorem rbr :
-    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.rbrKnowledgeSoundnessWith
       init impl (Seam.table I) (Seam.pub I) (fun _ ↦ Unit) (extractor I)
       (stateFunction I init impl) pubError := by
   intro stmtIn i tr
@@ -864,7 +851,7 @@ theorem rbr :
   subst hi0
   show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
   rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
   rintro r ⟨_, hin, hout⟩
@@ -888,7 +875,7 @@ def deployedStateFunction :
       accepts I (checkWords I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
         ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
           Seam.pub I
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m hm stmt tr msg w h ↦ by
     have hm1 : m = 1 := by
       fin_cases m
@@ -897,14 +884,14 @@ def deployedStateFunction :
     subst hm1
     obtain ⟨hc, hp⟩ := h
     exact ⟨msg, hc, hp⟩
-  toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_probEvent_pos (deployedGuarded I) init impl stmt tr _ h
+  toFun_full := fun _ _ _ h ↦
+    Verifier.GuardedForm.check_and_of_prEvent_pos (deployedGuarded I) h
 
 /-- Round-by-round knowledge soundness of the deployed phase at the slot's error `1/|E|`: a bad
 transition is a bad challenge, and there is at most one (`bad_challenge_unique_words`). -/
 theorem deployed_rbr :
     ((deployedVerifier I).toOracleVerifier (TheOracle I)).toVerifier
-      |>.rbrKnowledgeSoundnessWorstCaseWith init impl (Seam.table I) (Seam.pub I)
+      |>.rbrKnowledgeSoundnessWith init impl (Seam.table I) (Seam.pub I)
         (fun _ ↦ Unit) (extractor I) (deployedStateFunction I init impl) pubError := by
   intro stmtIn i tr
   obtain ⟨s, o⟩ := stmtIn
@@ -916,7 +903,7 @@ theorem deployed_rbr :
   subst hi0
   show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
   rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ∃ cs, accepts I (checkWords I) s r cs = true ∧
       ((verdict I (pooledFrom I) s r cs, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ ?_)

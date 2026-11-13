@@ -24,8 +24,8 @@ does not answer. It is the verifier on the oracle, simulated by `QueryLog.replay
 `g.log` is consistent, the replay on `g.log` returns the verdict `g.ok` and the verifier's log
 `g.logV`. A possible run is one in the support of `loggedGame`, where a query may be answered by
 anything, so the same holds of a run under the lazy random oracle or under BLAKE2s
-(`QueryLog.support_simulateQ_subset`). `mem_support_runBlake2s`: a run under BLAKE2s is a possible
-run whose joint log is consistent, and its verdict is `verify`'s.
+(`OracleComp.support_simulateQ_subset`). `mem_support_runBlake2s`: a run under BLAKE2s is a
+possible run whose joint log is consistent, and its verdict is `verify`'s.
 
 `FsState.seedWith_replay`: the seed's hashes, replayed on a log, append their three queries in
 order, each with the log's answer, and the state is the third's.
@@ -44,7 +44,7 @@ def replay (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
   (verifyWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input proof).run []
 
 /-- The replay is the verifier on the oracle, simulated by the log's answers. -/
-theorem replay_eq_simulateQ (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
+private theorem replay_eq_simulateQ (log : hashSpec.QueryLog) (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) :
     replay log prog input proof =
       (simulateQ (QueryLog.replayImpl (MerkleTree.logAnswer log))
@@ -79,7 +79,8 @@ theorem replay_of_mem_support_loggedGame {prog : Program} {input : PublicInput} 
 /-- A log whose every answer a partial function gives at its input is consistent. -/
 private theorem consistent_of_answers {log : hashSpec.QueryLog}
     (f : List UInt8 → Option Digest) (h : ∀ e ∈ log, f e.1 = some e.2) : QueryLog.Consistent log :=
-  fun e₁ he₁ e₂ he₂ he ↦ Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
+  OracleSpec.QueryLog.consistent_iff.mpr fun e₁ he₁ e₂ he₂ he ↦
+    Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
 
 /-- **A run under BLAKE2s** is a possible run of the game, its joint log is BLAKE2s's and so
 consistent, and its verdict is `verify`'s. -/
@@ -87,7 +88,7 @@ theorem mem_support_runBlake2s {prog : Program} {input : PublicInput} {A : Adver
     (hg : g ∈ support (runBlake2s (loggedGame verifyWith prog input A))) :
     g ∈ support (loggedGame verifyWith prog input A) ∧ QueryLog.Consistent g.log ∧
       g.ok = verify prog input g.proof := by
-  refine ⟨QueryLog.support_simulateQ_subset _ _ hg, ?_⟩
+  refine ⟨support_simulateQ_subset _ _ hg, ?_⟩
   rw [runBlake2s, show loggedGame verifyWith prog input A = A.withQueryLog >>= fun p ↦
     (verifyWith hashQuery prog input p.1).withQueryLog >>= fun q ↦
       pure ⟨p.1, p.2, q.2, q.1⟩ from rfl] at hg

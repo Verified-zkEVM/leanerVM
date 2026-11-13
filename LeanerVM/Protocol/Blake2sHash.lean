@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Semantics.Blake2s
 public import LeanerVM.Semantics.Blake2sFast
+import LeanerVM.Semantics.Blake2sOutput
 
 /-!
 # The BLAKE2s byte hasher and the digest encoding
@@ -41,11 +42,6 @@ open LeanerVM.Parameters LeanerVM.Semantics
 
 /-- A BLAKE2s-256 digest, as the eight chaining words of its last compression. -/
 abbrev Digest := Vector UInt32 8
-
-/-- Digest equality decided on the word lists, usable from a module file, where core's
-`DecidableEq` for `Vector` is not exposed. -/
-def Digest.decEq : DecidableEq Digest := fun a b ↦
-  decidable_of_iff (a.toList = b.toList) Vector.toList_inj
 
 namespace Blake2sHash
 
@@ -142,35 +138,6 @@ def digestOfScalars (s : E × E) : Option Digest :=
 
 /-! ## The encoding round trip -/
 
-/-- The low word of the `K` word with words `lo` and `hi` is `lo`. -/
-theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
-  apply UInt32.toBitVec_inj.mp
-  simp only [lowWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
-  exact BitVec.extractLsb'_append_eq_right
-
-/-- The high word of the `K` word with words `lo` and `hi` is `hi`. -/
-theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
-  apply UInt32.toBitVec_inj.mp
-  simp only [highWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
-  exact BitVec.extractLsb'_append_eq_left
-
-/-- A four-word vector is the vector of its four words. -/
-private theorem vector4_eta {α : Type} (v : Vector α 4) : #v[v[0], v[1], v[2], v[3]] = v := by
-  ext i hi
-  rcases i with _ | _ | _ | _ | i <;> first | rfl | omega
-
-/-- Reading the words of the cell built from four words gives the words back. -/
-private theorem cellWords_wordsCell (w : Vector UInt32 4) : cellWords (wordsCell w) = w := by
-  simp only [cellWords, wordsCell, limb_ofLimbs, lowWord_ofWords, highWord_ofWords,
-    Matrix.cons_val_zero, Matrix.cons_val_one]
-  exact vector4_eta w
-
-/-- The cell built from four words is canonical. -/
-private theorem isCanonical128_wordsCell (w : Vector UInt32 4) :
-    IsCanonical128 (wordsCell w) := by
-  show (E.ofLimbs _ _ 0).limb 2 = 0
-  rw [limb_ofLimbs]; rfl
-
 /-- Decoding the encoding of a digest gives the digest back. -/
 theorem digestOfScalars_digestScalars (d : Digest) :
     digestOfScalars (digestScalars d) = some d := by
@@ -178,37 +145,6 @@ theorem digestOfScalars_digestScalars (d : Digest) :
     cellWords_wordsCell, Option.some.injEq]
   ext i hi
   rcases i with _ | _ | _ | _ | _ | _ | _ | _ | i <;> first | rfl | omega
-
-/-- The first four words of the concatenation of two four-word vectors. -/
-private theorem append_left4 {α : Type} (x y : Vector α 4) :
-    #v[(x ++ y)[0], (x ++ y)[1], (x ++ y)[2], (x ++ y)[3]] = x := by
-  rw [Vector.getElem_append_left (show 0 < 4 by decide),
-    Vector.getElem_append_left (show 1 < 4 by decide),
-    Vector.getElem_append_left (show 2 < 4 by decide),
-    Vector.getElem_append_left (show 3 < 4 by decide)]
-  exact vector4_eta x
-
-/-- The last four words of the concatenation of two four-word vectors. -/
-private theorem append_right4 {α : Type} (x y : Vector α 4) :
-    #v[(x ++ y)[4], (x ++ y)[5], (x ++ y)[6], (x ++ y)[7]] = y := by
-  rw [Vector.getElem_append_right (show 4 < 4 + 4 by decide) (show 4 ≤ 4 by decide),
-    Vector.getElem_append_right (show 5 < 4 + 4 by decide) (show 4 ≤ 5 by decide),
-    Vector.getElem_append_right (show 6 < 4 + 4 by decide) (show 4 ≤ 6 by decide),
-    Vector.getElem_append_right (show 7 < 4 + 4 by decide) (show 4 ≤ 7 by decide)]
-  exact vector4_eta y
-
-/-- Encoding a decoded pair gives the pair back: the encoding is a bijection between digests and
-pairs of canonical cells. -/
-theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
-    (h : digestOfScalars s = some d) : digestScalars d = s := by
-  obtain ⟨a, b⟩ := s
-  unfold digestOfScalars at h
-  split at h
-  · rename_i hc
-    cases h
-    show (wordsCell _, wordsCell _) = (a, b)
-    rw [append_left4, append_right4, wordsCell_cellWords hc.1, wordsCell_cellWords hc.2]
-  · cases h
 
 /-! ## The byte round trip -/
 
@@ -243,12 +179,6 @@ private theorem wordsOfBytes_flatMap (rest : List UInt8) :
     simp only [List.flatMap_cons, wordBytes, List.cons_append, List.nil_append, wordsOfBytes,
       wordOfBytes_wordBytes, wordsOfBytes_flatMap rest ws]
 
-/-- Splitting a `K` word into its two words and joining them is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
-  have h := congrArg (·.limb 0)
-    (wordsCell_cellWords (x := E.ofLimbs a 0 0) (by show (E.ofLimbs a 0 0).limb 2 = 0; simp))
-  simpa [wordsCell, cellWords] using h
-
 /-- A digest is 32 bytes. -/
 theorem length_digestBytes (d : Digest) : (digestBytes d).length = 32 := by
   simp [digestBytes, wordBytes, List.length_flatMap]
@@ -261,7 +191,8 @@ theorem digestOfBytes_append (d : Digest) (rest : List UInt8) :
     digestOfBytes (digestBytes d ++ rest) = d := by
   ext i hi
   simp only [digestOfBytes, digestBytes, wordsOfBytes_flatMap, Vector.getElem_ofFn]
-  rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_append_left (by simp; omega)]
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp; omega),
+    Option.getD_some, List.getElem_append_left (by simp; omega)]
   simp
 
 /-- The `K` word whose bytes begin a byte string is read back by `kOfBytes`. -/

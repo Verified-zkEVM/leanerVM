@@ -232,7 +232,7 @@ def invDeg3 (h : P.d = 3) (x : Ext P) : Ext P :=
   (ofVector ⟨#[di * w0, di * w1, di * w2], by simp [h]⟩ : Ext P)
 
 /-- `mulMatrix` is the matrix of multiplication by `x`. -/
-theorem mul_ofVector_eq_mulVec (h : P.d = 3) (x : Ext P) (v : Fin 3 → F) :
+private theorem mul_ofVector_eq_mulVec (h : P.d = 3) (x : Ext P) (v : Fin 3 → F) :
     x * (ofVector ⟨#[v 0, v 1, v 2], by simp [h]⟩ : Ext P) =
       (ofVector ⟨#[(mulMatrix h x).mulVec v 0, (mulMatrix h x).mulVec v 1,
         (mulMatrix h x).mulVec v 2], by simp [h]⟩ : Ext P) := by

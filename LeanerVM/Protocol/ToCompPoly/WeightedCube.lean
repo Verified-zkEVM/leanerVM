@@ -68,15 +68,13 @@ theorem weightedCubeSum_zero (w : Fin 0 → R × R) (g : Vector R 0 → R) :
   rw [weightedCubeSum, Fintype.sum_unique, cubeWeight, Finset.univ_eq_empty, Finset.prod_empty,
     one_mul]
   congr 1
-  exact Vector.ext fun i hi ↦ absurd hi (Nat.not_lt_zero i)
 
 /-- A point on `k` coordinates followed by one more coordinate. -/
 private theorem boolVec_cubeIndex_push {k : ℕ} (i : Fin (2 ^ k)) (b : Fin (2 ^ 1)) :
     (boolVec (cubeIndex i b) : Vector R (k + 1)) =
       (boolVec i : Vector R k).push (if b.val.testBit 0 then 1 else 0) := by
   rw [← boolVec_append]
-  apply Vector.ext
-  intro a ha
+  refine Vector.ext fun a ha ↦ ?_
   rw [Vector.getElem_append, Vector.getElem_push]
   by_cases h : a < k
   · simp only [h, dite_true]
@@ -141,7 +139,7 @@ def prodWeight {k : ℕ} (w : Fin k → R × R) (z : Vector R k) : R :=
   ∏ a : Fin k, ((1 - z[a]) * (w a).1 + z[a] * (w a).2)
 
 /-- At a cube point, the weight is the cube point's weight. -/
-theorem prodWeight_boolVec {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) :
+private theorem prodWeight_boolVec {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) :
     prodWeight w (boolVec x) = cubeWeight w x := by
   refine Finset.prod_congr rfl fun a _ ↦ ?_
   simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn, bitWeight]
@@ -168,16 +166,13 @@ theorem weightedCubeSum_lowCoords {k n : ℕ} (h : k ≤ n) (w : Fin n → R × 
     congr 1
     funext z
     congr 1
-    apply Vector.ext
-    intro a ha
-    rw [getElem_lowCoords _ _ ha]
+    exact Vector.ext fun a ha ↦ by rw [getElem_lowCoords _ _ ha]
   | succ m ih =>
     rw [weightedCubeSum_succ (k := k + m), hw (Fin.last (k + m)) (by simp), zero_mul, zero_add,
       one_mul]
     have hlow : ∀ v : Vector R (k + m), lowCoords h (v.push 1) =
         lowCoords (Nat.le_add_right k m) v := fun v ↦ by
-      apply Vector.ext
-      intro a ha
+      refine Vector.ext fun a ha ↦ ?_
       rw [getElem_lowCoords _ _ ha, getElem_lowCoords _ _ ha, Vector.getElem_push_lt]
     simp only [hlow]
     exact ih (Nat.le_add_right k m) _ (fun b hb ↦ hw _ hb)

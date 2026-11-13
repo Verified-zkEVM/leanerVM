@@ -7,7 +7,8 @@
 
 module
 
-public import LeanerVM.Parameters.CleanField
+public import LeanerVM.Parameters.Field
+public import Clean.Utils.BinaryField
 public import LeanerVM.Semantics.Step
 public import LeanerVM.Arithmetization.Bytecode
 public import Clean.Circuit.Basic
@@ -20,7 +21,7 @@ public import Mathlib.Data.Nat.Log
 # The bus channels
 
 leanISA roadmap Layer 5 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`.
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`.
 
 **The tuples** (Category B). Every bus tuple is sixteen `K` slots: a domain separator, then the
 interaction's coordinates, then zeros (specification §5.1,

@@ -2,15 +2,16 @@
   LeanerVM.Protocol.ToArkLib.SendOracle
 
   The component whose one message becomes the one oracle every later component queries, with
-  its completeness and its zero-error knowledge soundness. Candidate for ArkLib, whose
-  `SendSingleWitness` has the same shape with its completeness admitted.
+  its completeness and its zero-error knowledge soundness: ArkLib's one-message
+  `SendSingleWitness.Adapter` at the identity, packaged as a component.
 -/
 
 module
 
+public import ArkLib.OracleReduction.Security.GuardedRoundByRound
+public import ArkLib.ProofSystem.Component.SendWitness
 public import LeanerVM.Protocol.ToArkLib.Component
 public import LeanerVM.Protocol.ToArkLib.ExtractIn
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.Oracles
 
 /-!
@@ -38,28 +39,27 @@ variable (S M : Type) [OracleInterface M]
 /-- The schedule: one prover message of type `M`. -/
 abbrev sendSpec : ProtocolSpec 1 := ⟨!v[.P_to_V], !v[M]⟩
 
-/-- The prover: sends the witness, keeps the statement. -/
-def sendProver : OracleProver []ₒ S NoOracle M S (OneOracle M) Unit (sendSpec M) where
-  PrvState := fun _ ↦ S × M
-  input := fun p ↦ (p.1.1, p.2)
-  sendMessage | ⟨0, _⟩ => fun st ↦ pure (st.2, st)
-  receiveChallenge | ⟨0, h⟩ => nomatch h
-  output := fun st ↦ pure ((st.1, fun _ ↦ st.2), ())
-
 /-- The one message is the one output oracle. -/
 def sendEmbedding : OracleOutputEmbedding NoOracle (sendSpec M).Message (OneOracle M) where
   embed := ⟨fun _ ↦ Sum.inr ⟨0, rfl⟩, fun a b _ ↦ Subsingleton.elim a b⟩
   hEq := fun _ ↦ rfl
   outputInterface_heq := fun _ ↦ HEq.rfl
 
-/-- The verifier: keeps the statement, exposes the message. -/
-def sendVerifier : OracleVerifier []ₒ S NoOracle S (OneOracle M) (sendSpec M) where
-  verify := fun s _ ↦ pure s
+/-- The one-message stage: the statement kept, the witness sent as it is and exposed as the one
+oracle. -/
+def sendAdapter : SendSingleWitness.Adapter []ₒ S NoOracle M S (OneOracle M) M where
+  stmtOut := id
+  encode := id
+  decode := id
   outputOracle := .inl (sendEmbedding M)
 
-/-- The send-oracle component: no challenge. -/
+/-- The verifier: keeps the statement, exposes the message. -/
+def sendVerifier : OracleVerifier []ₒ S NoOracle S (OneOracle M) (sendSpec M) :=
+  (sendAdapter S M).oracleVerifier
+
+/-- The send-oracle component: the prover sends the witness, no challenge. -/
 def sendOracle : Def S NoOracle M S (OneOracle M) Unit (sendSpec M) where
-  red := ⟨sendProver S M, sendVerifier S M⟩
+  red := ⟨(sendAdapter S M).oracleProver, sendVerifier S M⟩
 
 variable {S M}
 
@@ -69,111 +69,48 @@ def sendOracle_relOut (rel : Set ((S × ∀ i, NoOracle i) × M)) :
     Set ((S × ∀ i, OneOracle M i) × Unit) :=
   {p | ((p.1.1, fun i ↦ i.elim0), p.1.2 0) ∈ rel}
 
-/-! ## Completeness -/
-
-/-- The output oracle is the message. -/
-theorem send_materializeOutput (challenges : (sendSpec M).Challenges) (o : ∀ i, NoOracle i)
-    (messages : (sendSpec M).Messages) :
-    (sendVerifier S M).materializeOutput challenges o messages = fun _ ↦ messages ⟨0, rfl⟩ := by
-  unfold OracleVerifier.materializeOutput sendVerifier
-  change OracleVerifier.materializeOutputOracle (Sum.inl (sendEmbedding M)) challenges o
-    messages = _
-  simp only [OracleVerifier.materializeOutputOracle]
-  funext i
-  fin_cases i
-  rfl
-
-/-- As an ordinary verifier, the send verifier returns the statement and the message. -/
-theorem sendVerifier_toVerifier_run (s : S) (o : ∀ i, NoOracle i)
-    (tr : (sendSpec M).FullTranscript) :
-    (sendVerifier S M).toVerifier.run (s, o) tr = pure (s, fun _ ↦ tr 0) := by
-  simp only [Verifier.run, OracleVerifier.toVerifier]
-  rw [send_materializeOutput]
-  rfl
-
 /-- The send verifier is pure, as data. -/
 def sendVerifierPure : (sendVerifier S M).toVerifier.PureForm where
   verify := fun p tr ↦ (p.1, fun _ ↦ tr 0)
-  verify_eq := fun ⟨s, o⟩ tr ↦ sendVerifier_toVerifier_run s o tr
+  verify_eq := (sendAdapter S M).verifier_run
 
-/-- Perfect completeness: sending a witness of `rel` lands in `rel` read on the oracle. -/
-theorem sendOracle_complete (rel : Set ((S × ∀ i, NoOracle i) × M)) {σ : Type}
-    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (sendOracle S M).red.perfectCompleteness init impl rel (sendOracle_relOut rel) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  have hrun : ((sendOracle S M).red.toReduction.run (s, o) witIn).run =
-      pure (some (((show (sendSpec M).FullTranscript from
-        ProtocolSpec.Transcript.concat (m := 0) witIn (default : (sendSpec M).Transcript 0)),
-        (s, fun _ ↦ witIn), ()), (s, fun _ ↦ witIn))) := rfl
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hx
-  rw [noOracle_eq o (fun i ↦ i.elim0)] at hIn
-  exact ⟨_, hx, hIn, rfl⟩
+/-- The output relation read back on the message is the input relation. -/
+private theorem send_relOut_iff (rel : Set ((S × ∀ i, NoOracle i) × M)) (s : S × ∀ i, NoOracle i)
+    (w : M) : ((sendAdapter S M).output s w, ()) ∈ sendOracle_relOut rel ↔ (s, w) ∈ rel := by
+  obtain ⟨s, o⟩ := s
+  rw [noOracle_eq o (fun i ↦ i.elim0)]
+  rfl
 
-/-- The completeness half. -/
+/-- The completeness half: sending a witness of `rel` lands in `rel` read on the oracle. -/
 def sendOracleComplete (rel : Set ((S × ∀ i, NoOracle i) × M)) :
     Complete (sendOracle S M) rel (sendOracle_relOut rel) where
   guarded := (sendVerifierPure (S := S) (M := M)).toGuardedForm
-  complete := sendOracle_complete rel
+  complete := fun init impl ↦ (sendAdapter S M).perfectCompleteness init impl rel _
+    fun s w ↦ by exact (send_relOut_iff rel s w).mpr
 
 /-! ## Knowledge soundness -/
-
-/-- The intermediate witness at every round: an `M`. -/
-abbrev sendWitMid (M : Type) : Fin 2 → Type := fun _ ↦ M
 
 /-- The extractor reads the message. The shared oracle is written `OracleSpec.emptySpec.{0, 0}`
 rather than `[]ₒ` to pin a universe `Extractor.RoundByRound` leaves free. -/
 def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × ∀ i, NoOracle i) M
-    Unit (sendSpec M) (sendWitMid M) where
-  eqIn := rfl
-  extractMid := fun m _ tr _ ↦ tr ⟨0, Nat.succ_pos m.val⟩
-  extractOut := fun _ tr _ ↦ tr 0
+    Unit (sendSpec M) (fun _ ↦ M) :=
+  SendSingleWitness.transcriptExtractor _ id
 
 omit [OracleInterface M] in
-/-- Its first step is the message. -/
+/-- Its fold from round `1` is the message. -/
 theorem sendExtractor_readsFirst :
     Extractor.RoundByRound.ReadsFirst (sendExtractor (S := S) (M := M)) :=
   fun _ _ _ _ ↦ HEq.rfl
 
-variable (rel : Set ((S × ∀ i, NoOracle i) × M))
-  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-
-/-- The knowledge state function: before the message, `rel` of the intermediate witness; after
-it, `rel` of the message. -/
-def sendStateFunction :
-    (sendVerifier S M).toVerifier.KnowledgeStateFunction init impl rel (sendOracle_relOut rel)
-      (sendExtractor (S := S) (M := M)) where
-  toFun := fun m stmt tr w ↦
-    if h : m.val = 0 then (stmt, w) ∈ rel else (stmt, tr ⟨0, Nat.pos_of_ne_zero h⟩) ∈ rel
-  toFun_empty := fun _ _ ↦ Iff.rfl
-  toFun_next := fun m _ stmt tr msg w h ↦ by
-    have hm : m.val = 0 := by omega
-    simp only [Fin.val_succ, Nat.add_eq_zero_iff, one_ne_zero, and_false, dite_false] at h
-    simp only [Fin.val_castSucc, hm, dite_true]
-    exact h
-  toFun_full := fun stmt tr _ h ↦ by
-    obtain ⟨s, o⟩ := stmt
-    simp only [Fin.val_last, one_ne_zero, dite_false]
-    rw [noOracle_eq o (fun i ↦ i.elim0)]
-    exact (Verifier.GuardedForm.of_probEvent_pos
-      (sendVerifierPure (S := S) (M := M)).toGuardedForm init impl (s, o) tr _ h).2
-
-/-- Round-by-round knowledge soundness at error zero: no challenge, the extractor reads the
-message. -/
-theorem sendOracle_rbr :
-    (sendVerifier S M).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl rel
-      (sendOracle_relOut rel) (sendWitMid M) sendExtractor (sendStateFunction rel init impl)
-      (fun _ ↦ 0) :=
-  fun _ i ↦ (IsEmpty.false i).elim
-
 /-- The security half, at error zero, with the extractor that reads the message. -/
-def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) (fun _ ↦ 0) where
+def sendOracleSecurity (rel : Set ((S × ∀ i, NoOracle i) × M)) :
+    Security (sendOracle S M) rel (sendOracle_relOut rel) (fun _ ↦ 0) where
   guarded := (sendVerifierPure (S := S) (M := M)).toGuardedForm
-  witMid := sendWitMid M
+  witMid := fun _ ↦ M
   extractor := sendExtractor
-  kSF := sendStateFunction rel
-  rbr := sendOracle_rbr rel
+  kSF := fun init impl ↦ (sendAdapter S M).knowledgeStateFunction init impl rel _
+    fun s w ↦ by exact (send_relOut_iff rel s w).mp
+  rbr := fun init impl ↦ (sendAdapter S M).rbrKnowledgeSoundnessWith init impl rel _ _
 
 end Component
 

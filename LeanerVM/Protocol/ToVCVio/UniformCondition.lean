@@ -8,7 +8,7 @@
 module
 
 public import LeanerVM.Protocol.ToVCVio.EventExpectation
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # Conditioning a uniform sample on a coordinate

@@ -4,7 +4,8 @@ import LeanerVM.Protocol.Blake2sCircuit
 # BLAKE2s circuit tests
 
 * **The shape.** `14720` product gates at `1280 … 15999`, then the `256` output rows; the
-  circuit is bounded (by `decide`, beside the structural proof `bounded_blake2s`).
+  circuit is bounded (by `decide`, beside the structural proof `bounded_blake2s`); the kernel
+  checks that the product gates end at `16000` (`compressW_next`).
 * **The rows against the deployed walk.** `rowsDigest` digests all `2 ^ 14` rows of `A` and `B`
   (the row table: the recorded gate, else the constant, input or zero row); the value is the one
   `scripts/dump-flock-circuit-digest.py` prints for the pinned Python verifier's
@@ -78,7 +79,9 @@ def outWords (z : Form m) : Vector UInt32 8 :=
 #guard blake2sCircuit.gates.size == 14720 + 256
 #guard decide blake2sCircuit.Bounded
 
-example : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
+/-- The product gates occupy exactly `[1280, 16000)`. -/
+theorem compressW_next : ((compressW (formLin m)).run ⟨gateBase, #[]⟩).2.next = 16000 := by
+  decide +kernel
 
 /-! ## The rows against the deployed walk -/
 

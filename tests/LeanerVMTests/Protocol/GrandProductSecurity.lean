@@ -104,7 +104,7 @@ theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
     {kSF : Verifier.KnowledgeStateFunction init impl (relMid Φ 0) (rel Φ 1)
       (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier Ex}
     {ε : (draw E).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ 0) (rel Φ 1)
+    (h : Verifier.rbrKnowledgeSoundnessWith init impl (relMid Φ 0) (rel Φ 1)
       (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier WitMid Ex kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ := by
   obtain ⟨x⟩ : Nonempty (LayerX Unit E 3 2) := ⟨(((), (#v[0, 0], fun _ ↦ 0)), 0)⟩

@@ -37,16 +37,14 @@ def frobPoint {n : ℕ} (k : ℕ) (r : Vector R n) : Vector R n := r.map (· ^ 2
   simp [frobPoint]
 
 /-- Raising to `2 ^ 0 = 1` changes nothing. -/
-@[simp] theorem frobPoint_zero {n : ℕ} (r : Vector R n) : frobPoint 0 r = r := by
-  apply Vector.ext
-  intro i hi
-  simp
+@[simp] theorem frobPoint_zero {n : ℕ} (r : Vector R n) : frobPoint 0 r = r :=
+  Vector.ext fun i hi ↦ by simp
 
 variable [CharP R 2]
 
 /-- On a cube index, the Lagrange basis at `r`, raised to `2 ^ k`, is the Lagrange basis at the
 point raised coordinatewise. -/
-theorem lagrangeBasis_frob {n : ℕ} (k : ℕ) (r : Vector R n) (i : Fin (2 ^ n)) :
+private theorem lagrangeBasis_frob {n : ℕ} (k : ℕ) (r : Vector R n) (i : Fin (2 ^ n)) :
     (lagrangeBasis r)[i] ^ 2 ^ k = (lagrangeBasis (frobPoint k r))[i] := by
   rw [lagrangeBasis_getElem, lagrangeBasis_getElem, ← Finset.prod_pow]
   refine Finset.prod_congr rfl fun j _ ↦ ?_

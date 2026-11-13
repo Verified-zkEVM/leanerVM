@@ -15,8 +15,8 @@ The mutations at the end reject the flag pair `(1, 1)` and a non-Boolean flag (a
 18), an unknown opcode, and a nonzero spare slot; the first is also derived from
 `decode_eq_none_iff`, so the rejection is a theorem and not only an evaluation.
 
-Vector equalities are stated on word lists (`Vector.toList`), because core's `DecidableEq` for
-`Vector` is not exposed to module-system importers (finding L1).
+Vector equalities are stated on word lists (`Vector.toList`) for readability; since Lean
+`v4.35.0`, `decide` compares vectors directly.
 -/
 
 namespace LeanerVMTests.Arithmetization

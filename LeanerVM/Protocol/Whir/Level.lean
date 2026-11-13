@@ -470,7 +470,7 @@ def glue :=
     (fun s ↦ ((gluedWeight s.resid s.z s.pos s.lam,
       (#v[], powerBatch ![s.c, s.cood, powerBatch s.cq s.lam] s.lam)),
       batchMessage ![s.p1, s.p2, s.p3] s.lam))
-    (fun p ↦ foldTable p.2 p.1.1.r)
+    (fun s w ↦ foldTable w s.r)
 
 /-- Completeness of the commitment: the new word is the honest word of the folded table. -/
 private def commitNextComplete : Component.Complete (commitNext sh sh' κ')

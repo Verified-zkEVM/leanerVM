@@ -122,17 +122,6 @@ private theorem not_freshHit_roots {prog : Program} {input : PublicInput} {g : R
     rw [← List.take_succ_eq_append_getElem hp]
     exact (List.take_prefix _ _).trans (List.prefix_append _ _)
 
-/-- A cast along an equation of types is heterogeneously equal to its argument. -/
-private theorem heq_mp {α β : Sort _} (h : α = β) (a : α) : HEq (Eq.mp h a) a := by
-  cases h
-  rfl
-
-/-- The first half of an appended transcript at a round is the whole's at that round. -/
-private theorem fst_heq {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
-    (T : FullTranscript (p₁ ++ₚ p₂)) (i : Fin m) : HEq (T.fst i) (T (Fin.castAdd n i)) := by
-  unfold FullTranscript.fst
-  exact heq_mp _ _
-
 /-- The word committed in the first round, read off a full transcript cut after it, is the
 transcript's level-0 word. -/
 private theorem committedWord_take_one {I : M3Instance} {sh : Whir.Shape} {κ : ℕ}
@@ -145,8 +134,8 @@ private theorem committedWord_take_one {I : M3Instance} {sh : Whir.Shape} {κ : 
   apply eq_of_heq
   refine (cast_heq _ _).trans ?_
   refine HEq.symm ?_
-  exact (fst_heq _ _).trans ((fst_heq _ _).trans ((fst_heq _ _).trans ((fst_heq _ _).trans
-    ((fst_heq _ _).trans ((fst_heq _ _).trans (fst_heq _ _))))))
+  iterate 6 refine (FullTranscript.fst_apply_heq _ _).trans ?_
+  exact FullTranscript.fst_apply_heq _ _
 
 /-- The compiled verifier, as the state function of `listBinding_deployed` reads it. -/
 private theorem compiledDef_verifier (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
@@ -270,34 +259,17 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
   have hκ : (leanIsaChain prog s hs ρ hρ).κ = leanIsaμ prog s - Parameters.Whir.initialFold :=
     (deployedChain_head (admissible_of_sizes hs hρ)).2.1.trans
       (deployedHeadKap_eq (admissible_of_sizes hs hρ))
-  have hleaf : rowWordsOf (nLanes prog s) true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-        (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-        (leanIsaChain prog s hs ρ hρ).sh.t, false⟩ ≤
-      leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ, (leanIsaChain prog s hs ρ hρ).κ,
-        (leanIsaChain prog s hs ρ hρ).sh.R, (leanIsaChain prog s hs ρ hρ).sh.t, false⟩ →
-      ∀ (p : Fin (2 ^ ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)))
-        row, extractRows g.log w.root
-          ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)
-          (rowWordsOf (nLanes prog s) true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-            (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-            (leanIsaChain prog s hs ρ hρ).sh.t, false⟩)
-          (leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ, (leanIsaChain prog s hs ρ hρ).κ,
-            (leanIsaChain prog s hs ρ hρ).sh.R, (leanIsaChain prog s hs ρ hρ).sh.t, false⟩) p =
-          some row →
-        ((Prove.level0Word tr).row p).toList.reverse =
-          leafImage (leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-            (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-            (leanIsaChain prog s hs ρ hρ).sh.t, false⟩) row := by
-    intro hle p row hrow
-    have hn : nLanes prog s = level0Lanes prog s (leanIsaChain prog s hs ρ hρ).κ := by
-      rw [hκ]
-      rfl
-    simp only [rowWordsOf, leafWordsOf, ↓reduceIte, hn] at hle hrow ⊢
-    rw [hfront, hW0]
-    exact logWord_row_reverse hle p hrow
   have hrows : rows = Prove.rowsOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr :=
-    rows_eq_ladderRows hc hcoll (nLanes prog s) _ true w.root _ _ w.whir rows hleaf hLR
-      (by rw [hshapes]; exact hok) hwire' (by rw [hshapes]; exact hcnt)
+    rows_eq_ladderRows hc hcoll (nLanes prog s) _ true w.root
+      (fun p ↦ ((Prove.level0Word tr).row p).toList.reverse) _ w.whir rows
+      (fun hle p row hrow ↦ by
+        have hn : nLanes prog s = level0Lanes prog s (leanIsaChain prog s hs ρ hρ).κ := by
+          rw [hκ]
+          rfl
+        simp only [rowWordsOf, leafWordsOf, ↓reduceIte, hn] at hle hrow ⊢
+        rw [hfront, hW0]
+        exact logWord_row_reverse hle p hrow)
+      hLR (by rw [hshapes]; exact hok) hwire' (by rw [hshapes]; exact hcnt)
   have halg' : algebra prog s input (leanIsaChain prog s hs ρ hρ).ladder.shapes
       (wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr)
       (Prove.rowsOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr) = true := by
@@ -313,11 +285,10 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
   -- the state function, true at the end, is true after the commitment
   have hfull := ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2
     a.2.2).kSF (pure ()) noSharedOracle).toFun_full (input, fun i ↦ i.elim0) tr ()
-      (Verifier.probEvent_pos_of_runNoOracle _ (pure ()) noSharedOracle _ tr hso _ trivial)
-  have hall := Verifier.KnowledgeStateFunction.exists_toFun_take_of_good
+      (Verifier.prEvent_pos_of_runNoOracle _ (pure ()) noSharedOracle _ tr hso _ trivial)
+  have hall := fun m ↦ Verifier.KnowledgeStateFunction.exists_toFun_take_of_good
     ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).kSF
-      (pure ()) noSharedOracle) _ tr hfull
-    fun i w' h ↦ Classical.byContradiction fun hneg ↦
+      (pure ()) noSharedOracle) _ tr hfull m fun i _ w' h ↦ Classical.byContradiction fun hneg ↦
       hflip (flipAt_of_bad (a := a) hc hcoll hσ hstates hchain hchainV hobs hann hpow hW hdec i (by
         unfold Bad
         dsimp only [deployedSpec] at hneg h ⊢
@@ -358,7 +329,7 @@ theorem verify_knowledgeSound_rom (prog : Program) (input : PublicInput) (A : Ad
     Pr{let z ← runRandom (loggedGame verifyWith prog input A)}[
       z.1.ok = true ∧ ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input z.1.proof z.1.logA] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
+  (prEvent_mono_of_support _ _ _ fun _ hz h ↦
     (core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).mono
       fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)

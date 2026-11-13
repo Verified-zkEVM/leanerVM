@@ -35,12 +35,12 @@ open LeanerVM.Parameters
 @[expose] public section
 
 /-- Joining a low and a high word and splitting the result returns the low word. -/
-private theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
+theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
   unfold lowWord ofWords
   rw [BF64.toBitVec_ofBitVec, BitVec.extractLsb'_append_eq_right]
 
 /-- Joining a low and a high word and splitting the result returns the high word. -/
-private theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
+theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
   unfold highWord ofWords
   rw [BF64.toBitVec_ofBitVec, BitVec.extractLsb'_append_eq_left]
 
@@ -78,7 +78,8 @@ theorem compressCells_compressOut (m : Fin 4 → E) (cv0 cv1 md : E)
 
 /-- Every compression has output cells: on canonical inputs, the two cells holding the words of the
 compression satisfy `CompressCells`. -/
-theorem compressCells_exists (m : Fin 4 → E) (cv0 cv1 md : E) (hm : ∀ i, IsCanonical128 (m i))
+private theorem compressCells_exists (m : Fin 4 → E) (cv0 cv1 md : E) (hm : ∀ i, IsCanonical128
+    (m i))
     (hcv0 : IsCanonical128 cv0) (hcv1 : IsCanonical128 cv1) (hmd : IsCanonical128 md) :
     ∃ out0 out1 : E, CompressCells m cv0 cv1 out0 out1 md :=
   ⟨_, _, compressCells_compressOut m cv0 cv1 md hm hcv0 hcv1 hmd⟩

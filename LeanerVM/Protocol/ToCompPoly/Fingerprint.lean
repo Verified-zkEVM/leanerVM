@@ -65,8 +65,7 @@ theorem eval_fingerprintPoly_boolVec (t : CMlPolynomialEval R n) (i : Fin (2 ^ n
 theorem fingerprintPoly_injective :
     Function.Injective (fingerprintPoly (R := R) (n := n)) := by
   intro t u h
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have ht := eval_fingerprintPoly_boolVec t ⟨i, hi⟩
   have hu := eval_fingerprintPoly_boolVec u ⟨i, hi⟩
   rw [h] at ht

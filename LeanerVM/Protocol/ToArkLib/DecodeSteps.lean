@@ -20,8 +20,7 @@ The decoders of `LeanerVM.Protocol.ToArkLib.DecodeTranscript` for the schedules 
 * `SlotDecoder.rounds poly chal next σ m` decodes `roundsSpec C d m`, carrying a state (the
   running claim, say) from each round to the next;
 * a `SeqDecoder α l` holds a decoder of each step of a list `l` of steps, given the transcripts of
-  the steps before it, and `SeqDecoder.toDecoder` decodes `seqSpec l` (`SeqDecoder.runFull_cons`,
-  `SeqDecoder.decode_cons`).
+  the steps before it, and `SeqDecoder.toDecoder` decodes `seqSpec l`.
 
 For example, take readings `ρ` that are absorbed values or squeezed states, read by partial maps
 `absorbed? : ρ → Option M` and `squeezed? : ρ → Option S`. A message absorbed as one reading, a
@@ -133,19 +132,6 @@ def toDecoder : {l : List Step} → SeqDecoder α l → SlotDecoder α (seqSpec 
   | [], _ => SlotDecoder.empty
   | a :: l, D => SlotDecoder.append (pSpec₁ := a.spec) (pSpec₂ := seqSpec l) D.1
       fun t ↦ (D.2 t).toDecoder
-
-/-- The full run of a list of steps is the full run of its first step, then that of the rest. -/
-theorem runFull_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r : List α) :
-    D.toDecoder.runFull r = (D.1.runFull r).bind fun p ↦
-      ((D.2 p.1).toDecoder.runFull p.2).map fun q ↦ (p.1 ++ₜ q.1, q.2) :=
-  SlotDecoder.runFull_append _ _ r
-
-/-- Exact decoding of a list of steps is the full run of its first step, then exact decoding of
-the rest. -/
-theorem decode_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r : List α) :
-    D.toDecoder.decode r =
-      (D.1.runFull r).bind fun p ↦ ((D.2 p.1).toDecoder.decode p.2).map (p.1 ++ₜ ·) :=
-  SlotDecoder.decode_append _ _ r
 
 end SeqDecoder
 

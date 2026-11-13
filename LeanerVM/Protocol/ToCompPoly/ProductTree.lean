@@ -51,7 +51,8 @@ def contract {n : ℕ} (t : CMlPolynomialEval R (n + 1)) : CMlPolynomialEval R n
       t[2 * x.val + 1]'(by have := x.isLt; rw [pow_succ]; omega)
 
 /-- Entry `x` of the level above is the product of entries `2x` and `2x + 1`. -/
-theorem contract_getElem {n : ℕ} (t : CMlPolynomialEval R (n + 1)) {x : ℕ} (hx : x < 2 ^ n) :
+private theorem contract_getElem {n : ℕ} (t : CMlPolynomialEval R (n + 1)) {x : ℕ}
+    (hx : x < 2 ^ n) :
     (contract t)[x] =
       t[2 * x]'(by rw [pow_succ]; omega) * t[2 * x + 1]'(by rw [pow_succ]; omega) := by
   simp [contract]
@@ -65,11 +66,7 @@ def contractPow : (ρ : ℕ) → {n : ℕ} → CMlPolynomialEval R (n + ρ) → 
 
 /-- The index of descendant `c` of node `x`, `ρ` levels down: `c + 2 ^ ρ · x`. -/
 def childIndex (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) : Fin (2 ^ (n + ρ)) :=
-  ⟨c.val + 2 ^ ρ * x.val, by
-    have h := (cubeIndex c x).isLt
-    rw [cubeIndex_val, pow_add] at h
-    rw [pow_add, Nat.mul_comm (2 ^ n) (2 ^ ρ)]
-    exact h⟩
+  (cubeIndex c x).cast (by rw [Nat.add_comm])
 
 /-- The descendant's index as a number. -/
 @[simp] theorem childIndex_val (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) :
@@ -82,17 +79,15 @@ def childPoint (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (y : Vector R n) : Vector
 
 /-- Bit `a` of a descendant index is bit `a` of the descendant below `ρ` and bit `a - ρ` of the
 node above. -/
-theorem testBit_childIndex (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) (a : ℕ) :
+private theorem testBit_childIndex (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) (a : ℕ) :
     (childIndex ρ c x).val.testBit a =
-      if a < ρ then c.val.testBit a else x.val.testBit (a - ρ) := by
-  rw [childIndex_val, add_comm]
-  exact Nat.testBit_two_pow_mul_add x.val c.isLt a
+      if a < ρ then c.val.testBit a else x.val.testBit (a - ρ) :=
+  testBit_cubeIndex c x a
 
 /-- The descendant of a Boolean point is the Boolean point of the descendant index. -/
-theorem childPoint_boolVec (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) :
+private theorem childPoint_boolVec (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (x : Fin (2 ^ n)) :
     childPoint ρ c (boolVec x : Vector R n) = boolVec (childIndex ρ c x) := by
-  apply Vector.ext
-  intro a ha
+  refine Vector.ext fun a ha ↦ ?_
   rw [childPoint, Vector.getElem_cast, Vector.getElem_append]
   simp only [boolVec, Vector.getElem_ofFn, testBit_childIndex]
   by_cases h : a < ρ <;> simp [h]
@@ -107,8 +102,7 @@ theorem evalMle_childPoint_boolVec (ρ : ℕ) {n : ℕ} (t : CMlPolynomialEval R
 theorem childPoint_set (ρ : ℕ) {n : ℕ} (c : Fin (2 ^ ρ)) (y : Vector R n) {k : ℕ} (hk : k < n)
     (X : R) :
     childPoint ρ c (y.set k X hk) = (childPoint ρ c y).set (ρ + k) X (by omega) := by
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [childPoint, Vector.getElem_cast, Vector.getElem_append, Vector.getElem_set]
   by_cases h : i < ρ
   · simp [h, show ρ + k ≠ i by omega]
@@ -182,7 +176,7 @@ def layerTable : {μ : ℕ} → CMlPolynomialEval R μ → (m : ℕ) → CMlPoly
   cases μ <;> simp [layerTable]
 
 /-- Each level is the contraction of the one below. -/
-theorem layerTable_contract {μ : ℕ} (t : CMlPolynomialEval R μ) {m : ℕ} (h : m + 1 ≤ μ) :
+private theorem layerTable_contract {μ : ℕ} (t : CMlPolynomialEval R μ) {m : ℕ} (h : m + 1 ≤ μ) :
     layerTable t m = contract (layerTable t (m + 1)) := by
   induction μ generalizing m with
   | zero => omega
@@ -206,7 +200,7 @@ theorem layerTable_contractPow {μ : ℕ} (t : CMlPolynomialEval R μ) (ρ : ℕ
     exact ih (by omega)
 
 /-- The level of the leaves, reached at any number equal to `μ`. -/
-theorem layerTable_of_eq {μ : ℕ} (t : CMlPolynomialEval R μ) {m : ℕ} (h : m = μ) :
+private theorem layerTable_of_eq {μ : ℕ} (t : CMlPolynomialEval R μ) {m : ℕ} (h : m = μ) :
     layerTable t m = Vector.cast (congrArg (2 ^ ·) h.symm) t := by
   subst h
   simp

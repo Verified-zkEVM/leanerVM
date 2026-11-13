@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:586-609` (`mod deref`, in that order), the store coordinates
 `tables.rs:616-623` (`deref_store`), the flushes `tables.rs:633-643` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
@@ -233,11 +233,8 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     obtain ⟨mode, rfl, hflags⟩ := decode_deref_eq_some_iff.mp hdec
     obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
     subst h4 h5
-    simp only [Vector.getElem_map] at h3 h2
     rw [storeCoords_eval] at h2
-    refine (deref_refines_iff _ _ _).mpr ⟨mode, ⟨rfl, h1, ?_⟩, ?_, rfl⟩
-    · simpa only [Vector.getElem_map] using h3
-    · simpa only [Vector.getElem_map] using h2
+    exact (deref_refines_iff _ _ _).mpr ⟨mode, ⟨rfl, h1, h3⟩, h2, rfl⟩
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
@@ -251,7 +248,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
     subst h4 h5
     rw [← storeCoords_eval] at h2
-    simp only [Vector.getElem_map] at h3 h2 ⊢
+    simp only at h3 h2 ⊢
     exact ⟨⟨_, decode_entry (.deref _ _ _ mode)⟩, h1, h2, h3⟩
 
 /-! ## Rows from executions -/
@@ -273,7 +270,7 @@ theorem derefRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {
   have h := hexec
   simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨p, hp, u, hu, v3, hv3, -⟩ := h
-  have hin := guard_eq_some hu
+  have hin := (Option.guard_eq_some' _).mp hu
   refine ⟨mode, ⟨rfl, ?_, ?_⟩, hexec⟩
   · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp

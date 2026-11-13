@@ -116,10 +116,8 @@ private theorem card_ridersZeroOn_update_le (x : X) (o : ∀ i, O i) (σ : Parti
   rw [natCard_subtype_eq_card_filter]
   simp only [RidersZeroOn, not_forall] at hne
   obtain ⟨r, hr, hne⟩ := hne
-  refine (Finset.card_le_card fun c hc ↦ ?_).trans
+  exact (Finset.card_le_card (Finset.monotone_filter_right _ fun _ _ hc ↦ hc r hr)).trans
     (card_filter_restrictedZero_update_le r.2 σ k hne)
-  rw [Finset.mem_filter] at hc ⊢
-  exact ⟨Finset.mem_univ _, hc.2 r hr⟩
 
 /-! ## How a step tracks the riders -/
 
@@ -323,19 +321,14 @@ private theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
       by_contra h
       exact hs ⟨hinv, fun t ↦ by_contra fun ht ↦ h ⟨t, ht⟩⟩
     obtain ⟨t, ht⟩ := hne
-    refine (Finset.card_le_card fun c hc ↦ ?_).trans
+    refine (Finset.card_le_card (Finset.monotone_filter_right _ fun c _ hc ↦ ?_)).trans
       (card_filter_restrictedZero_update_le _ (combPartial s.2) i ht)
-    rw [Finset.mem_filter] at hc ⊢
-    refine ⟨Finset.mem_univ _, ?_⟩
-    have := hc.2.2 t
+    have := hc.2 t
     simp only [show (interpNext nside ρ m s c).2 = s.2.push c from rfl, combPartial,
       Partial.ofVector_push, Nat.zero_add] at this
     exact this
-  · refine (Finset.card_le_card fun c hc ↦ ?_).trans
-      ((natCard_subtype_eq_card_filter _).symm.trans_le
-        (T.invU_escape _ _ _ i s.2 hinv))
-    rw [Finset.mem_filter] at hc ⊢
-    exact ⟨Finset.mem_univ _, hc.2.1⟩
+  · exact (Finset.card_le_card (Finset.monotone_filter_right _ fun _ _ hc ↦ hc.1)).trans
+      ((natCard_subtype_eq_card_filter _).symm.trans_le (T.invU_escape _ _ _ i s.2 hinv))
 
 /-- The security half of the first `i` combination challenges, at `1 / |F|` each. -/
 def interpPrefixSecurity (T : RiderTrack μ riders ρ m) : (i : ℕ) →

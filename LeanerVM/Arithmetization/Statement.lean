@@ -24,7 +24,7 @@ public import Clean.Air.FlatEnsemble
 # The constraint statement
 
 leanISA roadmap Layer 8 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category A for the
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category A for the
 statement itself, which is what the M3 model means by an accepted instance (specification §5,
 `doc/leanvm/body/05-arithmetization.tex:4`: "an instance is accepted exactly when every
 table's constraints hold and the bus balances", the balance being the multiset equality of
@@ -38,7 +38,7 @@ of the bus the verifier forms itself, the index column and the program's share o
 block (§8.5, `:70`; §6.5, `06-bus-interactions.tex:95`), are the fixed columns of the two blocks
 (Layer 7). Artifact: the accept relation of the M3 constraint system and its ensemble. Direction:
 a statement, no soundness or completeness theorem. Boundary: leanVM at the pin above, Clean
-`ce2eee63`. Contribution: the statement surface of T1 (both directions); no target of
+`6a2e7bb9`. Contribution: the statement surface of T1 (both directions); no target of
 `docs/architecture.md` is claimed.
 
 **The ensemble.** `leanIsaEnsemble prog κ` is Clean's `Ensemble`: the six opcode tables of Layer
@@ -60,10 +60,10 @@ the channels have distinct names. A raw row is read as its typed row exactly as 
 constraints read it (`memRowAt`, `blake2sRowAt`: Clean's `Component.rowInput`).
 
 **Balance** is Clean's multiset balance on each of the three channels, `w.Balanced
-.multiset`: every multiplicity is `0` or `1`, fewer than `2^64` interactions per channel, and
-the messages of the active pushes are a permutation of those of the active pulls (§5.1
-"Balance", `05-arithmetization.tex:14`), counted in `ℕ`, never a field sum (acceptance test 14).
-`SatisfiedBy.perm` reads it as a permutation of `messagesOn`.
+.multiset`: every multiplicity is `0` or `1`, and the messages of the active pushes are a
+permutation of those of the active pulls (§5.1 "Balance", `05-arithmetization.tex:14`), counted
+in `ℕ`, never a field sum (acceptance test 14). `SatisfiedBy.perm` reads it as a permutation of
+`messagesOn`.
 
 **The verifier's checks.** `CountsNonzero w` is the nonzero count product: every read pull of
 the six tables carries a nonzero count, message index `1` (bus coordinate 2) of a memory or
@@ -161,27 +161,35 @@ private abbrev threeChannels : List (RawChannel K) :=
   [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
 
 private theorem xorTable_channels : xorTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem mulTable_channels : mulTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem setTable_channels : setTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw,
+    MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem derefTable_channels : derefTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem jumpTable_channels : jumpTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem blake2sTable_channels : blake2sTable.channels ⊆ threeChannels := by
-  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] ⊆ _
+  change [StateChannel.toRaw, BytecodeChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw, MemChannel.toRaw,
+    MemChannel.toRaw, MemChannel.toRaw] ++ [StateChannel.toRaw, MemChannel.toRaw,
+    BytecodeChannel.toRaw] ⊆ _
   simp
 
 private theorem memTable_channels : memTable.channels ⊆ threeChannels := by
@@ -379,7 +387,10 @@ def tableOf (c : Component K) (rows : List (Array K)) (hw : ∀ row ∈ rows, ro
     (hl : rows.length ≤ UInt64.size) (hf : c.FixedRowsMatch rows) : Air.Flat.Table K where
   component := c
   table := rows
-  data name n := if c.circuit.name = name then (rows.map (Air.Flat.rowPrefix n)).toArray else #[]
+  data :=
+    { tables name n := if c.circuit.name = name then (rows.map (Air.Flat.rowPrefix n)).toArray
+        else #[]
+      publicInput := #[] }
   uniform_width := hw
   length_le := hl
   fixed_rows_match := hf
@@ -399,53 +410,52 @@ them. -/
 def witnessOfTables (prog : Program) (κ : ℕ) (pi : PublicIO K) (ts : List (Air.Flat.Table K))
     (hc : ts.map (·.component) = (leanIsaEnsemble prog κ).tables) :
     EnsembleWitness (leanIsaEnsemble prog κ) where
-  tables := Air.Flat.withDerivedData ts (names_nodup hc)
+  tables := Air.Flat.withDerivedData ts (names_nodup hc) (toElements pi).toArray
   publicInput := pi
   same_length := by
-    have h := (Air.Flat.withDerivedData_map_component ts (names_nodup hc)).trans hc
+    have h := (Air.Flat.withDerivedData_map_component ts (names_nodup hc)
+      (toElements pi).toArray).trans hc
     simpa using (congrArg List.length h).symm
   same_circuits i hi := by
-    have h := (Air.Flat.withDerivedData_map_component ts (names_nodup hc)).trans hc
+    have h := (Air.Flat.withDerivedData_map_component ts (names_nodup hc)
+      (toElements pi).toArray).trans hc
     rw [List.getElem_of_eq h.symm hi]
     exact List.getElem_map _
-  same_data := Air.Flat.withDerivedData_data ts (names_nodup hc)
+  same_data := Air.Flat.withDerivedData_data ts (names_nodup hc) _
 
 /-- The tables of `witnessOfTables` are `ts`, up to their prover data. -/
 theorem witnessOfTables_map {pi : PublicIO K} {ts : List (Air.Flat.Table K)}
     {hc : ts.map (·.component) = (leanIsaEnsemble prog κ).tables} :
     (witnessOfTables prog κ pi ts hc).tables.map (fun t ↦ (t.component, t.table)) =
       ts.map fun t ↦ (t.component, t.table) :=
-  Air.Flat.withDerivedData_map ts (names_nodup hc)
+  Air.Flat.withDerivedData_map ts (names_nodup hc) _
 
 /-- The prover data of `witnessOfTables` is the data derived from `ts`. -/
 theorem witnessOfTables_data {pi : PublicIO K} {ts : List (Air.Flat.Table K)}
     {hc : ts.map (·.component) = (leanIsaEnsemble prog κ).tables} :
-    (witnessOfTables prog κ pi ts hc).data = Air.Flat.deriveProverData ts :=
-  Air.Flat.deriveProverData_congr witnessOfTables_map
+    (witnessOfTables prog κ pi ts hc).data =
+      Air.Flat.deriveProverData ts (toElements pi).toArray := by
+  rw [EnsembleWitness.data, Air.Flat.deriveProverData, Air.Flat.deriveProverData,
+    Air.Flat.deriveTables_congr witnessOfTables_map]
+  rfl
 
 /-! ## Load-bearing lemmas -/
 
-/-- A raw row written from a typed row reads back as it: reading at offset `0` inverts
-`toElements`, for any row type and any data. -/
-theorem rowAt_toElements {Row : TypeMap} [ProvableType Row] (data : ProverData K) (r : Row K) :
-    valueFromOffset Row 0 (Environment.fromArray (toElements r).toArray data) = r := by
-  unfold valueFromOffset
-  convert ProvableType.fromElements_toElements r
-  refine Vector.ext fun i hi ↦ ?_
-  rw [Vector.getElem_mapRange]
-  show ((toElements r).toArray[0 + i]?).getD 0 = _
-  rw [Nat.zero_add, Array.getElem?_eq_getElem (by simpa using hi), Option.getD_some,
-    Vector.getElem_toArray]
+/-- A typed row written as a raw row reads back from its prefix of the row type's width. -/
+theorem fromElements_rowPrefix {Row : TypeMap} [ProvableType Row] (r : Row K) :
+    fromElements (Air.Flat.rowPrefix (size Row) (toElements r).toArray) = r :=
+  (Air.Flat.valueFromOffset_fromArray _ (.empty K)).symm.trans
+    (ProvableType.valueFromOffset_zero_fromInput_eq r _)
 
 /-- `memRowAt` inverts `toElements`. -/
 theorem memRowAt_toElements (w : EnsembleWitness (leanIsaEnsemble prog κ)) (r : MemRow K) :
     memRowAt w (toElements r).toArray = r :=
-  rowAt_toElements w.data r
+  ProvableType.valueFromOffset_zero_fromInput_eq r w.data
 
 /-- `blake2sRowAt` inverts `toElements`. -/
 theorem blake2sRowAt_toElements (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (r : Blake2sRow K) : blake2sRowAt w (toElements r).toArray = r :=
-  rowAt_toElements w.data r
+  ProvableType.valueFromOffset_zero_fromInput_eq r w.data
 
 /-- A table of the witness is `tableAt w j` for some `j`. -/
 theorem mem_tables_iff {w : EnsembleWitness (leanIsaEnsemble prog κ)} {t : Air.Flat.Table K} :
@@ -501,7 +511,7 @@ theorem memBlock_rows (w : EnsembleWitness (leanIsaEnsemble prog κ)) (hκ : κ 
   · have h := (memMode_fixedAt_iff (hlen' ▸ hi) hκ64 _).mp (hfix i hi)
     rw [memRowAt, Air.Flat.valueFromOffset_fromArray]
     exact h
-  · have hd : w.data memDataName (size MemRow) =
+  · have hd : w.data.tables memDataName (size MemRow) =
         ((memBlockRows w).map (Air.Flat.rowPrefix (size MemRow))).toArray := by
       have h := (tableAt w 6).data_consistent
       rw [tableAt_data, tableAt_component] at h
@@ -542,7 +552,7 @@ theorem SatisfiedBy.perm {input : PublicInput} {w : EnsembleWitness (leanIsaEnse
     (h : SatisfiedBy prog input w) {c : RawChannel K}
     (hc : c ∈ (leanIsaEnsemble prog κ).channels) :
     (messagesOn w c .push).Perm (messagesOn w c .pull) := by
-  have hb := (h.balanced c hc).2.2
+  have hb := (h.balanced c hc).2
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc] at hb
   unfold messagesOn
   convert hb using 3

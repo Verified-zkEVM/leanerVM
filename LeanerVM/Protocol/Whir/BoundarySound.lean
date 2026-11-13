@@ -59,8 +59,7 @@ private theorem ofLanes_injective {L κ : ℕ} :
       CMlPolynomialEval E (L + κ)) := by
   intro m m' h
   funext u
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   have := congrArg (fun t ↦ t[cubeIndex u ⟨i, hi⟩]) h
   simp only [ofLanes_getElem] at this
   exact this
@@ -229,14 +228,10 @@ claims. -/
 private theorem powerBatch_glue {t : ℕ} (x₀ x₁ lam : E) (xs : Fin t → E) :
     powerBatch ![x₀, x₁, powerBatch xs lam] lam =
       powerBatch (Fin.cons x₀ (Fin.cons x₁ xs : Fin (t + 1) → E) : Fin (t + 2) → E) lam := by
-  have hy : powerBatch xs lam * lam ^ 2 = ∑ q : Fin t, xs q * lam ^ (q.val + 2) := by
-    simp only [powerBatch, Finset.sum_mul]
-    exact Finset.sum_congr rfl fun q _ ↦ by ring
-  generalize powerBatch xs lam = y at hy ⊢
-  simp only [powerBatch, Fin.sum_univ_succ, Fin.sum_univ_zero, Fin.cons_zero, Fin.cons_succ,
-    Fin.val_zero, Fin.val_succ, Matrix.cons_val_zero, Matrix.cons_val_succ]
-  rw [show ∑ q : Fin t, xs q * lam ^ (q.val + 1 + 1) = ∑ q : Fin t, xs q * lam ^ (q.val + 2) from
-    Finset.sum_congr rfl fun q _ ↦ by ring, ← hy]
+  rw [powerBatch_cons, powerBatch_cons]
+  generalize powerBatch xs lam = y
+  simp only [powerBatch, Fin.sum_univ_succ, Fin.sum_univ_zero, Fin.val_zero, Fin.val_succ,
+    Matrix.cons_val_zero, Matrix.cons_val_succ]
   ring
 
 /-- The language after the batching challenge: some codeword near the next word satisfies the

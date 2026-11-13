@@ -235,7 +235,7 @@ private theorem mulAffine_getElem_eq {d : ℕ} (v : Vector F (d + 1)) (a b : F) 
 
 omit [∀ i, OracleInterface (O i)] in
 /-- From the coefficients of `p`, `mulAffine` computes those of `p·(a + X·(b - a))`. -/
-theorem mulAffine_getElem {d : ℕ} (v : Vector F (d + 1)) (a b : F) (p : Polynomial F)
+private theorem mulAffine_getElem {d : ℕ} (v : Vector F (d + 1)) (a b : F) (p : Polynomial F)
     (hv : ∀ (i : ℕ) (hi : i < d + 1), v[i] = p.coeff i) (i : ℕ) (hi : i < d + 1) :
     (mulAffine v a b)[i] =
       (p * (Polynomial.C a + Polynomial.X * Polynomial.C (b - a))).coeff i := by
@@ -288,7 +288,7 @@ theorem foldl_axpy_getElem {n : ℕ} : ∀ (N : ℕ) (c : Fin N → F) (v : Fin 
 omit [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] in
 /-- A descendant's value at a Boolean value of the round's variable, off slices of the level
 below: the slice of its child, then of the coordinates not yet bound, then of the round's. -/
-theorem descendant_eq_slice (ctx : LayerCtx X F O nside m) {j : ℕ} (hj : j < m)
+private theorem descendant_eq_slice (ctx : LayerCtx X F O nside m) {j : ℕ} (hj : j < m)
     (cv : Vector F j) (x' : Fin (2 ^ (m - (j + 1)))) (s : Fin nside) (c : Fin (2 ^ ρ))
     (zb : Fin (2 ^ 1)) :
     descendant nside μ leaves ρ m ctx hj cv x' s c (boolVec zb : Vector F 1)[0] =
@@ -328,7 +328,7 @@ def roundPolyFast (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
 
 omit [∀ i, OracleInterface (O i)] in
 /-- The compiled polynomial is the honest one. -/
-theorem roundPolyFast_eq (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
+private theorem roundPolyFast_eq (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
     roundPolyFast nside μ leaves ρ m ctx j cv = roundPoly nside μ leaves ρ m ctx j cv := by
   unfold roundPolyFast
   split_ifs with h

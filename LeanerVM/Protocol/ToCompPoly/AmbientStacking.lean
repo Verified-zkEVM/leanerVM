@@ -84,13 +84,6 @@ def selectorWeightFast {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : 
   rw [selectorWeight, selectorWeightFast, Fin.getElem_fin,
     lagrangeBasis_getElem_nat _ (B.selector hμ b).isLt, prodFin_eq_prod]
 
-/-- At a lifted point of block `b`, the weight of block `b` is one. -/
-theorem selectorWeight_extendPoint_self {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
-    (z : Vector R (B.size b)) : B.selectorWeight hμ b (B.extendPoint hμ b z) = 1 := by
-  rw [selectorWeight, highPoint_extendPoint]
-  have h := lagrangeBasis_boolVec (R := R) (B.selector hμ b) (B.selector hμ b)
-  simpa using h
-
 /-- A table placed in a block's window, zero outside it. -/
 def windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) : CMlPolynomialEval R μ :=
@@ -98,7 +91,7 @@ def windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (placeSlice t (B.selector hμ b))
 
 /-- A window table reads the local value inside its window and vanishes outside it. -/
-theorem windowTable_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+private theorem windowTable_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) (x : Fin (2 ^ μ)) :
     (B.windowTable hμ b t)[x] = if h : B.InWindow b x.val then
       t[x.val - B.offset b]'(by have := h.2; omega) else 0 := by
@@ -114,7 +107,7 @@ theorem windowTable_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
 
 /-- The extension of a window table is the table's extension at the low coordinates, times the
 block's weight. -/
-theorem evalMle_windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+private theorem evalMle_windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) (z : Vector R μ) :
     evalMle (B.windowTable hμ b t) z =
       B.selectorWeight hμ b z * evalMle t (B.lowPoint hμ b z) := by
@@ -126,8 +119,7 @@ theorem evalMle_windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
 theorem stackAt_decomposition (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) :
     B.stackAt t μ pad = Vector.ofFn (fun x ↦ pad +
       ∑ b : Fin B.n, (B.windowTable hμ b (Vector.map (fun v ↦ v - pad) (t b)))[x]) := by
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   simp only [Vector.getElem_ofFn]
   by_cases hp : B.total ≤ x
   · rw [B.stackAt_getElem_of_total_le t pad hx hp]

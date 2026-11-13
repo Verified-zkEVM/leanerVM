@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Protocol.DecodeWalk
 public import LeanerVM.Protocol.Replay
+import Mathlib.Control.Lawful
 
 /-!
 # The chain in the replayed log
@@ -26,10 +27,8 @@ the queries the replay recorded contain every step of the history it logs
 runs the start first, its queries a prefix `log₀` of the log, then walks the chain from its state
 with `log₀` recorded, then the openings, only appending to the log
 (`prefix_of_runReplay_walkOpenings`, through the replay as a morphism of the readers' monads), and
-its algebra accepts their wire and rows. So `chain_in_log_of_runFrom`: when it accepts, the logged
-chain walk at the log's hash succeeds on the proof from the start's state and the replay's log
-holds every step of its history. `accepts_of_replay` and `chain_in_log_of_replay` are the same
-for the verifier, whose start is the seed's three hashes (`FsState.seedWith`).
+its algebra accepts their wire and rows. `accepts_of_replay` is the same for the verifier, whose
+start is the seed's three hashes (`FsState.seedWith`).
 -/
 
 namespace LeanerVM.Protocol
@@ -121,9 +120,7 @@ theorem runReplay_liftM {α : Type} (c : StateT (List UInt8 →ₒ Digest).Query
 
 theorem run_replayImpl (t : List UInt8) (log : (List UInt8 →ₒ Digest).QueryLog) :
     (QueryLog.replayImpl ans t).run log = (ans t).bind fun u ↦ some (u, log ++ [⟨t, u⟩]) := by
-  rcases h : ans t with _ | u
-  · simp [QueryLog.replayImpl, h]
-  · simp [QueryLog.replayImpl, h]
+  rcases h : ans t with _ | u <;> simp [QueryLog.replayImpl, h]
 
 /-- A replayed scalar: one observe step, answered from the log and recorded. -/
 theorem replay_nextScalar (fs : FsState) (y : E) (rest : List E)
@@ -306,7 +303,7 @@ theorem walkOpenings_replay (nLanes : ℕ) (first : Bool) (root : Digest)
     | cons l ls => simp [walkOpenings, ih, ChainOps.map]
 
 /-- **The openings only append to the replay's log.** -/
-theorem prefix_of_runReplay_walkOpenings {nLanes : ℕ} {first : Bool} {root : Digest}
+private theorem prefix_of_runReplay_walkOpenings {nLanes : ℕ} {first : Bool} {root : Digest}
     {shs : List LevelShape} {ls : List WhirLevel} {st : ReaderState PrunedMerklePaths}
     {log log' : (List UInt8 →ₒ Digest).QueryLog}
     {r : Except ReadError (List (List (List K)) × ReaderState PrunedMerklePaths)}
@@ -321,7 +318,7 @@ announces sizes and a rate with a ladder, the start runs with a state `fs` and t
 the chain walk replayed from `fs` succeeds with a wire, recording `log₀` and then a prefix of
 `logV`, the openings replayed after it succeed with rows, and the algebra accepts the wire and the
 rows. -/
-theorem accepts_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
+private theorem accepts_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
     {seed : StateT (List UInt8 →ₒ Digest).QueryLog Option FsState} {prog : Program}
     {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
     (h : (verifyFrom (QueryLog.replayImpl (MerkleTree.logAnswer log)) seed prog input proof).run
@@ -428,49 +425,6 @@ theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Pr
       algebra prog s input (levelShapes (stackMu prog s) levels) w rows = true ∧
       log₁ <+: logV :=
   accepts_of_runFrom h
-
-/-- **An accepted replay from a computed start holds the chain**: if the verifier from the start
-`seed`, replayed on a log, accepts a proof, recording `logV`, the proof announces sizes and a rate
-with a ladder, the start runs with a state `fs` and the queries `log₀`, a prefix of `logV`, the
-chain walk with its steps logged at the log's hash succeeds on the proof from `fs`, and every
-step of the history it logs is in `logV`, from `fs`. -/
-theorem chain_in_log_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
-    {seed : StateT (List UInt8 →ₒ Digest).QueryLog Option FsState} {prog : Program}
-    {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
-    (h : (verifyFrom (QueryLog.replayImpl (MerkleTree.logAnswer log)) seed prog input proof).run
-      [] = some (true, logV)) :
-    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
-      ladderOf prog s ρ = some levels ∧ seed.run [] = some (fs, log₀) ∧ log₀ <+: logV ∧
-      walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
-        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
-        .ok ((w, hist), st₁) ∧
-      ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV := by
-  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, log₁, -, -, -, hs, hl, hseed, hc, -, -, hpre⟩ :=
-    accepts_of_runFrom h
-  obtain ⟨hist, hw, ⟨L, hL, hq⟩, -⟩ := walkChain_log _ hc
-  refine ⟨s, ρ, levels, fs, log₀, w, st₁, hist, hs, hl, hseed, ?_, hw, fun e he ↦ hpre.subset ?_⟩
-  · rw [hL] at hpre
-    exact (List.prefix_append log₀ L).trans hpre
-  · rw [hL]
-    exact List.mem_append_right _ (hq e he)
-
-/-- **An accepted replay's log holds the chain**: if the verifier replayed on a log accepts a
-proof, recording `logV`, the proof announces sizes and a rate with a ladder, the seed's hashes
-replayed give a state `fs`, recording `log₀`, a prefix of `logV`, the chain walk with its steps
-logged at the log's hash succeeds on the proof from `fs`, and every step of the history it logs is
-in `logV`, from `fs`. -/
-theorem chain_in_log_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
-    {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
-    (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
-      ladderOf prog s ρ = some levels ∧
-      (FsState.seedWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input).run [] =
-        some (fs, log₀) ∧ log₀ <+: logV ∧
-      walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
-        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
-        .ok ((w, hist), st₁) ∧
-      ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV :=
-  chain_in_log_of_runFrom h
 
 end ChainLog
 

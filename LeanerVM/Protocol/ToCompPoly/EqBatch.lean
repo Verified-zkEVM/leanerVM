@@ -46,17 +46,13 @@ private def splitTerms {m : ℕ} (b : Bool) (ts : List (F × Vector F (m + 1))) 
     List (F × Vector F m) :=
   ts.filterMap fun t ↦ (scaleBy t.1 (if b then t.2[m] else 1 - t.2[m])).map fun c ↦ (c, t.2.pop)
 
-/-- Two halves joined, the first at the low indices. -/
-private def appendHalves {m : ℕ} (a b : CMlPolynomialEval F m) : CMlPolynomialEval F (m + 1) :=
-  (a ++ b).cast (by rw [pow_succ]; omega)
-
 /-- **The combination of equality kernels**, coordinate by coordinate. -/
 @[no_expose] def eqBatch : (m : ℕ) → List (F × Vector F m) → CMlPolynomialEval F m
   | 0, ts => #v[(ts.map Prod.fst).sum]
   | m + 1, ts =>
     match ts with
     | [] => Vector.replicate _ 0
-    | _ :: _ => appendHalves (eqBatch m (splitTerms false ts)) (eqBatch m (splitTerms true ts))
+    | _ :: _ => joinHalves (eqBatch m (splitTerms false ts)) (eqBatch m (splitTerms true ts))
 
 omit [DecidableEq F] in
 /-- The Lagrange basis below the top coordinate: the factor `1 - z_m` times the basis of the
@@ -75,13 +71,10 @@ private theorem lagrangeBasis_high {m : ℕ} (z : Vector F (m + 1)) {x : ℕ} (h
     (lagrangeBasis z)[x + 2 ^ m]'(by rw [pow_succ]; omega) = z[m] * (lagrangeBasis z.pop)[x] := by
   rw [lagrangeBasis_getElem_nat z (by rw [pow_succ]; omega), lagrangeBasis_getElem_nat _ hx,
     Fin.prod_univ_castSucc]
-  have htop : (x + 2 ^ m).testBit m = true := by
-    rw [Nat.add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hx]
-    rfl
-  have hlow : ∀ k : Fin m, (x + 2 ^ m).testBit k = x.testBit k := fun k ↦ by
-    rw [Nat.add_comm, Nat.testBit_two_pow_add_gt k.isLt]
-  simp only [Fin.val_castSucc, Fin.val_last, htop, hlow, ite_true, Fin.getElem_fin,
-    Vector.getElem_pop']
+  have hlow : ∀ k : Fin m, (x + 2 ^ m).testBit k = x.testBit k := fun k ↦
+    testBit_add_two_pow_low k.isLt
+  simp only [Fin.val_castSucc, Fin.val_last, testBit_add_two_pow_self hx, hlow, ite_true,
+    Fin.getElem_fin, Vector.getElem_pop']
   exact mul_comm _ _
 
 /-- The terms of a half: the sum over the surviving terms is the sum over all, each scaled by its
@@ -117,7 +110,7 @@ theorem eqBatch_getElem : ∀ (m : ℕ) (ts : List (F × Vector F m)) (x : ℕ) 
     rfl
   | m + 1, [], x, hx => by simp [eqBatch]
   | m + 1, t :: ts, x, hx => by
-    simp only [eqBatch, appendHalves, Vector.getElem_cast, Vector.getElem_append]
+    simp only [eqBatch, joinHalves, Vector.getElem_cast, Vector.getElem_append]
     split
     · rename_i h
       rw [eqBatch_getElem m _ x h, sum_splitTerms false (t :: ts) fun v ↦ (lagrangeBasis v)[x]]

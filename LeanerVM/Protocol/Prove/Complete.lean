@@ -291,10 +291,8 @@ theorem baseProver_complete_of_agree_from (H : List UInt8 → Digest) (seed : Id
       some proof) :
     Verify.verifyFrom (m := Id) H seed prog input proof = true := by
   unfold proveFrom at hp
-  rcases hws : Sizes.ofWitness w with _ | s
-  · rw [hws] at hp
-    cases hp
-  rw [hws] at hp
+  rcases hws : Sizes.ofWitness w with _ | s <;> rw [hws] at hp
+  · cases hp
   dsimp only at hp
   split_ifs at hp with hsρ
   obtain ⟨hs, hρ⟩ := hsρ

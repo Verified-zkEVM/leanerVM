@@ -39,7 +39,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 /-! ## The three channels -/
 
 /-- The three channels by name, with their arities. -/
-def channelTable : List (String × ℕ) :=
+private def channelTable : List (String × ℕ) :=
   [(StateChannel.name, 2), (MemChannel.name, 5), (BytecodeChannel.name, 10)]
 
 variable {prog : Program} {κ : ℕ}
@@ -51,13 +51,6 @@ private theorem interaction_channel {w : EnsembleWitness (leanIsaEnsemble prog �
   have h := EnsembleWitness.channel_mem_of_mem_interactions hi
   simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at h
   rcases h with h | h | h <;> rw [h] <;> decide
-
-/-- The verifier's two interactions: the initial state pushed, the final state pulled. -/
-theorem verifier_interactions (prog : Program) (κ : ℕ) :
-    (leanIsaEnsemble prog κ).verifierOperations.interactions =
-      [(StateChannel.pushed (⟨1, 1⟩ : Regs (Expression K))).toRaw,
-        (StateChannel.pulled (⟨.const prog.finalPc, 1⟩ : Regs (Expression K))).toRaw] :=
-  rfl
 
 /-- On interactions of multiplicity `1`, the active messages of a direction are all of its
 messages. -/
@@ -84,12 +77,12 @@ def channelAt (k : Fin 3) : RawChannel K :=
   ![StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw] k
 
 /-- The direction of a side of the bus. -/
-def dirOf : Side → BusDir
+private def dirOf : Side → BusDir
   | .push => .push
   | .pull => .pull
 
 /-- The arity of channel `k`'s messages. -/
-def arityOf (k : Fin 3) : ℕ := ![2, 5, 10] k
+private def arityOf (k : Fin 3) : ℕ := ![2, 5, 10] k
 
 /-- A direction flushes on a side exactly when it is the side's. -/
 private theorem sideOf_eq_iff (d : BusDir) (side : Side) : sideOf d = side ↔ d = dirOf side := by
@@ -131,7 +124,7 @@ private theorem channelSep_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) �
     ⟨2, (channelSep_eq_iff ch 2).mpr h⟩]
 
 /-- The sixteen-slot tuple of a message with the separator `σ`. -/
-def tupleOf (σ : K) (m : Array K) : Vector K 16 :=
+private def tupleOf (σ : K) (m : Array K) : Vector K 16 :=
   Vector.ofFn fun k ↦ if k.val = 0 then σ else m[k.val - 1]?.getD 0
 
 /-- A tuple's first slot is its separator. -/
@@ -241,8 +234,7 @@ theorem balanced_iff (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     intro v
     by_cases hv : ∃ k : Fin 3, v[0] = gpow k
     · obtain ⟨k, hk⟩ := hv
-      have := (List.perm_iff_count.mp (h k)) v
-      simpa only [List.count_filter, hk, decide_true, ite_true] using this
+      simpa only [List.count_filter, hk, decide_true, ite_true] using List.perm_iff_count.mp (h k) v
     · rw [List.count_eq_zero_of_not_mem fun hm ↦ hv (sideTuples_sep hm),
         List.count_eq_zero_of_not_mem fun hm ↦ hv (sideTuples_sep hm)]
 
@@ -317,11 +309,7 @@ private theorem tuplesOn_append (l₁ l₂ : List (Interaction K)) (side : Side)
 private theorem tuplesOn_flatMap {α : Type} (l : List α) (f : α → List (Interaction K))
     (side : Side) :
     tuplesOn (l.flatMap f) side = l.flatMap fun a ↦ tuplesOn (f a) side := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    rw [List.flatMap_cons, List.flatMap_cons, ← ih]
-    simp only [tuplesOn, List.map_append, List.filter_append]
+  simp only [tuplesOn, List.map_flatMap, List.filter_flatMap]
 
 /-- A component whose messages read within its width flushes the same tuples on a row as on the
 row's first `width` cells. -/
@@ -426,8 +414,7 @@ private theorem coords_coordCell (I : M3Instance) {κ : ℕ} (σ : K) (rest : Li
     (q : Column I.μ) (x : Fin (2 ^ κ)) :
     (coords (.const σ :: rest)).map (fun co ↦ I.coordCell q co x) =
       tupleOf σ (rest.map fun co ↦ I.coordCell q co x).toArray := by
-  apply Vector.ext
-  intro k hk
+  refine Vector.ext fun k hk ↦ ?_
   simp only [coords, tupleOf, Vector.getElem_map, Vector.getElem_ofFn]
   rcases k with _ | k
   · rfl
@@ -467,7 +454,8 @@ private theorem boundaryTuples_push :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
@@ -498,7 +486,8 @@ private theorem boundaryTuples_pull :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
+    simp only [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, List.map_cons,
+      List.map_nil, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
@@ -616,14 +605,10 @@ theorem tuples_perm {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees 
     (side : Side) : ((leanIsaInstance F prog s).tuples q side).Perm (sideTuples w side) := by
   have hb : (leanIsaInstance F prog s).boundaryTuples q side =
       tuplesOn ((leanIsaEnsemble prog κ).verifierOperations.interactionValues
-          (.fromInput w.publicInput w.data)) side ++ tuplesOn (tableAt w 6).interactions side ++
+          w.data.publicEnvironment) side ++ tuplesOn (tableAt w 6).interactions side ++
         tuplesOn (tableAt w 7).interactions side := by
     rw [tuplesOn_verifier, tuplesOn_memBlock h, tuplesOn_bytecodeBlock h]
-    cases side
-    · rw [boundaryTuples_push]
-      simp
-    · rw [boundaryTuples_pull]
-      simp
+    cases side <;> simp [boundaryTuples_push, boundaryTuples_pull]
   have hf : ((leanIsaInstance F prog s).flushTuples q side).Perm
       ((List.finRange 6).flatMap fun j ↦ tuplesOn (opTable w j).interactions side) := by
     rw [flushTuples_eq, finRange_nine, List.flatMap_append, List.flatMap_map]
@@ -636,8 +621,7 @@ theorem tuples_perm {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees 
   rw [M3Instance.tuples, hb, sideTuples, EnsembleWitness.interactions, tables_eq, List.flatMap_map,
     show List.finRange 8 = (List.finRange 6).map (fun j : Fin 6 ↦ (⟨j, by omega⟩ : Fin 8)) ++
       [6, 7] by decide, List.flatMap_append, List.flatMap_map, tuplesOn_append, tuplesOn_append,
-    tuplesOn_flatMap,
-    tuplesOn_flatMap]
+    tuplesOn_flatMap, tuplesOn_flatMap]
   refine (hf.append_right _).trans ?_
   rw [List.perm_iff_count]
   intro v

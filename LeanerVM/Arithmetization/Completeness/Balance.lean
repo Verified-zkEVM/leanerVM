@@ -88,7 +88,7 @@ theorem readBump_append (s : ι → ℕ) (l₁ l₂ : List ι) :
 /-! ## The chain lemma -/
 
 /-- Replacing one cell's current message by the next is a swap with a push. -/
-theorem swap_perm (keys : List ι) (hnd : keys.Nodup) (mk : ι → ℕ → α) (s : ι → ℕ) {b : ι}
+private theorem swap_perm (keys : List ι) (hnd : keys.Nodup) (mk : ι → ℕ → α) (s : ι → ℕ) {b : ι}
     (hb : b ∈ keys) :
     ((keys.map fun a ↦ mk a (s a)) ++ [mk b (s b + 1)]).Perm
       (mk b (s b) :: keys.map fun a ↦ mk a (Function.update s b (s b + 1) a)) := by

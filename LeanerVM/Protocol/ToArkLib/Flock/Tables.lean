@@ -151,7 +151,7 @@ def SkipDomain.ofPts (pts : Vector F (2 ^ s + 2 ^ s)) : SkipDomain F s :=
 def skipWeights (nodes : SkipDomain F s) (Y : F) : Vector F (2 ^ s) :=
   Vector.ofFn fun i ↦ lagrangeWeightWith (skipNodes nodes.pts) nodes.skipInv Y i
 
-theorem skipWeights_getElem (nodes : SkipDomain F s) (Y : F) (i : Fin (2 ^ s)) :
+private theorem skipWeights_getElem (nodes : SkipDomain F s) (Y : F) (i : Fin (2 ^ s)) :
     (skipWeights nodes Y)[i] = lagrangeWeight (skipNodes nodes.pts) Y i := by
   simp [skipWeights, nodes.skipInv_eq, lagrangeWeightWith_lagrangeInv]
 
@@ -162,7 +162,7 @@ def skipTable {n : ℕ} (nodes : SkipDomain F s) (T : Fin (2 ^ s) → CMlPolynom
   let L := skipWeights nodes Y
   Vector.ofFn fun u ↦ ∑ i, L[i] * (T i)[u]
 
-theorem skipTable_getElem {n : ℕ} (nodes : SkipDomain F s)
+private theorem skipTable_getElem {n : ℕ} (nodes : SkipDomain F s)
     (T : Fin (2 ^ s) → CMlPolynomialEval F n) (Y : F) (u : Fin (2 ^ n)) :
     (skipTable nodes T Y)[u] = ∑ i, lagrangeWeight (skipNodes nodes.pts) Y i * (T i)[u] := by
   simp [skipTable, ← skipWeights_getElem]
@@ -232,7 +232,7 @@ private theorem natDegree_lagrangeSum_le {n : ℕ} (nodes : SkipDomain F s)
       Fintype.card_fin]
 
 /-- `P` has degree at most `2 · (2 ^ s - 1)`, below the `2 · 2 ^ s` nodes. -/
-theorem natDegree_pPoly_le (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
+private theorem natDegree_pPoly_le (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
     (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (r : Vector F (m + κ)) :
     (pPoly nodes C z r).natDegree ≤ 2 * (2 ^ s - 1) := by
   refine natDegree_sum_le_of_forall_le _ _ fun u _ ↦ (natDegree_C_mul_le _ _).trans ?_
@@ -254,7 +254,7 @@ theorem degree_pPoly_lt (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
   exact_mod_cast h
 
 /-- At a skip node the Lagrange weights select that node. -/
-theorem lagrangeWeight_skipNode (nodes : SkipDomain F s)
+private theorem lagrangeWeight_skipNode (nodes : SkipDomain F s)
     (hnodes : Function.Injective fun j : Fin (2 ^ s + 2 ^ s) ↦ nodes.pts[j]) (i i' : Fin (2 ^ s)) :
     lagrangeWeight (skipNodes nodes.pts) nodes.pts[i.val] i' = if i' = i then 1 else 0 := by
   have hinj : Set.InjOn (fun j : Fin (2 ^ s) ↦ (skipNodes nodes.pts)[j])
@@ -273,7 +273,7 @@ theorem lagrangeWeight_skipNode (nodes : SkipDomain F s)
       (by assumption) (Finset.mem_univ _)
 
 /-- At a skip node, the quirky extension is the table at that node. -/
-theorem skipTable_skipNode {n : ℕ} (nodes : SkipDomain F s)
+private theorem skipTable_skipNode {n : ℕ} (nodes : SkipDomain F s)
     (hnodes : Function.Injective fun j : Fin (2 ^ s + 2 ^ s) ↦ nodes.pts[j])
     (T : Fin (2 ^ s) → CMlPolynomialEval F n) (i : Fin (2 ^ s)) :
     skipTable nodes T nodes.pts[i.val] = T i := by
@@ -336,7 +336,7 @@ def eRow (nodes : SkipDomain F s) (Y : F) (χin : Vector F m) :
   let Lin := lagrangeBasis χin
   Vector.ofFn fun k ↦ L[((cubeSplit s m).symm k).1] * Lin[((cubeSplit s m).symm k).2]
 
-theorem eRow_cubeIndex (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
+private theorem eRow_cubeIndex (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
     (i : Fin (2 ^ s)) (jin : Fin (2 ^ m)) :
     (eRow nodes Y χin)[cubeIndex i jin] =
       lagrangeWeight (skipNodes nodes.pts) Y i * (lagrangeBasis χin)[jin] := by
@@ -349,7 +349,7 @@ def zTable (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (χout : Vector F 
   Vector.ofFn fun j ↦ evalMle (z ((cubeSplit s m).symm j).1)
     ((boolVec ((cubeSplit s m).symm j).2 : Vector F m) ++ χout)
 
-theorem zTable_cubeIndex (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (χout : Vector F κ)
+private theorem zTable_cubeIndex (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (χout : Vector F κ)
     (i : Fin (2 ^ s)) (jin : Fin (2 ^ m)) :
     (zTable z χout)[cubeIndex i jin] = evalMle (z i) ((boolVec jin : Vector F m) ++ χout) := by
   simp only [zTable, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, cubeSplit_symm_cubeIndex]
@@ -371,7 +371,7 @@ theorem zTable_eq_sum (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (χout 
 
 /-- **The quirky evaluation by rows.** For tables `T` laid out from a family `V` of row vectors,
 one per block, the quirky extension at `(Y, χin, χout)` is `Σ_k e(k) Σ_t eq(χout, t) V_t(k)`. -/
-theorem evalMle_skipTable_eq (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
+private theorem evalMle_skipTable_eq (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
     (χout : Vector F κ) (T : Fin (2 ^ s) → CMlPolynomialEval F (m + κ))
     (V : Fin (2 ^ κ) → CMlPolynomialEval F (s + m))
     (hT : ∀ (i : Fin (2 ^ s)) (jin : Fin (2 ^ m)) (t : Fin (2 ^ κ)),
@@ -389,7 +389,7 @@ theorem evalMle_skipTable_eq (nodes : SkipDomain F s) (Y : F) (χin : Vector F m
   ring
 
 /-- The `A` part of the lincheck sum is the zerocheck's `â`. -/
-theorem sum_colsFst_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
+private theorem sum_colsFst_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
     (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (Y : F) (χin : Vector F m)
     (χout : Vector F κ) :
     ∑ j : Fin (2 ^ (s + m)), (C.cols (eRow nodes Y χin)).1[j] * (zTable z χout)[j] =
@@ -401,7 +401,7 @@ theorem sum_colsFst_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
   rw [C.rows_fst_sum]
 
 /-- The `B` part of the lincheck sum is the zerocheck's `b̂`. -/
-theorem sum_colsSnd_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
+private theorem sum_colsSnd_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
     (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (Y : F) (χin : Vector F m)
     (χout : Vector F κ) :
     ∑ j : Fin (2 ^ (s + m)), (C.cols (eRow nodes Y χin)).2[j] * (zTable z χout)[j] =
@@ -413,7 +413,7 @@ theorem sum_colsSnd_zTable (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
   rw [C.rows_snd_sum]
 
 /-- The identity part of the lincheck sum is the zerocheck's `ẑ`. -/
-theorem sum_eRow_zTable (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
+private theorem sum_eRow_zTable (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
     (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ)) (χout : Vector F κ) :
     ∑ j : Fin (2 ^ (s + m)), (eRow nodes Y χin)[j] * (zTable z χout)[j] =
       evalMle (skipTable nodes z Y) (χin ++ χout) := by
@@ -423,7 +423,8 @@ theorem sum_eRow_zTable (nodes : SkipDomain F s) (Y : F) (χin : Vector F m)
 
 /-- The constant position of the folded witness is `1` minus the constant residual's
 extension. -/
-theorem zTable_cpos (cpos : Fin (2 ^ (s + m))) (z : Fin (2 ^ s) → CMlPolynomialEval F (m + κ))
+private theorem zTable_cpos (cpos : Fin (2 ^ (s + m))) (z : Fin (2 ^ s) → CMlPolynomialEval F
+    (m + κ))
     (χout : Vector F κ) :
     (zTable z χout)[cpos] = 1 - evalMle (constTable cpos z) χout := by
   have hone := sumCube_lagrangeBasis χout
@@ -439,7 +440,7 @@ def mTable (C : BlockR1CS F (s + m)) (cpos : Fin (2 ^ (s + m))) (e : CMlPolynomi
   Vector.ofFn fun j ↦ (C.cols e).1[j] + α * (C.cols e).2[j] + α ^ 2 * e[j] +
     α ^ 3 * if j = cpos then 1 else 0
 
-theorem mTable_getElem (C : BlockR1CS F (s + m)) (cpos : Fin (2 ^ (s + m)))
+private theorem mTable_getElem (C : BlockR1CS F (s + m)) (cpos : Fin (2 ^ (s + m)))
     (e : CMlPolynomialEval F (s + m)) (α : F) (j : Fin (2 ^ (s + m))) :
     (mTable C cpos e α)[j] = (C.cols e).1[j] + α * (C.cols e).2[j] + α ^ 2 * e[j] +
       α ^ 3 * if j = cpos then 1 else 0 := by
@@ -486,7 +487,7 @@ def wCol (sv : Vector F (2 ^ s)) (p : Vector F m) : CMlPolynomialEval F (s + m) 
   let Lp := lagrangeBasis p
   Vector.ofFn fun j ↦ sv[((cubeSplit s m).symm j).1] * Lp[((cubeSplit s m).symm j).2]
 
-theorem wCol_cubeIndex (sv : Vector F (2 ^ s)) (p : Vector F m) (i : Fin (2 ^ s))
+private theorem wCol_cubeIndex (sv : Vector F (2 ^ s)) (p : Vector F m) (i : Fin (2 ^ s))
     (jin : Fin (2 ^ m)) : (wCol sv p)[cubeIndex i jin] = sv[i] * (lagrangeBasis p)[jin] := by
   simp only [wCol, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, cubeSplit_symm_cubeIndex]
 

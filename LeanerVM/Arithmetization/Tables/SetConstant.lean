@@ -17,7 +17,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `SET_CONSTANT` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:527-538` (`mod set`, in that order) and the flushes
 `tables.rs:548-561` (`SetTable::flushes`), matching specification §7.3
 (`doc/leanvm/body/07-instruction-tables.tex:52-64`). There is no constraint.
@@ -151,8 +151,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hk⟩
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
-    refine (set_refines_iff _ _ _).mpr ⟨?_, rfl⟩
-    simpa only [Vector.getElem_map] using hk
+    exact (set_refines_iff _ _ _).mpr ⟨hk, rfl⟩
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
@@ -162,7 +161,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp h
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
-    simp only [Vector.getElem_map] at hk ⊢
+    simp only at hk ⊢
     exact ⟨⟨_, decode_entry (.setConstant _ (E.ofLimbs _ _ _))⟩, hk⟩
 
 /-! ## Rows from executions -/

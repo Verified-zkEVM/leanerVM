@@ -502,7 +502,7 @@ protocol at the slots' errors. -/
 example (P : Phases toy) (S : P.Security) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (leanVmVerifier { P with pub := deployedPublicInputPhase toy }).toVerifier
-      |>.rbrKnowledgeSoundnessWorstCase init impl (M3Rel toy) (Seam.done toy) (piopError toy) :=
+      |>.rbrKnowledgeSoundness init impl (M3Rel toy) (Seam.done toy) (piopError toy) :=
   piop_rbrKnowledgeSoundness_exists { P with pub := deployedPublicInputPhase toy }
     { S with pub := deployedPublicInputSecurity toy } init impl
 
@@ -597,13 +597,13 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
     (kSF : (noCheck.toOracleVerifier (TheOracle toy)).toVerifier.KnowledgeStateFunction init
       impl (Seam.table toy) (Seam.pub toy) Ext)
     (ε : pubSpec.ChallengeIdx → ℝ≥0)
-    (h : (noCheck.toOracleVerifier (TheOracle toy)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+    (h : (noCheck.toOracleVerifier (TheOracle toy)).toVerifier.rbrKnowledgeSoundnessWith
       init impl (Seam.table toy) (Seam.pub toy) WitMid Ext kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtBad, oracleOf badLine)
     (fun _ h ↦ stmtBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c (trueValues toy badLine 1 c), fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith toy _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith toy _ _)
           (by
             show accepts toy (fun _ _ _ ↦ true) stmtBad c (trueValues toy badLine 1 c) = true
             simp only [accepts, Bool.and_true, decide_eq_true_eq]
@@ -669,13 +669,13 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
       init impl (Seam.table twoLimbs) (Seam.pub twoLimbs) Ext)
     (ε : pubSpec.ChallengeIdx → ℝ≥0)
     (h : (firstOnly.toOracleVerifier
-      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWith init impl
         (Seam.table twoLimbs) (Seam.pub twoLimbs) WitMid Ext kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOneBad, oracleOf oneBadLimb)
     (fun _ h ↦ stmtOneBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c (firstOnlyMsg c), fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith twoLimbs _ _)
           (by
             show accepts twoLimbs
               (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?))
@@ -735,13 +735,13 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
       init impl (Seam.table noneSent) (Seam.pub noneSent) Ext)
     (ε : pubSpec.ChallengeIdx → ℝ≥0)
     (h : (dropped.toOracleVerifier
-      (TheOracle noneSent)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      (TheOracle noneSent)).toVerifier.rbrKnowledgeSoundnessWith init impl
         (Seam.table noneSent) (Seam.pub noneSent) WitMid Ext kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtDropped, oracleOf goodLimbs)
     (fun _ h ↦ stmtDropped_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c [], fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith noneSent _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith noneSent _ _)
           (by
             show accepts noneSent (check noneSent) stmtDropped c [] = true
             rfl)
@@ -873,13 +873,13 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
       init impl (Seam.table twoLimbs) (Seam.pub twoLimbs) Ext)
     (ε : pubSpec.ChallengeIdx → ℝ≥0)
     (h : (yOne.toOracleVerifier
-      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWith init impl
         (Seam.table twoLimbs) (Seam.pub twoLimbs) WitMid Ext kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOnes, oracleOf onesLimbs)
     (fun _ h ↦ stmtOnes_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c [1, 1], fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith twoLimbs _ _)
           (yOne_accepts c) (yOne_pub c)⟩
 
 -- The deployed check rejects that stack at every challenge tried, whatever it sends: with the
@@ -945,7 +945,9 @@ theorem zeroTop_accepts (c : E) :
     accepts topOne (checkWords topOne) stmtTop c [1, 1] = true := by
   simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
   refine ⟨rfl, ?_⟩
-  show decide ((1 : E) + y * 1 = (1 + c) * E.ofLimbs 1 1 0 + c * E.ofLimbs 1 1 0) = true
+  have hf : (topOne.publicLines stmtTop.1).toList.filter (·.sent) =
+      [⟨⟨0, 0⟩, 1, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩] := rfl
+  simp only [checkWords, hf]
   apply decide_eq_true
   rw [ofLimbs_eq]
   have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
@@ -1001,16 +1003,14 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
       init impl (Seam.table topOne) (Seam.pub topOne) Ext)
     (ε : pubSpec.ChallengeIdx → ℝ≥0)
     (h : (zeroTop.toOracleVerifier
-      (TheOracle topOne)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      (TheOracle topOne)).toVerifier.rbrKnowledgeSoundnessWith init impl
         (Seam.table topOne) (Seam.pub topOne) WitMid Ext kSF ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtTop, oracleOf goodLimbs)
     (fun _ h ↦ stmtTop_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c [1, 1], fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check
-          (guardedWith topOne (checkWords topOne) (poolZero topOne)) init impl
-          (stmtTop, oracleOf goodLimbs) (fullOf c [1, 1])
-          (fun out ↦ (out, ()) ∈ Seam.pub topOne)
+        Verifier.GuardedForm.prEvent_pos_of_check (p := fun out ↦ (out, ()) ∈ Seam.pub topOne)
+          (guardedWith topOne (checkWords topOne) (poolZero topOne))
           (zeroTop_accepts c) (zeroTop_pub c)⟩
 
 -- The deployed verifier, which pools the value computed, is not fooled: the claim it pools for

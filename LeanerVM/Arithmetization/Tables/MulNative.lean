@@ -18,7 +18,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `MUL_NATIVE` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `6a2e7bb9`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:436-456` (`mod arith`, shared with `XOR`, in that order), the
 flushes `tables.rs:483-495` (`Arith::flushes` with `is_xor = false`), the result coordinates
 `tables.rs:45-49` and `:461-473` (`TOWER_LANES`, `arith_result`), all matching specification
@@ -169,10 +169,8 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hA, fun _ ↦ hB, fun _ ↦ hC⟩
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    refine (mul_refines_iff _ _ _).mpr ⟨⟨?_, ?_⟩, ?_, rfl⟩
-    · simpa only [Vector.getElem_map] using hA
-    · simpa only [Vector.getElem_map] using hB
-    · simpa only [mul_limbs, Vector.getElem_map] using hC
+    refine (mul_refines_iff _ _ _).mpr ⟨⟨hA, hB⟩, ?_, rfl⟩
+    simpa only [mul_limbs] using hC
   completeness := by
     circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
@@ -184,7 +182,7 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     rw [mul_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    simp only [Vector.getElem_map] at hA hB hC ⊢
+    simp only at hA hB hC ⊢
     exact ⟨⟨_, decode_entry (.mulNative _ _ _)⟩, hA, hB, hC⟩
 
 /-! ## Rows from executions -/

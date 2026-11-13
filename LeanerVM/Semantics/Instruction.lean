@@ -115,11 +115,6 @@ theorem Program.fetch_eq_some_iff (prog : Program) {pc : K} {ins : Instr} :
     prog.fetch pc = some ins ↔ ∃ i : Fin (2 ^ prog.logSize), pc = gpow i ∧ prog.code i = ins := by
   simp only [Program.fetch, Option.map_eq_some_iff, gLog?_spec prog.logSize_lt]
 
-/-- A fetch fails exactly at the counters that are no power below `2 ^ logSize`. -/
-theorem Program.fetch_eq_none_iff (prog : Program) {pc : K} :
-    prog.fetch pc = none ↔ ∀ i : Fin (2 ^ prog.logSize), pc ≠ gpow i := by
-  rw [Program.fetch, Option.map_eq_none_iff, gLog?_eq_none_iff]
-
 /-- Program counter `0` fetches nothing. -/
 theorem Program.fetch_zero (prog : Program) : prog.fetch 0 = none := by
   rw [Program.fetch, gLog?_zero, Option.map_none]

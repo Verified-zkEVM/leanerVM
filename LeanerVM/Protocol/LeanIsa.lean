@@ -333,7 +333,7 @@ def stackOrder : List Col :=
   committedColumns.mergeSort fun a b ↦ decide (kappa prog s b ≤ kappa prog s a)
 
 /-- Largest first. -/
-theorem stackOrder_pairwise :
+private theorem stackOrder_pairwise :
     (stackOrder prog s).Pairwise fun a b ↦ decide (kappa prog s b ≤ kappa prog s a) :=
   List.pairwise_mergeSort (fun _ _ _ h₁ h₂ ↦ by simp only [decide_eq_true_eq] at *; omega)
     (fun a b ↦ by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) _
@@ -344,9 +344,7 @@ theorem stackOrder_antitone :
   intro a b hab
   rcases (Fin.le_iff_val_le_val.mp hab).eq_or_lt with h | h
   · rw [Fin.ext h]
-  · have := List.pairwise_iff_getElem.mp (stackOrder_pairwise prog s) a b a.isLt b.isLt h
-    simp only [decide_eq_true_eq] at this
-    exact this
+  · simpa using List.pairwise_iff_getElem.mp (stackOrder_pairwise prog s) a b a.isLt b.isLt h
 
 /-- The committed columns as aligned blocks, in stacking order. -/
 def blocks : Blocks where
@@ -394,26 +392,18 @@ theorem blocks_fits : (blocks prog s).total ≤ 2 ^ leanIsaμ prog s :=
 
 /-- The committed columns of each table: the four memory columns, `BFCNT`, `QFLOCK`, then the
 opcode tables' columns, all but the eighteen `BLAKE2S` limbs. -/
-private theorem committed_counts : ∀ j : Fin 9, (committedColumns.filter (·.1 = j)).length =
+private theorem committed_counts : ∀ j : Fin 9, (committedColumns.map (·.1)).count j =
     ![4, 1, 1, 15, 15, 8, 15, 14, 19] j := by
   decide +kernel
 
 /-- A sum over a list of columns of a function of their table, table by table. -/
 private theorem sum_map_fst (l : List Col) (g : Fin 9 → ℕ) :
-    (l.map fun c ↦ g c.1).sum = ∑ j, (l.filter (·.1 = j)).length * g j := by
-  induction l with
-  | nil => simp
-  | cons c l ih =>
-    simp only [List.map_cons, List.sum_cons, ih, List.filter_cons, decide_eq_true_eq]
-    rw [← Finset.add_sum_erase _ _ (Finset.mem_univ c.1),
-      ← Finset.add_sum_erase _ _ (Finset.mem_univ c.1),
-      ite_eq_left_iff.mpr (fun h ↦ absurd rfl h), List.length_cons]
-    have h : ∀ j ∈ Finset.univ.erase c.1,
-        (if c.1 = j then c :: l.filter (·.1 = j) else l.filter (·.1 = j)).length * g j =
-          (l.filter (·.1 = j)).length * g j := fun j hj ↦ by
-      rw [ite_eq_right_iff.mpr fun h ↦ absurd h.symm (Finset.ne_of_mem_erase hj)]
-    rw [Finset.sum_congr rfl h]
-    ring
+    (l.map fun c ↦ g c.1).sum = ∑ j, (l.map (·.1)).count j * g j := by
+  rw [show (l.map fun c ↦ g c.1) = (l.map (·.1)).map g from List.map_map.symm,
+    Finset.sum_list_map_count]
+  simp only [smul_eq_mul]
+  exact Finset.sum_subset (Finset.subset_univ _) fun j _ hj ↦ by
+    rw [List.count_eq_zero_of_not_mem (by simpa using hj), zero_mul]
 
 /-- **The stack's height in closed form**: every committed column is a block of its table's
 height, so the four memory columns, `BFCNT`, `QFLOCK` and the opcode tables' committed columns
@@ -509,7 +499,7 @@ def routeWith (pos : Vector (Array ℕ) 9) (hpos : pos = positions prog s) (c : 
       exact List.idxOf_lt_length_of_mem (List.mem_mergeSort.mpr (mem_committedColumns h))⟩
 
 /-- Read off `positions`, the route is `route`. -/
-theorem routeWith_eq (pos : Vector (Array ℕ) 9) (hpos : pos = positions prog s) :
+private theorem routeWith_eq (pos : Vector (Array ℕ) 9) (hpos : pos = positions prog s) :
     routeWith prog s pos hpos = route prog s := by
   funext c
   unfold routeWith route blockOf
@@ -712,12 +702,6 @@ private theorem opcode_fixedRowsMatch (j : Fin 6) (rows : List (Array K)) :
     (opcodeComponent j).FixedRowsMatch rows := by
   fin_cases j <;> exact trivial
 
-/-- A typed row written as a raw row is read back by the fixed-cell check. -/
-private theorem fromElements_rowPrefix {Row : TypeMap} [ProvableType Row] (r : Row K) :
-    fromElements (Air.Flat.rowPrefix (size Row) (toElements r).toArray) = r :=
-  (Air.Flat.valueFromOffset_fromArray (Input := Row) _ fun _ _ ↦ #[]).symm.trans
-    (rowAt_toElements _ r)
-
 /-- A table of at most `2^64` rows. -/
 private theorem pow_le_uint64Size {τ : ℕ} (h : τ ≤ 64) : 2 ^ τ ≤ UInt64.size :=
   Nat.pow_le_pow_right (by norm_num) h
@@ -834,7 +818,7 @@ def blake2sLimbs {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
 def cellOfRows (rows : Array (Array K)) (x i : ℕ) : K := ((rows[x]?).bind (·[i]?)).getD 0
 
 /-- A table's cell, read off its rows as an array. -/
-theorem cellOf_eq_cellOfRows (t : Air.Flat.Table K) (x i : ℕ) :
+private theorem cellOf_eq_cellOfRows (t : Air.Flat.Table K) (x i : ℕ) :
     cellOf t x i = cellOfRows t.table.toArray x i := by
   simp [cellOf, cellOfRows]
 

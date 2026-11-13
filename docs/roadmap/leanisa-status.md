@@ -2,7 +2,8 @@
 
 **This branch** (`feat/leanisa-clean-equivalence`, 2026-10-29) ports Layers 5 to 10 to Clean main
 `ce2eee63` (fixed columns, Clean #446; direction-tagged multiset balance, Clean #493 and #495;
-the names that collided with ArkLib moved out of the root namespace, Clean #497).
+the names that collided with ArkLib moved out of the root namespace, Clean #497); the pin has
+since moved to `6a2e7bb9` (the Lean `v4.35.0` paragraph below).
 The bus is three direction-tagged channels (`StateChannel`, `MemChannel`, `BytecodeChannel`),
 balanced by Clean's `Balance.multiset`; the memory and bytecode blocks are preallocated
 components with fixed columns (`memComponent κ`, its address column `gpowCell`;
@@ -35,6 +36,33 @@ with characteristic-two natural casts (`K.ofBits` preserves encoded words). Clea
 first-party bridges now use modules, and message-flattening proofs use the public normalization
 interface. This resolves the historical C8 import restriction; C8 and E6 below remain evidence
 about the earlier pins. Current dependency revisions are in [dependencies.md](../dependencies.md).
+
+The Lean `v4.35.0` dependency port (Mathlib `56a00585`) moves Clean from `ce2eee63` to main
+`6a2e7bb9` and CompPoly from `572f9973` to `e28da348`. At `a985c76c` Clean and Batteries both
+declared `Vector.get_eq_getElem`; Clean PR #513 removed Clean's copy, and the Clean pin is its
+merge commit. At the new Clean pin `Balance.multiset` is the `0`/`1`
+multiplicities and the permutation of the active messages, with no bound on the number of
+interactions (Clean `21247235`). `SatisfiedBy` is unchanged in text and logically equivalent to
+its reading at `ce2eee63`: the old bound follows from the `caps` field on each of the three
+channels, which the test theorem `interactionsWith_length_lt`
+(`tests/LeanerVMTests/Protocol/LeanIsaSound.lean`) proves.
+
+At the new Clean pin `ProverData` is the structure `{tables, publicInput}`, and `Circuit.witgen`
+and `proverEnvironment` take the data (Clean #511). The `FiniteField K` instance is Clean's
+`instFiniteFieldBF64` (`Clean.Utils.BinaryField`, imported by `Arithmetization/Channels.lean`),
+with the same `val`, `fromNat = K.ofBits` and `size = 2^64`; `LeanerVM/Parameters/CleanField.lean`
+and `instFiniteFieldK` are deleted, and the test `tests/LeanerVMTests/Parameters/CleanField.lean`
+keeps its guards against Clean's instance. Consumers of the deleted `rowAt_toElements` use
+Clean's `ProvableType.valueFromOffset_zero_fromInput_eq`. `jumpEnv` is deleted and
+`jump_env_iff` is a test theorem (with `jump_proverEnvironment_slots`, the honest witnesses of
+Clean's environment on every row): `jump_exec_complete` is stated in Clean's honest environment
+`jumpTable.proverEnvironment row data default` and closed by
+`constraintsHold_of_usesLocalWitnesses`.
+
+Lean `v4.35.0` exposes core's `DecidableEq` for `Vector` and `Array` and makes `Fin.foldl`
+structural, so findings L1 and L2 below no longer hold. The elaborator's `rfl` and `decide` on
+`K` arithmetic can now exhaust the recursion depth; those sites rewrite first or use
+`decide +kernel`.
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 8
 (built and proved on top of `main` at `42bbd51`, where Layer 7 landed as PR #21 on 2026-09-16;
@@ -69,8 +97,9 @@ alone, and the program enters through `bytecodeRowOf prog`, `leanIsaVerifier pro
 `SatisfiedBy prog`. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
 define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, `g`, and `gpow`,
 and prove `orderOf_g` and `gpow_injOn` from the seven `decide +kernel` checks; Clean's
-`FiniteField K` instance is `instFiniteFieldK` in the plain file
-`LeanerVM/Parameters/CleanField.lean`. `LeanerVM/Parameters/Blake2s.lean` and
+`FiniteField K` instance was then `instFiniteFieldK` in the plain file
+`LeanerVM/Parameters/CleanField.lean`, and is now Clean's own `instFiniteFieldBF64`
+(`Clean.Utils.BinaryField`). `LeanerVM/Parameters/Blake2s.lean` and
 `LeanerVM/Semantics/Blake2s.lean` define `iv`, `sigma`, the two-flag `compress`, the cell encoding
 (`cellWords`, `wordsCell`, `unpackMetadata`), and `CompressCells`, each pinned by kernel-checked
 vectors from RFC 7693, from CPython's `hashlib.blake2s`, and from the pinned Rust executor.
@@ -120,8 +149,10 @@ honest prover's row of a valid execution (`*RowOf mem …`, `*RowOf_refines`, `*
 `blake2sRow_complete` for the
 boundary), `storeCoords_eval` (the `DEREF` store coordinates are `derefSource` at each flag
 setting), `flags_sound` and `flags_complete` (the two `JUMP` residuals force the indicator),
-and `jumpEnv` with `jump_env_iff` (the witness discipline); the limb arithmetic (`add_limbs`,
-`mul_limbs`, `E.ofCell`) is Layer 0's and the image read-back (`MemImage.limbsAt`,
+and `jumpEnv` with `jump_env_iff` (the witness discipline; at the Clean `a985c76c` bump, where
+`jump_exec_complete` moved to Clean's `proverEnvironment`, `jumpEnv` is deleted and `jump_env_iff`
+moves to the tests); the limb arithmetic
+(`add_limbs`, `mul_limbs`, `E.ofCell`) is Layer 0's and the image read-back (`MemImage.limbsAt`,
 `MemImage.cellAt`) Layer 2's. `LeanerVM/Arithmetization/Boundary.lean` defines the public input
 of the constraint system `PublicIO` (the four lanes; `PublicIO.ofInput input`), the two seed
 rows `MemRow` and `BytecodeRow`, the memory row's binding to an image (`MemBindings`, the
@@ -165,8 +196,8 @@ module (P3).
 
 | Layer | Status | Notes |
 | --- | --- | --- |
-| 0 — fields, limbs, generator | landed (PR #6) | `instFiniteFieldK` lives in the plain `CleanField.lean` (C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
-| 1 — BLAKE2s | landed (PR #7) | flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file (L1) |
+| 0 — fields, limbs, generator | landed (PR #6) | the `FiniteField K` instance is Clean's `instFiniteFieldBF64` (`instFiniteFieldK` in the plain `CleanField.lean` until the Clean `a985c76c` bump; C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
+| 1 — BLAKE2s | landed (PR #7) | flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file, decided directly since Lean `v4.35.0` (L1) |
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
@@ -454,8 +485,9 @@ module (P3).
   `*Refines mem r next` over `execute` of the instruction the row names, `*_exec_complete`.)
   The executable obligation the review names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
-  carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
-  it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
+  then carried no data (`ProverEnvironment.fromArray` set it empty; it takes the data since
+  Clean #511, in the pin since `a985c76c`) and the kernel does not reduce it; the tests run it
+  compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
   adjusted in four places, each written into the roadmap:
   - Each table is a `GeneralFormalCircuit K Row Regs`, not `… unit`: `main` returns the state
     it pushes and `Spec r next data` is `step … ⟨r.pc, r.fp⟩ = some next`. The `JUMP` successor
@@ -507,7 +539,8 @@ module (P3).
   `circuit_norm`, pre-order or post-order), `simp +instances`, `dsimp`, `show` nor `Iff.rfl`
   can touch it afterwards. Inside `circuit_proof_start` the row's fields are variables and the
   instance stays consistent; a lemma stated over a `Var Row K` destructures the row first and
-  rewrites the conditional before the descent (`ite_feq`, a `↓` simp lemma in `Jump.lean`).
+  rewrites the conditional before the descent (`ite_feq`, a `↓` simp lemma in `Jump.lean`
+  until the Clean `a985c76c` bump, which deleted it with `jumpEnv`).
   Two neighbours: unfolding a table by `simp` (rather than `dsimp`) inside a hypothesis
   exhausts the recursion depth, and the kernel does not reduce `Circuit.witgen` on a literal
   row (its `Array` fold stays stuck), so the generator is checked compiled (`#guard`). The
@@ -584,8 +617,8 @@ module (P3).
   `import` of a non-`module` from a `module`, so the Clean-facing files and everything importing
   them are plain; Layers 5 to 10 are plain files.
 - **CompPoly's `Ext` arithmetic does not reduce in the kernel from a `module` file** (P1), and
-  neither does any `Vector` or `E` equality (L1); the Layer 3 and Layer 6 fixtures are plain
-  test files (decision 4, settled).
+  before Lean `v4.35.0` neither did any `Vector` or `E` equality (L1); the Layer 3 and Layer 6
+  fixtures are plain test files (decision 4, settled).
 - **The Rust vectors.** Layer 1's (`blake2s_computes_the_compression`) is reproduced by
   `scripts/dump-blake2s-rust.sh`; Layer 3's and Layer 6's (`mul_192bit_word`,
   `cpu/mod.rs:981-998`) by `scripts/dump-mul-rust.sh`, whose product CompPoly reproduces in the
@@ -595,11 +628,18 @@ module (P3).
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
   The name clash of C13 is resolved upstream (Clean #497), so no Clean item is owed.
-- **Clean main has moved past the pin `ce2eee63`** (watched, 2026-11-05): `21247235`
-  (2026-11-02) drops `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions
-  per channel, which `interactionsWith_length_lt` now discharges from the caps; Clean
-  PR [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moves Clean to
-  Lean `v4.34.1`, the root toolchain. Neither is needed; both arrive with the next bump.
+- **What the Clean pin `6a2e7bb9` brought** (the Lean `v4.35.0` bump): `21247235` (2026-11-02) drops
+  `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions per channel, so
+  `interactionsWith_length_lt`, which derives it from the caps, moves from the library to the tests
+  and `SatisfiedBy` keeps its meaning; Clean PR
+  [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moved Clean to Lean
+  `v4.34.1`, and `6a2e7bb9` builds on `v4.35.0`, the root toolchain; `ProverData` became the
+  structure `{tables, publicInput}`, with `deriveProverData` taking the public input; and Clean #511
+  passes the data to `Circuit.witgen` and gives each circuit an honest environment,
+  `proverEnvironment`, which `jump_exec_complete` now uses in place of `jumpEnv`. Clean PR #513
+  (merged 2026-11-13; the pin is its merge commit) removed Clean's copy of Batteries'
+  `Vector.get_eq_getElem`, which broke any module importing Clean and CompPoly's multivariate
+  polynomials.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound
@@ -623,7 +663,9 @@ line.
    and read at a literal index and decide the residual closed term in the kernel; Layer 6's
    row tests read the prover data through `imageOf_apply` and `programOf_code`. A CompPoly pin
    bump making `Ext.ofFn` and `Ext.instDecidableEq` kernel-reducible under the module system
-   would let them move to `module` files. Since `gLog?` is noncomputable, `ValidExecution` is
+   would let them move to `module` files. Lean `v4.35.0` exposes core's `Array.ofFn` and
+   `Vector` `DecidableEq`, the causes P1 and L1 name; whether `Ext` now reduces from a `module`
+   file is not yet checked. Since `gLog?` is noncomputable, `ValidExecution` is
    neither kernel-decidable nor compilable at any `κ`.
 5. **Restoring a test executable** (P3). The library test driver is a workaround. If the
    roadmap's executable fixtures, the differential tests against the pinned Rust, or the native
@@ -659,9 +701,9 @@ line.
     Flock). The pull guarantees have no separate name: `circuit_proof_start` supplies them, and
     the review's follow-up of 2026-09-14 removed `XorRowReads`. Access counts stay outside the
     contract.
-    Row builders `*RowOf` are noncomputable; an executable, data-aware generator is T2's, since
-    Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`) and the kernel
-    does not reduce it.
+    Row builders `*RowOf` are noncomputable; an executable, data-aware generator is T2's.
+    Clean's `Circuit.witgen` takes the data since Clean #511 (in the pin since `a985c76c`), but
+    the kernel does not reduce it.
 12. Settled with Layer 7 (F9): a boundary block's `Spec` is its pull guarantee, stated over an
     image for the memory block (`MemBindings`, adapted to the prover data as `MemSpec`) and,
     since decision 14, program-free for the bytecode block (`BytecodeDecodes`; the first shape
@@ -882,21 +924,27 @@ its 8322 modules but no objects, so `lake` compiles all of them first (observed 
 was built, OOM-killed on a 16 GB machine). **P4** `Ext`'s `DecidableEq` is the derived
 `Vector` instance, so a kernel `E` equality has the E5 hazard: it decides only against a word
 in `E.ofLimbs` form with literal limbs, or between syntactically identical terms. A
-list-comparing instance (as decision 4 already asks for L1) would remove it. P5 `Ext.coeff_add`,
-`Ext.coeff_mul`, `Ext.coeff_zero` are `simp` lemmas keyed on `Ext.coeff`, and leanISA's
-`E.limb` is an `abbrev` of it, so they never fire on `E.limb` terms; Layer 6 states the needed
-instances as terms (`limb_add`, `limb_zero`) and proves `mul_limbs` by the fold `y^3 = y + 1`.
+list-comparing instance (the shape L1 required of Layer 1 until Lean `v4.35.0`) would remove
+it. P5 `Ext.coeff_add`, `Ext.coeff_mul`, `Ext.coeff_zero` are `simp` lemmas keyed on
+`Ext.coeff`, and leanISA's `E.limb` is an `abbrev` of it, so they never fire on `E.limb` terms;
+Layer 6 states the needed instances as terms (`limb_add`, `limb_zero`) and proves `mul_limbs`
+by the fold `y^3 = y + 1`.
 
 **Lean core** (`v4.33.1`, module system): **L1 core's `DecidableEq` for `Vector` and `Array` is
 not exposed** (`Init/Data/Array/DecidableEq.lean` is a `public section` without `@[expose]`, and
 the derived `Vector` instance goes through it), so from a `module` file neither `decide` nor the
 kernel reduces a `Vector` equality, nor `DecidableEq E`, while `List` equality, `Vector`
 indexing, `Fin` and `UInt32` equality, and `Nat.decidableForallFin` all reduce. Layer 1's
-`Decidable (CompressCells …)` therefore compares word lists, its tests decide vector equalities
-through `Vector.toList_inj`, and `E` equalities in tests go through `E.ext` or a theorem. L2
-`Fin.foldl` is well-founded recursion and does not reduce; `compress` folds `Vector.foldl` over
-`sigma`, which does. L3 `#guard` in a `module` file is a `meta` definition and needs a
-`meta import` of the module it evaluates (`Lean/Compiler/LCNF/Visibility.lean`, `checkMeta`).
+`Decidable (CompressCells …)` therefore compared word lists, its tests decided vector equalities
+through `Vector.toList_inj`, and `E` equalities in tests go through `E.ext` or a theorem. Fixed
+upstream at Lean `v4.35.0`, which exposes the instance: the `CompressCells` instance is now
+`unfold CompressCells; infer_instance`, and the BLAKE2s tests decide `Vector` equalities
+directly. L2 `Fin.foldl` is well-founded recursion and does not reduce; `compress` folds
+`Vector.foldl` over `sigma`, which does. Fixed upstream at Lean `v4.35.0`: `Fin.foldl` is
+structural and reduces in the kernel and in `whnf`; `compress` keeps its `Vector.foldl`, the
+transcription, and no code worked around L2. L3 `#guard` in a `module` file is a `meta`
+definition and needs a `meta import` of the module it evaluates
+(`Lean/Compiler/LCNF/Visibility.lean`, `checkMeta`).
 
 **Environment** (Lean `v4.33.1`, Mathlib at the pin). **E1** the elaborator's `decide` exhausts
 `maxRecDepth` on `K` powers, even `g ^ 5`, when the decision goes through instance search on a
@@ -943,10 +991,11 @@ with a `2`. **E7 `circuit_norm` strands the `Decidable` instance of a witness pr
 rewrites the proposition under `decide (x.eval = 0)` and the `ite` condition around it while
 the instance keeps the old terms, an ill-typed term at reducible transparency that no later
 rewrite matches; a lemma stated over a `Var Row K` destructures the row and rewrites the
-conditional before the descent (`ite_feq`, `Jump.lean`; the roadmap's conventions carry the
-rule, "Witness programs"). Unfolding a table by `simp` inside a hypothesis exhausts the
-recursion depth where `dsimp` does not, and the kernel does not reduce `Circuit.witgen` on a
-literal row, so the generator is checked compiled. **E8 Lean's lazy unfolding and the kernel's
+conditional before the descent (`ite_feq`, `Jump.lean`, deleted with `jumpEnv` at the Clean
+`a985c76c` bump; the roadmap's conventions carry the rule, "Witness programs"). Unfolding a
+table by `simp` inside a hypothesis exhausts the recursion depth where `dsimp` does not, and the
+kernel does not reduce `Circuit.witgen` on a literal row, so the generator is checked
+compiled. **E8 Lean's lazy unfolding and the kernel's
 literal check evaluate a `2^16`-row table** (found with Layer 8, 2026-09-17): a definitional
 comparison of a stuck projection against a `List.ofFn`/`Array.ofFn` unrolls it, any defeq that
 puts the data's log-size `(imageOf data).1` beside a numeral makes `Nat.log` and

@@ -7,7 +7,7 @@
 
 module
 
-public import Mathlib.Algebra.BigOperators.Fin
+public import CompPoly.Fields.Extension.Arithmetic
 
 /-!
 # Sums and products as loops
@@ -15,8 +15,9 @@ public import Mathlib.Algebra.BigOperators.Fin
 A `Finset.sum` over `Fin n` compiles to a fold over the list of the indices, built for each sum.
 `sumFin f` and `prodFin f` are `Σ_i f i` and `∏_i f i` as `Fin.foldl` loops, with no list
 (`sumFin_eq_sum`, `prodFin_eq_prod`), and `hornerFin f x` is `Σ_i x ^ i · f i` by Horner's rule,
-one product per term (`hornerFin_eq_sum`). `foldl_add_eq_add_sum` and `foldl_mul_eq_mul_prod` are
-the same loops from any starting value. Nothing here transcribes a source.
+one product per term (`hornerFin_eq_sum`). `foldl_mul_eq_mul_prod` is the product loop from any
+starting value; CompPoly's `Fin.foldl_add_eq_add_sum` is the sum loop. Nothing here transcribes a
+source.
 -/
 
 namespace LeanerVM.Protocol
@@ -27,31 +28,9 @@ namespace LeanerVM.Protocol
 def sumFin {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
   Fin.foldl n (fun acc i ↦ acc + f i) 0
 
-/-- The loop is the sum. -/
-theorem sumFin_eq_sum {M : Type*} [AddCommMonoid M] : {n : ℕ} → (f : Fin n → M) →
-    sumFin f = ∑ i, f i
-  | 0, f => by simp [sumFin]
-  | n + 1, f => by
-    rw [sumFin, Fin.foldl_succ_last, Fin.sum_univ_castSucc, ← sumFin_eq_sum, sumFin]
-
 /-- `∏_i f i` as a loop over the indices. -/
 def prodFin {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) : M :=
   Fin.foldl n (fun acc i ↦ acc * f i) 1
-
-/-- The loop is the product. -/
-theorem prodFin_eq_prod {M : Type*} [CommMonoid M] : {n : ℕ} → (f : Fin n → M) →
-    prodFin f = ∏ i, f i
-  | 0, f => by simp [prodFin]
-  | n + 1, f => by
-    rw [prodFin, Fin.foldl_succ_last, Fin.prod_univ_castSucc, ← prodFin_eq_prod, prodFin]
-
-/-- A left fold adding `f i` is the sum of the `f i`. -/
-theorem foldl_add_eq_add_sum {M : Type*} [AddCommMonoid M] :
-    ∀ {n : ℕ} (f : Fin n → M) (a : M), Fin.foldl n (fun acc i ↦ acc + f i) a = a + ∑ i, f i
-  | 0, _, a => by simp
-  | n + 1, f, a => by
-    rw [Fin.foldl_succ_last, foldl_add_eq_add_sum (fun i : Fin n ↦ f i.castSucc),
-      Fin.sum_univ_castSucc, add_assoc]
 
 /-- A left fold multiplying by `f i` is the product of the `f i`. -/
 theorem foldl_mul_eq_mul_prod {M : Type*} [CommMonoid M] :
@@ -60,6 +39,16 @@ theorem foldl_mul_eq_mul_prod {M : Type*} [CommMonoid M] :
   | n + 1, f, a => by
     rw [Fin.foldl_succ_last, foldl_mul_eq_mul_prod (fun i : Fin n ↦ f i.castSucc),
       Fin.prod_univ_castSucc, mul_assoc]
+
+/-- The loop is the sum. -/
+theorem sumFin_eq_sum {M : Type*} [AddCommMonoid M] {n : ℕ} (f : Fin n → M) :
+    sumFin f = ∑ i, f i :=
+  (Fin.foldl_add_eq_add_sum f 0).trans (zero_add _)
+
+/-- The loop is the product. -/
+theorem prodFin_eq_prod {M : Type*} [CommMonoid M] {n : ℕ} (f : Fin n → M) :
+    prodFin f = ∏ i, f i :=
+  (foldl_mul_eq_mul_prod f 1).trans (one_mul _)
 
 /-- `Σ_i x ^ i · f i` by Horner's rule: `f 0 + x · (f 1 + x · (…))`. -/
 def hornerFin {R : Type*} [CommRing R] {n : ℕ} (f : Fin n → R) (x : R) : R :=

@@ -20,8 +20,6 @@ input is the relation at the empty vector, and the error of each is `N / |C|` (`
 
 * `indep`, `card_badChallenge_le_of_indep`: relations that ignore the witness, and the count of
   bad challenges for them, as `card_badChallenge_le_of_unit` is for the trivial witness;
-* `passThroughSecurityOfImp`: the pass-through component is secure at the empty error whenever the
-  output relation at the mapped statement implies the input relation;
 * `drawPushSecurity`, `drawPushesSecurity`: one pushed challenge, and the first `j ≤ n`.
 -/
 
@@ -50,40 +48,12 @@ theorem card_badChallenge_le_of_indep [∀ i, OracleInterface (OStmt i)] [Sample
     (h : ¬ RI (s, o) → Nat.card {c : C // RO (f s c, o)} ≤ N) :
     Nat.card {c : C // badChallenge OStmt C f (relIn := indep S OStmt W RI)
       (relOut := indep T OStmt W RO) s o c} ≤ N := by
-  have := Fintype.ofFinite C
-  classical
-  rw [natCard_subtype_eq_card_filter]
   by_cases hin : RI (s, o)
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le N)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    rintro c - ⟨w, hw, -⟩
-    exact hw hin
-  · refine (Finset.card_le_card fun c hc ↦ ?_).trans
-      ((natCard_subtype_eq_card_filter _).symm.trans_le (h hin))
-    rw [Finset.mem_filter] at hc ⊢
-    obtain ⟨-, w, -, hw⟩ := hc
-    exact ⟨Finset.mem_univ _, hw⟩
+  · rw [natCard_subtype_eq_zero fun _ ⟨_, hw, _⟩ ↦ hw hin]
+    exact Nat.zero_le N
+  · exact (natCard_subtype_mono fun _ ⟨_, _, hw⟩ ↦ hw).trans (h hin)
 
 end Indep
-
-section PassThrough
-
-variable {ι : Type} (OStmt : ι → Type) [∀ i, OracleInterface (OStmt i)]
-  {StmtIn StmtOut W : Type} (f : StmtIn → StmtOut)
-  {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)} {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
-  (h : ∀ s o w, ((f s, o), w) ∈ relOut → ((s, o), w) ∈ relIn)
-
-/-- The security half of the pass-through component, at error zero, with the extractor that keeps
-the witness, whenever the output relation at the mapped statement implies the input relation. -/
-def passThroughSecurityOfImp :
-    Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
-  guarded := (passThroughPure OStmt f).toGuardedForm
-  witMid := fun _ ↦ W
-  extractor := keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]
-  kSF := passThroughStateFunction OStmt f h
-  rbr := passThrough_rbr OStmt f h
-
-end PassThrough
 
 section Pushes
 
@@ -113,7 +83,7 @@ def drawPushesSecurity (relIn : Set ((S × ∀ i, OStmt i) × W)) (n N : ℕ)
     (j : ℕ) → j ≤ n →
       Security (drawPushes (W := W) OStmt C j) relIn (rel j)
         (drawsError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0)) j)
-  | 0, _ => passThroughSecurityOfImp OStmt (fun s ↦ (s, (#v[] : Vector C 0))) hIn
+  | 0, _ => passThroughSecurity OStmt (fun s ↦ (s, (#v[] : Vector C 0))) hIn
   | j + 1, hj =>
     (drawPushesSecurity relIn n N hIn hN j (by omega)).append
       (drawPushSecurity OStmt C rel j N (hN j (by omega)))

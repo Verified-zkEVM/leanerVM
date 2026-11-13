@@ -17,13 +17,15 @@ module
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import LeanerVM.Protocol.ToCompPoly.FinLoop
 public import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Algebra.Polynomial.BigOperators
+import CompPoly.ToMathlib.Polynomial.Roots
+import Mathlib.Algebra.Polynomial.OfFn
 
 /-!
 # Power batching
 
 A family of `J` values or tables is combined with powers `ρ^j`, starting at zero.
-The difference polynomial has degree at most `J - 1`. A false singleton remains false
+The polynomial whose coefficients are the differences of two families has degree at most
+`J - 1`, so a false family survives at most `J - 1` challenges. A false singleton remains false
 at every challenge, including zero. The empty family is handled separately.
 
 Candidate for CompPoly: finite power combinations, their multilinear table pairing and
@@ -77,46 +79,10 @@ theorem evalMle_batchWeight (w : Fin J → CMlPolynomialEval R μ) (ρ : R) (r :
   rw [Finset.sum_comm]
   simp_rw [mul_right_comm _ (ρ ^ _) _]
 
-/-- A family of true weighted claims always produces a true batch. -/
-theorem sumCube_hadamard_batchWeight_of_forall (w : Fin J → CMlPolynomialEval R μ)
-    (q : CMlPolynomialEval R μ) (v : Fin J → R)
-    (h : ∀ j, sumCube (hadamard (w j) q) = v j) (ρ : R) :
-    sumCube (hadamard (batchWeight w ρ) q) = powerBatch v ρ := by
-  rw [pairing_batchWeight]
-  simp_rw [h]
-
-/-- The polynomial whose coefficients are the differences of the individual claims. -/
-noncomputable def batchDifference (a v : Fin J → R) : Polynomial R :=
-  ∑ j : Fin J, Polynomial.monomial j.val (a j - v j)
-
-/-- The coefficient at index `j` is precisely the difference of claim `j`. -/
-theorem coeff_batchDifference (a v : Fin J → R) (j : Fin J) :
-    (batchDifference a v).coeff j.val = a j - v j := by
-  classical
-  simp [batchDifference, Polynomial.finsetSum_coeff, Polynomial.coeff_monomial,
-    Fin.val_inj]
-
-/-- A false component makes the difference polynomial nonzero. -/
-theorem batchDifference_ne_zero (a v : Fin J → R) (h : ∃ j, a j ≠ v j) :
-    batchDifference a v ≠ 0 := by
-  obtain ⟨j, hj⟩ := h
-  intro hp
-  have hc := coeff_batchDifference a v j
-  rw [hp, Polynomial.coeff_zero] at hc
-  exact hj (sub_eq_zero.mp hc.symm)
-
-/-- Evaluation of the difference polynomial is the difference of the two batches. -/
-theorem eval_batchDifference (a v : Fin J → R) (ρ : R) :
-    (batchDifference a v).eval ρ = powerBatch a ρ - powerBatch v ρ := by
-  simp [batchDifference, powerBatch, Polynomial.eval_finsetSum,
-    Polynomial.eval_monomial, Finset.sum_sub_distrib]
-
-/-- The zero polynomial convention makes the same natural-degree bound valid when `J = 0`. -/
-theorem natDegree_batchDifference_le (a v : Fin J → R) :
-    (batchDifference a v).natDegree ≤ J - 1 := by
-  unfold batchDifference
-  refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun j _ ↦ ?_
-  exact (Polynomial.natDegree_monomial_le (a j - v j)).trans (by have := j.isLt; omega)
+/-- Batching commutes with differences. -/
+theorem powerBatch_sub (a b : Fin J → R) (ρ : R) :
+    powerBatch a ρ - powerBatch b ρ = powerBatch (fun i ↦ a i - b i) ρ := by
+  simp only [powerBatch, ← Finset.sum_sub_distrib, sub_mul]
 
 /-- A false singleton has no successful challenge; a zero challenge cannot erase its error. -/
 theorem singleton_batch_ne (a v : Fin 1 → R) (h : a 0 ≠ v 0) (ρ : R) :
@@ -126,6 +92,13 @@ theorem singleton_batch_ne (a v : Fin 1 → R) (h : a 0 ≠ v 0) (ρ : R) :
 /-- The empty batch is the trivial zero target. -/
 @[simp] theorem empty_powerBatch (a : Fin 0 → R) (ρ : R) : powerBatch a ρ = 0 := by
   simp [powerBatch]
+
+/-- A batch with an entry in front: the entry, then the rest batched one power up. -/
+theorem powerBatch_cons (x : R) (a : Fin J → R) (ρ : R) :
+    powerBatch (Fin.cons x a : Fin (J + 1) → R) ρ = x + ρ * powerBatch a ρ := by
+  rw [powerBatch, powerBatch, Fin.sum_univ_succ, Finset.mul_sum]
+  simp only [Fin.cons_zero, Fin.cons_succ, Fin.val_zero, pow_zero, mul_one, Fin.val_succ, pow_succ]
+  exact congrArg (x + ·) (Finset.sum_congr rfl fun _ _ ↦ by ring)
 
 /-! ## Compiled forms -/
 
@@ -155,20 +128,20 @@ section FiniteField
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
-/-- At most `J - 1` challenges make a false family appear true after power batching. -/
+/-- At most `J - 1` challenges make a false family appear true after power batching: they are
+roots of the nonzero polynomial whose coefficients are the differences of the claims. -/
 theorem card_false_batch_le (a v : Fin J → F) (h : ∃ j, a j ≠ v j) :
     (Finset.univ.filter fun ρ ↦ powerBatch a ρ = powerBatch v ρ).card ≤ J - 1 := by
-  have hp := batchDifference_ne_zero a v h
-  calc
-    _ ≤ (batchDifference a v).roots.toFinset.card := by
-      apply Finset.card_le_card
-      intro ρ hρ
-      rw [Multiset.mem_toFinset, Polynomial.mem_roots hp]
-      exact (eval_batchDifference a v ρ).trans
-        (sub_eq_zero.mpr (Finset.mem_filter.mp hρ).2)
-    _ ≤ (batchDifference a v).roots.card := Multiset.toFinset_card_le _
-    _ ≤ (batchDifference a v).natDegree := Polynomial.card_roots' _
-    _ ≤ J - 1 := natDegree_batchDifference_le a v
+  obtain ⟨j, hj⟩ := h
+  have hp : Polynomial.ofFn J (a - v) ≠ 0 := fun hp ↦ hj <| sub_eq_zero.mp <| by
+    simpa [hp] using (Polynomial.ofFn_coeff_eq_val_of_lt (a - v) j.isLt).symm
+  calc _ = (Finset.univ.filter fun ρ ↦ (Polynomial.ofFn J (a - v)).eval (id ρ) = 0).card := by
+        refine congrArg Finset.card (Finset.filter_congr fun ρ _ ↦ ?_)
+        rw [← sub_eq_zero, powerBatch_sub, id, Polynomial.ofFn_eq_sum_monomial,
+          Polynomial.eval_finsetSum]
+        simp only [powerBatch, Polynomial.eval_monomial, Pi.sub_apply, mul_comm]
+    _ ≤ _ := Polynomial.card_eval_zero_le_natDegree _ id (Set.injOn_id _) _ hp
+    _ ≤ J - 1 := Nat.le_sub_one_of_lt (Polynomial.ofFn_natDegree_lt j.pos _)
 
 end FiniteField
 

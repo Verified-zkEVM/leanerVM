@@ -255,12 +255,11 @@ stateless honest provers when the fifth argument is `spec`.
 ArkLib builds an appended schedule's challenge samplers with `Fin.fappend₂`, which, compiled as
 defined, evaluates the inner schedules' entries at every step: `Prover.run` of
 `SumcheckRound.rounds`, each of whose rounds is prepended to the rest, took 0.6 ms at 4 rounds,
-1.3 s at 7, 18 s at 8 and 261 s at 9. With the forms by one comparison with the seam
-(`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, ArkLib's instances compiled again after them in
-`LeanerVM.Protocol.ToArkLib.AppendLazy`) it takes 0.1 ms at 8 rounds and 0.7 ms at 32
-(2026-10-26). The plain sumcheck of three tables of `2^16` entries runs in 6.0 s with state and
-38.1 s without (the stateless prover also computes each message twice, once to send it and once
-for its output statement). Recorded on 2026-10-23, each pair printing the same checksum:
+1.3 s at 7, 18 s at 8 and 261 s at 9. With the forms by one comparison with the seam (ArkLib's
+`@[csimp]` forms in `ArkLib.Data.Fin.Tuple.Lemmas`, ArkLib #1344) it takes 0.1 ms at 8 rounds and
+0.7 ms at 32 (2026-10-26). The plain sumcheck of three tables of `2^16` entries runs in 6.0 s with
+state and 38.1 s without (the stateless prover also computes each message twice, once to send it and
+once for its output statement). Recorded on 2026-10-23, each pair printing the same checksum:
 
 | Phase | `2^15` cells, `2^8` leaves: stateless | with state | `2^19` cells, `2^17` leaves: with state |
 | --- | ---: | ---: | ---: |

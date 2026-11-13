@@ -56,7 +56,8 @@ example : ∀ m ∈ (mulSends (mulRow g)).mem, MemChannel.Guarantees m (fillW 1 
   have hs := mul_sendsOpcode (t := tableAt (fillW 1 g memCnt) 1)
     (tableAt_component _ 1) (rawRow (mulRow g))
   rw [show valueFromOffset MulRow 0 ((tableAt (fillW 1 g memCnt) 1).environment
-    (rawRow (mulRow g))) = mulRow g from rowAt_toElements _ (mulRow g)] at hs
+    (rawRow (mulRow g))) = mulRow g from
+      ProvableType.valueFromOffset_zero_fromInput_eq (mulRow g) _] at hs
   have hrow : rawRow (mulRow g) ∈ (tableAt (fillW 1 g memCnt) 1).table := by
     rw [tableAt_one]
     exact List.mem_cons_self
@@ -79,7 +80,7 @@ example : ∃ k : Fin (2 ^ fillProg.logSize), (xorSends xorRow).bc.pc = gpow k �
   have hs := xor_sendsOpcode (t := tableAt (fillW 1 g memCnt) 0)
     (tableAt_component _ 0) (rawRow xorRow)
   rw [show valueFromOffset XorRow 0 ((tableAt (fillW 1 g memCnt) 0).environment
-    (rawRow xorRow)) = xorRow from rowAt_toElements _ xorRow] at hs
+    (rawRow xorRow)) = xorRow from ProvableType.valueFromOffset_zero_fromInput_eq xorRow _] at hs
   have hrow : rawRow xorRow ∈ (tableAt (fillW 1 g memCnt) 0).table := by
     rw [tableAt_zero]
     exact List.mem_cons_self

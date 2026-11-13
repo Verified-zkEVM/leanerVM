@@ -43,19 +43,19 @@ namespace Blake2s
 @[inline] def rotr7 (x : UInt32) : UInt32 := (x >>> 7) ||| (x <<< 25)
 
 /-- Rotation by 16 is two shifts. -/
-theorem rotr_sixteen (x : UInt32) : rotr x 16 = rotr16 x := by
+private theorem rotr_sixteen (x : UInt32) : rotr x 16 = rotr16 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr16, BitVec.rotateRight_def]
 
 /-- Rotation by 12 is two shifts. -/
-theorem rotr_twelve (x : UInt32) : rotr x 12 = rotr12 x := by
+private theorem rotr_twelve (x : UInt32) : rotr x 12 = rotr12 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr12, BitVec.rotateRight_def]
 
 /-- Rotation by 8 is two shifts. -/
-theorem rotr_eight (x : UInt32) : rotr x 8 = rotr8 x := by
+private theorem rotr_eight (x : UInt32) : rotr x 8 = rotr8 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr8, BitVec.rotateRight_def]
 
 /-- Rotation by 7 is two shifts. -/
-theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
+private theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
   apply UInt32.toBitVec_inj.mp; simp [rotr, rotr7, BitVec.rotateRight_def]
 
 /-- `mix` on native rotations. -/
@@ -72,7 +72,7 @@ theorem rotr_seven (x : UInt32) : rotr x 7 = rotr7 x := by
   (((v.set a va).set b vb).set c vc).set d vd
 
 /-- `mixFast` is `mix`. -/
-theorem mixFast_eq : mixFast = mix := by
+private theorem mixFast_eq : mixFast = mix := by
   funext v a b c d x y
   simp only [mixFast, mix, rotr_sixteen, rotr_twelve, rotr_eight, rotr_seven]
 
@@ -161,15 +161,6 @@ private theorem toVector_roundWords (v : Words) (m : Vector UInt32 16) (s : Vect
     mixFast_toVector_4, mixFast_toVector_5, mixFast_toVector_6, mixFast_toVector_7]
   rfl
 
-/-- `round` through `roundWords`. -/
-def roundFast (v m : Vector UInt32 16) (s : Vector (Fin 16) 16) : Vector UInt32 16 :=
-  (roundWords (.ofVector v) m s).toVector
-
-/-- `roundFast` is `round`. -/
-theorem roundFast_eq : roundFast = round := by
-  funext v m s
-  rw [roundFast, toVector_roundWords, toVector_ofVector]
-
 end Blake2s
 
 /-- `compress` on native rotations and unboxed working words. -/
@@ -204,10 +195,10 @@ private theorem foldl_words (h : Vector UInt32 8) (m : Vector UInt32 16) (t : UI
   decidable_of_iff
     ((∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
       IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md ∧
-      (cellWords out0 ++ cellWords out1).toList =
-        (compressFast (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-          (unpackMetadata md).2.1 (unpackMetadata md).2.2).toList)
-    (by simp only [CompressCells, ← compress_eq_compressFast, Vector.toList_inj])
+      cellWords out0 ++ cellWords out1 =
+        compressFast (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
+          (unpackMetadata md).2.1 (unpackMetadata md).2.2)
+    (by simp only [CompressCells, ← compress_eq_compressFast])
 
 /-- Compiled code decides `CompressCells` through `compressFast`. -/
 @[csimp] theorem instDecidableCompressCells_eq :

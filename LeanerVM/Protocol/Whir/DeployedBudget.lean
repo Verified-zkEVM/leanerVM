@@ -115,7 +115,7 @@ theorem natCast_div_card_le {x : ℕ} (h : x ≤ 2 ^ 64) :
         ← mul_assoc, inv_mul_cancel₀ (by positivity), one_mul]
 
 /-- The positions' error `a^t / (2^b)^t ≤ 2^-111` when `a^t · 2^111 ≤ (2^b)^t`. -/
-theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
+private theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
     ((a ^ t : ℕ) : ℝ≥0) / (Nat.card (Fin t → Fin (2 ^ b)) : ℝ≥0) ≤ (2 ^ 111)⁻¹ := by
   rw [Nat.card_fun, Nat.card_eq_fintype_card, Nat.card_eq_fintype_card, Fintype.card_fin,
     Fintype.card_fin, div_le_iff₀ (by positivity), ← div_eq_inv_mul,
@@ -123,7 +123,7 @@ theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
   exact_mod_cast h
 
 /-- The fold error is largest at the first fold round. -/
-theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
+private theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
     foldErr P j ≤ foldErr P 0 := by
   unfold foldErr
   refine div_le_div_of_nonneg_right (Nat.cast_le.mpr ?_) zero_le
@@ -131,7 +131,7 @@ theorem foldErr_le_zero {sh : Shape} {κ : ℕ} (P : Par sh κ) (j : ℕ) :
     (Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) (by omega))) _
 
 /-- Every fold round's challenge has at most the first fold round's error. -/
-theorem foldRoundsErr_le {sh : Shape} {κ : ℕ} (P : Par sh κ) :
+private theorem foldRoundsErr_le {sh : Shape} {κ : ℕ} (P : Par sh κ) :
     (i j : ℕ) → ∀ x, foldRoundsErr P i j x ≤ foldErr P 0
   | 0, _ => fun x ↦ Fin.elim0 x.1
   | i + 1, j => errAppend_le_const

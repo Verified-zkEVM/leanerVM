@@ -15,7 +15,7 @@ public import LeanerVM.Arithmetization.Completeness.Basics
 # The messages of a row
 
 leanISA roadmap Layers 9 and 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin
-`ce2eee63`. Category A. The balance of the three channels is a statement about the messages the
+`6a2e7bb9`. Category A. The balance of the three channels is a statement about the messages the
 rows send, so constraint soundness (`Arithmetization.Rows`, on arbitrary rows) and the witness
 of `constraintCompleteness` (on honest rows) both read them from these closed forms. Every table's row circuit
 has the same shape: pull the state `(pc, fp)`, push the successor, read the bytecode entry at
@@ -210,9 +210,8 @@ theorem xor_sends_gen (x : Var XorRow K) (env : Environment K) (n : ℕ) (r : Xo
   subst hx
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, xorTable, instructionStep, memRead,
-    bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeRead, AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray,
+    -BitVec.reduceNeg]
 
 /-- The sends of the `MUL_NATIVE` row circuit, in closed form. -/
 theorem mul_sends_gen (x : Var MulRow K) (env : Environment K) (n : ℕ) (r : MulRow K)
@@ -241,9 +240,8 @@ theorem mul_sends_gen (x : Var MulRow K) (env : Environment K) (n : ℕ) (r : Mu
   subst hx
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, mulTable, instructionStep, memRead,
-    bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeRead, AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray,
+    -BitVec.reduceNeg]
 
 /-- The sends of the `SET_CONSTANT` row circuit, in closed form. -/
 theorem set_sends_gen (x : Var SetRow K) (env : Environment K) (n : ℕ) (r : SetRow K)
@@ -260,9 +258,8 @@ theorem set_sends_gen (x : Var SetRow K) (env : Environment K) (n : ℕ) (r : Se
   subst hx
   obtain ⟨pc, fp, o, k, r, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, setTable, instructionStep, memRead,
-    bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeRead, AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray,
+    -BitVec.reduceNeg]
 
 /-- The sends of the `DEREF` row circuit, in closed form. -/
 theorem deref_sends_gen (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r : DerefRow K)
@@ -287,9 +284,8 @@ theorem deref_sends_gen (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r 
   subst hx
   obtain ⟨pc, fp, o1, o2, o3, fpc, ffp, p, v3, r1, r2, r3, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, derefTable, instructionStep, memRead,
-    bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeRead, AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray,
+    -BitVec.reduceNeg]
 
 /-- The sends of the `JUMP` row circuit, in closed form: the pushed successor reads the indicator
 `b`, the local witness at slot `n + 1`. -/
@@ -314,8 +310,8 @@ theorem jump_sends_gen (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : 
   obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := x
   dsimp only [jumpTable]
   simp only [Operations.interactionValues, circuit_norm, instructionStep, memRead, bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, hb, -BitVec.reduceNeg]
+    AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray, hb,
+    -BitVec.reduceNeg]
 
 /-- The sends of the `BLAKE2S` row circuit, in closed form: nine cells of two limbs, the third
 limb of each message `0`. -/
@@ -351,9 +347,8 @@ theorem blake2s_sends_gen (x : Var Blake2sRow K) (env : Environment K) (n : ℕ)
   obtain ⟨pc, fp, om0, om1, om2, om3, ocv, oout, omd, m0, m1, m2, m3, out0, out1, cv0, cv1, md,
     rm0, rm1, rm2, rm3, rcv0, rcv1, rout0, rout1, rmd, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, blake2sTable, instructionStep, memRead,
-    bytecodeRead,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, memMsg_toArray,
-    bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeRead, AbstractInteraction.eval, regs_toArray, memMsg_toArray, bytecodeMsg_toArray,
+    -BitVec.reduceNeg]
 
 /-! ## The blocks and the verifier -/
 
@@ -368,7 +363,7 @@ theorem mem_sends_gen (x : Var MemRow K) (env : Environment K) (n : ℕ) (r : Me
   subst hx
   obtain ⟨idx, cntFin, m⟩ := x
   simp only [Operations.interactionValues, circuit_norm, memTable, AbstractInteraction.eval,
-    Vector.toArray_map, memMsg_toArray, -BitVec.reduceNeg]
+    memMsg_toArray, -BitVec.reduceNeg]
 
 /-- The sends of the bytecode block's row circuit: the seed push `(idx, 1, entry)` and the
 finalize pull `(idx, cntFin, entry)`. -/
@@ -384,7 +379,7 @@ theorem bytecode_sends_gen (x : Var BytecodeRow K) (env : Environment K) (n : �
   subst hx
   obtain ⟨idx, cntFin, opcode, op⟩ := x
   simp only [Operations.interactionValues, circuit_norm, bytecodeTable, AbstractInteraction.eval,
-    Vector.toArray_map, bytecodeMsg_toArray, -BitVec.reduceNeg]
+    bytecodeMsg_toArray, -BitVec.reduceNeg]
 
 /-- The sends of the verifier: the push of the initial state and the pull of the final one, in
 every environment. -/
@@ -393,7 +388,7 @@ theorem verifier_sends (prog : Program) (κ : ℕ) (env : Environment K) :
         (fun i ↦ (i.channel.name, i.direction, i.msg)) =
       [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] := by
   simp only [Operations.interactionValues, circuit_norm, leanIsaEnsemble, leanIsaVerifier,
-    AbstractInteraction.eval, Vector.toArray_map, regs_toArray, -BitVec.reduceNeg]
+    AbstractInteraction.eval, regs_toArray, -BitVec.reduceNeg]
 
 /-! ## Every interaction has multiplicity one -/
 

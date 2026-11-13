@@ -131,9 +131,6 @@ open Blake2sCircuit
 `4 … 7`, chaining-value cells `0 … 3`, metadata cells `18, 19`. -/
 def slots : Fin 18 → Fin 256 := ![10, 11, 12, 13, 14, 15, 16, 17, 4, 5, 6, 7, 0, 1, 2, 3, 18, 19]
 
-/-- No two limbs share a cell. -/
-theorem slots_injective : Function.Injective slots := by decide
-
 section Blocks
 
 variable {κ : ℕ}
@@ -219,18 +216,12 @@ private theorem ofFn_16 {α : Type} (f : Fin 16 → α) :
       f 14, f 15] := by
   apply Vector.toArray_inj.mp; simp [Array.ofFn_succ]
 
-private theorem counterLo_eq (a : K) : lowWord a = (⟨a.toBitVec⟩ : UInt64).toUInt32 := by
-  apply UInt32.toBitVec_inj.mp
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
-  simp [lowWord, hi]
+private theorem counterLo_eq (a : K) : lowWord a = (⟨a.toBitVec⟩ : UInt64).toUInt32 :=
+  UInt32.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ by simp [lowWord, hi])
 
 private theorem counterHi_eq (a : K) :
-    highWord a = ((⟨a.toBitVec⟩ : UInt64) >>> 32).toUInt32 := by
-  apply UInt32.toBitVec_inj.mp
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
-  simp [highWord, hi]
+    highWord a = ((⟨a.toBitVec⟩ : UInt64) >>> 32).toUInt32 :=
+  UInt32.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun i hi ↦ by simp [highWord, hi])
 
 /-- The words of two consecutive cells `s, s + 1` of block `t` are its words `2 s, …, 2 s + 3`. -/
 private theorem cellWords_pair (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (s s' : Fin 256)
@@ -313,12 +304,9 @@ variable {κ : ℕ}
 private theorem eq_of_words {a a' : K} (hl : lowWord a = lowWord a')
     (hh : highWord a = highWord a') :
     a = a' := by
-  apply BF64.toBitVec_injective
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
+  refine BF64.toBitVec_injective (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
   by_cases h : i < 32
-  · have := congrArg (fun w : UInt32 ↦ w.toBitVec.getLsbD i) hl
-    simpa [lowWord, h] using this
+  · simpa [lowWord, h] using congrArg (fun w : UInt32 ↦ w.toBitVec.getLsbD i) hl
   · have := congrArg (fun w : UInt32 ↦ w.toBitVec.getLsbD (i - 32)) hh
     simpa [highWord, show i - 32 < 32 by omega, show 32 + (i - 32) = i by omega] using this
 
@@ -330,8 +318,8 @@ instance : DecidablePred IsInputLimb :=
 
 /-- A compression is determined by its input limbs: two compressions agreeing on the fourteen
 input limbs are equal. -/
-theorem limbsCompress_unique {l l' : Fin 18 → K} (hl : LimbsCompress l) (hl' : LimbsCompress l')
-    (h : ∀ j, IsInputLimb j → l j = l' j) : l = l' := by
+private theorem limbsCompress_unique {l l' : Fin 18 → K} (hl : LimbsCompress l)
+    (hl' : LimbsCompress l') (h : ∀ j, IsInputLimb j → l j = l' j) : l = l' := by
   unfold LimbsCompress CompressCells at hl hl'
   have e := hl.2.2.2.2.2.2
   have e' := hl'.2.2.2.2.2.2
@@ -417,9 +405,7 @@ theorem holds_gen (rows : Vector (Fin 18 → K) (2 ^ κ)) :
 theorem slots_gen (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ))
     (hrel : LimbsCompress rows[t]) : slotLimbs slots (genColumn rows) t = rows[t] := by
   refine limbsCompress_unique (compress_of_holds _ (holds_gen rows) t) hrel fun j hj ↦ ?_
-  apply BF64.toBitVec_injective
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
+  refine BF64.toBitVec_injective (BitVec.eq_of_getLsbD_eq fun i hi ↦ ?_)
   have hs : (slots j).val < 4 ∨ (10 ≤ (slots j).val ∧ (slots j).val < 20) := by
     revert hj; fin_cases j <;> decide
   have hpos : 64 * (slots j).val + i < 2 ^ m := by show _ < 16384; omega
@@ -442,7 +428,7 @@ variable {κ : ℕ}
 def cellOfW (zw : Array UInt64) (s : Fin 256) : K := BF64.ofBitVec (zw.getD s 0).toBitVec
 
 /-- A cell of a bitset is the word of the words that hold it. -/
-theorem packCell_of_rep {zw : Array UInt64} {z : Form m} (h : Rep zw z) (s : Fin 256) :
+private theorem packCell_of_rep {zw : Array UInt64} {z : Form m} (h : Rep zw z) (s : Fin 256) :
     packCell z s = cellOfW zw s := by
   rw [packCell, cellOfW]
   congr 1

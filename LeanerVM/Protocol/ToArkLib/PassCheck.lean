@@ -76,21 +76,10 @@ theorem passCheck_complete
     (h : ∀ s o w, ((s, o), w) ∈ relIn → check s = true ∧ ((f s, o), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (passCheck (W := W) OStmt check f).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (passCheckGuarded OStmt check f) (s, o) witIn hx
-  have hrun : (passThroughProver OStmt f).run (s, o) witIn =
-      pure ((show (!p[] : ProtocolSpec 0).FullTranscript from fun i ↦ Fin.elim0 i),
-        (f s, o), witIn) := rfl
-  have hpr' : pr ∈ support ((passThroughProver OStmt f).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (passCheckGuarded OStmt check f).check (s, o) (fun i ↦ Fin.elim0 i) = true :=
-    (h s o witIn hIn).1
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, (h s o witIn hIn).2, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (passCheckGuarded OStmt check f) fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨(h s o w hIn).1, (h s o w hIn).2, rfl⟩
 
 /-- The completeness half. -/
 def passCheckComplete
@@ -112,11 +101,10 @@ def passCheckStateFunction :
     (passCheckVerifier OStmt check f).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦
-    have hg := Verifier.GuardedForm.of_probEvent_pos (passCheckGuarded OStmt check f)
-      init impl stmt tr _ hpos
+  toFun_full := fun stmt _ w hpos ↦
+    have hg := Verifier.GuardedForm.check_and_of_prEvent_pos (passCheckGuarded OStmt check f) hpos
     h stmt.1 stmt.2 w hg.1 hg.2
 
 /-- The security half of the pass-check component, at the empty error, with the extractor that

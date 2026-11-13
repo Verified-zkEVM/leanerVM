@@ -7,6 +7,7 @@
 
 module
 
+public import ArkLib.OracleReduction.LogicStep
 public import LeanerVM.Protocol.ToArkLib.SendOracle
 public import LeanerVM.Protocol.ToArkLib.Schedule
 
@@ -133,24 +134,10 @@ theorem sendOracleBeside_complete
       ((out s, besideData OStmt M o (honest ((s, o), w))), w) ∈ relOut)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (sendOracleBeside OStmt M honest out).red.perfectCompleteness init impl relIn relOut := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
-    (sendBesideVerifierPure OStmt M out).toGuardedForm (s, o) witIn hx
-  have hrun : (sendBesideProver OStmt M honest out).run (s, o) witIn =
-      pure (show (sayO M).FullTranscript from
-        ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-          (default : (sayO M).Transcript 0),
-        (out s, besideData OStmt M o (honest ((s, o), witIn))), witIn) := rfl
-  have hpr' : pr ∈ support ((sendBesideProver OStmt M honest out).run (s, o) witIn) := hpr
-  rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
-  subst hpr'
-  have hc : (sendBesideVerifierPure OStmt M out).toGuardedForm.check (s, o)
-      (ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-        (default : (sayO M).Transcript 0)) = true := rfl
-  rw [ite_eq_left hc]
-  exact ⟨_, rfl, h s o witIn hIn, rfl⟩
+  refine Reduction.perfectCompleteness_of_guarded_prover_support _
+    (sendBesideVerifierPure OStmt M out).toGuardedForm fun ⟨s, o⟩ w hIn q hq ↦ ?_
+  obtain rfl := (mem_support_pure_iff _ _).mp hq
+  exact ⟨rfl, h s o w hIn, rfl⟩
 
 /-- The completeness half. -/
 def sendOracleBesideComplete
@@ -183,11 +170,11 @@ def sendOracleBesideStateFunction :
     (sendBesideVerifier OStmt M out).toVerifier.KnowledgeStateFunction init impl relIn relOut
       (keepExtractor (S × ∀ i, OStmt i) W (sayO M)) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
-  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_empty := fun _ _ h ↦ h
   toFun_next := fun _ _ _ _ _ _ hw ↦ hw
   toFun_full := fun stmt tr w hpos ↦
-    have hv := Verifier.GuardedForm.of_probEvent_pos
-      (sendBesideVerifierPure OStmt M out).toGuardedForm init impl stmt tr _ hpos
+    have hv := Verifier.GuardedForm.check_and_of_prEvent_pos
+      (sendBesideVerifierPure OStmt M out).toGuardedForm hpos
     h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.2
 
 /-- The security half of the send-oracle-beside component: no challenge, no error, whenever

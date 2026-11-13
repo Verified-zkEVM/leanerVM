@@ -73,16 +73,14 @@ theorem exactNtt_of_codeword (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs �
     exactNtt κ R ℓ F = some V := by
   have hcols : ∀ u : Fin (2 ^ ℓ), (Vector.ofFn fun y : Fin (2 ^ (κ + R)) ↦ F y u) =
       encodeFast (algebraMap K E) κ R (V u) := fun u ↦ by
-    apply Vector.ext
-    intro y hy
+    refine Vector.ext fun y hy ↦ ?_
     rw [Vector.getElem_ofFn, ← hV ⟨y, hy⟩ u, ← encodeFast_getElem _ hb]
     rfl
   have hms : ∀ u : Fin (2 ^ ℓ), inv (algebraMap K E) κ
       (Vector.ofFn fun i : Fin (2 ^ κ) ↦ F ⟨i.val, lt_two_pow_add i⟩ u) 0 = V u := fun u ↦ by
     have hfirst : (Vector.ofFn fun i : Fin (2 ^ κ) ↦ F ⟨i.val, lt_two_pow_add i⟩ u) =
         fwd (algebraMap K E) κ (V u) 0 := by
-      apply Vector.ext
-      intro i hi
+      refine Vector.ext fun i hi ↦ ?_
       rw [Vector.getElem_ofFn, ← hV _ u, encode_eq_novelEval, fwd_getElem _ κ (by omega) _ _ _ hi,
         add_zero]
     rw [hfirst, inv_fwd]

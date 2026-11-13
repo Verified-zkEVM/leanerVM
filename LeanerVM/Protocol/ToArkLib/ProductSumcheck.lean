@@ -131,16 +131,10 @@ def roundPolyFolded (j : ℕ) (c : Vector F j) : SumcheckRound.Message F 2 :=
       evalMle_fixLow_push_one]
   · simp only [roundPoly, roundPolyFolded, h, dite_false]
 
-/-- A message of degree two evaluates as its three coefficients. -/
-private theorem evaluate_two (q : SumcheckRound.Message F 2) (x : F) :
-    SumcheckRound.evaluate 2 q x = q[0] + q[1] * x + q[2] * x ^ 2 := by
-  simp [SumcheckRound.evaluate, Fin.sum_univ_succ]
-  ring
-
 /-- The honest polynomial's value at `x` is the claim with one more coordinate fixed to `x`. -/
 theorem roundPoly_eval {j : ℕ} (hj : j < n) (c : Vector F j) (x : F) :
     SumcheckRound.evaluate 2 (roundPoly A B j c) x = claim A B (j + 1) (c.push x) := by
-  rw [roundPoly, dite_eq_left hj, evaluate_two, claim, plainSum,
+  rw [roundPoly, dite_eq_left hj, SumcheckRound.evaluate_two, claim, plainSum,
     dite_eq_left (Nat.succ_le_of_lt hj)]
   have hterm : ∀ x' : Fin (2 ^ (n - (j + 1))),
       summand A B (fixLow (Nat.succ_le_of_lt hj) (c.push x) (boolVec x')) =

@@ -45,20 +45,6 @@ open LeanerVM.Parameters LeanerVM.Semantics
 
 /-! ## The channels of a row's sends -/
 
-/-- Mapping the singletons of a list and then a function is mapping the composition. -/
-private theorem map_flatMap_singleton {α β γ : Type} (f : α → β) (h : β → γ) (l : List α) :
-    (l.flatMap fun a ↦ [f a]).map h = l.map fun a ↦ h (f a) := by
-  induction l with
-  | nil => rfl
-  | cons x xs ih => simp [ih]
-
-/-- A list of singletons is a map. -/
-theorem flatMap_singleton_eq_map {α β : Type} (f : α → β) (l : List α) :
-    (l.flatMap fun a ↦ [f a]) = l.map f := by
-  induction l with
-  | nil => rfl
-  | cons x xs ih => simp [ih]
-
 /-- A row sends one state pull, `(pc, fp)`. -/
 theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
@@ -93,7 +79,7 @@ private theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vecto
     chanOf MemChannel.name .pull (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
   simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
+  simp [StateChannel, MemChannel, BytecodeChannel, ← List.map_eq_flatMap]
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
 private theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
@@ -101,7 +87,7 @@ private theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vecto
     chanOf MemChannel.name .push (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
   simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
+  simp [StateChannel, MemChannel, BytecodeChannel, ← List.map_eq_flatMap]
 
 /-! ## Rows with counts -/
 
@@ -163,19 +149,6 @@ theorem mkRows_sk {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List S
   induction S generalizing sm sb with
   | nil => rfl
   | cons sk S ih => simp [mkRows, ih]
-
-/-- A row has a number for each memory read. -/
-private theorem mkRows_exps_length {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
-    ∀ r ∈ mkRows img sm sb S,
-      r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length := by
-  induction S generalizing sm sb with
-  | nil => simp [mkRows]
-  | cons sk S ih =>
-    intro r hr
-    simp only [mkRows, List.mem_cons] at hr
-    rcases hr with rfl | hr
-    · exact readExps_length _ _
-    · exact ih _ _ r hr
 
 /-! ## The messages of the memory and bytecode pairs -/
 
@@ -304,7 +277,7 @@ theorem mkRows_statePulls {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S 
   have h : ∀ r : PRow, chanOf StateChannel.name .pull (r.sends img) =
       [#[r.sk.pc, r.sk.fp]] := fun r ↦ sendsOf_statePull _ _ _ _ _ _
   simp only [h]
-  rw [flatMap_singleton_eq_map]
+  rw [← List.map_eq_flatMap]
   calc (mkRows img sm sb S).map (fun r ↦ #[r.sk.pc, r.sk.fp])
       = ((mkRows img sm sb S).map (·.sk)).map (fun sk ↦ #[sk.pc, sk.fp]) := by
         rw [List.map_map]; rfl
@@ -318,7 +291,7 @@ theorem mkRows_statePushes {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S
   have h : ∀ r : PRow, chanOf StateChannel.name .push (r.sends img) =
       [#[(nextOf img r.sk).pc, (nextOf img r.sk).fp]] := fun r ↦ sendsOf_statePush _ _ _ _ _ _
   simp only [h]
-  rw [flatMap_singleton_eq_map]
+  rw [← List.map_eq_flatMap]
   calc (mkRows img sm sb S).map (fun r ↦ #[(nextOf img r.sk).pc, (nextOf img r.sk).fp])
       = ((mkRows img sm sb S).map (·.sk)).map
           (fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]) := by

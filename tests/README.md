@@ -6,8 +6,8 @@ test is a `#guard` (compiled evaluation) or an `example` (kernel check) that fai
 checks the production public module graph; `scripts/validate.sh` elaborates it with warnings as
 errors. There is no test executable: at the former CompPoly pin a binary linking the `BF64`
 module was killed at startup evaluating its eager `Fintype BF64` instance (finding P3 in
-[`docs/roadmap/leanisa-status.md`](../docs/roadmap/leanisa-status.md)). At `572f9973` that
-instance is proof-only; whether the tests can again be an executable is unchecked.
+[`docs/roadmap/leanisa-status.md`](../docs/roadmap/leanisa-status.md)). Since CompPoly `572f9973`
+that instance is proof-only; whether the tests can again be an executable is unchecked.
 `scripts/check-imports.sh` rejects missing, stale, or duplicate test imports. The aggregate and
 `Main.lean` are plain files because `LeanerVM.lean` is one (see `CONTRIBUTING.md`); a test
 module may be a `module` or plain, and a plain one can decide `E` arithmetic in the kernel,
@@ -22,11 +22,10 @@ As executable definitions arrive, add focused unit, differential, and mutation t
 Put their modules under `tests/LeanerVMTests/` and import each one from `LeanerVMTests.lean`.
 Tests must not be imported by the production `LeanerVM/` library.
 
-In a `module` test file, a `#guard` needs a `meta import` of the module it evaluates, and
-core's `DecidableEq` instances for `Vector` and `Array` are not exposed, so neither `decide` nor
-the kernel can reduce an equality of vectors there (finding L1): state such checks on the word
-lists through `Vector.toList_inj`, and give production predicates over vectors a `Decidable`
-instance that compares lists, as `CompressCells` does in `LeanerVM/Semantics/Blake2s.lean`.
+In a `module` test file, a `#guard` needs a `meta import` of the module it evaluates. Since
+Lean `v4.35.0`, core exposes the `DecidableEq` instances of `Vector` and `Array`, so `decide` and
+the kernel reduce an equality of vectors in a `module` too (finding L1 is fixed upstream).
+Decide such checks directly.
 
 A kernel check of an equality on a structure over `K` or `E` goes through that structure's
 `DecidableEq` instance, and a *derived* instance decides its later fields under `h ▸` for the
@@ -93,7 +92,7 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   evaluated. State a refutation over variables and keep the hand run's values for the honest
   runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
 - Handing a transcript to a guarded check in a refutation
-  (`Verifier.GuardedForm.probEvent_pos_of_check` on `fullOf c msg`) can exceed the default
+  (`Verifier.GuardedForm.prEvent_pos_of_check` on `fullOf c msg`) can exceed the default
   recursion depth when the statement has three public lines, the unifier unfolding the count of
   sent lines to match the message: a local `set_option maxRecDepth 1000 in` on that one example
   is enough (`zeroTop` in `tests/LeanerVMTests/Protocol/PublicInput.lean`). `simpa` on a

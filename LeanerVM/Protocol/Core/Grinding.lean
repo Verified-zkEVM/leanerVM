@@ -238,7 +238,7 @@ theorem nonceChecked_of_walkChain {l : hashSpec.QueryLog} {prog : Program} {s : 
   exact ⟨L, hL, hinv (powCounts_chain prog s input shs)⟩
 
 /-- The step of a chain at a position is among the chain's queries. -/
-theorem mem_queries_of_getElem {cv : Digest} {hist : List (Block × Digest)} {j : ℕ}
+private theorem mem_queries_of_getElem {cv : Digest} {hist : List (Block × Digest)} {j : ℕ}
     {b : Block} {d : Digest} (h : hist[j]? = some (b, d)) :
     (⟨Block.input (HashChain.last cv (hist.take j)) b, d⟩ : (_ : List UInt8) × Digest) ∈
       HashChain.queries Block.input cv hist := by

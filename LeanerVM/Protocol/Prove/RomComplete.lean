@@ -11,7 +11,7 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.Prove.Complete
 public import LeanerVM.Protocol.ChainGroups
 public import LeanerVM.Protocol.ToVCVio.ProofOfWork
-public import LeanerVM.Protocol.ToVCVio.RandomOracleReplay
+import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
@@ -26,8 +26,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 The proof needs nothing about where the grinds sit in the run:
 
 1. a run of the lazy random oracle ending at the cache `c` is the run at the hash
-   `H_c t := (c t).getD d₀`, `d₀` the zero digest, which clears every grinding check
-   (`evalWithAnswerFn_eq_of_mem_support_randomOracle`, `proveWith_simulateQ`);
+   `H_c t := (c t).getD d₀`, `d₀` the zero digest, which clears every grinding check (VCVio's
+   `simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching`, `proveWith_simulateQ`);
 2. at any hash, the prover returns no proof only when a grind finds no nonce among its `fuel`
    candidates (`Prove.proveWith_eq_none`); at `H_c` each candidate that fails is cached with a
    failing answer, since an uncached one is answered by `d₀`, and the grind's base is `d₀` or a
@@ -106,7 +106,7 @@ private theorem findNonce_eq_none {H : List UInt8 → Digest} {base : Digest} {b
 /-- **A grind that fails at the cache's hash exhausts a search.** At the hash answering by the
 cache `c` and by the zero digest elsewhere, a grind of `bits` bits that finds no nonce among
 `fuel` candidates leaves the search from its base exhausted in `c`. -/
-theorem exhausted_of_grind_eq_none (c : hashSpec.QueryCache) {fs : FsState} {fuel bits : ℕ}
+private theorem exhausted_of_grind_eq_none (c : hashSpec.QueryCache) {fs : FsState} {fuel bits : ℕ}
     (hbits : bits ≠ 0)
     (h : Id.run (fs.grind (fun t ↦ (c t).getD zeroDigest) fuel bits) = none) :
     (grindSearch fuel bits).Exhausted c := by
@@ -181,8 +181,9 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
       z.1 = none → (grindSearch fuel queryGrindingBits).Exhausted z.2 := by
     intro z hz hnone
     set H : List UInt8 → Digest := fun t ↦ (z.2 t).getD zeroDigest
-    have hrun := (evalWithAnswerFn_eq_of_mem_support_randomOracle _ ∅ hz H
-      fun t u h ↦ by simp [H, h]).2
+    have hrun := QueryCache.evalWithAnswerFn_eq_of_agreesWithFn (f := H)
+      (fun t u h ↦ by simp [H, h]) _
+      (QueryImpl.simulateQ_toPartialImpl_snd_of_mem_support_run_simulateQ_withCaching _ _ hz)
     have hsim := proveWith_simulateQ (r := Id) (fun t ↦ pure (H t)) fuel F prog input w ρ
     have hnone' : proveWith (m := Id) H fuel F prog input w ρ = none :=
       hsim.symm.trans (hrun.trans hnone)
@@ -194,7 +195,7 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
       · exact absurd hs h
       · exact absurd hρ h
       · exact exhausted_of_grind_eq_none z.2 (by decide) hg
-  refine (OracleComp.prEvent_mono_of_support _ hev).trans ?_
+  refine (prEvent_mono_of_support _ _ _ hev).trans ?_
   refine ((grindSearch fuel queryGrindingBits).prEvent_exhausted_le
     (prEvent_not_lowBitsZero (by decide)) (by simp) hN).trans_eq ?_
   rw [card_digest, Nat.cast_pow, Nat.cast_ofNat]
@@ -204,14 +205,8 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
 
 private theorem pow_le_exp :
     ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-128) := by
-  have h1 : (1 : ℝ) - (2 ^ 17 : ℝ)⁻¹ ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) := by
-    have := Real.add_one_le_exp (-(2 ^ 17 : ℝ)⁻¹)
-    linarith
-  calc ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) :=
-        pow_le_pow_left₀ (by norm_num) h1 _
-    _ = Real.exp (-128) := by
-        rw [← Real.exp_nat_mul]
-        norm_num
+  have h := Real.one_sub_div_pow_le_exp_neg (n := 2 ^ 24) (t := 128) (by norm_num)
+  rwa [show (128 : ℝ) / ((2 ^ 24 : ℕ) : ℝ) = (2 ^ 17 : ℝ)⁻¹ by norm_num] at h
 
 private theorem exp_le : Real.exp (-128) ≤ (2 ^ 184 : ℝ)⁻¹ := by
   rw [Real.exp_neg, inv_le_inv₀ (Real.exp_pos _) (by positivity)]
