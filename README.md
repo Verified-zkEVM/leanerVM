@@ -16,6 +16,11 @@ right, and supplies an independent reference for validating the existing Rust im
 That validation begins with differential testing against pinned Rust revisions and may grow into
 formal verification of the relevant Rust code.
 
+## ⚠️ Status Update
+As of November 2026, this project is moving to [leanVM's formal folder](https://github.com/leanEthereum/leanVM/tree/main/formal)
+and will be eventually archived. All specifications and Lean 4 code will be housed there, while
+this repo will stay as is and may be used as a reference.
+
 ## Project status
 
 The repository baseline is in place: module boundaries, the test library, validation policy, CI
